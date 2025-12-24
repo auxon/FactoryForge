@@ -49,13 +49,13 @@ final class Player {
         
         // Set up player entity
         world.add(PositionComponent(tilePosition: .zero), to: entity)
-        world.add(SpriteComponent(
-            textureId: "player",
-            size: Vector2(1.5, 1.5),  // Visible size for player sprite
-            tint: .white,
-            layer: .entity,
-            centered: true
-        ), to: entity)
+            world.add(SpriteComponent(
+                textureId: "player",
+                size: Vector2(4.0, 4.0),  // Made much larger for visibility
+                tint: .white,
+                layer: .entity,
+                centered: true
+            ), to: entity)
         world.add(HealthComponent(maxHealth: 250, immunityDuration: 0.5), to: entity)
         world.add(VelocityComponent(), to: entity)
         world.add(CollisionComponent(radius: 0.4, layer: .player, mask: [.enemy, .building]), to: entity)

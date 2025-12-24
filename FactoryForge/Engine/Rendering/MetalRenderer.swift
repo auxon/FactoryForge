@@ -203,10 +203,9 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         encoder.setRenderPipelineState(tilePipeline)
         tileRenderer.render(encoder: encoder, viewProjection: viewProjection, camera: camera)
         
-        // Render sprites (entities, items on belts, etc.)
-        encoder.setRenderPipelineState(spritePipeline)
-        // Keep depth testing enabled - sprites are at z=-10 so they render in front of tiles
-        encoder.setDepthStencilState(depthState)
+        // Render sprites (entities, items on belts, etc.) using UI pipeline
+        encoder.setRenderPipelineState(uiPipeline)
+        encoder.setDepthStencilState(noDepthState) // No depth for sprites
         if let gameLoop = gameLoop {
             spriteRenderer.render(
                 encoder: encoder,
@@ -351,6 +350,10 @@ final class Camera2D {
     private var screenWidth: Float
     private var screenHeight: Float
     private var isFirstUpdate: Bool = true
+
+    var screenSize: Vector2 {
+        return Vector2(screenWidth, screenHeight)
+    }
     
     let minZoom: Float = 0.25
     let maxZoom: Float = 4.0

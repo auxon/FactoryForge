@@ -126,7 +126,7 @@ final class TextureAtlas {
                 height: Float(tileSize) / Float(atlasSize)
             )
             textureRects[name] = uvRect
-            
+
             // Move to next position
             currentX += tileSize
             if currentX + tileSize > atlasSize {
@@ -669,10 +669,10 @@ final class TextureAtlas {
                 let dy = y - centerY
                 if dx * dx + dy * dy <= bodyRadius * bodyRadius {
                     let idx = (y * width + x) * 4
-                    data[idx] = 230      // R - orange
-                    data[idx + 1] = 140  // G
-                    data[idx + 2] = 50   // B
-                    data[idx + 3] = 255
+                    data[idx] = 255      // R - pure red
+                    data[idx + 1] = 0    // G
+                    data[idx + 2] = 0    // B
+                    data[idx + 3] = 255  // A
                 }
             }
         }
@@ -686,9 +686,9 @@ final class TextureAtlas {
                 let dy = y - headY
                 if dx * dx + dy * dy <= headRadius * headRadius {
                     let idx = (y * width + x) * 4
-                    data[idx] = 255      // R
-                    data[idx + 1] = 200  // G
-                    data[idx + 2] = 150  // B - skin tone
+                    data[idx] = 255      // R - white
+                    data[idx + 1] = 255  // G
+                    data[idx + 2] = 255  // B
                     data[idx + 3] = 255
                 }
             }
