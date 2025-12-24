@@ -16,6 +16,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     // Depth state
     private var depthState: MTLDepthStencilState!
+    private var noDepthState: MTLDepthStencilState!
     
     // Texture atlas
     let textureAtlas: TextureAtlas
@@ -37,6 +38,10 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     // Frame statistics
     private(set) var drawCallCount: Int = 0
     private(set) var triangleCount: Int = 0
+    
+    // UI vertex buffer (to avoid setVertexBytes 4KB limit)
+    private var uiVertexBuffer: MTLBuffer?
+    private let maxUIVertices = 4096  // 4096 vertices = ~682 sprites
     
     init(device: MTLDevice, view: MTKView) {
         self.device = device
@@ -70,6 +75,13 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         
         setupPipelines(view: view)
         setupDepthState()
+        setupUIBuffer()
+    }
+    
+    private func setupUIBuffer() {
+        let bufferSize = MemoryLayout<UIVertex>.stride * maxUIVertices
+        uiVertexBuffer = device.makeBuffer(length: bufferSize, options: .storageModeShared)
+        uiVertexBuffer?.label = "UI Vertex Buffer"
     }
     
     private func setupPipelines(view: MTKView) {
@@ -142,6 +154,12 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         descriptor.depthCompareFunction = .less
         descriptor.isDepthWriteEnabled = true
         depthState = device.makeDepthStencilState(descriptor: descriptor)
+        
+        // No-depth state for UI rendering
+        let noDepthDescriptor = MTLDepthStencilDescriptor()
+        noDepthDescriptor.depthCompareFunction = .always
+        noDepthDescriptor.isDepthWriteEnabled = false
+        noDepthState = device.makeDepthStencilState(descriptor: noDepthDescriptor)
     }
     
     // MARK: - MTKViewDelegate
@@ -199,9 +217,10 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         encoder.setRenderPipelineState(particlePipeline)
         particleRenderer.render(encoder: encoder, viewProjection: viewProjection)
         
-        // Render UI
+        // Render UI in screen space (disable depth testing)
+        encoder.setDepthStencilState(noDepthState)
         encoder.setRenderPipelineState(uiPipeline)
-        gameLoop?.uiSystem?.renderMetal(encoder: encoder, screenSize: screenSize)
+        renderUISprites(encoder: encoder)
         
         encoder.endEncoding()
         
@@ -212,8 +231,15 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     // MARK: - Rendering Helpers
     
     func queueSprite(_ sprite: SpriteInstance) {
-        spriteRenderer.queue(sprite)
+        if sprite.layer == .ui {
+            uiSprites.append(sprite)
+        } else {
+            spriteRenderer.queue(sprite)
+        }
     }
+    
+    // UI sprites rendered in screen space
+    private var uiSprites: [SpriteInstance] = []
     
     func queueParticle(_ particle: ParticleInstance) {
         particleRenderer.queue(particle)
@@ -230,6 +256,85 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     func screenToWorld(_ screenPos: Vector2) -> Vector2 {
         return camera.screenToWorld(screenPos)
     }
+    
+    // MARK: - UI Rendering
+    
+    private func renderUISprites(encoder: MTLRenderCommandEncoder) {
+        guard !uiSprites.isEmpty else { return }
+        
+        // Create UI vertex data directly
+        var vertices: [UIVertex] = []
+        vertices.reserveCapacity(uiSprites.count * 6)
+        
+        for sprite in uiSprites {
+            let halfSize = sprite.size * 0.5
+            let center = sprite.position
+            
+            // Quad corners in screen space
+            let topLeft = center + Vector2(-halfSize.x, -halfSize.y)
+            let topRight = center + Vector2(halfSize.x, -halfSize.y)
+            let bottomLeft = center + Vector2(-halfSize.x, halfSize.y)
+            let bottomRight = center + Vector2(halfSize.x, halfSize.y)
+            
+            let uvOrigin = sprite.textureRect.origin
+            let uvSize = sprite.textureRect.size
+            let uvTopLeft = Vector2(uvOrigin.x, uvOrigin.y)
+            let uvTopRight = Vector2(uvOrigin.x + uvSize.x, uvOrigin.y)
+            let uvBottomLeft = Vector2(uvOrigin.x, uvOrigin.y + uvSize.y)
+            let uvBottomRight = Vector2(uvOrigin.x + uvSize.x, uvOrigin.y + uvSize.y)
+            
+            let color = sprite.color.vector4
+            
+            // Two triangles
+            vertices.append(UIVertex(position: topLeft, texCoord: uvTopLeft, color: color))
+            vertices.append(UIVertex(position: topRight, texCoord: uvTopRight, color: color))
+            vertices.append(UIVertex(position: bottomRight, texCoord: uvBottomRight, color: color))
+            
+            vertices.append(UIVertex(position: topLeft, texCoord: uvTopLeft, color: color))
+            vertices.append(UIVertex(position: bottomRight, texCoord: uvBottomRight, color: color))
+            vertices.append(UIVertex(position: bottomLeft, texCoord: uvBottomLeft, color: color))
+        }
+        
+        uiSprites.removeAll(keepingCapacity: true)
+        
+        guard !vertices.isEmpty else { return }
+        guard let uiVertexBuffer = uiVertexBuffer else { return }
+        
+        // Limit to max vertices
+        let vertexCount = min(vertices.count, maxUIVertices)
+        
+        // Copy vertex data to buffer
+        uiVertexBuffer.contents().copyMemory(
+            from: vertices,
+            byteCount: MemoryLayout<UIVertex>.stride * vertexCount
+        )
+        
+        // Set uniforms
+        var uniforms = UIUniforms(screenSize: screenSize)
+        encoder.setVertexBytes(&uniforms, length: MemoryLayout<UIUniforms>.size, index: 0)
+        
+        // Set vertex buffer
+        encoder.setVertexBuffer(uiVertexBuffer, offset: 0, index: 1)
+        
+        // Set texture
+        encoder.setFragmentTexture(textureAtlas.atlasTexture, index: 0)
+        encoder.setFragmentSamplerState(textureAtlas.sampler, index: 0)
+        
+        // Draw
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+    }
+}
+
+// MARK: - UI Shader Types
+
+struct UIVertex {
+    var position: Vector2
+    var texCoord: Vector2
+    var color: Vector4
+}
+
+struct UIUniforms {
+    var screenSize: Vector2
 }
 
 // MARK: - Camera

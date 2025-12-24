@@ -98,9 +98,11 @@ class InventorySlot: UIElement {
             Color(r: 0.3, g: 0.3, b: 0.4, a: 1) :
             Color(r: 0.2, g: 0.2, b: 0.25, a: 1)
         
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size,
+            textureRect: solidRect,
             color: bgColor,
             layer: .ui
         ))

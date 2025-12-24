@@ -99,9 +99,11 @@ final class ResearchUI: UIPanel_Base {
         let progressY = frame.maxY - 50
         
         // Background
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
             position: Vector2(frame.center.x, progressY),
             size: Vector2(progressBarWidth, progressBarHeight),
+            textureRect: solidRect,
             color: Color(r: 0.15, g: 0.15, b: 0.2, a: 1),
             layer: .ui
         ))
@@ -157,9 +159,11 @@ class TechButton: UIElement {
             bgColor = Color(r: 0.15, g: 0.15, b: 0.15, a: 1)
         }
         
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size,
+            textureRect: solidRect,
             color: bgColor,
             layer: .ui
         ))

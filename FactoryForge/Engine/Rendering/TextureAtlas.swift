@@ -97,7 +97,8 @@ final class TextureAtlas {
             ("circuit", generateCircuit),
             ("science_pack_red", generateSciencePackRed),
             ("science_pack_green", generateSciencePackGreen),
-            ("player", generatePlayer)
+            ("player", generatePlayer),
+            ("solid_white", generateSolidWhite)
         ]
         
         for (name, generator) in tiles {
@@ -690,6 +691,19 @@ final class TextureAtlas {
                     data[idx + 2] = 150  // B - skin tone
                     data[idx + 3] = 255
                 }
+            }
+        }
+    }
+    
+    private func generateSolidWhite(width: Int, height: Int, data: inout [UInt8]) {
+        // Solid white texture for UI backgrounds - just fill with white
+        for y in 0..<height {
+            for x in 0..<width {
+                let idx = (y * width + x) * 4
+                data[idx] = 255     // R
+                data[idx + 1] = 255 // G
+                data[idx + 2] = 255 // B
+                data[idx + 3] = 255 // A
             }
         }
     }

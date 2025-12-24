@@ -49,32 +49,40 @@ final class InputManager: NSObject {
     private func setupGestureRecognizers() {
         guard let view = view else { return }
         
+        // Ensure view can receive touches
+        view.isUserInteractionEnabled = true
+        view.isMultipleTouchEnabled = true
+        
         // Tap recognizer
         tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tapRecognizer.delegate = self
         view.addGestureRecognizer(tapRecognizer)
         
         // Pan recognizer for camera movement
         panRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
         panRecognizer.minimumNumberOfTouches = 1
         panRecognizer.maximumNumberOfTouches = 1
+        panRecognizer.delegate = self
         view.addGestureRecognizer(panRecognizer)
         
         // Pinch recognizer for zoom
         pinchRecognizer = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+        pinchRecognizer.delegate = self
         view.addGestureRecognizer(pinchRecognizer)
         
         // Long press recognizer
         longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         longPressRecognizer.minimumPressDuration = 0.5
+        longPressRecognizer.delegate = self
         view.addGestureRecognizer(longPressRecognizer)
         
         // Rotation recognizer for building rotation
         rotationRecognizer = UIRotationGestureRecognizer(target: self, action: #selector(handleRotation(_:)))
+        rotationRecognizer.delegate = self
         view.addGestureRecognizer(rotationRecognizer)
         
-        // Allow simultaneous recognition
-        tapRecognizer.require(toFail: longPressRecognizer)
-        panRecognizer.require(toFail: pinchRecognizer)
+        // Allow tap to work immediately without waiting for long press to fail
+        // (Long press will cancel if finger moves or lifts before the duration)
     }
     
     // MARK: - Gesture Handlers
@@ -83,6 +91,13 @@ final class InputManager: NSObject {
         guard recognizer.state == .ended else { return }
         
         let screenPos = screenPosition(from: recognizer)
+        
+        // Check UI first - UI uses screen coordinates
+        if gameLoop?.uiSystem?.handleTap(at: screenPos) == true {
+            return
+        }
+        
+        // UI didn't handle it, process game tap
         let worldPos = gameLoop?.renderer?.screenToWorld(screenPos) ?? .zero
         currentTouchPosition = worldPos
         
@@ -269,6 +284,13 @@ extension InputManager: UIGestureRecognizerDelegate {
             return true
         }
         if gestureRecognizer is UIRotationGestureRecognizer && otherGestureRecognizer is UIPinchGestureRecognizer {
+            return true
+        }
+        // Allow pinch and pan together (for simultaneous zoom and pan)
+        if gestureRecognizer is UIPinchGestureRecognizer && otherGestureRecognizer is UIPanGestureRecognizer {
+            return true
+        }
+        if gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UIPinchGestureRecognizer {
             return true
         }
         return false

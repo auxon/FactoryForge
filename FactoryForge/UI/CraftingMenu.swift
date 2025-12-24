@@ -109,10 +109,12 @@ final class CraftingMenu: UIPanel_Base {
             inputX += 40
         }
         
-        // Arrow
+        // Arrow (use solid white texture)
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
             position: Vector2(inputX + 20, detailsY),
             size: Vector2(30, 30),
+            textureRect: solidRect,
             color: .white,
             layer: .ui
         ))
@@ -166,9 +168,11 @@ class RecipeButton: UIElement {
             Color(r: 0.2, g: 0.3, b: 0.2, a: 1) :
             Color(r: 0.25, g: 0.2, b: 0.2, a: 1)
         
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size,
+            textureRect: solidRect,
             color: bgColor,
             layer: .ui
         ))

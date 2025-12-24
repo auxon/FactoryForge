@@ -168,8 +168,11 @@ final class UISystem {
     // MARK: - Touch Handling
     
     func handleTap(at screenPos: Vector2) -> Bool {
+        // Get current screen size from renderer
+        let currentScreenSize = renderer?.screenSize ?? Vector2(800, 600)
+        
         // Check HUD first
-        if hud.handleTap(at: screenPos) {
+        if hud.handleTap(at: screenPos, screenSize: currentScreenSize) {
             return true
         }
         
@@ -282,9 +285,11 @@ class UIPanel_Base {
         guard isOpen else { return }
         
         // Render background
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size,
+            textureRect: solidRect,
             color: backgroundColor,
             layer: .ui
         ))

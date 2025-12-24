@@ -145,10 +145,13 @@ final class MachineUI: UIPanel_Base {
         let progressBarHeight: Float = 20
         let progressCenter = frame.center
         
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        
         // Background
         renderer.queueSprite(SpriteInstance(
             position: Vector2(progressCenter.x, progressCenter.y - 30),
             size: Vector2(progressBarWidth, progressBarHeight),
+            textureRect: solidRect,
             color: Color(r: 0.15, g: 0.15, b: 0.2, a: 1),
             layer: .ui
         ))
@@ -168,6 +171,7 @@ final class MachineUI: UIPanel_Base {
             renderer.queueSprite(SpriteInstance(
                 position: Vector2(progressCenter.x - progressBarWidth / 2 + fillWidth / 2, progressCenter.y - 30),
                 size: Vector2(fillWidth, progressBarHeight - 4),
+                textureRect: solidRect,
                 color: Color(r: 0.3, g: 0.6, b: 0.3, a: 1),
                 layer: .ui
             ))
