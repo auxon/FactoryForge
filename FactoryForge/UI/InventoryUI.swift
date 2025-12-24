@@ -7,8 +7,8 @@ final class InventoryUI: UIPanel_Base {
     private let slotsPerRow = 10
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 500
-        let panelHeight: Float = 300
+        let panelWidth: Float = 500 * UIScale
+        let panelHeight: Float = 300 * UIScale
         let panelFrame = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
             size: Vector2(panelWidth, panelHeight)
@@ -21,10 +21,10 @@ final class InventoryUI: UIPanel_Base {
     }
     
     private func setupSlots() {
-        let slotSize: Float = 40
-        let slotSpacing: Float = 5
-        let startX = frame.minX + 20
-        let startY = frame.minY + 40
+        let slotSize: Float = 40 * UIScale
+        let slotSpacing: Float = 5 * UIScale
+        let startX = frame.minX + 20 * UIScale
+        let startY = frame.minY + 40 * UIScale
         
         for i in 0..<40 {
             let row = i / slotsPerRow

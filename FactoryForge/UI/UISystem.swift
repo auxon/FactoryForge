@@ -1,13 +1,16 @@
 import UIKit
 import Metal
 
+/// Global UI scale factor for retina displays
+let UIScale: Float = Float(UIScreen.main.scale)
+
 /// Main UI system that manages all UI elements
 final class UISystem {
     private weak var gameLoop: GameLoop?
     private weak var renderer: MetalRenderer?
     
     // UI Panels
-    private var hud: HUD
+    private(set) var hud: HUD
     private var inventoryUI: InventoryUI
     private var craftingMenu: CraftingMenu
     private var buildMenu: BuildMenu

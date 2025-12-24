@@ -23,8 +23,11 @@ struct SpriteComponent: Component {
     /// Whether the sprite should flip vertically
     var flipY: Bool
     
+    /// Whether the sprite is centered on its position (true) or has origin at bottom-left (false)
+    var centered: Bool
+    
     init(textureId: String, size: Vector2 = Vector2(1, 1), tint: Color = .white,
-         layer: RenderLayer = .entity, flipX: Bool = false, flipY: Bool = false) {
+         layer: RenderLayer = .entity, flipX: Bool = false, flipY: Bool = false, centered: Bool = false) {
         self.textureId = textureId
         self.size = size
         self.tint = tint
@@ -32,6 +35,7 @@ struct SpriteComponent: Component {
         self.animation = nil
         self.flipX = flipX
         self.flipY = flipY
+        self.centered = centered
     }
 }
 

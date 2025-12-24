@@ -123,21 +123,26 @@ final class GameLoop {
         // Update UI
         uiSystem?.update(deltaTime: deltaTime)
         
-        // Update renderer camera to follow player
-        renderer?.camera.target = player.position
+        // Update renderer camera to follow player (only if not manually panning)
+        if let inputManager = inputManager, !inputManager.isDragging {
+            renderer?.camera.target = player.position
+        }
         renderer?.camera.update(deltaTime: deltaTime)
     }
+    
+    // Input manager reference (set by GameViewController)
+    weak var inputManager: InputManager?
     
     /// Render the game state
     func render(renderer: MetalRenderer) {
         // Render world tiles
         chunkManager.render(renderer: renderer, camera: renderer.camera)
         
-        // Render all entities
-        world.render(renderer: renderer)
+        // Note: Entities (including player) are rendered by SpriteRenderer 
+        // which queries the world for PositionComponent + SpriteComponent
         
-        // Render player
-        player.render(renderer: renderer)
+        // Note: Player entity is rendered by SpriteRenderer which queries world entities
+        // The player sprite component is already in the world, so it will be rendered automatically
         
         // Render UI
         uiSystem?.render(renderer: renderer)

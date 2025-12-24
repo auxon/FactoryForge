@@ -89,7 +89,8 @@ final class EnemyAISystem: System {
         world.add(SpriteComponent(
             textureId: "biter",
             size: Vector2(0.8, 0.8),
-            layer: .entity
+            layer: .entity,
+            centered: true
         ), to: enemy)
         
         let scaledHealth = enemyType.baseHealth * (1 + evolutionFactor)
@@ -302,7 +303,7 @@ final class EnemyAISystem: System {
             let enemy = world.spawn()
             
             world.add(PositionComponent(tilePosition: IntVector2(from: spawnPos)), to: enemy)
-            world.add(SpriteComponent(textureId: "biter", size: Vector2(0.8, 0.8), layer: .entity), to: enemy)
+            world.add(SpriteComponent(textureId: "biter", size: Vector2(0.8, 0.8), layer: .entity, centered: true), to: enemy)
             
             let enemyType = EnemyType.smallBiter
             world.add(HealthComponent(maxHealth: enemyType.baseHealth * (1 + evolutionFactor)), to: enemy)

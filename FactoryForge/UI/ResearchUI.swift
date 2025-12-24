@@ -7,8 +7,8 @@ final class ResearchUI: UIPanel_Base {
     private var selectedTech: Technology?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 600
-        let panelHeight: Float = 500
+        let panelWidth: Float = 600 * UIScale
+        let panelHeight: Float = 500 * UIScale
         let panelFrame = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
             size: Vector2(panelWidth, panelHeight)
@@ -28,16 +28,16 @@ final class ResearchUI: UIPanel_Base {
         
         guard let registry = gameLoop?.technologyRegistry else { return }
         
-        let buttonWidth: Float = 120
-        let buttonHeight: Float = 40
-        let tierSpacing: Float = 150
-        let buttonSpacing: Float = 50
+        let buttonWidth: Float = 120 * UIScale
+        let buttonHeight: Float = 40 * UIScale
+        let tierSpacing: Float = 150 * UIScale
+        let buttonSpacing: Float = 50 * UIScale
         
         // Group by tier
         for tier in 1...3 {
             let techs = registry.technologies(tier: tier)
-            let tierX = frame.minX + 80 + Float(tier - 1) * tierSpacing
-            var currentY = frame.minY + 60
+            let tierX = frame.minX + 80 * UIScale + Float(tier - 1) * tierSpacing
+            var currentY = frame.minY + 60 * UIScale
             
             for tech in techs {
                 let button = TechButton(
@@ -94,9 +94,9 @@ final class ResearchUI: UIPanel_Base {
     }
     
     private func renderResearchProgress(renderer: MetalRenderer) {
-        let progressBarWidth: Float = frame.width - 40
-        let progressBarHeight: Float = 20
-        let progressY = frame.maxY - 50
+        let progressBarWidth: Float = frame.width - 40 * UIScale
+        let progressBarHeight: Float = 20 * UIScale
+        let progressY = frame.maxY - 50 * UIScale
         
         // Background
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")

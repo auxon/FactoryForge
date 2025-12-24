@@ -122,7 +122,7 @@ final class CombatSystem: System {
         let startPos = position.worldPosition + direction * 0.5
         
         world.add(PositionComponent(tilePosition: IntVector2(from: startPos)), to: projectile)
-        world.add(SpriteComponent(textureId: "bullet", size: Vector2(0.2, 0.2), layer: .projectile), to: projectile)
+        world.add(SpriteComponent(textureId: "bullet", size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
         world.add(VelocityComponent(velocity: direction * 30), to: projectile)
         
         var projectileComp = ProjectileComponent(damage: turret.damage, speed: 30)

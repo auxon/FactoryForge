@@ -7,8 +7,8 @@ final class CraftingMenu: UIPanel_Base {
     private var selectedRecipe: Recipe?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 400
-        let panelHeight: Float = 500
+        let panelWidth: Float = 400 * UIScale
+        let panelHeight: Float = 500 * UIScale
         let panelFrame = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
             size: Vector2(panelWidth, panelHeight)
@@ -28,11 +28,11 @@ final class CraftingMenu: UIPanel_Base {
         
         guard let gameLoop = gameLoop else { return }
         
-        let buttonSize: Float = 50
-        let buttonSpacing: Float = 5
+        let buttonSize: Float = 50 * UIScale
+        let buttonSpacing: Float = 5 * UIScale
         let buttonsPerRow = 6
-        let startX = frame.minX + 20
-        let startY = frame.minY + 40
+        let startX = frame.minX + 20 * UIScale
+        let startY = frame.minY + 40 * UIScale
         
         let recipes = gameLoop.recipeRegistry.enabled.filter { recipe in
             gameLoop.isRecipeUnlocked(recipe.id)
@@ -94,42 +94,44 @@ final class CraftingMenu: UIPanel_Base {
     }
     
     private func renderRecipeDetails(recipe: Recipe, renderer: MetalRenderer) {
-        let detailsY = frame.maxY - 100
+        let iconSize: Float = 30 * UIScale
+        let iconSpacing: Float = 40 * UIScale
+        let detailsY = frame.maxY - 100 * UIScale
         
         // Recipe inputs
-        var inputX = frame.minX + 50
+        var inputX = frame.minX + 50 * UIScale
         for input in recipe.inputs {
             let textureRect = renderer.textureAtlas.getTextureRect(for: input.itemId.replacingOccurrences(of: "-", with: "_"))
             renderer.queueSprite(SpriteInstance(
                 position: Vector2(inputX, detailsY),
-                size: Vector2(30, 30),
+                size: Vector2(iconSize, iconSize),
                 textureRect: textureRect,
                 layer: .ui
             ))
-            inputX += 40
+            inputX += iconSpacing
         }
         
         // Arrow (use solid white texture)
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
-            position: Vector2(inputX + 20, detailsY),
-            size: Vector2(30, 30),
+            position: Vector2(inputX + 20 * UIScale, detailsY),
+            size: Vector2(iconSize, iconSize),
             textureRect: solidRect,
             color: .white,
             layer: .ui
         ))
         
         // Recipe outputs
-        var outputX = inputX + 60
+        var outputX = inputX + 60 * UIScale
         for output in recipe.outputs {
             let textureRect = renderer.textureAtlas.getTextureRect(for: output.itemId.replacingOccurrences(of: "-", with: "_"))
             renderer.queueSprite(SpriteInstance(
                 position: Vector2(outputX, detailsY),
-                size: Vector2(30, 30),
+                size: Vector2(iconSize, iconSize),
                 textureRect: textureRect,
                 layer: .ui
             ))
-            outputX += 40
+            outputX += iconSpacing
         }
     }
     

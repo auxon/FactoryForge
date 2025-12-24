@@ -10,8 +10,8 @@ final class BuildMenu: UIPanel_Base {
     var onBuildingSelected: ((String) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 350
-        let panelHeight: Float = 450
+        let panelWidth: Float = 350 * UIScale
+        let panelHeight: Float = 450 * UIScale
         let panelFrame = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
             size: Vector2(panelWidth, panelHeight)
@@ -36,10 +36,10 @@ final class BuildMenu: UIPanel_Base {
             (.chest, "chest")
         ]
         
-        let buttonSize: Float = 40
-        let buttonSpacing: Float = 5
-        var currentX = frame.minX + 20 + buttonSize / 2
-        let categoryY = frame.minY + 30
+        let buttonSize: Float = 40 * UIScale
+        let buttonSpacing: Float = 5 * UIScale
+        var currentX = frame.minX + 20 * UIScale + buttonSize / 2
+        let categoryY = frame.minY + 30 * UIScale
         
         for (type, textureId) in categories {
             let button = BuildCategoryButton(
@@ -76,11 +76,11 @@ final class BuildMenu: UIPanel_Base {
         
         let buildings = registry.buildings(ofType: category)
         
-        let buttonSize: Float = 60
-        let buttonSpacing: Float = 10
+        let buttonSize: Float = 60 * UIScale
+        let buttonSpacing: Float = 10 * UIScale
         let buttonsPerRow = 4
-        let startX = frame.minX + 30
-        let startY = frame.minY + 80
+        let startX = frame.minX + 30 * UIScale
+        let startY = frame.minY + 80 * UIScale
         
         for (index, building) in buildings.enumerated() {
             let row = index / buttonsPerRow

@@ -65,8 +65,12 @@ final class SpriteRenderer {
             
             let textureRect = textureAtlas.getTextureRect(for: sprite.textureId)
             
+            // For centered sprites (like player), use position directly
+            // For non-centered sprites (buildings), offset by half size to align with tile origin
+            let renderPos = sprite.centered ? worldPos : worldPos + Vector2(sprite.size.x / 2, sprite.size.y / 2)
+            
             queuedSprites.append(SpriteInstance(
-                position: worldPos + Vector2(sprite.size.x / 2, sprite.size.y / 2),
+                position: renderPos,
                 size: sprite.size,
                 rotation: position.direction.angle,
                 textureRect: textureRect,

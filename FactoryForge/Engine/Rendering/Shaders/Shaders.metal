@@ -84,7 +84,9 @@ vertex VertexOut spriteVertexShader(
     SpriteVertex vert = vertices[vertexId];
     SpriteInstanceData instance = instances[instanceId];
     
-    float4 localPos = float4(vert.position, 0.0, 1.0);
+    // Use negative z to render sprites above tiles (closer to camera)
+    // Tiles are at z=0, so sprites at z=-10 will be in front
+    float4 localPos = float4(vert.position, -10.0, 1.0);
     float4 worldPos = instance.transform * localPos;
     
     VertexOut out;

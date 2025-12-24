@@ -9,8 +9,8 @@ final class MachineUI: UIPanel_Base {
     private var outputSlots: [InventorySlot] = []
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 400
-        let panelHeight: Float = 350
+        let panelWidth: Float = 400 * UIScale
+        let panelHeight: Float = 350 * UIScale
         let panelFrame = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
             size: Vector2(panelWidth, panelHeight)
@@ -23,13 +23,13 @@ final class MachineUI: UIPanel_Base {
     }
     
     private func setupSlots() {
-        let slotSize: Float = 40
-        let slotSpacing: Float = 5
+        let slotSize: Float = 40 * UIScale
+        let slotSpacing: Float = 5 * UIScale
         
         // Input slots (left side)
         for i in 0..<4 {
-            let slotX = frame.minX + 50
-            let slotY = frame.minY + 80 + Float(i) * (slotSize + slotSpacing)
+            let slotX = frame.minX + 50 * UIScale
+            let slotY = frame.minY + 80 * UIScale + Float(i) * (slotSize + slotSpacing)
             inputSlots.append(InventorySlot(
                 frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
                 index: i
@@ -38,8 +38,8 @@ final class MachineUI: UIPanel_Base {
         
         // Output slots (right side)
         for i in 0..<4 {
-            let slotX = frame.maxX - 50
-            let slotY = frame.minY + 80 + Float(i) * (slotSize + slotSpacing)
+            let slotX = frame.maxX - 50 * UIScale
+            let slotY = frame.minY + 80 * UIScale + Float(i) * (slotSize + slotSpacing)
             outputSlots.append(InventorySlot(
                 frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
                 index: i
@@ -67,11 +67,11 @@ final class MachineUI: UIPanel_Base {
             availableRecipes = gameLoop.recipeRegistry.recipes(in: .smelting)
         }
         
-        let buttonSize: Float = 40
-        let buttonSpacing: Float = 5
+        let buttonSize: Float = 40 * UIScale
+        let buttonSpacing: Float = 5 * UIScale
         let buttonsPerRow = 5
         let startX = frame.center.x - Float(buttonsPerRow) * (buttonSize + buttonSpacing) / 2
-        let startY = frame.minY + 250
+        let startY = frame.minY + 250 * UIScale
         
         for (index, recipe) in availableRecipes.enumerated() {
             let row = index / buttonsPerRow
@@ -141,15 +141,16 @@ final class MachineUI: UIPanel_Base {
     private func renderProgressBar(renderer: MetalRenderer) {
         guard let entity = currentEntity, let world = gameLoop?.world else { return }
         
-        let progressBarWidth: Float = 150
-        let progressBarHeight: Float = 20
+        let progressBarWidth: Float = 150 * UIScale
+        let progressBarHeight: Float = 20 * UIScale
+        let progressOffset: Float = 30 * UIScale
         let progressCenter = frame.center
         
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         
         // Background
         renderer.queueSprite(SpriteInstance(
-            position: Vector2(progressCenter.x, progressCenter.y - 30),
+            position: Vector2(progressCenter.x, progressCenter.y - progressOffset),
             size: Vector2(progressBarWidth, progressBarHeight),
             textureRect: solidRect,
             color: Color(r: 0.15, g: 0.15, b: 0.2, a: 1),
@@ -169,8 +170,8 @@ final class MachineUI: UIPanel_Base {
         if progress > 0 {
             let fillWidth = progressBarWidth * progress
             renderer.queueSprite(SpriteInstance(
-                position: Vector2(progressCenter.x - progressBarWidth / 2 + fillWidth / 2, progressCenter.y - 30),
-                size: Vector2(fillWidth, progressBarHeight - 4),
+                position: Vector2(progressCenter.x - progressBarWidth / 2 + fillWidth / 2, progressCenter.y - progressOffset),
+                size: Vector2(fillWidth, progressBarHeight - 4 * UIScale),
                 textureRect: solidRect,
                 color: Color(r: 0.3, g: 0.6, b: 0.3, a: 1),
                 layer: .ui

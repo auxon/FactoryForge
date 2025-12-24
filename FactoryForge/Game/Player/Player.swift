@@ -51,8 +51,10 @@ final class Player {
         world.add(PositionComponent(tilePosition: .zero), to: entity)
         world.add(SpriteComponent(
             textureId: "player",
-            size: Vector2(0.9, 0.9),
-            layer: .entity
+            size: Vector2(1.5, 1.5),  // Visible size for player sprite
+            tint: .white,
+            layer: .entity,
+            centered: true
         ), to: entity)
         world.add(HealthComponent(maxHealth: 250, immunityDuration: 0.5), to: entity)
         world.add(VelocityComponent(), to: entity)
@@ -86,26 +88,27 @@ final class Player {
     
     private func updateMovement(deltaTime: Float) {
         guard moveDirection.lengthSquared > 0.001 else { return }
-        
-        let velocity = moveDirection.normalized * moveSpeed
-        
+
+        // moveDirection already has magnitude (0-1) from joystick, just scale by speed
+        let velocity = moveDirection * moveSpeed
+
         if var pos = world.get(PositionComponent.self, for: entity) {
             let newPos = pos.worldPosition + velocity * deltaTime
-            pos.tilePosition = IntVector2(from: newPos)
-            pos.offset = Vector2(
-                newPos.x - floorf(newPos.x),
-                newPos.y - floorf(newPos.y)
-            )
-            
+
+            // Convert world position to tile coordinates (centered on 0.5)
+            let adjustedPos = newPos - Vector2(0.5, 0.5)
+            pos.tilePosition = IntVector2(from: adjustedPos)
+            pos.offset = adjustedPos - pos.tilePosition.toVector2
+
             // Check for walkable tile
             // TODO: Add proper collision detection
-            
+
             world.add(pos, to: entity)
         }
     }
     
     // MARK: - Movement
-    
+
     func setMoveDirection(_ direction: Vector2) {
         moveDirection = direction
     }

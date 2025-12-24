@@ -45,6 +45,7 @@ class GameViewController: UIViewController {
     private func setupInput() {
         // Add gesture recognizers to metalView since it's on top and receives touches
         inputManager = InputManager(view: metalView, gameLoop: gameLoop)
+        gameLoop.inputManager = inputManager
     }
     
     private func setupNotifications() {

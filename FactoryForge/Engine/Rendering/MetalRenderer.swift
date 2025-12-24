@@ -151,6 +151,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     private func setupDepthState() {
         let descriptor = MTLDepthStencilDescriptor()
+        // Use less comparison - sprites are at z=-10, tiles at z=0, so sprites pass
         descriptor.depthCompareFunction = .less
         descriptor.isDepthWriteEnabled = true
         depthState = device.makeDepthStencilState(descriptor: descriptor)
@@ -204,6 +205,8 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         
         // Render sprites (entities, items on belts, etc.)
         encoder.setRenderPipelineState(spritePipeline)
+        // Keep depth testing enabled - sprites are at z=-10 so they render in front of tiles
+        encoder.setDepthStencilState(depthState)
         if let gameLoop = gameLoop {
             spriteRenderer.render(
                 encoder: encoder,
@@ -376,7 +379,7 @@ final class Camera2D {
         
         // Smooth camera follow
         position = position.lerp(to: target, t: min(followSpeed * deltaTime, 1.0))
-        
+
         // Smooth zoom
         zoom = zoom + (targetZoom - zoom) * min(zoomSpeed * deltaTime, 1.0)
     }

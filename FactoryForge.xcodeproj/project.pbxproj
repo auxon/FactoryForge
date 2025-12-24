@@ -62,6 +62,7 @@
 		A1014005001 /* BuildMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014005000 /* BuildMenu.swift */; };
 		A1014006001 /* ResearchUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014006000 /* ResearchUI.swift */; };
 		A1014007001 /* MachineUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014007000 /* MachineUI.swift */; };
+		A1014008001 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014008000 /* VirtualJoystick.swift */; };
 		A1015001001 /* SaveSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1015001000 /* SaveSystem.swift */; };
 		A1015002001 /* GameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1015002000 /* GameData.swift */; };
 /* End PBXBuildFile section */
@@ -124,6 +125,7 @@
 		A1014005000 /* BuildMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildMenu.swift; sourceTree = "<group>"; };
 		A1014006000 /* ResearchUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchUI.swift; sourceTree = "<group>"; };
 		A1014007000 /* MachineUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineUI.swift; sourceTree = "<group>"; };
+		A1014008000 /* VirtualJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualJoystick.swift; sourceTree = "<group>"; };
 		A1015001000 /* SaveSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveSystem.swift; sourceTree = "<group>"; };
 		A1015002000 /* GameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -359,6 +361,7 @@
 				A1014005000 /* BuildMenu.swift */,
 				A1014006000 /* ResearchUI.swift */,
 				A1014007000 /* MachineUI.swift */,
+				A1014008000 /* VirtualJoystick.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -495,6 +498,7 @@
 				A1014005001 /* BuildMenu.swift in Sources */,
 				A1014006001 /* ResearchUI.swift in Sources */,
 				A1014007001 /* MachineUI.swift in Sources */,
+				A1014008001 /* VirtualJoystick.swift in Sources */,
 				A1015001001 /* SaveSystem.swift in Sources */,
 				A1015002001 /* GameData.swift in Sources */,
 			);

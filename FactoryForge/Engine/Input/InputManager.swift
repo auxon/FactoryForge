@@ -17,6 +17,10 @@ final class InputManager: NSObject {
     private(set) var isDragging = false
     private(set) var isPinching = false
     
+    // Joystick touch tracking
+    private var joystickTouchId: Int? = nil
+    private var isJoystickActive: Bool = false
+    
     // Camera control
     private var panStartPosition: Vector2 = .zero
     private var cameraStartPosition: Vector2 = .zero
@@ -63,6 +67,8 @@ final class InputManager: NSObject {
         panRecognizer.minimumNumberOfTouches = 1
         panRecognizer.maximumNumberOfTouches = 1
         panRecognizer.delegate = self
+        panRecognizer.delaysTouchesBegan = false
+        panRecognizer.delaysTouchesEnded = false
         view.addGestureRecognizer(panRecognizer)
         
         // Pinch recognizer for zoom
@@ -132,8 +138,26 @@ final class InputManager: NSObject {
         let worldPos = renderer.screenToWorld(screenPos)
         currentTouchPosition = worldPos
         
+        // Get joystick from HUD
+        let joystick = gameLoop?.uiSystem?.hud.joystick
+        
         switch recognizer.state {
         case .began:
+            // Check if touch started in joystick area FIRST
+            if let joystick = joystick {
+                let activationRadius = joystick.baseRadius * 1.5
+                let distance = (screenPos - joystick.baseCenter).length
+                
+                if distance <= activationRadius {
+                    // This is a joystick touch - handle it and prevent camera pan
+                    if joystick.handleTouchBegan(at: screenPos, touchId: 0) {
+                        isJoystickActive = true
+                        return  // Prevent camera pan, but gesture continues for .changed/.ended
+                    }
+                }
+            }
+            
+            // Not a joystick touch, proceed with camera pan
             isDragging = true
             panStartPosition = screenPos
             cameraStartPosition = renderer.camera.position
@@ -144,6 +168,13 @@ final class InputManager: NSObject {
             }
             
         case .changed:
+            // Handle joystick movement
+            if isJoystickActive {
+                joystick?.handleTouchMoved(at: screenPos, touchId: 0)
+                // Prevent camera pan when joystick is active
+                return
+            }
+            
             if buildMode == .none {
                 // Pan camera
                 let delta = screenPos - panStartPosition
@@ -162,6 +193,13 @@ final class InputManager: NSObject {
             }
             
         case .ended, .cancelled:
+            if isJoystickActive {
+                joystick?.handleTouchEnded(touchId: 0)
+                isJoystickActive = false
+                // Reset state
+                return
+            }
+            
             isDragging = false
             buildPreviewPosition = nil
             
@@ -225,6 +263,7 @@ final class InputManager: NSObject {
         guard let view = view else { return .zero }
         let point = recognizer.location(in: view)
         let scale = Float(UIScreen.main.scale)
+        // UI uses top-left origin (Y increases downward), same as UIKit
         return Vector2(Float(point.x) * scale, Float(point.y) * scale)
     }
     
@@ -277,6 +316,9 @@ enum BuildMode {
 // MARK: - UIGestureRecognizerDelegate
 
 extension InputManager: UIGestureRecognizerDelegate {
+    // Don't prevent pan gesture - we'll handle joystick in the pan handler
+    // This allows us to get .changed and .ended events
+    
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         // Allow pinch and rotation together
@@ -291,6 +333,13 @@ extension InputManager: UIGestureRecognizerDelegate {
             return true
         }
         if gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UIPinchGestureRecognizer {
+            return true
+        }
+        // Allow tap and pan together
+        if gestureRecognizer is UITapGestureRecognizer && otherGestureRecognizer is UIPanGestureRecognizer {
+            return true
+        }
+        if gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UITapGestureRecognizer {
             return true
         }
         return false
