@@ -98,7 +98,8 @@ final class TextureAtlas {
             ("science_pack_red", generateSciencePackRed),
             ("science_pack_green", generateSciencePackGreen),
             ("player", generatePlayer),
-            ("solid_white", generateSolidWhite)
+            ("solid_white", generateSolidWhite),
+            ("building_placeholder", generateBuildingPlaceholder)
         ]
         
         for (name, generator) in tiles {
@@ -704,6 +705,33 @@ final class TextureAtlas {
                 data[idx + 1] = 255 // G
                 data[idx + 2] = 255 // B
                 data[idx + 3] = 255 // A
+            }
+        }
+    }
+
+    private func generateBuildingPlaceholder(width: Int, height: Int, data: inout [UInt8]) {
+        // Simple building placeholder - gray square with darker border
+        let borderWidth = 2
+        let innerColor: (r: UInt8, g: UInt8, b: UInt8) = (150, 150, 150) // Light gray
+        let borderColor: (r: UInt8, g: UInt8, b: UInt8) = (100, 100, 100) // Dark gray
+
+        for y in 0..<height {
+            for x in 0..<width {
+                let idx = (y * width + x) * 4
+                let isBorder = x < borderWidth || x >= width - borderWidth ||
+                              y < borderWidth || y >= height - borderWidth
+
+                if isBorder {
+                    data[idx] = borderColor.r
+                    data[idx + 1] = borderColor.g
+                    data[idx + 2] = borderColor.b
+                    data[idx + 3] = 255
+                } else {
+                    data[idx] = innerColor.r
+                    data[idx + 1] = innerColor.g
+                    data[idx + 2] = innerColor.b
+                    data[idx + 3] = 255
+                }
             }
         }
     }

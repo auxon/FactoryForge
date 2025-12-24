@@ -153,7 +153,7 @@ final class GameLoop {
     func placeBuilding(_ buildingId: String, at position: IntVector2, direction: Direction) -> Bool {
         guard let buildingDef = buildingRegistry.get(buildingId) else { return false }
         guard canPlaceBuilding(buildingDef, at: position) else { return false }
-        
+
         // Check if player has required items
         guard player.inventory.has(items: buildingDef.cost) else { return false }
         
@@ -186,11 +186,11 @@ final class GameLoop {
         for dy in 0..<building.height {
             for dx in 0..<building.width {
                 let checkPos = position + IntVector2(Int(dx), Int(dy))
-                
+
                 // Check if tile is buildable
                 guard let tile = chunkManager.getTile(at: checkPos) else { return false }
                 guard tile.isBuildable else { return false }
-                
+
                 // Check if there's already a building here
                 if world.hasEntityAt(position: checkPos) {
                     return false

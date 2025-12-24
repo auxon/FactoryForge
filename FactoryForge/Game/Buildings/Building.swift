@@ -67,7 +67,7 @@ struct BuildingDefinition: Identifiable, Codable {
         self.width = width
         self.height = height
         self.maxHealth = maxHealth
-        self.textureId = textureId ?? id.replacingOccurrences(of: "-", with: "_")
+        self.textureId = textureId ?? "building_placeholder"
         self.cost = cost
     }
 }

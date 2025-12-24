@@ -60,8 +60,9 @@ final class UISystem {
         
         // Build menu callbacks
         buildMenu.onBuildingSelected = { [weak self] buildingId in
-            self?.gameLoop?.renderer?.gameLoop?.uiSystem?.closeAllPanels()
+            self?.closeAllPanels()
             // Enter build mode via input manager
+            self?.gameLoop?.inputManager?.enterBuildMode(buildingId: buildingId)
         }
     }
     

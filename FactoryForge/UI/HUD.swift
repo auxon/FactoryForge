@@ -318,19 +318,9 @@ final class HUD {
             return true
         }
         
-        // Check quick bar slots
-        let quickBarY = screenSize.y - bottomMargin - buttonSize - buttonSpacing - slotSize / 2
-        let quickBarStartX = screenSize.x / 2 - (slotSize * 5 + buttonSpacing * 4) / 2
-        
-        for i in 0..<10 {
-            let slotX = quickBarStartX + Float(i) * (slotSize + buttonSpacing / 2)
-            let slotFrame = Rect(center: Vector2(slotX, quickBarY), size: Vector2(slotSize, slotSize))
-            if slotFrame.contains(position) {
-                // Quick bar slot tapped
-                return true
-            }
-        }
-        
+        // Check quick bar slots - for now, don't intercept world taps
+        // The quick bar is for future use, so don't block world interaction
+
         return false
     }
     

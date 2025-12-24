@@ -102,7 +102,7 @@ final class InputManager: NSObject {
         if gameLoop?.uiSystem?.handleTap(at: screenPos) == true {
             return
         }
-        
+
         // UI didn't handle it, process game tap
         let worldPos = gameLoop?.renderer?.screenToWorld(screenPos) ?? .zero
         currentTouchPosition = worldPos

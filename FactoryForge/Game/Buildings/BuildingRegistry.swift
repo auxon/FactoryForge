@@ -39,7 +39,7 @@ final class BuildingRegistry {
             width: 2,
             height: 2,
             maxHealth: 150,
-            cost: [ItemStack(itemId: "burner-mining-drill", count: 1)]
+            cost: [ItemStack(itemId: "iron-plate", count: 5)]
         )
         burnerMiner.miningSpeed = 0.25
         register(burnerMiner)
@@ -65,7 +65,7 @@ final class BuildingRegistry {
             width: 2,
             height: 2,
             maxHealth: 200,
-            cost: [ItemStack(itemId: "stone-furnace", count: 1)]
+            cost: [ItemStack(itemId: "iron-plate", count: 5)]
         )
         stoneFurnace.craftingSpeed = 1
         stoneFurnace.craftingCategory = "smelting"
@@ -147,7 +147,7 @@ final class BuildingRegistry {
             name: "Transport Belt",
             type: .belt,
             maxHealth: 50,
-            cost: [ItemStack(itemId: "transport-belt", count: 1)]
+            cost: [ItemStack(itemId: "iron-plate", count: 1)]
         )
         transportBelt.beltSpeed = 1.875  // 15 items/s per lane
         register(transportBelt)
