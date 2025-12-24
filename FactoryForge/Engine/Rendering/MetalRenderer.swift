@@ -159,6 +159,11 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         // Update game logic
         gameLoop?.update()
         
+        // Queue render data (tiles, sprites, etc.)
+        if let gameLoop = gameLoop {
+            gameLoop.render(renderer: self)
+        }
+        
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
               let commandBuffer = commandQueue.makeCommandBuffer() else {
@@ -237,6 +242,7 @@ final class Camera2D {
     
     private var screenWidth: Float
     private var screenHeight: Float
+    private var isFirstUpdate: Bool = true
     
     let minZoom: Float = 0.25
     let maxZoom: Float = 4.0
@@ -244,8 +250,9 @@ final class Camera2D {
     let zoomSpeed: Float = 5.0
     
     init(screenWidth: Float, screenHeight: Float) {
-        self.screenWidth = screenWidth
-        self.screenHeight = screenHeight
+        // Ensure we use landscape dimensions (wider than tall)
+        self.screenWidth = max(screenWidth, screenHeight)
+        self.screenHeight = min(screenWidth, screenHeight)
     }
     
     func updateScreenSize(width: Float, height: Float) {
@@ -254,6 +261,14 @@ final class Camera2D {
     }
     
     func update(deltaTime: Float) {
+        // On first update, snap to target immediately
+        if isFirstUpdate {
+            position = target
+            zoom = targetZoom
+            isFirstUpdate = false
+            return
+        }
+        
         // Smooth camera follow
         position = position.lerp(to: target, t: min(followSpeed * deltaTime, 1.0))
         

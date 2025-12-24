@@ -265,19 +265,3 @@ struct PlayerState: Codable {
     let health: Float
 }
 
-// Make Vector2 Codable for PlayerState
-extension Vector2: Codable {
-    public init(from decoder: Decoder) throws {
-        var container = try decoder.unkeyedContainer()
-        let x = try container.decode(Float.self)
-        let y = try container.decode(Float.self)
-        self.init(x, y)
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.unkeyedContainer()
-        try container.encode(x)
-        try container.encode(y)
-    }
-}
-

@@ -96,7 +96,8 @@ final class TextureAtlas {
             ("gear", generateGear),
             ("circuit", generateCircuit),
             ("science_pack_red", generateSciencePackRed),
-            ("science_pack_green", generateSciencePackGreen)
+            ("science_pack_green", generateSciencePackGreen),
+            ("player", generatePlayer)
         ]
         
         for (name, generator) in tiles {
@@ -646,6 +647,49 @@ final class TextureAtlas {
                     data[idx + 2] = UInt8(Float(b) * noise)
                 }
                 data[idx + 3] = 255
+            }
+        }
+    }
+    
+    private func generatePlayer(width: Int, height: Int, data: inout [UInt8]) {
+        // Clear background
+        for i in stride(from: 0, to: data.count, by: 4) {
+            data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 0
+        }
+        
+        let centerX = width / 2
+        let centerY = height / 2
+        
+        // Body (orange suit like Factorio engineer)
+        let bodyRadius = width / 3
+        for y in 0..<height {
+            for x in 0..<width {
+                let dx = x - centerX
+                let dy = y - centerY
+                if dx * dx + dy * dy <= bodyRadius * bodyRadius {
+                    let idx = (y * width + x) * 4
+                    data[idx] = 230      // R - orange
+                    data[idx + 1] = 140  // G
+                    data[idx + 2] = 50   // B
+                    data[idx + 3] = 255
+                }
+            }
+        }
+        
+        // Head (slightly lighter)
+        let headRadius = width / 5
+        let headY = centerY - bodyRadius / 2
+        for y in 0..<height {
+            for x in 0..<width {
+                let dx = x - centerX
+                let dy = y - headY
+                if dx * dx + dy * dy <= headRadius * headRadius {
+                    let idx = (y * width + x) * 4
+                    data[idx] = 255      // R
+                    data[idx + 1] = 200  // G
+                    data[idx + 2] = 150  // B - skin tone
+                    data[idx + 3] = 255
+                }
             }
         }
     }

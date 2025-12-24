@@ -130,7 +130,8 @@ final class ChunkManager {
     // MARK: - Rendering
     
     func render(renderer: MetalRenderer, camera: Camera2D) {
-        let visibleRect = camera.visibleRect.expanded(by: Chunk.sizeFloat)
+        // Expand visible rect significantly to ensure all visible chunks are included
+        let visibleRect = camera.visibleRect.expanded(by: Chunk.sizeFloat * 2)
         
         for chunk in chunks.values {
             if chunk.worldBounds.intersects(visibleRect) {

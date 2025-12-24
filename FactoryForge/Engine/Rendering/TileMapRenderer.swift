@@ -59,12 +59,14 @@ final class TileMapRenderer {
         var instances: [TileInstanceData] = []
         instances.reserveCapacity(min(queuedTiles.count, maxInstances))
         
-        let visibleRect = camera.visibleRect.expanded(by: 2)
+        // Expand visible rect generously to ensure all visible tiles are included
+        let visibleRect = camera.visibleRect.expanded(by: 5)
         
-        for tile in queuedTiles.prefix(maxInstances) {
+        // Frustum cull first, then limit to maxInstances
+        for tile in queuedTiles {
             let worldPos = tile.position.toVector2
             
-            // Frustum culling
+            // Frustum culling - skip tiles outside visible area
             guard visibleRect.contains(worldPos) else { continue }
             
             // Get texture UV from atlas based on tile type
@@ -76,6 +78,9 @@ final class TileMapRenderer {
                 uvSize: Vector2(textureRect.size.x, textureRect.size.y),
                 tint: tile.tint.vector4
             ))
+            
+            // Stop if we've hit the instance limit
+            if instances.count >= maxInstances { break }
         }
         
         queuedTiles.removeAll(keepingCapacity: true)
