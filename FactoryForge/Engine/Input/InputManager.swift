@@ -110,7 +110,38 @@ final class InputManager: NSObject {
         switch buildMode {
         case .none:
             // Try to select an entity at this position
-            selectEntityAt(worldPos)
+            let tilePos = IntVector2(from: worldPos)
+            if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
+                selectedEntity = entity
+                onEntitySelected?(entity)
+            } else {
+                // No entity, check for resource to mine manually
+                if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+                    // Check if player can accept the item
+                    if gameLoop?.player.inventory.canAccept(itemId: resource.type.outputItem) == true {
+                        print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
+                        // Manual mining - mine 1 unit
+                        let mined = gameLoop?.chunkManager.mineResource(at: tilePos, amount: 1) ?? 0
+                        if mined > 0 {
+                            // Add to player inventory
+                            gameLoop?.player.inventory.add(itemId: resource.type.outputItem, count: mined)
+                            print("Manually mined \(mined) \(resource.type.outputItem), \(resource.amount - mined) remaining")
+
+                            // Check if resource is now depleted
+                            if let updatedResource = gameLoop?.chunkManager.getResource(at: tilePos) {
+                                print("Resource now has \(updatedResource.amount) remaining")
+                            } else {
+                                print("Resource depleted, tile should now be normal")
+                            }
+                        }
+                    } else {
+                        print("Inventory full, cannot mine")
+                    }
+                } else {
+                    selectedEntity = nil
+                    onEntitySelected?(nil)
+                }
+            }
             
         case .placing:
             // Place building

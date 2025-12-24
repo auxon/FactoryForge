@@ -67,9 +67,24 @@ struct ResourceDeposit: Codable {
     }
     
     var tint: Color {
-        // Tint based on remaining percentage
+        // Color tint based on resource type, with alpha based on remaining amount
         let percent = percentRemaining
-        return Color(r: 1, g: 1, b: 1, a: 0.5 + percent * 0.5)
+        let alpha = 0.3 + percent * 0.7  // More visible alpha range
+
+        switch type {
+        case .ironOre:
+            return Color(r: 0.7, g: 0.7, b: 0.8, a: alpha)  // Light gray-blue
+        case .copperOre:
+            return Color(r: 0.8, g: 0.6, b: 0.4, a: alpha)  // Copper brown
+        case .coal:
+            return Color(r: 0.3, g: 0.3, b: 0.3, a: alpha)  // Dark gray
+        case .stone:
+            return Color(r: 0.6, g: 0.6, b: 0.6, a: alpha)  // Medium gray
+        case .uraniumOre:
+            return Color(r: 0.2, g: 0.8, b: 0.4, a: alpha)  // Green
+        case .oil:
+            return Color(r: 0.4, g: 0.2, b: 0.6, a: alpha)  // Purple
+        }
     }
     
     init(type: ResourceType, amount: Int, richness: Float = 1.0) {
