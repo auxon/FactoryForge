@@ -35,10 +35,7 @@ final class CraftingMenu: UIPanel_Base {
         let startY = frame.minY + 40
         
         let recipes = gameLoop.recipeRegistry.enabled.filter { recipe in
-            gameLoop.systems.lazy
-                .compactMap { $0 as? ResearchSystem }
-                .first?
-                .isRecipeUnlocked(recipe.id) ?? false
+            gameLoop.isRecipeUnlocked(recipe.id)
         }
         
         for (index, recipe) in recipes.enumerated() {
@@ -144,10 +141,6 @@ final class CraftingMenu: UIPanel_Base {
         }
         
         return super.handleTap(at: position)
-    }
-    
-    private var systems: [System] {
-        return []  // Would need reference to systems
     }
 }
 

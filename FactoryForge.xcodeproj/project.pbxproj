@@ -7,35 +7,381 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		/* Source files would be listed here in a real Xcode project */
+		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
+		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
+		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
+		A1001002001 /* Math.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001002000 /* Math.swift */; };
+		A1001003001 /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001003000 /* Time.swift */; };
+		A1002001001 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1002001000 /* Entity.swift */; };
+		A1002002001 /* Component.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1002002000 /* Component.swift */; };
+		A1002003001 /* System.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1002003000 /* System.swift */; };
+		A1002004001 /* World.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1002004000 /* World.swift */; };
+		A1003001001 /* PositionComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003001000 /* PositionComponent.swift */; };
+		A1003002001 /* SpriteComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003002000 /* SpriteComponent.swift */; };
+		A1003003001 /* HealthComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003003000 /* HealthComponent.swift */; };
+		A1003004001 /* InventoryComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003004000 /* InventoryComponent.swift */; };
+		A1003005001 /* BuildingComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003005000 /* BuildingComponents.swift */; };
+		A1003006001 /* PowerComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003006000 /* PowerComponents.swift */; };
+		A1003007001 /* CombatComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003007000 /* CombatComponents.swift */; };
+		A1004001001 /* MetalRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1004001000 /* MetalRenderer.swift */; };
+		A1004002001 /* TextureAtlas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1004002000 /* TextureAtlas.swift */; };
+		A1004003001 /* TileMapRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1004003000 /* TileMapRenderer.swift */; };
+		A1004004001 /* SpriteRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1004004000 /* SpriteRenderer.swift */; };
+		A1004005001 /* ParticleRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1004005000 /* ParticleRenderer.swift */; };
+		A1004006001 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = A1004006000 /* Shaders.metal */; };
+		A1005001001 /* InputManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1005001000 /* InputManager.swift */; };
+		A1005002001 /* TouchHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1005002000 /* TouchHandler.swift */; };
+		A1006001001 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1006001000 /* AudioManager.swift */; };
+		A1007001001 /* Tile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1007001000 /* Tile.swift */; };
+		A1007002001 /* Chunk.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1007002000 /* Chunk.swift */; };
+		A1007003001 /* ChunkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1007003000 /* ChunkManager.swift */; };
+		A1007004001 /* WorldGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1007004000 /* WorldGenerator.swift */; };
+		A1007005001 /* Biome.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1007005000 /* Biome.swift */; };
+		A1008001001 /* Item.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1008001000 /* Item.swift */; };
+		A1008002001 /* ItemRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1008002000 /* ItemRegistry.swift */; };
+		A1009001001 /* Recipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1009001000 /* Recipe.swift */; };
+		A1009002001 /* RecipeRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1009002000 /* RecipeRegistry.swift */; };
+		A1010001001 /* Building.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1010001000 /* Building.swift */; };
+		A1010002001 /* BuildingRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1010002000 /* BuildingRegistry.swift */; };
+		A1011001001 /* MiningSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1011001000 /* MiningSystem.swift */; };
+		A1011002001 /* BeltSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1011002000 /* BeltSystem.swift */; };
+		A1011003001 /* InserterSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1011003000 /* InserterSystem.swift */; };
+		A1011004001 /* CraftingSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1011004000 /* CraftingSystem.swift */; };
+		A1011005001 /* PowerSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1011005000 /* PowerSystem.swift */; };
+		A1011006001 /* ResearchSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1011006000 /* ResearchSystem.swift */; };
+		A1011007001 /* PollutionSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1011007000 /* PollutionSystem.swift */; };
+		A1011008001 /* EnemyAISystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1011008000 /* EnemyAISystem.swift */; };
+		A1011009001 /* CombatSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1011009000 /* CombatSystem.swift */; };
+		A1012001001 /* Technology.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1012001000 /* Technology.swift */; };
+		A1012002001 /* TechTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1012002000 /* TechTree.swift */; };
+		A1013001001 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1013001000 /* Player.swift */; };
+		A1014001001 /* UISystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014001000 /* UISystem.swift */; };
+		A1014002001 /* HUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014002000 /* HUD.swift */; };
+		A1014003001 /* InventoryUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014003000 /* InventoryUI.swift */; };
+		A1014004001 /* CraftingMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014004000 /* CraftingMenu.swift */; };
+		A1014005001 /* BuildMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014005000 /* BuildMenu.swift */; };
+		A1014006001 /* ResearchUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014006000 /* ResearchUI.swift */; };
+		A1014007001 /* MachineUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014007000 /* MachineUI.swift */; };
+		A1015001001 /* SaveSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1015001000 /* SaveSystem.swift */; };
+		A1015002001 /* GameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1015002000 /* GameData.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		/* File references would be listed here */
+		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A1000002000 /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
+		A1001001000 /* GameLoop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameLoop.swift; sourceTree = "<group>"; };
+		A1001002000 /* Math.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Math.swift; sourceTree = "<group>"; };
+		A1001003000 /* Time.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Time.swift; sourceTree = "<group>"; };
+		A1002001000 /* Entity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Entity.swift; sourceTree = "<group>"; };
+		A1002002000 /* Component.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Component.swift; sourceTree = "<group>"; };
+		A1002003000 /* System.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = System.swift; sourceTree = "<group>"; };
+		A1002004000 /* World.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World.swift; sourceTree = "<group>"; };
+		A1003001000 /* PositionComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PositionComponent.swift; sourceTree = "<group>"; };
+		A1003002000 /* SpriteComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpriteComponent.swift; sourceTree = "<group>"; };
+		A1003003000 /* HealthComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthComponent.swift; sourceTree = "<group>"; };
+		A1003004000 /* InventoryComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryComponent.swift; sourceTree = "<group>"; };
+		A1003005000 /* BuildingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingComponents.swift; sourceTree = "<group>"; };
+		A1003006000 /* PowerComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerComponents.swift; sourceTree = "<group>"; };
+		A1003007000 /* CombatComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombatComponents.swift; sourceTree = "<group>"; };
+		A1004001000 /* MetalRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRenderer.swift; sourceTree = "<group>"; };
+		A1004002000 /* TextureAtlas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureAtlas.swift; sourceTree = "<group>"; };
+		A1004003000 /* TileMapRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileMapRenderer.swift; sourceTree = "<group>"; };
+		A1004004000 /* SpriteRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpriteRenderer.swift; sourceTree = "<group>"; };
+		A1004005000 /* ParticleRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticleRenderer.swift; sourceTree = "<group>"; };
+		A1004006000 /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
+		A1005001000 /* InputManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputManager.swift; sourceTree = "<group>"; };
+		A1005002000 /* TouchHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TouchHandler.swift; sourceTree = "<group>"; };
+		A1006001000 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
+		A1007001000 /* Tile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tile.swift; sourceTree = "<group>"; };
+		A1007002000 /* Chunk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chunk.swift; sourceTree = "<group>"; };
+		A1007003000 /* ChunkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChunkManager.swift; sourceTree = "<group>"; };
+		A1007004000 /* WorldGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldGenerator.swift; sourceTree = "<group>"; };
+		A1007005000 /* Biome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Biome.swift; sourceTree = "<group>"; };
+		A1008001000 /* Item.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Item.swift; sourceTree = "<group>"; };
+		A1008002000 /* ItemRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemRegistry.swift; sourceTree = "<group>"; };
+		A1009001000 /* Recipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recipe.swift; sourceTree = "<group>"; };
+		A1009002000 /* RecipeRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeRegistry.swift; sourceTree = "<group>"; };
+		A1010001000 /* Building.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Building.swift; sourceTree = "<group>"; };
+		A1010002000 /* BuildingRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildingRegistry.swift; sourceTree = "<group>"; };
+		A1011001000 /* MiningSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiningSystem.swift; sourceTree = "<group>"; };
+		A1011002000 /* BeltSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeltSystem.swift; sourceTree = "<group>"; };
+		A1011003000 /* InserterSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InserterSystem.swift; sourceTree = "<group>"; };
+		A1011004000 /* CraftingSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftingSystem.swift; sourceTree = "<group>"; };
+		A1011005000 /* PowerSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSystem.swift; sourceTree = "<group>"; };
+		A1011006000 /* ResearchSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchSystem.swift; sourceTree = "<group>"; };
+		A1011007000 /* PollutionSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollutionSystem.swift; sourceTree = "<group>"; };
+		A1011008000 /* EnemyAISystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnemyAISystem.swift; sourceTree = "<group>"; };
+		A1011009000 /* CombatSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombatSystem.swift; sourceTree = "<group>"; };
+		A1012001000 /* Technology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Technology.swift; sourceTree = "<group>"; };
+		A1012002000 /* TechTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TechTree.swift; sourceTree = "<group>"; };
+		A1013001000 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
+		A1014001000 /* UISystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISystem.swift; sourceTree = "<group>"; };
+		A1014002000 /* HUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUD.swift; sourceTree = "<group>"; };
+		A1014003000 /* InventoryUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryUI.swift; sourceTree = "<group>"; };
+		A1014004000 /* CraftingMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftingMenu.swift; sourceTree = "<group>"; };
+		A1014005000 /* BuildMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildMenu.swift; sourceTree = "<group>"; };
+		A1014006000 /* ResearchUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchUI.swift; sourceTree = "<group>"; };
+		A1014007000 /* MachineUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineUI.swift; sourceTree = "<group>"; };
+		A1015001000 /* SaveSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveSystem.swift; sourceTree = "<group>"; };
+		A1015002000 /* GameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameData.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		A0000100000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXGroup section */
-		ROOT_GROUP = {
+		A0000200000 = {
 			isa = PBXGroup;
 			children = (
-				FACTORY_FORGE_GROUP,
+				A0000200001 /* FactoryForge */,
+				A0000200002 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		FACTORY_FORGE_GROUP = {
+		A0000200001 /* FactoryForge */ = {
 			isa = PBXGroup;
 			children = (
+				A0000200010 /* App */,
+				A0000200020 /* Engine */,
+				A0000200030 /* Game */,
+				A0000200040 /* UI */,
+				A0000200050 /* Data */,
 			);
 			path = FactoryForge;
+			sourceTree = "<group>";
+		};
+		A0000200002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000 /* FactoryForge.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A0000200010 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A1000001000 /* AppDelegate.swift */,
+				A1000002000 /* GameViewController.swift */,
+				A0000000001 /* Info.plist */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A0000200020 /* Engine */ = {
+			isa = PBXGroup;
+			children = (
+				A0000200021 /* Core */,
+				A0000200022 /* ECS */,
+				A0000200023 /* Rendering */,
+				A0000200024 /* Input */,
+				A0000200025 /* Audio */,
+			);
+			path = Engine;
+			sourceTree = "<group>";
+		};
+		A0000200021 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				A1001001000 /* GameLoop.swift */,
+				A1001002000 /* Math.swift */,
+				A1001003000 /* Time.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		A0000200022 /* ECS */ = {
+			isa = PBXGroup;
+			children = (
+				A1002001000 /* Entity.swift */,
+				A1002002000 /* Component.swift */,
+				A1002003000 /* System.swift */,
+				A1002004000 /* World.swift */,
+				A0000200026 /* Components */,
+			);
+			path = ECS;
+			sourceTree = "<group>";
+		};
+		A0000200023 /* Rendering */ = {
+			isa = PBXGroup;
+			children = (
+				A1004001000 /* MetalRenderer.swift */,
+				A1004002000 /* TextureAtlas.swift */,
+				A1004003000 /* TileMapRenderer.swift */,
+				A1004004000 /* SpriteRenderer.swift */,
+				A1004005000 /* ParticleRenderer.swift */,
+				A0000200027 /* Shaders */,
+			);
+			path = Rendering;
+			sourceTree = "<group>";
+		};
+		A0000200024 /* Input */ = {
+			isa = PBXGroup;
+			children = (
+				A1005001000 /* InputManager.swift */,
+				A1005002000 /* TouchHandler.swift */,
+			);
+			path = Input;
+			sourceTree = "<group>";
+		};
+		A0000200025 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				A1006001000 /* AudioManager.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		A0000200026 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				A1003001000 /* PositionComponent.swift */,
+				A1003002000 /* SpriteComponent.swift */,
+				A1003003000 /* HealthComponent.swift */,
+				A1003004000 /* InventoryComponent.swift */,
+				A1003005000 /* BuildingComponents.swift */,
+				A1003006000 /* PowerComponents.swift */,
+				A1003007000 /* CombatComponents.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		A0000200027 /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				A1004006000 /* Shaders.metal */,
+			);
+			path = Shaders;
+			sourceTree = "<group>";
+		};
+		A0000200030 /* Game */ = {
+			isa = PBXGroup;
+			children = (
+				A0000200031 /* World */,
+				A0000200032 /* Items */,
+				A0000200033 /* Recipes */,
+				A0000200034 /* Buildings */,
+				A0000200035 /* Systems */,
+				A0000200036 /* Research */,
+				A0000200037 /* Player */,
+			);
+			path = Game;
+			sourceTree = "<group>";
+		};
+		A0000200031 /* World */ = {
+			isa = PBXGroup;
+			children = (
+				A1007001000 /* Tile.swift */,
+				A1007002000 /* Chunk.swift */,
+				A1007003000 /* ChunkManager.swift */,
+				A1007004000 /* WorldGenerator.swift */,
+				A1007005000 /* Biome.swift */,
+			);
+			path = World;
+			sourceTree = "<group>";
+		};
+		A0000200032 /* Items */ = {
+			isa = PBXGroup;
+			children = (
+				A1008001000 /* Item.swift */,
+				A1008002000 /* ItemRegistry.swift */,
+			);
+			path = Items;
+			sourceTree = "<group>";
+		};
+		A0000200033 /* Recipes */ = {
+			isa = PBXGroup;
+			children = (
+				A1009001000 /* Recipe.swift */,
+				A1009002000 /* RecipeRegistry.swift */,
+			);
+			path = Recipes;
+			sourceTree = "<group>";
+		};
+		A0000200034 /* Buildings */ = {
+			isa = PBXGroup;
+			children = (
+				A1010001000 /* Building.swift */,
+				A1010002000 /* BuildingRegistry.swift */,
+			);
+			path = Buildings;
+			sourceTree = "<group>";
+		};
+		A0000200035 /* Systems */ = {
+			isa = PBXGroup;
+			children = (
+				A1011001000 /* MiningSystem.swift */,
+				A1011002000 /* BeltSystem.swift */,
+				A1011003000 /* InserterSystem.swift */,
+				A1011004000 /* CraftingSystem.swift */,
+				A1011005000 /* PowerSystem.swift */,
+				A1011006000 /* ResearchSystem.swift */,
+				A1011007000 /* PollutionSystem.swift */,
+				A1011008000 /* EnemyAISystem.swift */,
+				A1011009000 /* CombatSystem.swift */,
+			);
+			path = Systems;
+			sourceTree = "<group>";
+		};
+		A0000200036 /* Research */ = {
+			isa = PBXGroup;
+			children = (
+				A1012001000 /* Technology.swift */,
+				A1012002000 /* TechTree.swift */,
+			);
+			path = Research;
+			sourceTree = "<group>";
+		};
+		A0000200037 /* Player */ = {
+			isa = PBXGroup;
+			children = (
+				A1013001000 /* Player.swift */,
+			);
+			path = Player;
+			sourceTree = "<group>";
+		};
+		A0000200040 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				A1014001000 /* UISystem.swift */,
+				A1014002000 /* HUD.swift */,
+				A1014003000 /* InventoryUI.swift */,
+				A1014004000 /* CraftingMenu.swift */,
+				A1014005000 /* BuildMenu.swift */,
+				A1014006000 /* ResearchUI.swift */,
+				A1014007000 /* MachineUI.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		A0000200050 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				A1015001000 /* SaveSystem.swift */,
+				A1015002000 /* GameData.swift */,
+			);
+			path = Data;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		FACTORY_FORGE_TARGET = {
+		A0000300000 /* FactoryForge */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BUILD_CONFIG_LIST;
+			buildConfigurationList = A0000500000 /* Build configuration list for PBXNativeTarget "FactoryForge" */;
 			buildPhases = (
+				A0000300001 /* Sources */,
+				A0000100000 /* Frameworks */,
+				A0000300002 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -43,22 +389,25 @@
 			);
 			name = FactoryForge;
 			productName = FactoryForge;
-			productReference = PRODUCT_REF;
+			productReference = A0000000000 /* FactoryForge.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		PROJECT = {
+		A0000400000 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
+					A0000300000 = {
+						CreatedOnToolsVersion = 15.0;
+					};
 				};
 			};
-			buildConfigurationList = PROJECT_BUILD_CONFIG_LIST;
+			buildConfigurationList = A0000500001 /* Build configuration list for PBXProject "FactoryForge" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -66,29 +415,222 @@
 				en,
 				Base,
 			);
-			mainGroup = ROOT_GROUP;
-			productRefGroup = PRODUCTS_GROUP;
+			mainGroup = A0000200000;
+			productRefGroup = A0000200002 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FACTORY_FORGE_TARGET,
+				A0000300000 /* FactoryForge */,
 			);
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		A0000300002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A0000300001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000001001 /* AppDelegate.swift in Sources */,
+				A1000002001 /* GameViewController.swift in Sources */,
+				A1001001001 /* GameLoop.swift in Sources */,
+				A1001002001 /* Math.swift in Sources */,
+				A1001003001 /* Time.swift in Sources */,
+				A1002001001 /* Entity.swift in Sources */,
+				A1002002001 /* Component.swift in Sources */,
+				A1002003001 /* System.swift in Sources */,
+				A1002004001 /* World.swift in Sources */,
+				A1003001001 /* PositionComponent.swift in Sources */,
+				A1003002001 /* SpriteComponent.swift in Sources */,
+				A1003003001 /* HealthComponent.swift in Sources */,
+				A1003004001 /* InventoryComponent.swift in Sources */,
+				A1003005001 /* BuildingComponents.swift in Sources */,
+				A1003006001 /* PowerComponents.swift in Sources */,
+				A1003007001 /* CombatComponents.swift in Sources */,
+				A1004001001 /* MetalRenderer.swift in Sources */,
+				A1004002001 /* TextureAtlas.swift in Sources */,
+				A1004003001 /* TileMapRenderer.swift in Sources */,
+				A1004004001 /* SpriteRenderer.swift in Sources */,
+				A1004005001 /* ParticleRenderer.swift in Sources */,
+				A1004006001 /* Shaders.metal in Sources */,
+				A1005001001 /* InputManager.swift in Sources */,
+				A1005002001 /* TouchHandler.swift in Sources */,
+				A1006001001 /* AudioManager.swift in Sources */,
+				A1007001001 /* Tile.swift in Sources */,
+				A1007002001 /* Chunk.swift in Sources */,
+				A1007003001 /* ChunkManager.swift in Sources */,
+				A1007004001 /* WorldGenerator.swift in Sources */,
+				A1007005001 /* Biome.swift in Sources */,
+				A1008001001 /* Item.swift in Sources */,
+				A1008002001 /* ItemRegistry.swift in Sources */,
+				A1009001001 /* Recipe.swift in Sources */,
+				A1009002001 /* RecipeRegistry.swift in Sources */,
+				A1010001001 /* Building.swift in Sources */,
+				A1010002001 /* BuildingRegistry.swift in Sources */,
+				A1011001001 /* MiningSystem.swift in Sources */,
+				A1011002001 /* BeltSystem.swift in Sources */,
+				A1011003001 /* InserterSystem.swift in Sources */,
+				A1011004001 /* CraftingSystem.swift in Sources */,
+				A1011005001 /* PowerSystem.swift in Sources */,
+				A1011006001 /* ResearchSystem.swift in Sources */,
+				A1011007001 /* PollutionSystem.swift in Sources */,
+				A1011008001 /* EnemyAISystem.swift in Sources */,
+				A1011009001 /* CombatSystem.swift in Sources */,
+				A1012001001 /* Technology.swift in Sources */,
+				A1012002001 /* TechTree.swift in Sources */,
+				A1013001001 /* Player.swift in Sources */,
+				A1014001001 /* UISystem.swift in Sources */,
+				A1014002001 /* HUD.swift in Sources */,
+				A1014003001 /* InventoryUI.swift in Sources */,
+				A1014004001 /* CraftingMenu.swift in Sources */,
+				A1014005001 /* BuildMenu.swift in Sources */,
+				A1014006001 /* ResearchUI.swift in Sources */,
+				A1014007001 /* MachineUI.swift in Sources */,
+				A1015001001 /* SaveSystem.swift in Sources */,
+				A1015002001 /* GameData.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
 /* Begin XCBuildConfiguration section */
-		DEBUG_CONFIG = {
+		A0000600000 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A0000600001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A0000600002 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BQ3SQXM6V5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FactoryForge/App/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -103,18 +645,20 @@
 			};
 			name = Debug;
 		};
-		RELEASE_CONFIG = {
+		A0000600003 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BQ3SQXM6V5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FactoryForge/App/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIRequiresFullScreen = YES;
+				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -132,27 +676,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		BUILD_CONFIG_LIST = {
+		A0000500000 /* Build configuration list for PBXNativeTarget "FactoryForge" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				DEBUG_CONFIG,
-				RELEASE_CONFIG,
+				A0000600002 /* Debug */,
+				A0000600003 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		PROJECT_BUILD_CONFIG_LIST = {
+		A0000500001 /* Build configuration list for PBXProject "FactoryForge" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				DEBUG_CONFIG,
-				RELEASE_CONFIG,
+				A0000600000 /* Debug */,
+				A0000600001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
-	rootObject = PROJECT;
+	rootObject = A0000400000 /* Project object */;
 }
-

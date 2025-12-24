@@ -1,7 +1,7 @@
 import UIKit
 
 /// Manages all touch input for the game
-final class InputManager {
+final class InputManager: NSObject {
     private weak var view: UIView?
     private weak var gameLoop: GameLoop?
     
@@ -40,6 +40,8 @@ final class InputManager {
     init(view: UIView, gameLoop: GameLoop) {
         self.view = view
         self.gameLoop = gameLoop
+        
+        super.init()
         
         setupGestureRecognizers()
     }

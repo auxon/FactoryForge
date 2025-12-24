@@ -113,7 +113,7 @@ final class TileMapRenderer {
 
 // MARK: - Tile Types
 
-enum TileType: UInt16 {
+enum TileType: UInt16, Codable {
     case grass = 0
     case dirt = 1
     case stone = 2

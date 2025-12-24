@@ -146,7 +146,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     // MARK: - MTKViewDelegate
     
-    func mtkView(_ view: MTKView, drawableSizeDidChange size: CGSize) {
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         screenSize = Vector2(Float(size.width), Float(size.height))
         camera.updateScreenSize(width: Float(size.width), height: Float(size.height))
     }
@@ -356,7 +356,7 @@ struct ParticleInstance {
     var maxLife: Float
 }
 
-enum RenderLayer: Int, Comparable {
+enum RenderLayer: Int, Comparable, Codable {
     case ground = 0
     case groundDecoration = 1
     case shadow = 2

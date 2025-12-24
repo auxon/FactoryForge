@@ -78,7 +78,7 @@ final class WorldGenerator {
         let resourcePatches = generatePoissonPoints(
             in: Rect(x: 0, y: 0, width: Float(Chunk.size), height: Float(Chunk.size)),
             minDistance: 8,
-            seed: seed ^ UInt64(chunk.coord.x) ^ (UInt64(chunk.coord.y) << 32)
+            seed: seed ^ UInt64(bitPattern: Int64(chunk.coord.x)) ^ (UInt64(bitPattern: Int64(chunk.coord.y)) << 32)
         )
         
         for point in resourcePatches {

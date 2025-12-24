@@ -254,7 +254,7 @@ final class GameLoop {
         case .generator:
             world.add(GeneratorComponent(
                 powerOutput: buildingDef.powerProduction,
-                fuelCategory: buildingDef.fuelCategory
+                fuelCategory: buildingDef.fuelCategory ?? "chemical"
             ), to: entity)
             world.add(InventoryComponent(slots: 1, filter: nil), to: entity)
             
@@ -371,6 +371,16 @@ final class GameLoop {
     
     func load(saveData: GameSave) {
         saveSystem.load(saveData: saveData, into: self)
+    }
+    
+    // MARK: - Public Accessors
+    
+    func isRecipeUnlocked(_ recipeId: String) -> Bool {
+        return researchSystem.isRecipeUnlocked(recipeId)
+    }
+    
+    func isTechnologyResearched(_ techId: String) -> Bool {
+        return researchSystem.completedTechnologies.contains(techId)
     }
 }
 
