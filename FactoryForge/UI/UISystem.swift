@@ -169,6 +169,11 @@ final class UISystem {
         openPanel(.machine)
     }
     
+    func updateScreenSize(_ newSize: Vector2) {
+        hud.updateScreenSize(newSize)
+        // TODO: Update other UI panels if they need screen size updates
+    }
+    
     // MARK: - Touch Handling
     
     func handleTap(at screenPos: Vector2) -> Bool {

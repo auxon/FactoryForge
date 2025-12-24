@@ -40,6 +40,7 @@ final class InputManager: NSObject {
     var onLongPress: ((Vector2) -> Void)?
     var onBuildingPlaced: ((String, IntVector2, Direction) -> Void)?
     var onEntitySelected: ((Entity?) -> Void)?
+    var onTooltip: ((String) -> Void)? // Called when something is tapped to show tooltip
     
     init(view: UIView, gameLoop: GameLoop) {
         self.view = view
@@ -76,11 +77,7 @@ final class InputManager: NSObject {
         pinchRecognizer.delegate = self
         view.addGestureRecognizer(pinchRecognizer)
         
-        // Long press recognizer
-        longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        longPressRecognizer.minimumPressDuration = 0.5
-        longPressRecognizer.delegate = self
-        view.addGestureRecognizer(longPressRecognizer)
+        // Long press recognizer removed - using tap for tooltips
         
         // Rotation recognizer for building rotation
         rotationRecognizer = UIRotationGestureRecognizer(target: self, action: #selector(handleRotation(_:)))
@@ -95,16 +92,43 @@ final class InputManager: NSObject {
     
     @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
         guard recognizer.state == .ended else { return }
-        
+
         let screenPos = screenPosition(from: recognizer)
+
+        // Check for HUD button taps FIRST and show tooltip
+        let screenSize = gameLoop?.renderer?.screenSize ?? Vector2(800, 600)
+        if let buttonName = gameLoop?.uiSystem?.hud.getButtonName(at: screenPos, screenSize: screenSize) {
+            // Show tooltip for button
+            onTooltip?(buttonName)
+        }
+
+        // Check for entities/resources BEFORE UI system check, so tooltips always work
+        let worldPos = gameLoop?.renderer?.screenToWorld(screenPos) ?? .zero
         
-        // Check UI first - UI uses screen coordinates
+        if buildMode == .none {
+            let tilePos = IntVector2(from: worldPos)
+            
+            // Check for entity
+            if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
+                // Show tooltip for entity
+                if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
+                    onTooltip?(tooltipText)
+                }
+            } else {
+                // Check for resource
+                if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+                    // Show tooltip for resource
+                    onTooltip?(resource.type.displayName)
+                }
+            }
+        }
+
+        // Check UI system for button actions (may consume the tap)
         if gameLoop?.uiSystem?.handleTap(at: screenPos) == true {
             return
         }
 
         // UI didn't handle it, process game tap
-        let worldPos = gameLoop?.renderer?.screenToWorld(screenPos) ?? .zero
         currentTouchPosition = worldPos
         
         switch buildMode {
@@ -178,7 +202,7 @@ final class InputManager: NSObject {
             if let joystick = joystick {
                 let activationRadius = joystick.baseRadius * 1.5
                 let distance = (screenPos - joystick.baseCenter).length
-                
+
                 if distance <= activationRadius {
                     // This is a joystick touch - handle it and prevent camera pan
                     if joystick.handleTouchBegan(at: screenPos, touchId: 0) {
@@ -187,6 +211,7 @@ final class InputManager: NSObject {
                     }
                 }
             }
+
             
             // Not a joystick touch, proceed with camera pan
             isDragging = true
@@ -230,7 +255,7 @@ final class InputManager: NSObject {
                 // Reset state
                 return
             }
-            
+
             isDragging = false
             buildPreviewPosition = nil
             
@@ -259,16 +284,7 @@ final class InputManager: NSObject {
         }
     }
     
-    @objc private func handleLongPress(_ recognizer: UILongPressGestureRecognizer) {
-        guard recognizer.state == .began else { return }
-        
-        let screenPos = screenPosition(from: recognizer)
-        let worldPos = gameLoop?.renderer?.screenToWorld(screenPos) ?? .zero
-        
-        // Open context menu
-        onLongPress?(worldPos)
-    }
-    
+
     @objc private func handleRotation(_ recognizer: UIRotationGestureRecognizer) {
         switch recognizer.state {
         case .changed:
@@ -289,6 +305,59 @@ final class InputManager: NSObject {
     }
     
     // MARK: - Helper Methods
+    
+    private func getEntityTooltipText(entity: Entity, gameLoop: GameLoop?) -> String? {
+        guard let world = gameLoop?.world else { return nil }
+        
+        // Check for building components to identify building type
+        if world.has(MinerComponent.self, for: entity) {
+            if let sprite = world.get(SpriteComponent.self, for: entity),
+               let building = gameLoop?.buildingRegistry.getByTexture(sprite.textureId) {
+                return building.name
+            }
+            return "Mining Drill"
+        }
+        if world.has(FurnaceComponent.self, for: entity) {
+            if let sprite = world.get(SpriteComponent.self, for: entity),
+               let building = gameLoop?.buildingRegistry.getByTexture(sprite.textureId) {
+                return building.name
+            }
+            return "Furnace"
+        }
+        if world.has(AssemblerComponent.self, for: entity) {
+            if let sprite = world.get(SpriteComponent.self, for: entity),
+               let building = gameLoop?.buildingRegistry.getByTexture(sprite.textureId) {
+                return building.name
+            }
+            return "Assembling Machine"
+        }
+        if world.has(BeltComponent.self, for: entity) {
+            return "Conveyor Belt"
+        }
+        if world.has(InserterComponent.self, for: entity) {
+            return "Inserter"
+        }
+        // Try to get name from sprite texture
+        if let sprite = world.get(SpriteComponent.self, for: entity) {
+            // Check for player
+            if sprite.textureId == "player" {
+                return "Player"
+            }
+            // Try to find building by texture
+            if let building = gameLoop?.buildingRegistry.getByTexture(sprite.textureId) {
+                return building.name
+            }
+            // Try to find item by texture
+            let itemId = sprite.textureId.replacingOccurrences(of: "_", with: "-")
+            if let item = gameLoop?.itemRegistry.get(itemId) {
+                return item.name
+            }
+            // Fallback to texture ID
+            return sprite.textureId.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+        
+        return "Entity"
+    }
     
     private func screenPosition(from recognizer: UIGestureRecognizer) -> Vector2 {
         guard let view = view else { return .zero }
@@ -349,9 +418,18 @@ enum BuildMode {
 extension InputManager: UIGestureRecognizerDelegate {
     // Don't prevent pan gesture - we'll handle joystick in the pan handler
     // This allows us to get .changed and .ended events
-    
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        print("gestureRecognizerShouldBegin called for \(type(of: gestureRecognizer))")
+        return true
+    }
+
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        let gesture1Type = type(of: gestureRecognizer)
+        let gesture2Type = type(of: otherGestureRecognizer)
+        print("Checking simultaneous recognition: \(gesture1Type) vs \(gesture2Type)")
+
         // Allow pinch and rotation together
         if gestureRecognizer is UIPinchGestureRecognizer && otherGestureRecognizer is UIRotationGestureRecognizer {
             return true
@@ -373,6 +451,7 @@ extension InputManager: UIGestureRecognizerDelegate {
         if gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UITapGestureRecognizer {
             return true
         }
+        print("Not allowing simultaneous recognition")
         return false
     }
 }

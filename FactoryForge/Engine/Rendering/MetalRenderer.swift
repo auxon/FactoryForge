@@ -167,7 +167,9 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         screenSize = Vector2(Float(size.width), Float(size.height))
+        print("Drawable size changed to: \(size.width) x \(size.height)")
         camera.updateScreenSize(width: Float(size.width), height: Float(size.height))
+        gameLoop?.uiSystem?.updateScreenSize(screenSize) // Propagate screen size to UI
     }
     
     func draw(in view: MTKView) {
@@ -222,6 +224,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         // Render UI in screen space (disable depth testing)
         encoder.setDepthStencilState(noDepthState)
         encoder.setRenderPipelineState(uiPipeline)
+ 
         renderUISprites(encoder: encoder)
         
         encoder.endEncoding()
@@ -262,13 +265,16 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     // MARK: - UI Rendering
     
     private func renderUISprites(encoder: MTLRenderCommandEncoder) {
-        guard !uiSprites.isEmpty else { return }
+        guard !uiSprites.isEmpty else {
+            return
+        }
         
         // Create UI vertex data directly
         var vertices: [UIVertex] = []
         vertices.reserveCapacity(uiSprites.count * 6)
         
         for sprite in uiSprites {
+            // print("  UI sprite at (\(sprite.position.x), \(sprite.position.y)) size (\(sprite.size.x), \(sprite.size.y))")
             let halfSize = sprite.size * 0.5
             let center = sprite.position
             

@@ -23,6 +23,7 @@ final class HUD {
     var onCraftingPressed: (() -> Void)?
     var onBuildPressed: (() -> Void)?
     var onResearchPressed: (() -> Void)?
+
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         self.screenSize = screenSize
@@ -47,7 +48,37 @@ final class HUD {
     }
     
     func update(deltaTime: Float) {
-        // HUD updates are minimal - most rendering is done dynamically
+        // HUD update logic if needed
+    }
+    
+    func getButtonName(at position: Vector2, screenSize: Vector2) -> String? {
+        self.screenSize = screenSize
+
+        // Calculate toolbar positions
+        let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
+        var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
+
+        // Check inventory button
+        if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
+            return "Inventory"
+        }
+        currentX += buttonSize + buttonSpacing
+
+        if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
+            return "Crafting"
+        }
+        currentX += buttonSize + buttonSpacing
+
+        if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
+            return "Build"
+        }
+        currentX += buttonSize + buttonSpacing
+
+        if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
+            return "Research"
+        }
+
+        return nil
     }
     
     func render(renderer: MetalRenderer) {
@@ -57,8 +88,9 @@ final class HUD {
         // Calculate toolbar positions
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
         var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
-        
+
         // Render inventory button
+        // print("Rendering inventory button at Metal position (\(currentX), \(toolbarY))")
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "chest", callback: onInventoryPressed)
         currentX += buttonSize + buttonSpacing
         
@@ -286,7 +318,10 @@ final class HUD {
     func handleTap(at position: Vector2, screenSize: Vector2) -> Bool {
         // Use provided screen size for consistent layout
         self.screenSize = screenSize
-        
+
+        // Position is already in UIKit coordinates (top-left origin, Y increases downward)
+        // Button positions are also in UIKit coordinates, so no conversion needed
+
         // Calculate toolbar positions (same as render)
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
         var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
@@ -297,21 +332,21 @@ final class HUD {
             return true
         }
         currentX += buttonSize + buttonSpacing
-        
+
         // Check crafting button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
             onCraftingPressed?()
             return true
         }
         currentX += buttonSize + buttonSpacing
-        
+
         // Check build button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
             onBuildPressed?()
             return true
         }
         currentX += buttonSize + buttonSpacing
-        
+
         // Check research button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
             onResearchPressed?()
@@ -326,7 +361,9 @@ final class HUD {
     
     private func checkButtonTap(at position: Vector2, buttonPos: Vector2) -> Bool {
         let frame = Rect(center: buttonPos, size: Vector2(buttonSize, buttonSize))
-        return frame.contains(position)
+        let contains = frame.contains(position)
+        print("Button at (\(buttonPos.x), \(buttonPos.y)) bounds: (\(frame.minX), \(frame.minY)) to (\(frame.maxX), \(frame.maxY)), touch (\(position.x), \(position.y)), contains: \(contains)")
+        return contains
     }
 }
 

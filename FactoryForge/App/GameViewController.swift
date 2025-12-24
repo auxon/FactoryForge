@@ -7,6 +7,10 @@ class GameViewController: UIViewController {
     private var gameLoop: GameLoop!
     private var inputManager: InputManager!
     
+    // Tooltip label
+    private var tooltipLabel: UILabel!
+    private var tooltipHideTimer: Timer?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -15,6 +19,59 @@ class GameViewController: UIViewController {
         setupGameLoop()
         setupInput()
         setupNotifications()
+        setupTooltip()
+
+        print("View bounds: \(view.bounds), scale: \(UIScreen.main.scale)")
+        print("Metal view bounds: \(metalView.bounds)")
+    }
+    
+    private func setupTooltip() {
+        tooltipLabel = UILabel()
+        tooltipLabel.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
+        tooltipLabel.textColor = .black
+        tooltipLabel.textAlignment = .center
+        tooltipLabel.backgroundColor = .clear
+        tooltipLabel.numberOfLines = 1
+        tooltipLabel.isHidden = true
+        tooltipLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(tooltipLabel)
+        
+        NSLayoutConstraint.activate([
+            tooltipLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            tooltipLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            tooltipLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
+            tooltipLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20)
+        ])
+    }
+    
+    func showTooltip(_ text: String, duration: TimeInterval = 1.0) {
+        // Create attributed string with black text and white outline
+        let attributedString = NSMutableAttributedString(string: text)
+        let range = NSRange(location: 0, length: text.count)
+        
+        // Set black text color
+        attributedString.addAttribute(.foregroundColor, value: UIColor.black, range: range)
+        
+        // Add white stroke/outline (negative stroke width creates an outline)
+        attributedString.addAttribute(.strokeColor, value: UIColor.white, range: range)
+        attributedString.addAttribute(.strokeWidth, value: -3.0, range: range)
+        
+        tooltipLabel.attributedText = attributedString
+        tooltipLabel.isHidden = false
+        
+        // Cancel existing timer
+        tooltipHideTimer?.invalidate()
+        
+        // Hide after duration
+        tooltipHideTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
+            self?.hideTooltip()
+        }
+    }
+    
+    private func hideTooltip() {
+        tooltipLabel.isHidden = true
+        tooltipHideTimer?.invalidate()
+        tooltipHideTimer = nil
     }
     
     private func setupMetalView() {
@@ -46,6 +103,11 @@ class GameViewController: UIViewController {
         // Add gesture recognizers to metalView since it's on top and receives touches
         inputManager = InputManager(view: metalView, gameLoop: gameLoop)
         gameLoop.inputManager = inputManager
+        
+        // Setup tooltip callback
+        inputManager.onTooltip = { [weak self] text in
+            self?.showTooltip(text)
+        }
     }
     
     private func setupNotifications() {
