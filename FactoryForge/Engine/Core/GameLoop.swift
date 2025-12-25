@@ -17,7 +17,7 @@ final class GameLoop {
     private let inserterSystem: InserterSystem
     private let craftingSystem: CraftingSystem
     private let powerSystem: PowerSystem
-    private let researchSystem: ResearchSystem
+    let researchSystem: ResearchSystem // Public for UI access
     private let pollutionSystem: PollutionSystem
     private let enemyAISystem: EnemyAISystem
     private let combatSystem: CombatSystem

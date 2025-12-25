@@ -133,14 +133,32 @@ final class InputManager: NSObject {
         
         switch buildMode {
         case .none:
-            // Try to select an entity at this position
-            let tilePos = IntVector2(from: worldPos)
-            if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
-                selectedEntity = entity
-                onEntitySelected?(entity)
-            } else {
-                // No entity, check for resource to mine manually
-                if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+            // Check if player is attacking an enemy (prioritize combat)
+            let nearbyEnemies = gameLoop?.world.getEntitiesNear(position: worldPos, radius: 1.5) ?? []
+            var attacked = false
+            
+            for enemy in nearbyEnemies {
+                if gameLoop?.world.has(EnemyComponent.self, for: enemy) == true {
+                    // Try to attack the enemy at its position
+                    if let enemyPos = gameLoop?.world.get(PositionComponent.self, for: enemy),
+                       let gameLoop = gameLoop {
+                        if gameLoop.player.attack(at: enemyPos.worldPosition) {
+                            attacked = true
+                            break
+                        }
+                    }
+                }
+            }
+            
+            if !attacked {
+                // Try to select an entity at this position
+                let tilePos = IntVector2(from: worldPos)
+                if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
+                    selectedEntity = entity
+                    onEntitySelected?(entity)
+                } else {
+                    // No entity, check for resource to mine manually
+                    if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                     // Check if player can accept the item
                     if gameLoop?.player.inventory.canAccept(itemId: resource.type.outputItem) == true {
                         print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
@@ -165,6 +183,7 @@ final class InputManager: NSObject {
                     selectedEntity = nil
                     onEntitySelected?(nil)
                 }
+            }
             }
             
         case .placing:

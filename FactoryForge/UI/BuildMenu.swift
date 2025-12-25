@@ -34,6 +34,7 @@ final class BuildMenu: UIPanel_Base {
             (.inserter, "inserter"),
             (.powerPole, "power_pole"),
             (.generator, "steam_engine"),
+            (.lab, "lab"),
             (.turret, "turret"),
             (.chest, "chest")
         ]

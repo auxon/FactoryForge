@@ -37,6 +37,12 @@ final class Player {
     private var moveDirection: Vector2 = .zero
     private let moveSpeed: Float = 5.0
     
+    /// Combat
+    private var attackCooldown: Float = 0
+    private let attackCooldownTime: Float = 0.5  // Can attack every 0.5 seconds
+    private let playerDamage: Float = 5.0  // Damage per shot
+    private let attackRange: Float = 10.0  // Attack range in tiles
+    
     /// Crafting queue
     private var craftingQueue: [CraftingQueueItem] = []
     private var currentCraft: CraftingQueueItem?
@@ -102,6 +108,7 @@ final class Player {
         inventory.add(itemId: "iron-plate", count: 8)
         inventory.add(itemId: "burner-mining-drill", count: 1)
         inventory.add(itemId: "stone-furnace", count: 1)
+        inventory.add(itemId: "firearm-magazine", count: 10)  // Starting ammo for self-defense
     }
     
     // MARK: - Update
@@ -112,6 +119,11 @@ final class Player {
         
         // Update crafting
         updateCrafting(deltaTime: deltaTime)
+        
+        // Update attack cooldown
+        if attackCooldown > 0 {
+            attackCooldown = max(0, attackCooldown - deltaTime)
+        }
         
         // Update health immunity
         if var health = world.get(HealthComponent.self, for: entity) {
@@ -272,6 +284,79 @@ final class Player {
     
     var isDead: Bool {
         return health <= 0
+    }
+    
+    // MARK: - Combat
+    
+    /// Attempts to attack an enemy at the given world position
+    /// Returns true if attack was successful
+    func attack(at targetPosition: Vector2) -> Bool {
+        // Check cooldown
+        guard attackCooldown <= 0 else { return false }
+        
+        // Check if player has ammo
+        guard inventory.has(itemId: "firearm-magazine") || inventory.has(itemId: "piercing-rounds-magazine") else {
+            return false  // No ammo
+        }
+        
+        // Get player position
+        guard let playerPos = world.get(PositionComponent.self, for: entity) else { return false }
+        
+        // Check range
+        let distance = playerPos.worldPosition.distance(to: targetPosition)
+        guard distance <= attackRange else { return false }
+        
+        // Find enemy at target position
+        let nearbyEnemies = world.getEntitiesNear(position: targetPosition, radius: 1.0)
+        var targetEnemy: Entity?
+        
+        for enemy in nearbyEnemies {
+            guard world.has(EnemyComponent.self, for: enemy) else { continue }
+            guard let health = world.get(HealthComponent.self, for: enemy), !health.isDead else { continue }
+            
+            if let enemyPos = world.get(PositionComponent.self, for: enemy) {
+                let enemyDistance = playerPos.worldPosition.distance(to: enemyPos.worldPosition)
+                if enemyDistance <= attackRange {
+                    targetEnemy = enemy
+                    break
+                }
+            }
+        }
+        
+        guard let enemy = targetEnemy else { return false }
+        
+        // Consume ammo
+        if inventory.has(itemId: "piercing-rounds-magazine") {
+            inventory.remove(itemId: "piercing-rounds-magazine", count: 1)
+        } else {
+            inventory.remove(itemId: "firearm-magazine", count: 1)
+        }
+        
+        // Create projectile
+        let projectile = world.spawn()
+        let direction = (targetPosition - playerPos.worldPosition).normalized
+        let startPos = playerPos.worldPosition + direction * 0.5
+        
+        world.add(PositionComponent(tilePosition: IntVector2(from: startPos)), to: projectile)
+        world.add(SpriteComponent(textureId: "bullet", size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
+        world.add(VelocityComponent(velocity: direction * 30), to: projectile)
+        
+        var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30)
+        projectileComp.target = enemy
+        projectileComp.source = entity
+        world.add(projectileComp, to: projectile)
+        
+        // Set cooldown
+        attackCooldown = attackCooldownTime
+        
+        // Play sound
+        AudioManager.shared.playTurretFireSound()
+        
+        return true
+    }
+    
+    var canAttack: Bool {
+        return attackCooldown <= 0 && (inventory.has(itemId: "firearm-magazine") || inventory.has(itemId: "piercing-rounds-magazine"))
     }
     
     // MARK: - Animation

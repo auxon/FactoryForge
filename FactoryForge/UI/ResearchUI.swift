@@ -23,21 +23,34 @@ final class ResearchUI: UIPanel_Base {
     override func open() {
         super.open()
         refreshTechTree()
+        // Force update to set initial button states
+        update(deltaTime: 0)
     }
     
     private func refreshTechTree() {
         techButtons.removeAll()
         
-        guard let registry = gameLoop?.technologyRegistry else { return }
+        guard let registry = gameLoop?.technologyRegistry else {
+            print("ResearchUI: No technology registry available")
+            return
+        }
         
         let buttonWidth: Float = 120 * UIScale
         let buttonHeight: Float = 40 * UIScale
         let tierSpacing: Float = 150 * UIScale
         let buttonSpacing: Float = 50 * UIScale
         
+        var totalTechs = 0
+        
         // Group by tier
         for tier in 1...3 {
             let techs = registry.technologies(tier: tier)
+            totalTechs += techs.count
+            
+            if techs.isEmpty {
+                continue
+            }
+            
             let tierX = frame.minX + 80 * UIScale + Float(tier - 1) * tierSpacing
             var currentY = frame.minY + 60 * UIScale
             
@@ -53,6 +66,8 @@ final class ResearchUI: UIPanel_Base {
                 currentY += buttonHeight + buttonSpacing / 2
             }
         }
+        
+        print("ResearchUI: Loaded \(totalTechs) technologies, created \(techButtons.count) buttons")
     }
     
     private func selectTechnology(_ tech: Technology) {
@@ -60,22 +75,48 @@ final class ResearchUI: UIPanel_Base {
         
         // Try to start research
         if let researchSystem = findResearchSystem() {
-            if researchSystem.selectResearch(tech.id) {
+            let success = researchSystem.selectResearch(tech.id)
+            print("ResearchUI: Attempted to start research '\(tech.name)' (id: \(tech.id)), success: \(success)")
+            
+            if success {
                 AudioManager.shared.playClickSound()
+                // Immediately update button states to reflect the change
+                update(deltaTime: 0)
+            } else {
+                print("ResearchUI: Failed to start research - tech may not be available or already completed")
             }
+        } else {
+            print("ResearchUI: No research system available")
         }
     }
     
     private func findResearchSystem() -> ResearchSystem? {
-        // Would need proper access to research system
-        return nil
+        return gameLoop?.researchSystem
     }
     
     override func update(deltaTime: Float) {
-        guard isOpen else { return }
+        guard isOpen, let researchSystem = gameLoop?.researchSystem else { return }
         
-        // Update button states
-        // Would need access to research system
+        // Update button states based on research system
+        for button in techButtons {
+            let tech = button.technology
+            
+            // Check if completed
+            let wasCompleted = button.isCompleted
+            button.isCompleted = researchSystem.completedTechnologies.contains(tech.id)
+            
+            // Check if currently researching (this takes priority)
+            let wasResearching = button.isResearching
+            button.isResearching = researchSystem.currentResearch?.id == tech.id
+            
+            // Check if available for research (prerequisites met, not completed, not already researching)
+            button.isAvailable = researchSystem.canResearch(tech) && !button.isResearching
+            
+            // Debug: log state changes
+            if wasResearching != button.isResearching {
+                print("ResearchUI: Tech '\(tech.name)' researching state changed: \(wasResearching) -> \(button.isResearching)")
+            }
+        }
     }
     
     override func render(renderer: MetalRenderer) {
@@ -88,14 +129,42 @@ final class ResearchUI: UIPanel_Base {
             button.render(renderer: renderer)
         }
         
-        // Render current research progress
+        // Render current research info and progress
+        renderResearchInfo(renderer: renderer)
         renderResearchProgress(renderer: renderer)
         
         // Render connections between techs
         renderConnections(renderer: renderer)
     }
     
+    private func renderResearchInfo(renderer: MetalRenderer) {
+        guard let researchSystem = gameLoop?.researchSystem,
+              let currentResearch = researchSystem.currentResearch else {
+            return // No active research
+        }
+        
+        // Render technology name area (we can't render text yet, so use a colored bar)
+        // Yellow/orange tint to indicate active research
+        let infoBarWidth: Float = frame.width - 40 * UIScale
+        let infoBarHeight: Float = 30 * UIScale
+        let infoBarY = frame.maxY - 85 * UIScale
+        
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        renderer.queueSprite(SpriteInstance(
+            position: Vector2(frame.center.x, infoBarY),
+            size: Vector2(infoBarWidth, infoBarHeight),
+            textureRect: solidRect,
+            color: Color(r: 0.4, g: 0.35, b: 0.2, a: 0.9), // Yellowish tint to match researching button
+            layer: .ui
+        ))
+    }
+    
     private func renderResearchProgress(renderer: MetalRenderer) {
+        guard let researchSystem = gameLoop?.researchSystem,
+              let currentResearch = researchSystem.currentResearch else {
+            return // No active research
+        }
+        
         let progressBarWidth: Float = frame.width - 40 * UIScale
         let progressBarHeight: Float = 20 * UIScale
         let progressY = frame.maxY - 50 * UIScale
@@ -110,7 +179,18 @@ final class ResearchUI: UIPanel_Base {
             layer: .ui
         ))
         
-        // Would render actual progress here
+        // Progress fill
+        let progress = researchSystem.getResearchProgress()
+        if progress > 0 {
+            let fillWidth = progressBarWidth * progress
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(frame.center.x - progressBarWidth / 2 + fillWidth / 2, progressY),
+                size: Vector2(fillWidth, progressBarHeight),
+                textureRect: solidRect,
+                color: Color(r: 0.2, g: 0.6, b: 0.2, a: 1),
+                layer: .ui
+            ))
+        }
     }
     
     private func renderConnections(renderer: MetalRenderer) {
@@ -151,14 +231,16 @@ class TechButton: UIElement {
     
     func render(renderer: MetalRenderer) {
         var bgColor: Color
+        // Priority: completed > researching > available > unavailable
         if isCompleted {
-            bgColor = Color(r: 0.2, g: 0.4, b: 0.2, a: 1)
+            bgColor = Color(r: 0.2, g: 0.4, b: 0.2, a: 1) // Green
         } else if isResearching {
-            bgColor = Color(r: 0.4, g: 0.4, b: 0.2, a: 1)
+            bgColor = Color(r: 0.45, g: 0.45, b: 0.15, a: 1) // Bright yellow/gold
         } else if isAvailable {
-            bgColor = Color(r: 0.25, g: 0.25, b: 0.3, a: 1)
+            bgColor = Color(r: 0.25, g: 0.25, b: 0.3, a: 1) // Light blue
         } else {
-            bgColor = Color(r: 0.15, g: 0.15, b: 0.15, a: 1)
+            // Unavailable - still visible but darker/reddish to indicate locked
+            bgColor = Color(r: 0.2, g: 0.15, b: 0.15, a: 0.7) // Dark red
         }
         
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
@@ -170,7 +252,8 @@ class TechButton: UIElement {
             layer: .ui
         ))
         
-        // Tech icon would go here
+        // Render tech name as text (we'll use a simple placeholder for now)
+        // TODO: Add text rendering support for UI labels
     }
 }
 
