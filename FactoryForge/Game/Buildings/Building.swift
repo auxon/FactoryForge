@@ -67,7 +67,9 @@ struct BuildingDefinition: Identifiable, Codable {
         self.width = width
         self.height = height
         self.maxHealth = maxHealth
-        self.textureId = textureId ?? "building_placeholder"
+        // Default textureId to the building ID with hyphens converted to underscores
+        // This matches the sprite file naming convention
+        self.textureId = textureId ?? id.replacingOccurrences(of: "-", with: "_")
         self.cost = cost
     }
 }

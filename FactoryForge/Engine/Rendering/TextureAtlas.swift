@@ -76,10 +76,137 @@ final class TextureAtlas {
     }
     
     private func loadIndividualSprites(into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int) {
-        // Load player sprite
-        if let playerImage = loadSpriteImage(filename: "player", fileExtension: "png") {
-            if packSpriteIntoAtlas(image: playerImage, name: "player", into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize) {
-                print("Successfully loaded player sprite")
+        // List of sprite files to load with their textureId mappings
+        // Format: (filename, textureId) - if textureId is nil, uses filename
+        let spriteFiles: [(filename: String, textureId: String?)] = [
+            // Entities (load player first)
+            ("player", nil),
+            ("biter", nil),
+            ("spawner", nil),
+            ("bullet", nil),
+            
+            // Terrain (try regular version first, fallback to _2 if needed)
+            ("grass", nil),
+            ("dirt", nil),
+            ("stone", nil),  // Try stone.png first, will handle _2 in loading logic
+            ("water", nil),
+            ("sand", nil),
+            ("iron_ore", nil),  // Try iron_ore.png first
+            ("copper_ore", nil),
+            ("coal", nil),  // Try coal.png first
+            ("tree", nil),
+            
+            // Buildings - Mining
+            ("burner_miner_drill", "burner_mining_drill"),  // Handle typo in filename
+            ("electric_mining_drill", nil),
+            
+            // Buildings - Smelting
+            ("stone_furnace", nil),
+            ("steel_furnace", nil),
+            ("electric_furnace", nil),
+            
+            // Buildings - Crafting
+            ("assembling_machine_1", nil),
+            ("assembling_machine_2", nil),
+            ("assembling_machine_3", nil),
+            
+            // Buildings - Belts
+            ("transport_belt", nil),
+            ("fast_transport_belt", nil),
+            ("express_transport_belt", nil),
+            
+            // Buildings - Inserters
+            ("inserter", nil),
+            ("long_handed_inserter", nil),
+            ("fast_inserter", nil),
+            
+            // Buildings - Storage
+            ("wooden_chest", nil),
+            ("iron_chest", nil),
+            ("steel_chest", nil),
+            
+            // Buildings - Power
+            ("boiler", nil),
+            ("steam_engine", nil),
+            ("solar_panel", nil),
+            ("accumulator", nil),
+            ("small_electric_pole", nil),
+            ("medium_electric_pole", nil),
+            ("big_electric_pole", nil),
+            
+            // Buildings - Research
+            ("lab", nil),
+            
+            // Buildings - Combat
+            ("gun_turret", nil),
+            ("laser_turret", nil),
+            ("stone_wall", nil),
+            ("radar", nil),
+            
+            // Buildings - Fluids
+            ("pipe", nil),
+            
+            // Items - Raw Materials (wood handled with fallback logic above)
+            ("wood", nil),
+            ("crude_oil", nil),
+            ("uranium_ore", nil),
+            
+            // Items - Intermediate
+            ("iron_plate", nil),
+            ("copper_plate", nil),
+            ("steel_plate", nil),
+            ("stone_brick", nil),
+            ("iron_gear_wheel", nil),
+            ("copper_cable", nil),
+            ("electronic_circuit", nil),
+            ("advanced_circuit", nil),
+            ("processing_unit", nil),
+            ("engine_unit", nil),
+            ("electric_engine_unit", nil),
+            
+            // Items - Science Packs
+            ("automation_science_pack", nil),
+            ("logistic_science_pack", nil),
+            ("military_science_pack", nil),
+            ("chemical_science_pack", nil),
+            ("production_science_pack", nil),
+            ("utility_science_pack", nil),
+            
+            // Items - Combat
+            ("firearm_magazine", nil),
+            ("piercing_rounds_magazine", nil),
+            ("grenade", nil),
+            
+            // UI
+            ("solid_white", nil),
+            ("building_placeholder", nil),
+        ]
+        
+        print("Loading \(spriteFiles.count) sprite files...")
+        
+        for (filename, textureIdOverride) in spriteFiles {
+            let textureId = textureIdOverride ?? filename
+            
+            // Try to load the sprite (try _2 version as fallback for certain files)
+            var image: UIImage? = loadSpriteImage(filename: filename, fileExtension: "png")
+            
+            // Fallback to _2 version for files that commonly have duplicates
+            if image == nil && ["stone", "coal", "iron_ore", "wood"].contains(filename) {
+                let fallbackName = "\(filename)_2"
+                image = loadSpriteImage(filename: fallbackName, fileExtension: "png")
+                if image != nil {
+                    print("  Using fallback: \(fallbackName).png for \(filename)")
+                }
+            }
+            
+            if let image = image {
+                if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize) {
+                    print("✓ Loaded: \(filename).png -> textureId: \(textureId)")
+                } else {
+                    print("✗ Failed to pack: \(filename).png")
+                }
+            } else {
+                print("✗ Could not load: \(filename).png (textureId: \(textureId))")
             }
         }
     }
@@ -110,46 +237,76 @@ final class TextureAtlas {
         
         print("Packing sprite '\(name)': source image is \(imageWidth)x\(imageHeight), target size is \(spriteSize)x\(spriteSize)")
         
-        // Scale the image to fit the sprite size if it's larger
         let targetSize = spriteSize
-        let scaledImage: UIImage
+        let processedImage: UIImage
         
-        if imageWidth > targetSize || imageHeight > targetSize {
-            // Scale down the image to fit
+        // Check if this is a sprite sheet (like player.png)
+        // Player sprite sheet is 1024x1024 with 4x4 grid (16 frames, each 256x256)
+        // Extract the first frame (top-left) from the sprite sheet
+        if name == "player" && imageWidth == 1024 && imageHeight == 1024 {
+            // Extract top-left frame from 4x4 grid
+            let frameSize = 256  // 1024 / 4 = 256
+            let frameRect = CGRect(x: 0, y: 0, width: frameSize, height: frameSize)
+            
+            if let croppedCGImage = cgImage.cropping(to: frameRect) {
+                processedImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
+                print("  Extracted first frame from player sprite sheet: \(frameSize)x\(frameSize)")
+            } else {
+                processedImage = image
+            }
+        } else if imageWidth > targetSize || imageHeight > targetSize {
+            // Scale down the image to fit if it's larger
             let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
             let scaledWidth = Int(Float(imageWidth) * scale)
             let scaledHeight = Int(Float(imageHeight) * scale)
             
-            print("Scaling image from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
+            print("  Scaling image from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
             
             UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
             image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
-            scaledImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+            processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
             UIGraphicsEndImageContext()
         } else {
-            scaledImage = image
+            processedImage = image
         }
         
-        guard let scaledCGImage = scaledImage.cgImage else {
-            print("Warning: Could not get scaled CGImage for \(name)")
+        guard let processedCGImage = processedImage.cgImage else {
+            print("Warning: Could not get processed CGImage for \(name)")
             return false
         }
         
-        let finalWidth = min(targetSize, scaledCGImage.width)
-        let finalHeight = min(targetSize, scaledCGImage.height)
+        // Final scaling: scale the extracted/processed image to exactly targetSize
+        let finalWidth = min(targetSize, processedCGImage.width)
+        let finalHeight = min(targetSize, processedCGImage.height)
         
-        // Convert scaled image to pixel data
+        let finalImage: UIImage
+        if processedCGImage.width != targetSize || processedCGImage.height != targetSize {
+            // Scale to exactly targetSize
+            UIGraphicsBeginImageContextWithOptions(CGSize(width: targetSize, height: targetSize), false, 1.0)
+            processedImage.draw(in: CGRect(x: 0, y: 0, width: targetSize, height: targetSize))
+            finalImage = UIGraphicsGetImageFromCurrentImageContext() ?? processedImage
+            UIGraphicsEndImageContext()
+        } else {
+            finalImage = processedImage
+        }
+        
+        guard let finalCGImage = finalImage.cgImage else {
+            print("Warning: Could not get final CGImage for \(name)")
+            return false
+        }
+        
+        // Convert final image to pixel data
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let bytesPerPixel = 4
-        let bytesPerRow = scaledCGImage.width * bytesPerPixel
+        let bytesPerRow = finalCGImage.width * bytesPerPixel
         let bitsPerComponent = 8
         
-        var pixelData = [UInt8](repeating: 0, count: scaledCGImage.width * scaledCGImage.height * bytesPerPixel)
+        var pixelData = [UInt8](repeating: 0, count: finalCGImage.width * finalCGImage.height * bytesPerPixel)
         
         guard let context = CGContext(
             data: &pixelData,
-            width: scaledCGImage.width,
-            height: scaledCGImage.height,
+            width: finalCGImage.width,
+            height: finalCGImage.height,
             bitsPerComponent: bitsPerComponent,
             bytesPerRow: bytesPerRow,
             space: colorSpace,
@@ -159,17 +316,13 @@ final class TextureAtlas {
             return false
         }
         
-        context.draw(scaledCGImage, in: CGRect(x: 0, y: 0, width: scaledCGImage.width, height: scaledCGImage.height))
+        context.draw(finalCGImage, in: CGRect(x: 0, y: 0, width: finalCGImage.width, height: finalCGImage.height))
         
-        // Center the sprite in the target size (if smaller) or copy the top-left portion
-        let offsetX = max(0, (targetSize - finalWidth) / 2)
-        let offsetY = max(0, (targetSize - finalHeight) / 2)
-        
-        // Copy sprite to atlas
-        for y in 0..<finalHeight {
-            for x in 0..<finalWidth {
-                let srcIdx = (y * scaledCGImage.width + x) * bytesPerPixel
-                let dstIdx = ((atlasY + offsetY + y) * atlasSize + (atlasX + offsetX + x)) * bytesPerPixel
+        // Copy sprite to atlas (final image is already exactly targetSize x targetSize)
+        for y in 0..<targetSize {
+            for x in 0..<targetSize {
+                let srcIdx = (y * finalCGImage.width + x) * bytesPerPixel
+                let dstIdx = ((atlasY + y) * atlasSize + (atlasX + x)) * bytesPerPixel
                 
                 if dstIdx + 3 < atlasData.count && srcIdx + 3 < pixelData.count {
                     atlasData[dstIdx] = pixelData[srcIdx]     // R
@@ -1013,6 +1166,12 @@ final class TextureAtlas {
         ]
         
         for (name, generator) in tiles {
+            // Skip if already loaded from sprite files
+            guard textureRects[name] == nil else {
+                print("Skipping procedural generation for '\(name)' (already loaded)")
+                continue
+            }
+            
             // Generate the tile
             var tileData = [UInt8](repeating: 0, count: tileSize * tileSize * 4)
             generator(tileSize, tileSize, &tileData)
