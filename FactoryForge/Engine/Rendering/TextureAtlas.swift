@@ -57,15 +57,16 @@ final class TextureAtlas {
         let spriteSize = 32
         
         // Load individual sprite files first (higher priority)
+        // This includes player.png and player_left.png which extract all frames
         loadIndividualSprites(into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize)
-        
-        // Then try to load from sprite sheet image
+
+        // Then try to load from sprite sheet image (only if not already loaded)
         if let spriteSheetImage = loadSpriteSheet() {
             createAtlasFromImage(spriteSheetImage, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY)
-        } else {
-            // Fallback to procedural generation for any missing sprites
-            createProceduralAtlas(into: &atlasData, atlasX: &atlasX, atlasY: &atlasY)
         }
+        
+        // Fallback to procedural generation for any missing sprites
+        createProceduralAtlas(into: &atlasData, atlasX: &atlasX, atlasY: &atlasY)
         
         // Upload final atlas to GPU
         let region = MTLRegion(
@@ -79,8 +80,9 @@ final class TextureAtlas {
         // List of sprite files to load with their textureId mappings
         // Format: (filename, textureId) - if textureId is nil, uses filename
         let spriteFiles: [(filename: String, textureId: String?)] = [
-            // Entities (load player first)
+            // Entities (load player sprite sheets first - they extract all frames)
             ("player", nil),
+            ("player_left", nil),
             ("biter", nil),
             ("spawner", nil),
             ("bullet", nil),
@@ -240,13 +242,14 @@ final class TextureAtlas {
         let targetSize = spriteSize
         let processedImage: UIImage
         
-        // Check if this is a sprite sheet (like player.png)
-        // Player sprite sheet is 1024x1024 with 4x4 grid (16 frames, each 256x256)
+        // Check if this is a player sprite sheet (player.png or player_left.png)
+        // Player sprite sheets are 1024x1024 with 4x4 grid (16 frames, each 256x256)
         // Load all 16 frames for animation
-        if name == "player" && imageWidth == 1024 && imageHeight == 1024 {
+        if (name == "player" || name == "player_left") && imageWidth == 1024 && imageHeight == 1024 {
             // Load all 16 frames from 4x4 grid
             let frameSize = 256  // 1024 / 4 = 256
             let framesPerRow = 4
+            let prefix = name == "player_left" ? "player_left" : "player"
             
             for frameIndex in 0..<16 {
                 let row = frameIndex / framesPerRow
@@ -257,16 +260,17 @@ final class TextureAtlas {
                 
                 if let croppedCGImage = cgImage.cropping(to: frameRect) {
                     let frameImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
-                    let frameName = "player_\(frameIndex)"
+                    let frameName = "\(prefix)_\(frameIndex)"
                     
                     // Pack this frame into the atlas (skip border crop since it's already extracted)
                     if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
-                        print("  Loaded player animation frame \(frameIndex) as '\(frameName)'")
+                        print("  Loaded \(prefix) animation frame \(frameIndex) as '\(frameName)'")
                     }
                 }
             }
             
-            // Return nil to indicate this was handled separately
+            // All frames have been loaded into the atlas, return false to indicate this was handled separately
+            print("  Successfully loaded all 16 frames from \(name) sprite sheet")
             return false
         } else if imageWidth > targetSize || imageHeight > targetSize {
             // For large images (1024x1024), crop out transparent borders by extracting from center
@@ -585,7 +589,13 @@ final class TextureAtlas {
     }
     
     func getTextureRect(for name: String) -> Rect {
-        return textureRects[name] ?? Rect(x: 0, y: 0, width: 1, height: 1)
+        if let rect = textureRects[name] {
+            return rect
+        } else {
+            // Debug: print warning if texture not found
+            print("Warning: Texture '\(name)' not found in atlas, using default rect")
+            return Rect(x: 0, y: 0, width: 1, height: 1)
+        }
     }
     
     // MARK: - Procedural Texture Generators

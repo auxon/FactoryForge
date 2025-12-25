@@ -77,6 +77,7 @@
 		0D6FDC5D2EFDE1B500576EC3 /* steel_chest.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC0E2EFDE1B500576EC3 /* steel_chest.png */; };
 		0D6FDC5E2EFDE1B500576EC3 /* long_handed_inserter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC002EFDE1B500576EC3 /* long_handed_inserter.png */; };
 		0D6FDC5F2EFDE1B500576EC3 /* steel_furnace.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC0F2EFDE1B500576EC3 /* steel_furnace.png */; };
+		0D6FDC612EFDF25800576EC3 /* player_left.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC602EFDF25800576EC3 /* player_left.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -208,6 +209,7 @@
 		0D6FDC182EFDE1B500576EC3 /* water.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = water.png; sourceTree = "<group>"; };
 		0D6FDC192EFDE1B500576EC3 /* wood_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wood_2.png; sourceTree = "<group>"; };
 		0D6FDC1A2EFDE1B500576EC3 /* wooden_chest.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wooden_chest.png; sourceTree = "<group>"; };
+		0D6FDC602EFDF25800576EC3 /* player_left.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player_left.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -284,6 +286,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D6FDC602EFDF25800576EC3 /* player_left.png */,
 				0D6FDBD62EFDE1B500576EC3 /* accumulator.png */,
 				0D6FDBD72EFDE1B500576EC3 /* advanced_circuit.png */,
 				0D6FDBD82EFDE1B500576EC3 /* assembling_machine_1.png */,
@@ -659,6 +662,7 @@
 				0D6FDC1F2EFDE1B500576EC3 /* wood_2.png in Resources */,
 				0D6FDC202EFDE1B500576EC3 /* fast_inserter.png in Resources */,
 				0D6FDC212EFDE1B500576EC3 /* biter.png in Resources */,
+				0D6FDC612EFDF25800576EC3 /* player_left.png in Resources */,
 				0D6FDC222EFDE1B500576EC3 /* grenade.png in Resources */,
 				0D6FDC232EFDE1B500576EC3 /* copper_ore.png in Resources */,
 				0D6FDC242EFDE1B500576EC3 /* laser_turret.png in Resources */,

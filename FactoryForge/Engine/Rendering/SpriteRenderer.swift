@@ -71,19 +71,14 @@ final class SpriteRenderer {
             // For non-centered sprites (buildings), offset by half size to align with tile origin
             let renderPos = sprite.centered ? worldPos : worldPos + Vector2(sprite.size.x / 2, sprite.size.y / 2)
 
-            // Create sprite instance with flip information
-            var spriteInstance = SpriteInstance(
+            queuedSprites.append(SpriteInstance(
                 position: renderPos,
                 size: sprite.size,
                 rotation: position.direction.angle,
                 textureRect: textureRect,
                 color: sprite.tint,
                 layer: sprite.layer
-            )
-            spriteInstance.flipX = sprite.flipX
-            spriteInstance.flipY = sprite.flipY
-            
-            queuedSprites.append(spriteInstance)
+            ))
         }
 
         // Add items on belts
@@ -109,27 +104,13 @@ final class SpriteRenderer {
             )
 
             for i in 0..<6 {
-                var localPos = quadVertices[i]
-                var texCoord = quadTexCoords[i]
-                
-                // Apply horizontal flip by negating X position and flipping texture X coordinate
-                if sprite.flipX {
-                    localPos.x = -localPos.x
-                    texCoord.x = 1.0 - texCoord.x
-                }
-                
-                // Apply vertical flip by negating Y position and flipping texture Y coordinate
-                if sprite.flipY {
-                    localPos.y = -localPos.y
-                    texCoord.y = 1.0 - texCoord.y
-                }
-                
+                let localPos = quadVertices[i]
                 let worldPos4 = transform * SIMD4(localPos.x, localPos.y, 0, 1)
                 let worldPos = Vector2(worldPos4.x, worldPos4.y)
                 let screenPos = camera.worldToScreen(worldPos)
-                let finalTexCoord = uvOrigin + texCoord * uvSize
+                let texCoord = uvOrigin + quadTexCoords[i] * uvSize
 
-                spriteVertices.append(UIVertex(position: screenPos, texCoord: finalTexCoord, color: color))
+                spriteVertices.append(UIVertex(position: screenPos, texCoord: texCoord, color: color))
             }
         }
 

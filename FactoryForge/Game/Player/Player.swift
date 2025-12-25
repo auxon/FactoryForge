@@ -42,6 +42,10 @@ final class Player {
     private var currentCraft: CraftingQueueItem?
     private var craftingProgress: Float = 0
     
+    /// Player animations for different directions
+    private var playerAnimationLeft: SpriteAnimation?
+    private var playerAnimationRight: SpriteAnimation?
+    
     init(world: World) {
         self.world = world
         self.entity = world.spawn()
@@ -50,14 +54,27 @@ final class Player {
         // Set up player entity
         world.add(PositionComponent(tilePosition: .zero), to: entity)
         
-        // Create player animation with all 16 frames
-        let playerFrames = (0..<16).map { "player_\($0)" }
-        var playerAnimation = SpriteAnimation(
-            frames: playerFrames,
+        // Create player animation with all 16 frames for both directions
+        let playerFramesRight = (0..<16).map { "player_\($0)" }
+        let playerFramesLeft = (0..<16).map { "player_left_\($0)" }
+        
+        print("Player animation setup:")
+        print("  Right frames: \(playerFramesRight.prefix(3).joined(separator: ", "))...")
+        print("  Left frames: \(playerFramesLeft.prefix(3).joined(separator: ", "))...")
+        
+        var playerAnimationRight = SpriteAnimation(
+            frames: playerFramesRight,
             frameTime: 0.08,  // 80ms per frame for smooth walking animation
             isLooping: true
         )
-        playerAnimation.pause()  // Start paused, will play when moving
+        playerAnimationRight.pause()  // Start paused, will play when moving
+        
+        var playerAnimationLeft = SpriteAnimation(
+            frames: playerFramesLeft,
+            frameTime: 0.08,
+            isLooping: true
+        )
+        playerAnimationLeft.pause()
         
         var spriteComponent = SpriteComponent(
             textureId: "player_0",  // Default to first frame
@@ -66,7 +83,11 @@ final class Player {
             layer: .entity,
             centered: true
         )
-        spriteComponent.animation = playerAnimation
+        spriteComponent.animation = playerAnimationRight
+        
+        // Store references to both animations for switching directions
+        self.playerAnimationRight = playerAnimationRight
+        self.playerAnimationLeft = playerAnimationLeft
         
         world.add(spriteComponent, to: entity)
         world.add(HealthComponent(maxHealth: 250, immunityDuration: 0.5), to: entity)
@@ -262,6 +283,46 @@ final class Player {
         let isMoving = moveDirection.lengthSquared > 0.001
         
         if isMoving {
+            // Determine direction and switch animation if needed
+            let isMovingLeft = moveDirection.x < -0.01
+            let currentFirstFrame = animation.frames.first ?? ""
+            let isUsingLeftAnimation = currentFirstFrame == "player_left_0"
+            
+            // Switch animation set if direction changed
+            if isMovingLeft && !isUsingLeftAnimation {
+                // Switch to left animation
+                if var leftAnim = playerAnimationLeft {
+                    leftAnim.currentFrame = animation.currentFrame  // Preserve frame
+                    leftAnim.elapsedTime = animation.elapsedTime
+                    leftAnim.isPlaying = animation.isPlaying
+                    animation = leftAnim
+                    sprite.animation = animation
+                    // Immediately update texture to match current frame
+                    if let currentFrame = animation.update(deltaTime: 0) {
+                        sprite.textureId = currentFrame
+                        print("Switched to LEFT animation, frame: \(currentFrame)")
+                    }
+                } else {
+                    print("ERROR: playerAnimationLeft is nil!")
+                }
+            } else if !isMovingLeft && isUsingLeftAnimation {
+                // Switch to right animation
+                if var rightAnim = playerAnimationRight {
+                    rightAnim.currentFrame = animation.currentFrame
+                    rightAnim.elapsedTime = animation.elapsedTime
+                    rightAnim.isPlaying = animation.isPlaying
+                    animation = rightAnim
+                    sprite.animation = animation
+                    // Immediately update texture to match current frame
+                    if let currentFrame = animation.update(deltaTime: 0) {
+                        sprite.textureId = currentFrame
+                        print("Switched to RIGHT animation, frame: \(currentFrame)")
+                    }
+                } else {
+                    print("ERROR: playerAnimationRight is nil!")
+                }
+            }
+            
             // Play animation when moving
             if !animation.isPlaying {
                 animation.play()
@@ -270,18 +331,14 @@ final class Player {
             if let currentFrame = animation.update(deltaTime: deltaTime) {
                 sprite.textureId = currentFrame
             }
-            
-            // Flip sprite horizontally based on movement direction (X component)
-            // If moving left (negative X), flip the sprite
-            sprite.flipX = moveDirection.x < 0
         } else {
             // Stop animation when not moving, reset to first frame
             if animation.isPlaying {
                 animation.pause()
                 animation.reset()
             }
-            sprite.textureId = "player_0"
-            // Keep the last flip state when stopped
+            // Default to right-facing first frame
+            sprite.textureId = animation.frames.first ?? "player_0"
         }
         
         sprite.animation = animation
