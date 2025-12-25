@@ -51,7 +51,7 @@ final class Player {
         world.add(PositionComponent(tilePosition: .zero), to: entity)
             world.add(SpriteComponent(
                 textureId: "player",
-                size: Vector2(4.0, 4.0),  // Made much larger for visibility
+                size: Vector2(1.0, 1.0),  // Normal tile size
                 tint: .white,
                 layer: .entity,
                 centered: true
