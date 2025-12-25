@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D6FDBD22EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBCF2EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png */; };
+		0D6FDBD32EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD02EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png */; };
+		0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD42EFDD03C00576EC3 /* player.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -68,6 +71,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0D6FDBCF2EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Generated Image December 25, 2025 - 2_19PM.png"; sourceTree = "<group>"; };
+		0D6FDBD02EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Generated Image December 25, 2025 - 2_20PM.png"; sourceTree = "<group>"; };
+		0D6FDBD42EFDD03C00576EC3 /* player.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -141,6 +147,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				0D6FDBD42EFDD03C00576EC3 /* player.png */,
+				0D6FDBCF2EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png */,
+				0D6FDBD02EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png */,
+			);
+			path = Assets;
+			sourceTree = "<group>";
+		};
 		A0000200000 = {
 			isa = PBXGroup;
 			children = (
@@ -152,6 +168,7 @@
 		A0000200001 /* FactoryForge */ = {
 			isa = PBXGroup;
 			children = (
+				0D6FDBD12EFDC7E900576EC3 /* Assets */,
 				A0000200010 /* App */,
 				A0000200020 /* Engine */,
 				A0000200030 /* Game */,
@@ -433,6 +450,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0D6FDBD22EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png in Resources */,
+				0D6FDBD32EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png in Resources */,
+				0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

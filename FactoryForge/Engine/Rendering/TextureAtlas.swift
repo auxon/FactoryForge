@@ -1,5 +1,6 @@
 import Metal
 import MetalKit
+import UIKit // Add this import
 
 /// Manages texture atlases for efficient rendering
 final class TextureAtlas {
@@ -35,11 +36,7 @@ final class TextureAtlas {
     }
     
     private func loadAllTextures() {
-        // Create procedural textures for now (would be replaced with actual assets)
-        createProceduralAtlas()
-    }
-    
-    private func createProceduralAtlas() {
+        // Initialize the atlas texture first
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .rgba8Unorm,
             width: atlasSize,
@@ -51,96 +48,330 @@ final class TextureAtlas {
         guard let texture = device.makeTexture(descriptor: descriptor) else {
             fatalError("Failed to create atlas texture")
         }
-        
         atlasTexture = texture
         
-        // Generate procedural textures and pack into atlas
+        // Initialize atlas data
         var atlasData = [UInt8](repeating: 0, count: atlasSize * atlasSize * 4)
+        var atlasX = 0
+        var atlasY = 0
+        let spriteSize = 32
         
-        // Define texture regions (16x16 tiles)
-        let tileSize = 32
-        var currentX = 0
-        var currentY = 0
+        // Load individual sprite files first (higher priority)
+        loadIndividualSprites(into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize)
         
-        // Generate tiles
-        let tiles: [(String, (Int, Int, inout [UInt8]) -> Void)] = [
-            ("grass", generateGrass),
-            ("dirt", generateDirt),
-            ("stone", generateStone),
-            ("water", generateWater),
-            ("sand", generateSand),
-            ("iron_ore", generateIronOre),
-            ("copper_ore", generateCopperOre),
-            ("coal", generateCoal),
-            ("tree", generateTree),
-            ("belt", generateBelt),
-            ("inserter", generateInserter),
-            ("miner", generateMiner),
-            ("furnace", generateFurnace),
-            ("assembler", generateAssembler),
-            ("power_pole", generatePowerPole),
-            ("steam_engine", generateSteamEngine),
-            ("boiler", generateBoiler),
-            ("lab", generateLab),
-            ("turret", generateTurret),
-            ("wall", generateWall),
-            ("chest", generateChest),
-            ("pipe", generatePipe),
-            ("solar_panel", generateSolarPanel),
-            ("accumulator", generateAccumulator),
-            ("biter", generateBiter),
-            ("spawner", generateSpawner),
-            ("bullet", generateBullet),
-            ("iron_plate", generateIronPlate),
-            ("copper_plate", generateCopperPlate),
-            ("gear", generateGear),
-            ("circuit", generateCircuit),
-            ("science_pack_red", generateSciencePackRed),
-            ("science_pack_green", generateSciencePackGreen),
-            ("player", generatePlayer),
-            ("solid_white", generateSolidWhite),
-            ("building_placeholder", generateBuildingPlaceholder)
-        ]
+        // Then try to load from sprite sheet image
+        if let spriteSheetImage = loadSpriteSheet() {
+            createAtlasFromImage(spriteSheetImage, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY)
+        } else {
+            // Fallback to procedural generation for any missing sprites
+            createProceduralAtlas(into: &atlasData, atlasX: &atlasX, atlasY: &atlasY)
+        }
         
-        for (name, generator) in tiles {
-            // Generate the tile
-            var tileData = [UInt8](repeating: 0, count: tileSize * tileSize * 4)
-            generator(tileSize, tileSize, &tileData)
-            
-            // Copy to atlas
-            for y in 0..<tileSize {
-                for x in 0..<tileSize {
-                    let srcIdx = (y * tileSize + x) * 4
-                    let dstIdx = ((currentY + y) * atlasSize + (currentX + x)) * 4
-                    atlasData[dstIdx] = tileData[srcIdx]
-                    atlasData[dstIdx + 1] = tileData[srcIdx + 1]
-                    atlasData[dstIdx + 2] = tileData[srcIdx + 2]
-                    atlasData[dstIdx + 3] = tileData[srcIdx + 3]
-                }
+        // Upload final atlas to GPU
+        let region = MTLRegion(
+            origin: MTLOrigin(x: 0, y: 0, z: 0),
+            size: MTLSize(width: atlasSize, height: atlasSize, depth: 1)
+        )
+        texture.replace(region: region, mipmapLevel: 0, withBytes: atlasData, bytesPerRow: atlasSize * 4)
+    }
+    
+    private func loadIndividualSprites(into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int) {
+        // Load player sprite
+        if let playerImage = loadSpriteImage(filename: "player", fileExtension: "png") {
+            if packSpriteIntoAtlas(image: playerImage, name: "player", into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize) {
+                print("Successfully loaded player sprite")
             }
+        }
+    }
+    
+    private func loadSpriteImage(filename: String, fileExtension: String) -> UIImage? {
+        guard let imagePath = Bundle.main.path(forResource: filename, ofType: fileExtension) else {
+            print("Warning: Could not find sprite image: \(filename).\(fileExtension)")
+            return nil
+        }
+        
+        guard let image = UIImage(contentsOfFile: imagePath) else {
+            print("Warning: Could not load sprite image: \(filename).\(fileExtension)")
+            return nil
+        }
+        
+        return image
+    }
+    
+    private func packSpriteIntoAtlas(image: UIImage, name: String, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int) -> Bool {
+        guard let cgImage = image.cgImage else {
+            print("Warning: Could not get CGImage for \(name)")
+            return false
+        }
+        
+        // Get actual image size
+        let imageWidth = cgImage.width
+        let imageHeight = cgImage.height
+        
+        print("Packing sprite '\(name)': source image is \(imageWidth)x\(imageHeight), target size is \(spriteSize)x\(spriteSize)")
+        
+        // Scale the image to fit the sprite size if it's larger
+        let targetSize = spriteSize
+        let scaledImage: UIImage
+        
+        if imageWidth > targetSize || imageHeight > targetSize {
+            // Scale down the image to fit
+            let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
+            let scaledWidth = Int(Float(imageWidth) * scale)
+            let scaledHeight = Int(Float(imageHeight) * scale)
             
-            // Store UV rect
-            let uvRect = Rect(
-                x: Float(currentX) / Float(atlasSize),
-                y: Float(currentY) / Float(atlasSize),
-                width: Float(tileSize) / Float(atlasSize),
-                height: Float(tileSize) / Float(atlasSize)
-            )
-            textureRects[name] = uvRect
-
-            // Move to next position
-            currentX += tileSize
-            if currentX + tileSize > atlasSize {
-                currentX = 0
-                currentY += tileSize
+            print("Scaling image from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
+            
+            UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
+            image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
+            scaledImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+            UIGraphicsEndImageContext()
+        } else {
+            scaledImage = image
+        }
+        
+        guard let scaledCGImage = scaledImage.cgImage else {
+            print("Warning: Could not get scaled CGImage for \(name)")
+            return false
+        }
+        
+        let finalWidth = min(targetSize, scaledCGImage.width)
+        let finalHeight = min(targetSize, scaledCGImage.height)
+        
+        // Convert scaled image to pixel data
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bytesPerPixel = 4
+        let bytesPerRow = scaledCGImage.width * bytesPerPixel
+        let bitsPerComponent = 8
+        
+        var pixelData = [UInt8](repeating: 0, count: scaledCGImage.width * scaledCGImage.height * bytesPerPixel)
+        
+        guard let context = CGContext(
+            data: &pixelData,
+            width: scaledCGImage.width,
+            height: scaledCGImage.height,
+            bitsPerComponent: bitsPerComponent,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            print("Warning: Could not create CGContext for \(name)")
+            return false
+        }
+        
+        context.draw(scaledCGImage, in: CGRect(x: 0, y: 0, width: scaledCGImage.width, height: scaledCGImage.height))
+        
+        // Center the sprite in the target size (if smaller) or copy the top-left portion
+        let offsetX = max(0, (targetSize - finalWidth) / 2)
+        let offsetY = max(0, (targetSize - finalHeight) / 2)
+        
+        // Copy sprite to atlas
+        for y in 0..<finalHeight {
+            for x in 0..<finalWidth {
+                let srcIdx = (y * scaledCGImage.width + x) * bytesPerPixel
+                let dstIdx = ((atlasY + offsetY + y) * atlasSize + (atlasX + offsetX + x)) * bytesPerPixel
+                
+                if dstIdx + 3 < atlasData.count && srcIdx + 3 < pixelData.count {
+                    atlasData[dstIdx] = pixelData[srcIdx]     // R
+                    atlasData[dstIdx + 1] = pixelData[srcIdx + 1] // G
+                    atlasData[dstIdx + 2] = pixelData[srcIdx + 2] // B
+                    atlasData[dstIdx + 3] = pixelData[srcIdx + 3] // A
+                }
             }
         }
         
-        // Upload to GPU
-        let region = MTLRegion(origin: MTLOrigin(x: 0, y: 0, z: 0),
-                               size: MTLSize(width: atlasSize, height: atlasSize, depth: 1))
-        texture.replace(region: region, mipmapLevel: 0, withBytes: atlasData,
-                        bytesPerRow: atlasSize * 4)
+        // Store UV rect (always use full spriteSize for consistent sizing)
+        let uvRect = Rect(
+            x: Float(atlasX) / Float(atlasSize),
+            y: Float(atlasY) / Float(atlasSize),
+            width: Float(targetSize) / Float(atlasSize),
+            height: Float(targetSize) / Float(atlasSize)
+        )
+        textureRects[name] = uvRect
+        
+        print("Packed sprite '\(name)' into atlas at (\(atlasX), \(atlasY)), size (\(targetSize), \(targetSize))")
+        
+        // Move to next position in atlas
+        atlasX += spriteSize
+        if atlasX + spriteSize > atlasSize {
+            atlasX = 0
+            atlasY += spriteSize
+        }
+        
+        return true
+    }
+    
+    private func loadSpriteSheet() -> UIImage? {
+        guard let imagePath = Bundle.main.path(forResource: "Generated Image December 25, 2025 - 2_20PM", ofType: "png") else {
+            print("Warning: Could not find sprite sheet image, falling back to procedural generation")
+            return nil
+        }
+        
+        guard let image = UIImage(contentsOfFile: imagePath) else {
+            print("Warning: Could not load sprite sheet image, falling back to procedural generation")
+            return nil
+        }
+        
+        return image
+    }
+    
+    private func createAtlasFromImage(_ image: UIImage, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int) {
+        // Convert UIImage to pixel data
+        guard let cgImage = image.cgImage else {
+            print("Warning: Could not get CGImage from sprite sheet")
+            return
+        }
+        
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bytesPerPixel = 4
+        let bytesPerRow = cgImage.width * bytesPerPixel
+        let bitsPerComponent = 8
+        
+        var pixelData = [UInt8](repeating: 0, count: cgImage.width * cgImage.height * bytesPerPixel)
+        
+        guard let context = CGContext(
+            data: &pixelData,
+            width: cgImage.width,
+            height: cgImage.height,
+            bitsPerComponent: bitsPerComponent,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            print("Warning: Could not create CGContext for sprite sheet")
+            return
+        }
+        
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
+        
+        // Define sprite layout in the sprite sheet
+        // Sprite sheet is 1024x1024, each sprite is 32x32, so 32x32 grid (32 columns, 32 rows)
+        let spriteSheetTileSize = 32
+        let spritesPerRow = cgImage.width / spriteSheetTileSize
+        print("Sprite sheet: \(cgImage.width)x\(cgImage.height), \(spritesPerRow) sprites per row")
+        
+        // Sprite layout mapping: (row, col) where row 0 is top, col 0 is left
+        // The sprite sheet is 1024x1024 = 32 rows x 32 columns of 32x32 sprites
+        // Adjust these coordinates based on actual sprite sheet layout
+        // Common issue: sprites may be offset by 1-2 rows/cols if there are headers/labels
+        
+        // Try different layouts - uncomment the one that works, or manually adjust coordinates
+        // Layout option 1: Sprites start at (0,0) - current default
+        // Layout option 2: Sprites start at row 1 (common if first row is labels/headers)
+        // Layout option 3: Different grouping/organization
+        
+        let spriteLayout: [String: (row: Int, col: Int)] = [
+            // TERRAIN TILES - Row 0 (or try row 1 if shifted)
+            "grass": (0, 0),
+            "dirt": (0, 1),
+            "stone": (0, 2),
+            "water": (0, 3),
+            "sand": (0, 4),
+            "iron_ore": (0, 5),
+            "copper_ore": (0, 6),
+            "coal": (0, 7),
+            "tree": (0, 8),
+            
+            // BUILDINGS - Row 1 (or try row 2 if shifted)
+            "belt": (1, 0),
+            "inserter": (1, 1),
+            "miner": (1, 2),
+            "furnace": (1, 3),
+            "assembler": (1, 4),
+            "power_pole": (1, 5),
+            "steam_engine": (1, 6),
+            "boiler": (1, 7),
+            "lab": (1, 8),
+            "turret": (1, 9),
+            "wall": (1, 10),
+            "chest": (1, 11),
+            "pipe": (1, 12),
+            "solar_panel": (1, 13),
+            "accumulator": (1, 14),
+            
+            // ENTITIES AND ITEMS - Row 2 (or try row 3 if shifted)
+            "biter": (2, 0),
+            "spawner": (2, 1),
+            "bullet": (2, 2),
+            "player": (2, 3),
+            "iron_plate": (2, 4),
+            "copper_plate": (2, 5),
+            "gear": (2, 6),
+            "circuit": (2, 7),
+            "science_pack_red": (2, 8),
+            "science_pack_green": (2, 9),
+            
+            // UI ELEMENTS - Row 3 (or try row 4 if shifted)
+            "solid_white": (3, 0),
+            "building_placeholder": (3, 1),
+        ]
+        
+        // Pack sprites into atlas (skip player since it's loaded individually)
+        let atlasTileSize = 32
+        
+        for (spriteName, layout) in spriteLayout.sorted(by: { $0.key < $1.key }) {
+            // Skip player sprite if it was already loaded individually
+            if spriteName == "player" && textureRects["player"] != nil {
+                print("Skipping 'player' from sprite sheet (already loaded individually)")
+                continue
+            }
+            // Calculate actual source position
+            // Common sprite sheet layouts may have sprites starting at different rows/columns
+            // Try adjusting these offsets if sprites are systematically shifted
+            // Since sprites are "mostly shifting", try offset of 1 first (common if header row exists)
+            let rowOffset = 1  // Try 0, 1, 2, etc. if sprites are shifted down
+            let colOffset = 0  // Try 0, 1, 2, etc. if sprites are shifted right
+            
+            let actualRow = layout.row + rowOffset
+            let actualCol = layout.col + colOffset
+            let actualSrcX = actualCol * spriteSheetTileSize
+            let actualSrcY = actualRow * spriteSheetTileSize
+            
+            // Debug: print sprite positions being loaded
+            print("Loading sprite '\(spriteName)' from sheet position (row: \(actualRow), col: \(actualCol)) = pixel (\(actualSrcX), \(actualSrcY))")
+            
+            // Copy sprite from sprite sheet to atlas
+            for y in 0..<atlasTileSize {
+                for x in 0..<atlasTileSize {
+                    // Source pixel in sprite sheet (UIImage uses top-left origin)
+                    let srcPixelX = actualSrcX + x
+                    let srcPixelY = actualSrcY + y
+                    
+                    // Check bounds
+                    guard srcPixelX < cgImage.width && srcPixelY < cgImage.height else {
+                        print("Warning: Sprite '\(spriteName)' at (\(actualSrcX), \(actualSrcY)) extends beyond image bounds")
+                        continue
+                    }
+                    
+                    // Calculate pixel index in source image (row-major order)
+                    let srcIdx = (srcPixelY * cgImage.width + srcPixelX) * bytesPerPixel
+                    let dstIdx = ((atlasY + y) * atlasSize + (atlasX + x)) * bytesPerPixel
+                    
+                    if dstIdx + 3 < atlasData.count && srcIdx + 3 < pixelData.count {
+                        atlasData[dstIdx] = pixelData[srcIdx]     // R
+                        atlasData[dstIdx + 1] = pixelData[srcIdx + 1] // G
+                        atlasData[dstIdx + 2] = pixelData[srcIdx + 2] // B
+                        atlasData[dstIdx + 3] = pixelData[srcIdx + 3] // A
+                    }
+                }
+            }
+            
+            // Store UV rect for this sprite
+            let uvRect = Rect(
+                x: Float(atlasX) / Float(atlasSize),
+                y: Float(atlasY) / Float(atlasSize),
+                width: Float(atlasTileSize) / Float(atlasSize),
+                height: Float(atlasTileSize) / Float(atlasSize)
+            )
+            textureRects[spriteName] = uvRect
+            
+            // Move to next position in atlas
+            atlasX += atlasTileSize
+            if atlasX + atlasTileSize > atlasSize {
+                atlasX = 0
+                atlasY += atlasTileSize
+            }
+        }
     }
     
     func getTextureRect(for name: String) -> Rect {
@@ -266,7 +497,6 @@ final class TextureAtlas {
         
         // Trunk
         let trunkWidth = width / 4
-        let trunkHeight = height / 2
         for y in height/2..<height {
             for x in (width - trunkWidth)/2..<(width + trunkWidth)/2 {
                 let idx = (y * width + x) * 4
@@ -734,6 +964,91 @@ final class TextureAtlas {
                 }
             }
         }
+    }
+
+    private func createProceduralAtlas(into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int) {
+        // Generate procedural textures and pack into atlas (only for sprites not already loaded)
+        let tileSize = 32
+        var currentX = atlasX
+        var currentY = atlasY
+        
+        // Generate tiles
+        let tiles: [(String, (Int, Int, inout [UInt8]) -> Void)] = [
+            ("grass", generateGrass),
+            ("dirt", generateDirt),
+            ("stone", generateStone),
+            ("water", generateWater),
+            ("sand", generateSand),
+            ("iron_ore", generateIronOre),
+            ("copper_ore", generateCopperOre),
+            ("coal", generateCoal),
+            ("tree", generateTree),
+            ("belt", generateBelt),
+            ("inserter", generateInserter),
+            ("miner", generateMiner),
+            ("furnace", generateFurnace),
+            ("assembler", generateAssembler),
+            ("power_pole", generatePowerPole),
+            ("steam_engine", generateSteamEngine),
+            ("boiler", generateBoiler),
+            ("lab", generateLab),
+            ("turret", generateTurret),
+            ("wall", generateWall),
+            ("chest", generateChest),
+            ("pipe", generatePipe),
+            ("solar_panel", generateSolarPanel),
+            ("accumulator", generateAccumulator),
+            ("biter", generateBiter),
+            ("spawner", generateSpawner),
+            ("bullet", generateBullet),
+            ("iron_plate", generateIronPlate),
+            ("copper_plate", generateCopperPlate),
+            ("gear", generateGear),
+            ("circuit", generateCircuit),
+            ("science_pack_red", generateSciencePackRed),
+            ("science_pack_green", generateSciencePackGreen),
+            ("player", generatePlayer),
+            ("solid_white", generateSolidWhite),
+            ("building_placeholder", generateBuildingPlaceholder)
+        ]
+        
+        for (name, generator) in tiles {
+            // Generate the tile
+            var tileData = [UInt8](repeating: 0, count: tileSize * tileSize * 4)
+            generator(tileSize, tileSize, &tileData)
+            
+            // Copy to atlas
+            for y in 0..<tileSize {
+                for x in 0..<tileSize {
+                    let srcIdx = (y * tileSize + x) * 4
+                    let dstIdx = ((currentY + y) * atlasSize + (currentX + x)) * 4
+                    atlasData[dstIdx] = tileData[srcIdx]
+                    atlasData[dstIdx + 1] = tileData[srcIdx + 1]
+                    atlasData[dstIdx + 2] = tileData[srcIdx + 2]
+                    atlasData[dstIdx + 3] = tileData[srcIdx + 3]
+                }
+            }
+            
+            // Store UV rect
+            let uvRect = Rect(
+                x: Float(currentX) / Float(atlasSize),
+                y: Float(currentY) / Float(atlasSize),
+                width: Float(tileSize) / Float(atlasSize),
+                height: Float(tileSize) / Float(atlasSize)
+            )
+            textureRects[name] = uvRect
+
+            // Move to next position
+            currentX += tileSize
+            if currentX + tileSize > atlasSize {
+                currentX = 0
+                currentY += tileSize
+            }
+        }
+        
+        // Update shared position
+        atlasX = currentX
+        atlasY = currentY
     }
 }
 
