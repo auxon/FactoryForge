@@ -9,8 +9,10 @@ final class CraftingMenu: UIPanel_Base {
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         let panelWidth: Float = 400 * UIScale
         let panelHeight: Float = 500 * UIScale
+        // Offset panel down from center to avoid top cutoff (account for health bar, etc.)
+        let verticalOffset: Float = 80 * UIScale
         let panelFrame = Rect(
-            center: Vector2(screenSize.x / 2, screenSize.y / 2),
+            center: Vector2(screenSize.x / 2, screenSize.y / 2 + verticalOffset),
             size: Vector2(panelWidth, panelHeight)
         )
         
