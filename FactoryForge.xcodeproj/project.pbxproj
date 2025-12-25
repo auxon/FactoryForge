@@ -7,9 +7,76 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0D6FDBD22EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBCF2EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png */; };
-		0D6FDBD32EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD02EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png */; };
 		0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD42EFDD03C00576EC3 /* player.png */; };
+		0D6FDC1B2EFDE1B500576EC3 /* small_electric_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC092EFDE1B500576EC3 /* small_electric_pole.png */; };
+		0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE72EFDE1B500576EC3 /* copper_ore _2.png */; };
+		0D6FDC1D2EFDE1B500576EC3 /* iron_ore_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBFB2EFDE1B500576EC3 /* iron_ore_2.png */; };
+		0D6FDC1E2EFDE1B500576EC3 /* utility_science_pack.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC172EFDE1B500576EC3 /* utility_science_pack.png */; };
+		0D6FDC1F2EFDE1B500576EC3 /* wood_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC192EFDE1B500576EC3 /* wood_2.png */; };
+		0D6FDC202EFDE1B500576EC3 /* fast_inserter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF12EFDE1B500576EC3 /* fast_inserter.png */; };
+		0D6FDC212EFDE1B500576EC3 /* biter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBDD2EFDE1B500576EC3 /* biter.png */; };
+		0D6FDC222EFDE1B500576EC3 /* grenade.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF52EFDE1B500576EC3 /* grenade.png */; };
+		0D6FDC232EFDE1B500576EC3 /* copper_ore.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE62EFDE1B500576EC3 /* copper_ore.png */; };
+		0D6FDC242EFDE1B500576EC3 /* laser_turret.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBFE2EFDE1B500576EC3 /* laser_turret.png */; };
+		0D6FDC252EFDE1B500576EC3 /* electric_furnace.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBEC2EFDE1B500576EC3 /* electric_furnace.png */; };
+		0D6FDC262EFDE1B500576EC3 /* piercing_rounds_magazine.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC032EFDE1B500576EC3 /* piercing_rounds_magazine.png */; };
+		0D6FDC272EFDE1B500576EC3 /* firearm_magazine.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF32EFDE1B500576EC3 /* firearm_magazine.png */; };
+		0D6FDC282EFDE1B500576EC3 /* chemical_science_pack.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE22EFDE1B500576EC3 /* chemical_science_pack.png */; };
+		0D6FDC292EFDE1B500576EC3 /* iron_chest.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF82EFDE1B500576EC3 /* iron_chest.png */; };
+		0D6FDC2A2EFDE1B500576EC3 /* assembling_machine_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD92EFDE1B500576EC3 /* assembling_machine_2.png */; };
+		0D6FDC2B2EFDE1B500576EC3 /* military_science_pack.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC022EFDE1B500576EC3 /* military_science_pack.png */; };
+		0D6FDC2C2EFDE1B500576EC3 /* wooden_chest.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC1A2EFDE1B500576EC3 /* wooden_chest.png */; };
+		0D6FDC2D2EFDE1B500576EC3 /* transport_belt.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC142EFDE1B500576EC3 /* transport_belt.png */; };
+		0D6FDC2E2EFDE1B500576EC3 /* coal.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE32EFDE1B500576EC3 /* coal.png */; };
+		0D6FDC2F2EFDE1B500576EC3 /* stone_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC112EFDE1B500576EC3 /* stone_2.png */; };
+		0D6FDC302EFDE1B500576EC3 /* electric_engine_unit.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBEB2EFDE1B500576EC3 /* electric_engine_unit.png */; };
+		0D6FDC312EFDE1B500576EC3 /* electronic_circuit.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBEE2EFDE1B500576EC3 /* electronic_circuit.png */; };
+		0D6FDC322EFDE1B500576EC3 /* iron_ore.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBFA2EFDE1B500576EC3 /* iron_ore.png */; };
+		0D6FDC332EFDE1B500576EC3 /* solid_white.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC0B2EFDE1B500576EC3 /* solid_white.png */; };
+		0D6FDC342EFDE1B500576EC3 /* tree.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC152EFDE1B500576EC3 /* tree.png */; };
+		0D6FDC352EFDE1B500576EC3 /* boiler.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBDE2EFDE1B500576EC3 /* boiler.png */; };
+		0D6FDC362EFDE1B500576EC3 /* logistic_science_pack.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBFF2EFDE1B500576EC3 /* logistic_science_pack.png */; };
+		0D6FDC372EFDE1B500576EC3 /* sand.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC082EFDE1B500576EC3 /* sand.png */; };
+		0D6FDC382EFDE1B500576EC3 /* electric_mining_drill.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBED2EFDE1B500576EC3 /* electric_mining_drill.png */; };
+		0D6FDC392EFDE1B500576EC3 /* copper_cable.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE52EFDE1B500576EC3 /* copper_cable.png */; };
+		0D6FDC3A2EFDE1B500576EC3 /* production_science_pack.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC062EFDE1B500576EC3 /* production_science_pack.png */; };
+		0D6FDC3B2EFDE1B500576EC3 /* assembling_machine_1.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD82EFDE1B500576EC3 /* assembling_machine_1.png */; };
+		0D6FDC3C2EFDE1B500576EC3 /* fast_transport_belt.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF22EFDE1B500576EC3 /* fast_transport_belt.png */; };
+		0D6FDC3D2EFDE1B500576EC3 /* grass.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF42EFDE1B500576EC3 /* grass.png */; };
+		0D6FDC3E2EFDE1B500576EC3 /* medium_electric_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC012EFDE1B500576EC3 /* medium_electric_pole.png */; };
+		0D6FDC3F2EFDE1B500576EC3 /* solar_panel.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC0A2EFDE1B500576EC3 /* solar_panel.png */; };
+		0D6FDC402EFDE1B500576EC3 /* stone.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC102EFDE1B500576EC3 /* stone.png */; };
+		0D6FDC412EFDE1B500576EC3 /* uranium_ore.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC162EFDE1B500576EC3 /* uranium_ore.png */; };
+		0D6FDC422EFDE1B500576EC3 /* radar.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC072EFDE1B500576EC3 /* radar.png */; };
+		0D6FDC432EFDE1B500576EC3 /* accumulator.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD62EFDE1B500576EC3 /* accumulator.png */; };
+		0D6FDC442EFDE1B500576EC3 /* burner_miner_drill.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE12EFDE1B500576EC3 /* burner_miner_drill.png */; };
+		0D6FDC452EFDE1B500576EC3 /* coal_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE42EFDE1B500576EC3 /* coal_2.png */; };
+		0D6FDC462EFDE1B500576EC3 /* inserter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF72EFDE1B500576EC3 /* inserter.png */; };
+		0D6FDC472EFDE1B500576EC3 /* stone_wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC132EFDE1B500576EC3 /* stone_wall.png */; };
+		0D6FDC482EFDE1B500576EC3 /* building_placeholder.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBDF2EFDE1B500576EC3 /* building_placeholder.png */; };
+		0D6FDC492EFDE1B500576EC3 /* processing_unit.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC052EFDE1B500576EC3 /* processing_unit.png */; };
+		0D6FDC4A2EFDE1B500576EC3 /* stone_furnace.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC122EFDE1B500576EC3 /* stone_furnace.png */; };
+		0D6FDC4B2EFDE1B500576EC3 /* big_electric_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBDC2EFDE1B500576EC3 /* big_electric_pole.png */; };
+		0D6FDC4C2EFDE1B500576EC3 /* pipe.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC042EFDE1B500576EC3 /* pipe.png */; };
+		0D6FDC4D2EFDE1B500576EC3 /* copper_plate.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE82EFDE1B500576EC3 /* copper_plate.png */; };
+		0D6FDC4E2EFDE1B500576EC3 /* water.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC182EFDE1B500576EC3 /* water.png */; };
+		0D6FDC4F2EFDE1B500576EC3 /* engine_unit.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBEF2EFDE1B500576EC3 /* engine_unit.png */; };
+		0D6FDC502EFDE1B500576EC3 /* iron_plate.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBFC2EFDE1B500576EC3 /* iron_plate.png */; };
+		0D6FDC512EFDE1B500576EC3 /* steam_engine.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC0D2EFDE1B500576EC3 /* steam_engine.png */; };
+		0D6FDC522EFDE1B500576EC3 /* spawner.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC0C2EFDE1B500576EC3 /* spawner.png */; };
+		0D6FDC532EFDE1B500576EC3 /* gun_turret.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF62EFDE1B500576EC3 /* gun_turret.png */; };
+		0D6FDC542EFDE1B500576EC3 /* iron_gear_wheel.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF92EFDE1B500576EC3 /* iron_gear_wheel.png */; };
+		0D6FDC552EFDE1B500576EC3 /* express_transport_belt.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF02EFDE1B500576EC3 /* express_transport_belt.png */; };
+		0D6FDC562EFDE1B500576EC3 /* advanced_circuit.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD72EFDE1B500576EC3 /* advanced_circuit.png */; };
+		0D6FDC572EFDE1B500576EC3 /* assembling_machine_3.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBDA2EFDE1B500576EC3 /* assembling_machine_3.png */; };
+		0D6FDC582EFDE1B500576EC3 /* automation_science_pack.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBDB2EFDE1B500576EC3 /* automation_science_pack.png */; };
+		0D6FDC592EFDE1B500576EC3 /* crude_oil.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE92EFDE1B500576EC3 /* crude_oil.png */; };
+		0D6FDC5A2EFDE1B500576EC3 /* bullet.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE02EFDE1B500576EC3 /* bullet.png */; };
+		0D6FDC5B2EFDE1B500576EC3 /* dirt.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBEA2EFDE1B500576EC3 /* dirt.png */; };
+		0D6FDC5C2EFDE1B500576EC3 /* lab.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBFD2EFDE1B500576EC3 /* lab.png */; };
+		0D6FDC5D2EFDE1B500576EC3 /* steel_chest.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC0E2EFDE1B500576EC3 /* steel_chest.png */; };
+		0D6FDC5E2EFDE1B500576EC3 /* long_handed_inserter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC002EFDE1B500576EC3 /* long_handed_inserter.png */; };
+		0D6FDC5F2EFDE1B500576EC3 /* steel_furnace.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC0F2EFDE1B500576EC3 /* steel_furnace.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -71,9 +138,76 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0D6FDBCF2EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Generated Image December 25, 2025 - 2_19PM.png"; sourceTree = "<group>"; };
-		0D6FDBD02EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Generated Image December 25, 2025 - 2_20PM.png"; sourceTree = "<group>"; };
 		0D6FDBD42EFDD03C00576EC3 /* player.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player.png; sourceTree = "<group>"; };
+		0D6FDBD62EFDE1B500576EC3 /* accumulator.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = accumulator.png; sourceTree = "<group>"; };
+		0D6FDBD72EFDE1B500576EC3 /* advanced_circuit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = advanced_circuit.png; sourceTree = "<group>"; };
+		0D6FDBD82EFDE1B500576EC3 /* assembling_machine_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = assembling_machine_1.png; sourceTree = "<group>"; };
+		0D6FDBD92EFDE1B500576EC3 /* assembling_machine_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = assembling_machine_2.png; sourceTree = "<group>"; };
+		0D6FDBDA2EFDE1B500576EC3 /* assembling_machine_3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = assembling_machine_3.png; sourceTree = "<group>"; };
+		0D6FDBDB2EFDE1B500576EC3 /* automation_science_pack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = automation_science_pack.png; sourceTree = "<group>"; };
+		0D6FDBDC2EFDE1B500576EC3 /* big_electric_pole.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = big_electric_pole.png; sourceTree = "<group>"; };
+		0D6FDBDD2EFDE1B500576EC3 /* biter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = biter.png; sourceTree = "<group>"; };
+		0D6FDBDE2EFDE1B500576EC3 /* boiler.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = boiler.png; sourceTree = "<group>"; };
+		0D6FDBDF2EFDE1B500576EC3 /* building_placeholder.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = building_placeholder.png; sourceTree = "<group>"; };
+		0D6FDBE02EFDE1B500576EC3 /* bullet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet.png; sourceTree = "<group>"; };
+		0D6FDBE12EFDE1B500576EC3 /* burner_miner_drill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = burner_miner_drill.png; sourceTree = "<group>"; };
+		0D6FDBE22EFDE1B500576EC3 /* chemical_science_pack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chemical_science_pack.png; sourceTree = "<group>"; };
+		0D6FDBE32EFDE1B500576EC3 /* coal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = coal.png; sourceTree = "<group>"; };
+		0D6FDBE42EFDE1B500576EC3 /* coal_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = coal_2.png; sourceTree = "<group>"; };
+		0D6FDBE52EFDE1B500576EC3 /* copper_cable.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = copper_cable.png; sourceTree = "<group>"; };
+		0D6FDBE62EFDE1B500576EC3 /* copper_ore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = copper_ore.png; sourceTree = "<group>"; };
+		0D6FDBE72EFDE1B500576EC3 /* copper_ore _2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "copper_ore _2.png"; sourceTree = "<group>"; };
+		0D6FDBE82EFDE1B500576EC3 /* copper_plate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = copper_plate.png; sourceTree = "<group>"; };
+		0D6FDBE92EFDE1B500576EC3 /* crude_oil.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = crude_oil.png; sourceTree = "<group>"; };
+		0D6FDBEA2EFDE1B500576EC3 /* dirt.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = dirt.png; sourceTree = "<group>"; };
+		0D6FDBEB2EFDE1B500576EC3 /* electric_engine_unit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = electric_engine_unit.png; sourceTree = "<group>"; };
+		0D6FDBEC2EFDE1B500576EC3 /* electric_furnace.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = electric_furnace.png; sourceTree = "<group>"; };
+		0D6FDBED2EFDE1B500576EC3 /* electric_mining_drill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = electric_mining_drill.png; sourceTree = "<group>"; };
+		0D6FDBEE2EFDE1B500576EC3 /* electronic_circuit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = electronic_circuit.png; sourceTree = "<group>"; };
+		0D6FDBEF2EFDE1B500576EC3 /* engine_unit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = engine_unit.png; sourceTree = "<group>"; };
+		0D6FDBF02EFDE1B500576EC3 /* express_transport_belt.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = express_transport_belt.png; sourceTree = "<group>"; };
+		0D6FDBF12EFDE1B500576EC3 /* fast_inserter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = fast_inserter.png; sourceTree = "<group>"; };
+		0D6FDBF22EFDE1B500576EC3 /* fast_transport_belt.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = fast_transport_belt.png; sourceTree = "<group>"; };
+		0D6FDBF32EFDE1B500576EC3 /* firearm_magazine.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = firearm_magazine.png; sourceTree = "<group>"; };
+		0D6FDBF42EFDE1B500576EC3 /* grass.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = grass.png; sourceTree = "<group>"; };
+		0D6FDBF52EFDE1B500576EC3 /* grenade.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = grenade.png; sourceTree = "<group>"; };
+		0D6FDBF62EFDE1B500576EC3 /* gun_turret.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gun_turret.png; sourceTree = "<group>"; };
+		0D6FDBF72EFDE1B500576EC3 /* inserter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserter.png; sourceTree = "<group>"; };
+		0D6FDBF82EFDE1B500576EC3 /* iron_chest.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iron_chest.png; sourceTree = "<group>"; };
+		0D6FDBF92EFDE1B500576EC3 /* iron_gear_wheel.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iron_gear_wheel.png; sourceTree = "<group>"; };
+		0D6FDBFA2EFDE1B500576EC3 /* iron_ore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iron_ore.png; sourceTree = "<group>"; };
+		0D6FDBFB2EFDE1B500576EC3 /* iron_ore_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iron_ore_2.png; sourceTree = "<group>"; };
+		0D6FDBFC2EFDE1B500576EC3 /* iron_plate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iron_plate.png; sourceTree = "<group>"; };
+		0D6FDBFD2EFDE1B500576EC3 /* lab.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = lab.png; sourceTree = "<group>"; };
+		0D6FDBFE2EFDE1B500576EC3 /* laser_turret.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = laser_turret.png; sourceTree = "<group>"; };
+		0D6FDBFF2EFDE1B500576EC3 /* logistic_science_pack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logistic_science_pack.png; sourceTree = "<group>"; };
+		0D6FDC002EFDE1B500576EC3 /* long_handed_inserter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = long_handed_inserter.png; sourceTree = "<group>"; };
+		0D6FDC012EFDE1B500576EC3 /* medium_electric_pole.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = medium_electric_pole.png; sourceTree = "<group>"; };
+		0D6FDC022EFDE1B500576EC3 /* military_science_pack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = military_science_pack.png; sourceTree = "<group>"; };
+		0D6FDC032EFDE1B500576EC3 /* piercing_rounds_magazine.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = piercing_rounds_magazine.png; sourceTree = "<group>"; };
+		0D6FDC042EFDE1B500576EC3 /* pipe.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = pipe.png; sourceTree = "<group>"; };
+		0D6FDC052EFDE1B500576EC3 /* processing_unit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = processing_unit.png; sourceTree = "<group>"; };
+		0D6FDC062EFDE1B500576EC3 /* production_science_pack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = production_science_pack.png; sourceTree = "<group>"; };
+		0D6FDC072EFDE1B500576EC3 /* radar.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = radar.png; sourceTree = "<group>"; };
+		0D6FDC082EFDE1B500576EC3 /* sand.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = sand.png; sourceTree = "<group>"; };
+		0D6FDC092EFDE1B500576EC3 /* small_electric_pole.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = small_electric_pole.png; sourceTree = "<group>"; };
+		0D6FDC0A2EFDE1B500576EC3 /* solar_panel.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = solar_panel.png; sourceTree = "<group>"; };
+		0D6FDC0B2EFDE1B500576EC3 /* solid_white.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = solid_white.png; sourceTree = "<group>"; };
+		0D6FDC0C2EFDE1B500576EC3 /* spawner.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spawner.png; sourceTree = "<group>"; };
+		0D6FDC0D2EFDE1B500576EC3 /* steam_engine.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = steam_engine.png; sourceTree = "<group>"; };
+		0D6FDC0E2EFDE1B500576EC3 /* steel_chest.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = steel_chest.png; sourceTree = "<group>"; };
+		0D6FDC0F2EFDE1B500576EC3 /* steel_furnace.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = steel_furnace.png; sourceTree = "<group>"; };
+		0D6FDC102EFDE1B500576EC3 /* stone.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone.png; sourceTree = "<group>"; };
+		0D6FDC112EFDE1B500576EC3 /* stone_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone_2.png; sourceTree = "<group>"; };
+		0D6FDC122EFDE1B500576EC3 /* stone_furnace.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone_furnace.png; sourceTree = "<group>"; };
+		0D6FDC132EFDE1B500576EC3 /* stone_wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone_wall.png; sourceTree = "<group>"; };
+		0D6FDC142EFDE1B500576EC3 /* transport_belt.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt.png; sourceTree = "<group>"; };
+		0D6FDC152EFDE1B500576EC3 /* tree.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = tree.png; sourceTree = "<group>"; };
+		0D6FDC162EFDE1B500576EC3 /* uranium_ore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = uranium_ore.png; sourceTree = "<group>"; };
+		0D6FDC172EFDE1B500576EC3 /* utility_science_pack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = utility_science_pack.png; sourceTree = "<group>"; };
+		0D6FDC182EFDE1B500576EC3 /* water.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = water.png; sourceTree = "<group>"; };
+		0D6FDC192EFDE1B500576EC3 /* wood_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wood_2.png; sourceTree = "<group>"; };
+		0D6FDC1A2EFDE1B500576EC3 /* wooden_chest.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wooden_chest.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -150,9 +284,76 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D6FDBD62EFDE1B500576EC3 /* accumulator.png */,
+				0D6FDBD72EFDE1B500576EC3 /* advanced_circuit.png */,
+				0D6FDBD82EFDE1B500576EC3 /* assembling_machine_1.png */,
+				0D6FDBD92EFDE1B500576EC3 /* assembling_machine_2.png */,
+				0D6FDBDA2EFDE1B500576EC3 /* assembling_machine_3.png */,
+				0D6FDBDB2EFDE1B500576EC3 /* automation_science_pack.png */,
+				0D6FDBDC2EFDE1B500576EC3 /* big_electric_pole.png */,
+				0D6FDBDD2EFDE1B500576EC3 /* biter.png */,
+				0D6FDBDE2EFDE1B500576EC3 /* boiler.png */,
+				0D6FDBDF2EFDE1B500576EC3 /* building_placeholder.png */,
+				0D6FDBE02EFDE1B500576EC3 /* bullet.png */,
+				0D6FDBE12EFDE1B500576EC3 /* burner_miner_drill.png */,
+				0D6FDBE22EFDE1B500576EC3 /* chemical_science_pack.png */,
+				0D6FDBE32EFDE1B500576EC3 /* coal.png */,
+				0D6FDBE42EFDE1B500576EC3 /* coal_2.png */,
+				0D6FDBE52EFDE1B500576EC3 /* copper_cable.png */,
+				0D6FDBE62EFDE1B500576EC3 /* copper_ore.png */,
+				0D6FDBE72EFDE1B500576EC3 /* copper_ore _2.png */,
+				0D6FDBE82EFDE1B500576EC3 /* copper_plate.png */,
+				0D6FDBE92EFDE1B500576EC3 /* crude_oil.png */,
+				0D6FDBEA2EFDE1B500576EC3 /* dirt.png */,
+				0D6FDBEB2EFDE1B500576EC3 /* electric_engine_unit.png */,
+				0D6FDBEC2EFDE1B500576EC3 /* electric_furnace.png */,
+				0D6FDBED2EFDE1B500576EC3 /* electric_mining_drill.png */,
+				0D6FDBEE2EFDE1B500576EC3 /* electronic_circuit.png */,
+				0D6FDBEF2EFDE1B500576EC3 /* engine_unit.png */,
+				0D6FDBF02EFDE1B500576EC3 /* express_transport_belt.png */,
+				0D6FDBF12EFDE1B500576EC3 /* fast_inserter.png */,
+				0D6FDBF22EFDE1B500576EC3 /* fast_transport_belt.png */,
+				0D6FDBF32EFDE1B500576EC3 /* firearm_magazine.png */,
+				0D6FDBF42EFDE1B500576EC3 /* grass.png */,
+				0D6FDBF52EFDE1B500576EC3 /* grenade.png */,
+				0D6FDBF62EFDE1B500576EC3 /* gun_turret.png */,
+				0D6FDBF72EFDE1B500576EC3 /* inserter.png */,
+				0D6FDBF82EFDE1B500576EC3 /* iron_chest.png */,
+				0D6FDBF92EFDE1B500576EC3 /* iron_gear_wheel.png */,
+				0D6FDBFA2EFDE1B500576EC3 /* iron_ore.png */,
+				0D6FDBFB2EFDE1B500576EC3 /* iron_ore_2.png */,
+				0D6FDBFC2EFDE1B500576EC3 /* iron_plate.png */,
+				0D6FDBFD2EFDE1B500576EC3 /* lab.png */,
+				0D6FDBFE2EFDE1B500576EC3 /* laser_turret.png */,
+				0D6FDBFF2EFDE1B500576EC3 /* logistic_science_pack.png */,
+				0D6FDC002EFDE1B500576EC3 /* long_handed_inserter.png */,
+				0D6FDC012EFDE1B500576EC3 /* medium_electric_pole.png */,
+				0D6FDC022EFDE1B500576EC3 /* military_science_pack.png */,
+				0D6FDC032EFDE1B500576EC3 /* piercing_rounds_magazine.png */,
+				0D6FDC042EFDE1B500576EC3 /* pipe.png */,
+				0D6FDC052EFDE1B500576EC3 /* processing_unit.png */,
+				0D6FDC062EFDE1B500576EC3 /* production_science_pack.png */,
+				0D6FDC072EFDE1B500576EC3 /* radar.png */,
+				0D6FDC082EFDE1B500576EC3 /* sand.png */,
+				0D6FDC092EFDE1B500576EC3 /* small_electric_pole.png */,
+				0D6FDC0A2EFDE1B500576EC3 /* solar_panel.png */,
+				0D6FDC0B2EFDE1B500576EC3 /* solid_white.png */,
+				0D6FDC0C2EFDE1B500576EC3 /* spawner.png */,
+				0D6FDC0D2EFDE1B500576EC3 /* steam_engine.png */,
+				0D6FDC0E2EFDE1B500576EC3 /* steel_chest.png */,
+				0D6FDC0F2EFDE1B500576EC3 /* steel_furnace.png */,
+				0D6FDC102EFDE1B500576EC3 /* stone.png */,
+				0D6FDC112EFDE1B500576EC3 /* stone_2.png */,
+				0D6FDC122EFDE1B500576EC3 /* stone_furnace.png */,
+				0D6FDC132EFDE1B500576EC3 /* stone_wall.png */,
+				0D6FDC142EFDE1B500576EC3 /* transport_belt.png */,
+				0D6FDC152EFDE1B500576EC3 /* tree.png */,
+				0D6FDC162EFDE1B500576EC3 /* uranium_ore.png */,
+				0D6FDC172EFDE1B500576EC3 /* utility_science_pack.png */,
+				0D6FDC182EFDE1B500576EC3 /* water.png */,
+				0D6FDC192EFDE1B500576EC3 /* wood_2.png */,
+				0D6FDC1A2EFDE1B500576EC3 /* wooden_chest.png */,
 				0D6FDBD42EFDD03C00576EC3 /* player.png */,
-				0D6FDBCF2EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png */,
-				0D6FDBD02EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png */,
 			);
 			path = Assets;
 			sourceTree = "<group>";
@@ -450,9 +651,76 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0D6FDBD22EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_19PM.png in Resources */,
-				0D6FDBD32EFDC7E900576EC3 /* Generated Image December 25, 2025 - 2_20PM.png in Resources */,
 				0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */,
+				0D6FDC1B2EFDE1B500576EC3 /* small_electric_pole.png in Resources */,
+				0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */,
+				0D6FDC1D2EFDE1B500576EC3 /* iron_ore_2.png in Resources */,
+				0D6FDC1E2EFDE1B500576EC3 /* utility_science_pack.png in Resources */,
+				0D6FDC1F2EFDE1B500576EC3 /* wood_2.png in Resources */,
+				0D6FDC202EFDE1B500576EC3 /* fast_inserter.png in Resources */,
+				0D6FDC212EFDE1B500576EC3 /* biter.png in Resources */,
+				0D6FDC222EFDE1B500576EC3 /* grenade.png in Resources */,
+				0D6FDC232EFDE1B500576EC3 /* copper_ore.png in Resources */,
+				0D6FDC242EFDE1B500576EC3 /* laser_turret.png in Resources */,
+				0D6FDC252EFDE1B500576EC3 /* electric_furnace.png in Resources */,
+				0D6FDC262EFDE1B500576EC3 /* piercing_rounds_magazine.png in Resources */,
+				0D6FDC272EFDE1B500576EC3 /* firearm_magazine.png in Resources */,
+				0D6FDC282EFDE1B500576EC3 /* chemical_science_pack.png in Resources */,
+				0D6FDC292EFDE1B500576EC3 /* iron_chest.png in Resources */,
+				0D6FDC2A2EFDE1B500576EC3 /* assembling_machine_2.png in Resources */,
+				0D6FDC2B2EFDE1B500576EC3 /* military_science_pack.png in Resources */,
+				0D6FDC2C2EFDE1B500576EC3 /* wooden_chest.png in Resources */,
+				0D6FDC2D2EFDE1B500576EC3 /* transport_belt.png in Resources */,
+				0D6FDC2E2EFDE1B500576EC3 /* coal.png in Resources */,
+				0D6FDC2F2EFDE1B500576EC3 /* stone_2.png in Resources */,
+				0D6FDC302EFDE1B500576EC3 /* electric_engine_unit.png in Resources */,
+				0D6FDC312EFDE1B500576EC3 /* electronic_circuit.png in Resources */,
+				0D6FDC322EFDE1B500576EC3 /* iron_ore.png in Resources */,
+				0D6FDC332EFDE1B500576EC3 /* solid_white.png in Resources */,
+				0D6FDC342EFDE1B500576EC3 /* tree.png in Resources */,
+				0D6FDC352EFDE1B500576EC3 /* boiler.png in Resources */,
+				0D6FDC362EFDE1B500576EC3 /* logistic_science_pack.png in Resources */,
+				0D6FDC372EFDE1B500576EC3 /* sand.png in Resources */,
+				0D6FDC382EFDE1B500576EC3 /* electric_mining_drill.png in Resources */,
+				0D6FDC392EFDE1B500576EC3 /* copper_cable.png in Resources */,
+				0D6FDC3A2EFDE1B500576EC3 /* production_science_pack.png in Resources */,
+				0D6FDC3B2EFDE1B500576EC3 /* assembling_machine_1.png in Resources */,
+				0D6FDC3C2EFDE1B500576EC3 /* fast_transport_belt.png in Resources */,
+				0D6FDC3D2EFDE1B500576EC3 /* grass.png in Resources */,
+				0D6FDC3E2EFDE1B500576EC3 /* medium_electric_pole.png in Resources */,
+				0D6FDC3F2EFDE1B500576EC3 /* solar_panel.png in Resources */,
+				0D6FDC402EFDE1B500576EC3 /* stone.png in Resources */,
+				0D6FDC412EFDE1B500576EC3 /* uranium_ore.png in Resources */,
+				0D6FDC422EFDE1B500576EC3 /* radar.png in Resources */,
+				0D6FDC432EFDE1B500576EC3 /* accumulator.png in Resources */,
+				0D6FDC442EFDE1B500576EC3 /* burner_miner_drill.png in Resources */,
+				0D6FDC452EFDE1B500576EC3 /* coal_2.png in Resources */,
+				0D6FDC462EFDE1B500576EC3 /* inserter.png in Resources */,
+				0D6FDC472EFDE1B500576EC3 /* stone_wall.png in Resources */,
+				0D6FDC482EFDE1B500576EC3 /* building_placeholder.png in Resources */,
+				0D6FDC492EFDE1B500576EC3 /* processing_unit.png in Resources */,
+				0D6FDC4A2EFDE1B500576EC3 /* stone_furnace.png in Resources */,
+				0D6FDC4B2EFDE1B500576EC3 /* big_electric_pole.png in Resources */,
+				0D6FDC4C2EFDE1B500576EC3 /* pipe.png in Resources */,
+				0D6FDC4D2EFDE1B500576EC3 /* copper_plate.png in Resources */,
+				0D6FDC4E2EFDE1B500576EC3 /* water.png in Resources */,
+				0D6FDC4F2EFDE1B500576EC3 /* engine_unit.png in Resources */,
+				0D6FDC502EFDE1B500576EC3 /* iron_plate.png in Resources */,
+				0D6FDC512EFDE1B500576EC3 /* steam_engine.png in Resources */,
+				0D6FDC522EFDE1B500576EC3 /* spawner.png in Resources */,
+				0D6FDC532EFDE1B500576EC3 /* gun_turret.png in Resources */,
+				0D6FDC542EFDE1B500576EC3 /* iron_gear_wheel.png in Resources */,
+				0D6FDC552EFDE1B500576EC3 /* express_transport_belt.png in Resources */,
+				0D6FDC562EFDE1B500576EC3 /* advanced_circuit.png in Resources */,
+				0D6FDC572EFDE1B500576EC3 /* assembling_machine_3.png in Resources */,
+				0D6FDC582EFDE1B500576EC3 /* automation_science_pack.png in Resources */,
+				0D6FDC592EFDE1B500576EC3 /* crude_oil.png in Resources */,
+				0D6FDC5A2EFDE1B500576EC3 /* bullet.png in Resources */,
+				0D6FDC5B2EFDE1B500576EC3 /* dirt.png in Resources */,
+				0D6FDC5C2EFDE1B500576EC3 /* lab.png in Resources */,
+				0D6FDC5D2EFDE1B500576EC3 /* steel_chest.png in Resources */,
+				0D6FDC5E2EFDE1B500576EC3 /* long_handed_inserter.png in Resources */,
+				0D6FDC5F2EFDE1B500576EC3 /* steel_furnace.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
