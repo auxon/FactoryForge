@@ -255,6 +255,46 @@ final class TextureAtlas {
                 processedImage = image
             }
         } else if imageWidth > targetSize || imageHeight > targetSize {
+            // For large images (1024x1024), crop out transparent borders by extracting from center
+            // Crop pixels from each side to remove transparent borders
+            // Use a percentage-based crop for better results across different image sizes
+            let cropPercentage: Float = 0.15  // Crop 15% from each side (30% total removed)
+            let borderCropX = Int(Float(imageWidth) * cropPercentage)
+            let borderCropY = Int(Float(imageHeight) * cropPercentage)
+            let cropX = borderCropX
+            let cropY = borderCropY
+            let cropWidth = imageWidth - (borderCropX * 2)
+            let cropHeight = imageHeight - (borderCropY * 2)
+            
+            // Extract center region (excluding borders)
+            if let croppedCGImage = cgImage.cropping(to: CGRect(x: cropX, y: cropY, width: cropWidth, height: cropHeight)) {
+                let croppedImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
+                
+                // Scale the cropped image to target size
+                let scale = min(Float(targetSize) / Float(cropWidth), Float(targetSize) / Float(cropHeight))
+                let scaledWidth = Int(Float(cropWidth) * scale)
+                let scaledHeight = Int(Float(cropHeight) * scale)
+                
+                print("  Cropped borders and scaling from \(cropWidth)x\(cropHeight) to \(scaledWidth)x\(scaledHeight)")
+                
+                UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
+                croppedImage.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
+                processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+                UIGraphicsEndImageContext()
+            } else {
+                // Fallback to normal scaling if cropping fails
+                let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
+                let scaledWidth = Int(Float(imageWidth) * scale)
+                let scaledHeight = Int(Float(imageHeight) * scale)
+                
+                print("  Scaling image from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
+                
+                UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
+                image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
+                processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+                UIGraphicsEndImageContext()
+            }
+        } else if imageWidth < targetSize || imageHeight < targetSize {
             // Scale down the image to fit if it's larger
             let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
             let scaledWidth = Int(Float(imageWidth) * scale)
