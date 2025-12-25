@@ -458,15 +458,19 @@ struct SpriteInstance {
     var textureRect: Rect  // UV coordinates in atlas
     var color: Color
     var layer: RenderLayer
+    var flipX: Bool
+    var flipY: Bool
     
     init(position: Vector2, size: Vector2 = Vector2(1, 1), rotation: Float = 0,
          textureRect: Rect = Rect(x: 0, y: 0, width: 1, height: 1),
-         color: Color = .white, layer: RenderLayer = .entity) {
+         color: Color = .white, layer: RenderLayer = .entity, flipX: Bool = false, flipY: Bool = false) {
         self.position = position
         self.size = size
         self.rotation = rotation
         self.textureRect = textureRect
         self.color = color
+        self.flipX = flipX
+        self.flipY = flipY
         self.layer = layer
     }
 }

@@ -64,20 +64,26 @@ final class SpriteRenderer {
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
 
+            // Use sprite textureId directly (animation updates textureId in Player.update)
             let textureRect = textureAtlas.getTextureRect(for: sprite.textureId)
 
             // For centered sprites (like player), use position directly
             // For non-centered sprites (buildings), offset by half size to align with tile origin
             let renderPos = sprite.centered ? worldPos : worldPos + Vector2(sprite.size.x / 2, sprite.size.y / 2)
 
-            queuedSprites.append(SpriteInstance(
+            // Create sprite instance with flip information
+            var spriteInstance = SpriteInstance(
                 position: renderPos,
                 size: sprite.size,
                 rotation: position.direction.angle,
                 textureRect: textureRect,
                 color: sprite.tint,
                 layer: sprite.layer
-            ))
+            )
+            spriteInstance.flipX = sprite.flipX
+            spriteInstance.flipY = sprite.flipY
+            
+            queuedSprites.append(spriteInstance)
         }
 
         // Add items on belts
@@ -103,13 +109,27 @@ final class SpriteRenderer {
             )
 
             for i in 0..<6 {
-                let localPos = quadVertices[i]
+                var localPos = quadVertices[i]
+                var texCoord = quadTexCoords[i]
+                
+                // Apply horizontal flip by negating X position and flipping texture X coordinate
+                if sprite.flipX {
+                    localPos.x = -localPos.x
+                    texCoord.x = 1.0 - texCoord.x
+                }
+                
+                // Apply vertical flip by negating Y position and flipping texture Y coordinate
+                if sprite.flipY {
+                    localPos.y = -localPos.y
+                    texCoord.y = 1.0 - texCoord.y
+                }
+                
                 let worldPos4 = transform * SIMD4(localPos.x, localPos.y, 0, 1)
                 let worldPos = Vector2(worldPos4.x, worldPos4.y)
                 let screenPos = camera.worldToScreen(worldPos)
-                let texCoord = uvOrigin + quadTexCoords[i] * uvSize
+                let finalTexCoord = uvOrigin + texCoord * uvSize
 
-                spriteVertices.append(UIVertex(position: screenPos, texCoord: texCoord, color: color))
+                spriteVertices.append(UIVertex(position: screenPos, texCoord: finalTexCoord, color: color))
             }
         }
 

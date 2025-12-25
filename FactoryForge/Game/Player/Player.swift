@@ -49,13 +49,26 @@ final class Player {
         
         // Set up player entity
         world.add(PositionComponent(tilePosition: .zero), to: entity)
-            world.add(SpriteComponent(
-                textureId: "player",
-                size: Vector2(1.0, 1.0),  // Normal tile size
-                tint: .white,
-                layer: .entity,
-                centered: true
-            ), to: entity)
+        
+        // Create player animation with all 16 frames
+        let playerFrames = (0..<16).map { "player_\($0)" }
+        var playerAnimation = SpriteAnimation(
+            frames: playerFrames,
+            frameTime: 0.08,  // 80ms per frame for smooth walking animation
+            isLooping: true
+        )
+        playerAnimation.pause()  // Start paused, will play when moving
+        
+        var spriteComponent = SpriteComponent(
+            textureId: "player_0",  // Default to first frame
+            size: Vector2(1.0, 1.0),  // Normal tile size
+            tint: .white,
+            layer: .entity,
+            centered: true
+        )
+        spriteComponent.animation = playerAnimation
+        
+        world.add(spriteComponent, to: entity)
         world.add(HealthComponent(maxHealth: 250, immunityDuration: 0.5), to: entity)
         world.add(VelocityComponent(), to: entity)
         world.add(CollisionComponent(radius: 0.4, layer: .player, mask: [.enemy, .building]), to: entity)
@@ -84,6 +97,9 @@ final class Player {
             health.update(deltaTime: deltaTime)
             world.add(health, to: entity)
         }
+        
+        // Update player animation
+        updateAnimation(deltaTime: deltaTime)
     }
     
     private func updateMovement(deltaTime: Float) {
@@ -235,6 +251,41 @@ final class Player {
     
     var isDead: Bool {
         return health <= 0
+    }
+    
+    // MARK: - Animation
+    
+    private func updateAnimation(deltaTime: Float) {
+        guard var sprite = world.get(SpriteComponent.self, for: entity),
+              var animation = sprite.animation else { return }
+        
+        let isMoving = moveDirection.lengthSquared > 0.001
+        
+        if isMoving {
+            // Play animation when moving
+            if !animation.isPlaying {
+                animation.play()
+            }
+            // Update animation frame
+            if let currentFrame = animation.update(deltaTime: deltaTime) {
+                sprite.textureId = currentFrame
+            }
+            
+            // Flip sprite horizontally based on movement direction (X component)
+            // If moving left (negative X), flip the sprite
+            sprite.flipX = moveDirection.x < 0
+        } else {
+            // Stop animation when not moving, reset to first frame
+            if animation.isPlaying {
+                animation.pause()
+                animation.reset()
+            }
+            sprite.textureId = "player_0"
+            // Keep the last flip state when stopped
+        }
+        
+        sprite.animation = animation
+        world.add(sprite, to: entity)
     }
     
     // MARK: - Serialization

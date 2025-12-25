@@ -225,7 +225,7 @@ final class TextureAtlas {
         return image
     }
     
-    private func packSpriteIntoAtlas(image: UIImage, name: String, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int) -> Bool {
+    private func packSpriteIntoAtlas(image: UIImage, name: String, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int, skipBorderCrop: Bool = false) -> Bool {
         guard let cgImage = image.cgImage else {
             print("Warning: Could not get CGImage for \(name)")
             return false
@@ -242,47 +242,37 @@ final class TextureAtlas {
         
         // Check if this is a sprite sheet (like player.png)
         // Player sprite sheet is 1024x1024 with 4x4 grid (16 frames, each 256x256)
-        // Extract the first frame (top-left) from the sprite sheet
+        // Load all 16 frames for animation
         if name == "player" && imageWidth == 1024 && imageHeight == 1024 {
-            // Extract top-left frame from 4x4 grid
+            // Load all 16 frames from 4x4 grid
             let frameSize = 256  // 1024 / 4 = 256
-            let frameRect = CGRect(x: 0, y: 0, width: frameSize, height: frameSize)
+            let framesPerRow = 4
             
-            if let croppedCGImage = cgImage.cropping(to: frameRect) {
-                processedImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
-                print("  Extracted first frame from player sprite sheet: \(frameSize)x\(frameSize)")
-            } else {
-                processedImage = image
+            for frameIndex in 0..<16 {
+                let row = frameIndex / framesPerRow
+                let col = frameIndex % framesPerRow
+                let frameX = col * frameSize
+                let frameY = row * frameSize
+                let frameRect = CGRect(x: frameX, y: frameY, width: frameSize, height: frameSize)
+                
+                if let croppedCGImage = cgImage.cropping(to: frameRect) {
+                    let frameImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
+                    let frameName = "player_\(frameIndex)"
+                    
+                    // Pack this frame into the atlas (skip border crop since it's already extracted)
+                    if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
+                        print("  Loaded player animation frame \(frameIndex) as '\(frameName)'")
+                    }
+                }
             }
+            
+            // Return nil to indicate this was handled separately
+            return false
         } else if imageWidth > targetSize || imageHeight > targetSize {
             // For large images (1024x1024), crop out transparent borders by extracting from center
-            // Crop pixels from each side to remove transparent borders
-            // Use a percentage-based crop for better results across different image sizes
-            let cropPercentage: Float = 0.15  // Crop 15% from each side (30% total removed)
-            let borderCropX = Int(Float(imageWidth) * cropPercentage)
-            let borderCropY = Int(Float(imageHeight) * cropPercentage)
-            let cropX = borderCropX
-            let cropY = borderCropY
-            let cropWidth = imageWidth - (borderCropX * 2)
-            let cropHeight = imageHeight - (borderCropY * 2)
-            
-            // Extract center region (excluding borders)
-            if let croppedCGImage = cgImage.cropping(to: CGRect(x: cropX, y: cropY, width: cropWidth, height: cropHeight)) {
-                let croppedImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
-                
-                // Scale the cropped image to target size
-                let scale = min(Float(targetSize) / Float(cropWidth), Float(targetSize) / Float(cropHeight))
-                let scaledWidth = Int(Float(cropWidth) * scale)
-                let scaledHeight = Int(Float(cropHeight) * scale)
-                
-                print("  Cropped borders and scaling from \(cropWidth)x\(cropHeight) to \(scaledWidth)x\(scaledHeight)")
-                
-                UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
-                croppedImage.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
-                processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
-                UIGraphicsEndImageContext()
-            } else {
-                // Fallback to normal scaling if cropping fails
+            // Skip border crop for player animation frames (they're already extracted from sprite sheet)
+            if skipBorderCrop {
+                // Scale directly without cropping borders
                 let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
                 let scaledWidth = Int(Float(imageWidth) * scale)
                 let scaledHeight = Int(Float(imageHeight) * scale)
@@ -293,19 +283,46 @@ final class TextureAtlas {
                 image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
                 processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
                 UIGraphicsEndImageContext()
+            } else {
+                // Crop pixels from each side to remove transparent borders
+                // Use a percentage-based crop for better results across different image sizes
+                let cropPercentage: Float = 0.15  // Crop 15% from each side (30% total removed)
+                let borderCropX = Int(Float(imageWidth) * cropPercentage)
+                let borderCropY = Int(Float(imageHeight) * cropPercentage)
+                let cropX = borderCropX
+                let cropY = borderCropY
+                let cropWidth = imageWidth - (borderCropX * 2)
+                let cropHeight = imageHeight - (borderCropY * 2)
+                
+                // Extract center region (excluding borders)
+                if let croppedCGImage = cgImage.cropping(to: CGRect(x: cropX, y: cropY, width: cropWidth, height: cropHeight)) {
+                    let croppedImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
+                    
+                    // Scale the cropped image to target size
+                    let scale = min(Float(targetSize) / Float(cropWidth), Float(targetSize) / Float(cropHeight))
+                    let scaledWidth = Int(Float(cropWidth) * scale)
+                    let scaledHeight = Int(Float(cropHeight) * scale)
+                    
+                    print("  Cropped borders and scaling from \(cropWidth)x\(cropHeight) to \(scaledWidth)x\(scaledHeight)")
+                    
+                    UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
+                    croppedImage.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
+                    processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+                    UIGraphicsEndImageContext()
+                } else {
+                    // Fallback to normal scaling if cropping fails
+                    let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
+                    let scaledWidth = Int(Float(imageWidth) * scale)
+                    let scaledHeight = Int(Float(imageHeight) * scale)
+                    
+                    print("  Scaling image from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
+                    
+                    UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
+                    image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
+                    processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+                    UIGraphicsEndImageContext()
+                }
             }
-        } else if imageWidth < targetSize || imageHeight < targetSize {
-            // Scale down the image to fit if it's larger
-            let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
-            let scaledWidth = Int(Float(imageWidth) * scale)
-            let scaledHeight = Int(Float(imageHeight) * scale)
-            
-            print("  Scaling image from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
-            
-            UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
-            image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
-            processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
-            UIGraphicsEndImageContext()
         } else {
             processedImage = image
         }
