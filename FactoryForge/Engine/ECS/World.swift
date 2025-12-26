@@ -158,9 +158,31 @@ final class World {
     
     // MARK: - Spatial Queries
     
-    /// Gets the entity at a tile position
+    /// Gets the entity at a tile position (checks exact match first, then checks if position is within any entity's bounds)
     func getEntityAt(position: IntVector2) -> Entity? {
-        return spatialIndex[position]
+        // First try exact match (works for 1x1 entities)
+        if let entity = spatialIndex[position] {
+            return entity
+        }
+        
+        // For multi-tile buildings, check all entities with PositionComponent and SpriteComponent
+        // to see if the tapped position is within their bounds
+        for entity in query(PositionComponent.self, SpriteComponent.self) {
+            guard let pos = get(PositionComponent.self, for: entity),
+                  let sprite = get(SpriteComponent.self, for: entity) else { continue }
+            
+            let origin = pos.tilePosition
+            let width = Int32(sprite.size.x)
+            let height = Int32(sprite.size.y)
+            
+            // Check if the tapped position is within this entity's bounds
+            if position.x >= origin.x && position.x < origin.x + width &&
+               position.y >= origin.y && position.y < origin.y + height {
+                return entity
+            }
+        }
+        
+        return nil
     }
     
     /// Checks if there's an entity at a position

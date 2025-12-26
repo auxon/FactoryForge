@@ -104,22 +104,19 @@ final class InputManager: NSObject {
 
         // Check for entities/resources BEFORE UI system check, so tooltips always work
         let worldPos = gameLoop?.renderer?.screenToWorld(screenPos) ?? .zero
+        let tilePos = IntVector2(from: worldPos)
         
-        if buildMode == .none {
-            let tilePos = IntVector2(from: worldPos)
-            
-            // Check for entity
-            if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
-                // Show tooltip for entity
-                if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
-                    onTooltip?(tooltipText)
-                }
-            } else {
-                // Check for resource
-                if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
-                    // Show tooltip for resource
-                    onTooltip?(resource.type.displayName)
-                }
+        // Show tooltips regardless of build mode
+        if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
+            // Show tooltip for entity
+            if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
+                onTooltip?(tooltipText)
+            }
+        } else {
+            // Check for resource
+            if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+                // Show tooltip for resource
+                onTooltip?(resource.type.displayName)
             }
         }
 
@@ -159,39 +156,68 @@ final class InputManager: NSObject {
                 } else {
                     // No entity, check for resource to mine manually
                     if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
-                    // Check if player can accept the item
-                    if gameLoop?.player.inventory.canAccept(itemId: resource.type.outputItem) == true {
-                        print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
-                        // Manual mining - mine 1 unit
-                        let mined = gameLoop?.chunkManager.mineResource(at: tilePos, amount: 1) ?? 0
-                        if mined > 0 {
-                            // Add to player inventory
-                            gameLoop?.player.inventory.add(itemId: resource.type.outputItem, count: mined)
-                            print("Manually mined \(mined) \(resource.type.outputItem), \(resource.amount - mined) remaining")
+                        // Check if player can accept the item
+                        if gameLoop?.player.inventory.canAccept(itemId: resource.type.outputItem) == true {
+                            print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
+                            // Manual mining - mine 1 unit
+                            let mined = gameLoop?.chunkManager.mineResource(at: tilePos, amount: 1) ?? 0
+                            if mined > 0 {
+                                // Add to player inventory
+                                gameLoop?.player.inventory.add(itemId: resource.type.outputItem, count: mined)
+                                print("Manually mined \(mined) \(resource.type.outputItem), \(resource.amount - mined) remaining")
 
-                            // Check if resource is now depleted
-                            if let updatedResource = gameLoop?.chunkManager.getResource(at: tilePos) {
-                                print("Resource now has \(updatedResource.amount) remaining")
-                            } else {
-                                print("Resource depleted, tile should now be normal")
+                                // Check if resource is now depleted
+                                if let updatedResource = gameLoop?.chunkManager.getResource(at: tilePos) {
+                                    print("Resource now has \(updatedResource.amount) remaining")
+                                } else {
+                                    print("Resource depleted, tile should now be normal")
+                                }
                             }
+                        } else {
+                            print("Inventory full, cannot mine")
                         }
                     } else {
-                        print("Inventory full, cannot mine")
+                        selectedEntity = nil
+                        onEntitySelected?(nil)
                     }
-                } else {
-                    selectedEntity = nil
-                    onEntitySelected?(nil)
                 }
-            }
             }
             
         case .placing:
+            // Check if we're tapping on an existing entity first (allow interaction even in build mode)
+            let tilePos = IntVector2(from: worldPos)
+            if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
+                // Entity was tapped - select it and exit build mode
+                selectedEntity = entity
+                onEntitySelected?(entity)
+                exitBuildMode()
+                return
+            }
+            
+            // Check for resource to mine (allow mining even in build mode)
+            if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+                // Check if player can accept the item
+                if gameLoop?.player.inventory.canAccept(itemId: resource.type.outputItem) == true {
+                    print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
+                    // Manual mining - mine 1 unit
+                    let mined = gameLoop?.chunkManager.mineResource(at: tilePos, amount: 1) ?? 0
+                    if mined > 0 {
+                        // Add to player inventory
+                        gameLoop?.player.inventory.add(itemId: resource.type.outputItem, count: mined)
+                        print("Manually mined \(mined) \(resource.type.outputItem), \(resource.amount - mined) remaining")
+                    }
+                }
+                return // Don't place building if we mined
+            }
+            
             // Place building
             if let buildingId = selectedBuildingId {
-                let tilePos = IntVector2(from: worldPos)
                 if gameLoop?.placeBuilding(buildingId, at: tilePos, direction: buildDirection) == true {
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
+                    // Exit build mode after placing (except for belts which allow drag placement)
+                    if !buildingId.contains("belt") {
+                        exitBuildMode()
+                    }
                     // Play placement sound/feedback
                 }
             }
@@ -200,6 +226,7 @@ final class InputManager: NSObject {
             // Remove building
             let tilePos = IntVector2(from: worldPos)
             _ = gameLoop?.removeBuilding(at: tilePos)
+            // Stay in remove mode for continuous removal
         }
         
         onTap?(worldPos)
@@ -250,6 +277,7 @@ final class InputManager: NSObject {
                 return
             }
             
+            // Always allow camera panning (even in build mode)
             if buildMode == .none {
                 // Pan camera
                 let delta = screenPos - panStartPosition

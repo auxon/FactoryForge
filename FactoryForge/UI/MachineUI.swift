@@ -182,19 +182,108 @@ final class MachineUI: UIPanel_Base {
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
         
-        for slot in inputSlots + outputSlots {
-            if slot.handleTap(at: position) {
-                return true
-            }
-        }
-        
+        // Check recipe buttons first
         for button in recipeButtons {
             if button.handleTap(at: position) {
                 return true
             }
         }
         
+        // Check input slots - allow transferring items from player inventory
+        for slot in inputSlots {
+            if slot.handleTap(at: position) {
+                handleSlotTap(slot: slot, isInput: true)
+                return true
+            }
+        }
+        
+        // Check output slots - allow taking items
+        for slot in outputSlots {
+            if slot.handleTap(at: position) {
+                handleSlotTap(slot: slot, isInput: false)
+                return true
+            }
+        }
+        
         return super.handleTap(at: position)
+    }
+    
+    private func handleSlotTap(slot: InventorySlot, isInput: Bool) {
+        guard let entity = currentEntity,
+              let gameLoop = gameLoop,
+              var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { return }
+        
+        if isInput {
+            // Input slot - try to add item from player inventory
+            let player = gameLoop.player
+            
+            // Get current recipe (if any)
+            var currentRecipe: Recipe?
+            if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+                currentRecipe = furnace.recipe
+            } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+                currentRecipe = assembler.recipe
+            }
+            
+            // If recipe is set, try to add recipe inputs; otherwise try any smelting input
+            if let recipe = currentRecipe {
+                // Try to add recipe inputs from player inventory
+                for input in recipe.inputs {
+                    if player.inventory.has(itemId: input.itemId) && machineInventory.canAccept(itemId: input.itemId) {
+                        var playerInv = player.inventory
+                        playerInv.remove(itemId: input.itemId, count: 1)
+                        gameLoop.player.inventory = playerInv
+                        
+                        let itemStack = ItemStack(itemId: input.itemId, count: 1)
+                        let remaining = machineInventory.add(itemStack)
+                        gameLoop.world.add(machineInventory, to: entity)
+                        
+                        // Return any remaining items to player
+                        if remaining > 0 {
+                            gameLoop.player.inventory.add(itemId: input.itemId, count: remaining)
+                        }
+                        return
+                    }
+                }
+            } else {
+                // No recipe set - try any smelting recipe inputs (for furnaces)
+                if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+                    let smeltingRecipes = gameLoop.recipeRegistry.recipes(in: .smelting)
+                    for recipe in smeltingRecipes {
+                        for input in recipe.inputs {
+                            if player.inventory.has(itemId: input.itemId) && machineInventory.canAccept(itemId: input.itemId) {
+                                var playerInv = player.inventory
+                                playerInv.remove(itemId: input.itemId, count: 1)
+                                gameLoop.player.inventory = playerInv
+                                
+                                let itemStack = ItemStack(itemId: input.itemId, count: 1)
+                                let remaining = machineInventory.add(itemStack)
+                                gameLoop.world.add(machineInventory, to: entity)
+                                
+                                if remaining > 0 {
+                                    gameLoop.player.inventory.add(itemId: input.itemId, count: remaining)
+                                }
+                                return
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Output slot - try to take item to player inventory
+            guard let item = slot.item else { return }
+            
+            // Check if player can accept the item
+            if gameLoop.player.inventory.canAccept(itemId: item.itemId) {
+                var playerInv = gameLoop.player.inventory
+                let remaining = playerInv.add(item)
+                gameLoop.player.inventory = playerInv
+                
+                // Remove from machine
+                machineInventory.remove(itemId: item.itemId, count: item.count - remaining)
+                gameLoop.world.add(machineInventory, to: entity)
+            }
+        }
     }
 }
 

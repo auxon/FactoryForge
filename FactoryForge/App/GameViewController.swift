@@ -108,6 +108,23 @@ class GameViewController: UIViewController {
         inputManager.onTooltip = { [weak self] text in
             self?.showTooltip(text)
         }
+        
+        // Setup entity selection callback - open machine UI for furnaces/assemblers
+        inputManager.onEntitySelected = { [weak self] entity in
+            guard let self = self, let entity = entity else { return }
+            let world = self.gameLoop.world
+            
+            // Check if it's a machine we can interact with
+            if world.has(FurnaceComponent.self, for: entity) {
+                print("GameViewController: Furnace selected, opening Machine UI")
+                // Open machine UI
+                self.gameLoop.uiSystem?.openMachineUI(for: entity)
+            } else if world.has(AssemblerComponent.self, for: entity) {
+                print("GameViewController: Assembler selected, opening Machine UI")
+                // Open machine UI
+                self.gameLoop.uiSystem?.openMachineUI(for: entity)
+            }
+        }
     }
     
     private func setupNotifications() {
