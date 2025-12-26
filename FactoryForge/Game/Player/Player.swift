@@ -2,8 +2,8 @@ import Foundation
 
 /// The player character
 final class Player {
-    private let world: World
-    private let entity: Entity
+    private var world: World
+    private var entity: Entity
     
     /// Player inventory
     var inventory: InventoryComponent
@@ -57,6 +57,18 @@ final class Player {
         self.entity = world.spawn()
         self.inventory = InventoryComponent(slots: 40)
         
+        // Set up player entity
+        setupPlayerEntity()
+    }
+    
+    /// Recreates the player entity (used when loading a game after world deserialization)
+    func recreateEntity(in world: World) {
+        self.world = world
+        self.entity = world.spawn()
+        setupPlayerEntity()
+    }
+    
+    private func setupPlayerEntity() {
         // Set up player entity
         world.add(PositionComponent(tilePosition: .zero), to: entity)
         

@@ -4,6 +4,7 @@ import UIKit
 final class InputManager: NSObject {
     private weak var view: UIView?
     private weak var gameLoop: GameLoop?
+    private weak var renderer: MetalRenderer?
     
     // Gesture recognizers
     private var tapRecognizer: UITapGestureRecognizer!
@@ -42,13 +43,18 @@ final class InputManager: NSObject {
     var onEntitySelected: ((Entity?) -> Void)?
     var onTooltip: ((String) -> Void)? // Called when something is tapped to show tooltip
     
-    init(view: UIView, gameLoop: GameLoop) {
+    init(view: UIView, gameLoop: GameLoop?, renderer: MetalRenderer? = nil) {
         self.view = view
         self.gameLoop = gameLoop
+        self.renderer = renderer
         
         super.init()
         
         setupGestureRecognizers()
+    }
+    
+    func setGameLoop(_ gameLoop: GameLoop) {
+        self.gameLoop = gameLoop
     }
     
     private func setupGestureRecognizers() {
@@ -95,34 +101,41 @@ final class InputManager: NSObject {
 
         let screenPos = screenPosition(from: recognizer)
 
-        // Check for HUD button taps FIRST and show tooltip
-        let screenSize = gameLoop?.renderer?.screenSize ?? Vector2(800, 600)
-        if let buttonName = gameLoop?.uiSystem?.hud.getButtonName(at: screenPos, screenSize: screenSize) {
+        // Check UI system first (needed for loading menu when gameLoop is nil)
+        // Get UI system from gameLoop or renderer
+        let uiSystem = gameLoop?.uiSystem ?? renderer?.uiSystem
+        if let uiSystem = uiSystem {
+            if uiSystem.handleTap(at: screenPos) == true {
+                return
+            }
+        }
+
+        // If no game loop exists, we're done (loading menu should have handled it)
+        guard let gameLoop = gameLoop else { return }
+
+        // Check for HUD button taps and show tooltip
+        let screenSize = gameLoop.renderer?.screenSize ?? renderer?.screenSize ?? Vector2(800, 600)
+        if let buttonName = gameLoop.uiSystem?.hud.getButtonName(at: screenPos, screenSize: screenSize) {
             // Show tooltip for button
             onTooltip?(buttonName)
         }
 
         // Check for entities/resources BEFORE UI system check, so tooltips always work
-        let worldPos = gameLoop?.renderer?.screenToWorld(screenPos) ?? .zero
+        let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
         
         // Show tooltips regardless of build mode
-        if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
+        if let entity = gameLoop.world.getEntityAt(position: tilePos) {
             // Show tooltip for entity
             if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
                 onTooltip?(tooltipText)
             }
         } else {
             // Check for resource
-            if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+            if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                 // Show tooltip for resource
                 onTooltip?(resource.type.displayName)
             }
-        }
-
-        // Check UI system for button actions (may consume the tap)
-        if gameLoop?.uiSystem?.handleTap(at: screenPos) == true {
-            return
         }
 
         // UI didn't handle it, process game tap
@@ -131,14 +144,13 @@ final class InputManager: NSObject {
         switch buildMode {
         case .none:
             // Check if player is attacking an enemy (prioritize combat)
-            let nearbyEnemies = gameLoop?.world.getEntitiesNear(position: worldPos, radius: 1.5) ?? []
+            let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
             var attacked = false
             
             for enemy in nearbyEnemies {
-                if gameLoop?.world.has(EnemyComponent.self, for: enemy) == true {
+                if gameLoop.world.has(EnemyComponent.self, for: enemy) {
                     // Try to attack the enemy at its position
-                    if let enemyPos = gameLoop?.world.get(PositionComponent.self, for: enemy),
-                       let gameLoop = gameLoop {
+                    if let enemyPos = gameLoop.world.get(PositionComponent.self, for: enemy) {
                         if gameLoop.player.attack(at: enemyPos.worldPosition) {
                             attacked = true
                             break
@@ -150,21 +162,20 @@ final class InputManager: NSObject {
             if !attacked {
                 // Try to select an entity at this position
                 let tilePos = IntVector2(from: worldPos)
-                if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
+                if let entity = gameLoop.world.getEntityAt(position: tilePos) {
                     selectedEntity = entity
                     onEntitySelected?(entity)
                 } else {
                     // No entity, check for resource to mine manually
-                    if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+                    if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                         // Check if player can accept the item
-                        if gameLoop?.player.inventory.canAccept(itemId: resource.type.outputItem) == true {
+                        if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
                             print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
                             // Manual mining - mine 1 unit
-                            let mined = gameLoop?.chunkManager.mineResource(at: tilePos, amount: 1) ?? 0
+                            let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
                             if mined > 0 {
                                 // Start mining animation
                                 let itemId = resource.type.outputItem
-                                guard let gameLoop = gameLoop else { break }
                                 gameLoop.uiSystem?.hud.startMiningAnimation(
                                     itemId: itemId,
                                     fromWorldPosition: worldPos,
@@ -198,7 +209,7 @@ final class InputManager: NSObject {
         case .placing:
             // Check if we're tapping on an existing entity first (allow interaction even in build mode)
             let tilePos = IntVector2(from: worldPos)
-            if let entity = gameLoop?.world.getEntityAt(position: tilePos) {
+            if let entity = gameLoop.world.getEntityAt(position: tilePos) {
                 // Entity was tapped - select it and exit build mode
                 selectedEntity = entity
                 onEntitySelected?(entity)
@@ -207,16 +218,15 @@ final class InputManager: NSObject {
             }
             
             // Check for resource to mine (allow mining even in build mode)
-            if let resource = gameLoop?.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+            if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                 // Check if player can accept the item
-                if gameLoop?.player.inventory.canAccept(itemId: resource.type.outputItem) == true {
+                if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
                     print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
                     // Manual mining - mine 1 unit
-                    let mined = gameLoop?.chunkManager.mineResource(at: tilePos, amount: 1) ?? 0
+                    let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
                     if mined > 0 {
                         // Start mining animation
                         let itemId = resource.type.outputItem
-                        guard let gameLoop = gameLoop else { return }
                         gameLoop.uiSystem?.hud.startMiningAnimation(
                             itemId: itemId,
                             fromWorldPosition: worldPos,
@@ -236,7 +246,7 @@ final class InputManager: NSObject {
             
             // Place building
             if let buildingId = selectedBuildingId {
-                if gameLoop?.placeBuilding(buildingId, at: tilePos, direction: buildDirection) == true {
+                if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection) {
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
                     // Exit build mode after placing (except for belts which allow drag placement)
                     if !buildingId.contains("belt") {
@@ -249,7 +259,7 @@ final class InputManager: NSObject {
         case .removing:
             // Remove building
             let tilePos = IntVector2(from: worldPos)
-            _ = gameLoop?.removeBuilding(at: tilePos)
+            _ = gameLoop.removeBuilding(at: tilePos)
             // Stay in remove mode for continuous removal
         }
         
@@ -257,14 +267,14 @@ final class InputManager: NSObject {
     }
     
     @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
-        guard let renderer = gameLoop?.renderer else { return }
+        guard let gameLoop = gameLoop, let renderer = gameLoop.renderer ?? self.renderer else { return }
         
         let screenPos = screenPosition(from: recognizer)
         let worldPos = renderer.screenToWorld(screenPos)
         currentTouchPosition = worldPos
         
         // Get joystick from HUD
-        let joystick = gameLoop?.uiSystem?.hud.joystick
+        let joystick = gameLoop.uiSystem?.hud.joystick
         
         switch recognizer.state {
         case .began:
@@ -315,7 +325,7 @@ final class InputManager: NSObject {
                 if let buildingId = selectedBuildingId,
                    buildingId.contains("belt"),
                    let pos = buildPreviewPosition {
-                    _ = gameLoop?.placeBuilding(buildingId, at: pos, direction: buildDirection)
+                    _ = gameLoop.placeBuilding(buildingId, at: pos, direction: buildDirection)
                 }
             }
             

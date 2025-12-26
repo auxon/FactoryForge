@@ -289,6 +289,13 @@ extension World {
                 components["furnace"] = try? JSONEncoder().encode(furnace)
             }
             
+            // Exclude player entity from world serialization (it's saved separately in PlayerState)
+            // Player entities have CollisionComponent with layer .player
+            if let collision = get(CollisionComponent.self, for: entity),
+               collision.layer == .player {
+                continue  // Skip serializing player entity
+            }
+            
             entityDataList.append(EntityData(
                 id: entity.id,
                 generation: entity.generation,
@@ -342,6 +349,10 @@ extension World {
             if let furnaceData = entityData.components["furnace"],
                let furnace = try? JSONDecoder().decode(FurnaceComponent.self, from: furnaceData) {
                 add(furnace, to: entity)
+            }
+            if let collisionData = entityData.components["collision"],
+               let collision = try? JSONDecoder().decode(CollisionComponent.self, from: collisionData) {
+                add(collision, to: entity)
             }
         }
     }

@@ -36,9 +36,9 @@ final class GameLoop {
     
     // State
     private(set) var isRunning: Bool = true
-    private(set) var playTime: TimeInterval = 0
+    var playTime: TimeInterval = 0
     
-    init(renderer: MetalRenderer) {
+    init(renderer: MetalRenderer, seed: UInt64? = nil) {
         self.renderer = renderer
         
         // Initialize registries
@@ -49,7 +49,7 @@ final class GameLoop {
         
         // Initialize world
         world = World()
-        chunkManager = ChunkManager(seed: UInt64.random(in: 0...UInt64.max))
+        chunkManager = ChunkManager(seed: seed ?? UInt64.random(in: 0...UInt64.max))
         
         // Initialize player
         player = Player(world: world)
@@ -144,8 +144,7 @@ final class GameLoop {
         // Note: Player entity is rendered by SpriteRenderer which queries world entities
         // The player sprite component is already in the world, so it will be rendered automatically
         
-        // Render UI
-        uiSystem?.render(renderer: renderer)
+        // Note: UI is rendered by MetalRenderer before this call to allow loading menu to render first
     }
     
     // MARK: - Game Actions

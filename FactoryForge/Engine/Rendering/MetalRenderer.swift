@@ -35,6 +35,9 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     // Game loop reference
     weak var gameLoop: GameLoop?
     
+    // UI system reference (needed for loading menu)
+    weak var uiSystem: UISystem?
+    
     // Frame statistics
     private(set) var drawCallCount: Int = 0
     private(set) var triangleCount: Int = 0
@@ -179,6 +182,12 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         
         // Update game logic
         gameLoop?.update()
+        
+        // Render UI first (in case loading menu is active)
+        // UI system can exist without game loop (for loading menu)
+        if let uiSystem = gameLoop?.uiSystem ?? self.uiSystem {
+            uiSystem.render(renderer: self)
+        }
         
         // Queue render data (tiles, sprites, etc.)
         if let gameLoop = gameLoop {

@@ -16,6 +16,7 @@ final class UISystem {
     private var buildMenu: BuildMenu
     private var researchUI: ResearchUI
     private var machineUI: MachineUI
+    private var loadingMenu: LoadingMenu
     
     // Current state
     private(set) var activePanel: UIPanel?
@@ -24,12 +25,13 @@ final class UISystem {
     // Touch handling
     private var touchedElement: UIElement?
     
-    init(gameLoop: GameLoop, renderer: MetalRenderer?) {
+    init(gameLoop: GameLoop?, renderer: MetalRenderer?) {
         self.gameLoop = gameLoop
         self.renderer = renderer
         
         let screenSize = renderer?.screenSize ?? Vector2(800, 600)
         
+        loadingMenu = LoadingMenu(screenSize: screenSize)
         hud = HUD(screenSize: screenSize, gameLoop: gameLoop)
         inventoryUI = InventoryUI(screenSize: screenSize, gameLoop: gameLoop)
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
@@ -38,6 +40,24 @@ final class UISystem {
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
         
         setupCallbacks()
+    }
+    
+    func setGameLoop(_ gameLoop: GameLoop) {
+        self.gameLoop = gameLoop
+        let screenSize = renderer?.screenSize ?? Vector2(800, 600)
+        
+        // Update all UI components that need gameLoop
+        hud = HUD(screenSize: screenSize, gameLoop: gameLoop)
+        inventoryUI = InventoryUI(screenSize: screenSize, gameLoop: gameLoop)
+        craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
+        buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
+        researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
+        machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
+        setupCallbacks()
+    }
+    
+    func getLoadingMenu() -> LoadingMenu {
+        return loadingMenu
     }
     
     private func setupCallbacks() {
@@ -56,6 +76,10 @@ final class UISystem {
         
         hud.onResearchPressed = { [weak self] in
             self?.togglePanel(.research)
+        }
+        
+        hud.onMenuPressed = { [weak self] in
+            self?.openPanel(.loadingMenu)
         }
         
         // Build menu callbacks
@@ -87,10 +111,17 @@ final class UISystem {
     // MARK: - Update
     
     func update(deltaTime: Float) {
+        if let panel = activePanel, panel == .loadingMenu {
+            loadingMenu.update(deltaTime: deltaTime)
+            return // Don't update game UI if loading menu is open
+        }
+        
         hud.update(deltaTime: deltaTime)
         
         if let panel = activePanel {
             switch panel {
+            case .loadingMenu:
+                loadingMenu.update(deltaTime: deltaTime)
             case .inventory:
                 inventoryUI.update(deltaTime: deltaTime)
             case .crafting:
@@ -108,12 +139,20 @@ final class UISystem {
     // MARK: - Rendering
     
     func render(renderer: MetalRenderer) {
+        if let panel = activePanel, panel == .loadingMenu {
+            // Only render loading menu if it's active (replaces entire view)
+            loadingMenu.render(renderer: renderer)
+            return
+        }
+        
         // Render HUD (always visible)
         hud.render(renderer: renderer)
         
         // Render active panel
         if let panel = activePanel {
             switch panel {
+            case .loadingMenu:
+                loadingMenu.render(renderer: renderer)
             case .inventory:
                 inventoryUI.render(renderer: renderer)
             case .crafting:
@@ -149,6 +188,8 @@ final class UISystem {
         isAnyPanelOpen = true
         
         switch panel {
+        case .loadingMenu:
+            loadingMenu.open()
         case .inventory:
             inventoryUI.open()
         case .crafting:
@@ -165,6 +206,8 @@ final class UISystem {
     func closeAllPanels() {
         if let panel = activePanel {
             switch panel {
+            case .loadingMenu:
+                loadingMenu.close()
             case .inventory:
                 inventoryUI.close()
             case .crafting:
@@ -195,6 +238,11 @@ final class UISystem {
     // MARK: - Touch Handling
     
     func handleTap(at screenPos: Vector2) -> Bool {
+        // If loading menu is active, handle taps only for it
+        if let panel = activePanel, panel == .loadingMenu {
+            return loadingMenu.handleTap(at: screenPos)
+        }
+        
         // Get current screen size from renderer
         let currentScreenSize = renderer?.screenSize ?? Vector2(800, 600)
         
@@ -206,6 +254,8 @@ final class UISystem {
         // Check active panel
         if let panel = activePanel {
             switch panel {
+            case .loadingMenu:
+                return loadingMenu.handleTap(at: screenPos)
             case .inventory:
                 if inventoryUI.handleTap(at: screenPos) { return true }
             case .crafting:
@@ -242,6 +292,7 @@ final class UISystem {
 // MARK: - UI Types
 
 enum UIPanel {
+    case loadingMenu
     case inventory
     case crafting
     case build

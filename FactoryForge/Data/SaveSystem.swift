@@ -52,23 +52,52 @@ final class SaveSystem {
     }
     
     private func findResearchSystem(in gameLoop: GameLoop) -> ResearchSystem? {
-        // Would need proper system access
-        return nil
+        return gameLoop.researchSystem
     }
     
     // MARK: - Load
     
     func load(saveData: GameSave, into gameLoop: GameLoop) {
-        // Load world state
+        // Load world state FIRST (this clears the world, including the player's entity)
         gameLoop.world.deserialize(saveData.worldData)
         
-        // Load player state
+        // Remove any player entity that might have been deserialized from the world
+        // (the player entity is managed separately by the Player class)
+        removePlayerEntityFromWorld(gameLoop.world)
+        
+        // Recreate the player entity (since it was cleared during deserialize)
+        recreatePlayerEntity(gameLoop.player, in: gameLoop.world)
+        
+        // Load player state (position, inventory, health)
         gameLoop.player.loadState(saveData.playerData)
         
         // Load research state
-        // Would need proper system access
+        gameLoop.researchSystem.loadState(saveData.researchData)
+        
+        // Load play time
+        gameLoop.playTime = saveData.playTime
         
         print("Game loaded from save")
+    }
+    
+    private func removePlayerEntityFromWorld(_ world: World) {
+        // Find and remove any entity with player collision layer (they shouldn't be in world saves)
+        var entitiesToRemove: [Entity] = []
+        for entity in world.entities {
+            if let collision = world.get(CollisionComponent.self, for: entity),
+               collision.layer == .player {
+                entitiesToRemove.append(entity)
+            }
+        }
+        for entity in entitiesToRemove {
+            world.despawn(entity)
+        }
+    }
+    
+    private func recreatePlayerEntity(_ player: Player, in world: World) {
+        // Use reflection or a public method to recreate the player entity
+        // For now, we'll need to add a method to Player to recreate its entity
+        player.recreateEntity(in: world)
     }
     
     func loadFromSlot(_ slotName: String) -> GameSave? {

@@ -23,6 +23,7 @@ final class HUD {
     var onCraftingPressed: (() -> Void)?
     var onBuildPressed: (() -> Void)?
     var onResearchPressed: (() -> Void)?
+    var onMenuPressed: (() -> Void)? // Called when menu button is pressed
     var onQuickBarSlotSelected: ((Int) -> Void)? // Called when a quick bar slot is selected
     
     // Selected quick bar slot
@@ -214,8 +215,19 @@ final class HUD {
         // Render resource counters
         renderResourceCounters(renderer: renderer)
         
+        // Render menu button (top-right corner)
+        renderMenuButton(renderer: renderer)
+        
         // Render mining animations
         renderMiningAnimations(renderer: renderer)
+    }
+    
+    private func renderMenuButton(renderer: MetalRenderer) {
+        // Menu button in top-right corner
+        let buttonX = screenSize.x - bottomMargin - buttonSize / 2
+        let buttonY = bottomMargin + buttonSize / 2
+        
+        renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "chest", callback: onMenuPressed)
     }
     
     private func renderMiningAnimations(renderer: MetalRenderer) {
@@ -461,6 +473,14 @@ final class HUD {
         // Check research button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
             onResearchPressed?()
+            return true
+        }
+        
+        // Check menu button (top-right corner)
+        let buttonX = screenSize.x - bottomMargin - buttonSize / 2
+        let buttonY = bottomMargin + buttonSize / 2
+        if checkButtonTap(at: position, buttonPos: Vector2(buttonX, buttonY)) {
+            onMenuPressed?()
             return true
         }
         

@@ -182,6 +182,10 @@ final class TextureAtlas {
             // UI
             ("solid_white", nil),
             ("building_placeholder", nil),
+            ("new_game", nil),
+            ("save_game", nil),
+            ("load_game", nil),
+            ("delete_game", nil),
         ]
         
         print("Loading \(spriteFiles.count) sprite files...")
@@ -202,7 +206,11 @@ final class TextureAtlas {
             }
             
             if let image = image {
-                if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize) {
+                // UI buttons need larger slots to preserve quality (they're 805x279px)
+                let uiButtonNames = ["new_game", "save_game", "load_game", "delete_game"]
+                let buttonSpriteSize = uiButtonNames.contains(textureId) ? 256 : spriteSize
+                
+                if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: buttonSpriteSize) {
                     print("✓ Loaded: \(filename).png -> textureId: \(textureId)")
                 } else {
                     print("✗ Failed to pack: \(filename).png")
@@ -232,6 +240,9 @@ final class TextureAtlas {
             print("Warning: Could not get CGImage for \(name)")
             return false
         }
+        
+        // UI button names (define once at function start)
+        let uiButtonNames = ["new_game", "save_game", "load_game", "delete_game"]
         
         // Get actual image size
         let imageWidth = cgImage.width
@@ -273,9 +284,20 @@ final class TextureAtlas {
             print("  Successfully loaded all 16 frames from \(name) sprite sheet")
             return false
         } else if imageWidth > targetSize || imageHeight > targetSize {
-            // For large images (1024x1024), crop out transparent borders by extracting from center
-            // Skip border crop for player animation frames (they're already extracted from sprite sheet)
-            if skipBorderCrop {
+            // Handle UI buttons specially - scale to larger size preserving aspect ratio
+            if uiButtonNames.contains(name) {
+                // UI buttons: scale to targetSize height, preserve aspect ratio
+                let aspectRatio = Float(imageWidth) / Float(imageHeight)
+                let scaledHeight = targetSize
+                let scaledWidth = Int(Float(scaledHeight) * aspectRatio)
+                
+                print("  Scaling UI button from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
+                
+                UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
+                image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
+                processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+                UIGraphicsEndImageContext()
+            } else if skipBorderCrop {
                 // Scale directly without cropping borders
                 let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
                 let scaledWidth = Int(Float(imageWidth) * scale)
@@ -336,19 +358,25 @@ final class TextureAtlas {
             return false
         }
         
-        // Final scaling: scale the extracted/processed image to exactly targetSize
-        let finalWidth = min(targetSize, processedCGImage.width)
-        let finalHeight = min(targetSize, processedCGImage.height)
-        
+        // For UI buttons, keep their aspect ratio; for others, scale to square targetSize
         let finalImage: UIImage
-        if processedCGImage.width != targetSize || processedCGImage.height != targetSize {
-            // Scale to exactly targetSize
-            UIGraphicsBeginImageContextWithOptions(CGSize(width: targetSize, height: targetSize), false, 1.0)
-            processedImage.draw(in: CGRect(x: 0, y: 0, width: targetSize, height: targetSize))
-            finalImage = UIGraphicsGetImageFromCurrentImageContext() ?? processedImage
-            UIGraphicsEndImageContext()
-        } else {
+        if uiButtonNames.contains(name) {
+            // UI buttons: keep aspect ratio, use actual processed size
             finalImage = processedImage
+        } else {
+            // Other sprites: scale to square targetSize
+            let finalWidth = min(targetSize, processedCGImage.width)
+            let finalHeight = min(targetSize, processedCGImage.height)
+            
+            if processedCGImage.width != targetSize || processedCGImage.height != targetSize {
+                // Scale to exactly targetSize
+                UIGraphicsBeginImageContextWithOptions(CGSize(width: targetSize, height: targetSize), false, 1.0)
+                processedImage.draw(in: CGRect(x: 0, y: 0, width: targetSize, height: targetSize))
+                finalImage = UIGraphicsGetImageFromCurrentImageContext() ?? processedImage
+                UIGraphicsEndImageContext()
+            } else {
+                finalImage = processedImage
+            }
         }
         
         guard let finalCGImage = finalImage.cgImage else {
@@ -379,13 +407,18 @@ final class TextureAtlas {
         
         context.draw(finalCGImage, in: CGRect(x: 0, y: 0, width: finalCGImage.width, height: finalCGImage.height))
         
-        // Copy sprite to atlas (final image is already exactly targetSize x targetSize)
-        for y in 0..<targetSize {
-            for x in 0..<targetSize {
+        // Copy sprite to atlas (use actual final image size)
+        let copyWidth = finalCGImage.width
+        let copyHeight = finalCGImage.height
+        
+        for y in 0..<copyHeight {
+            for x in 0..<copyWidth {
                 let srcIdx = (y * finalCGImage.width + x) * bytesPerPixel
-                let dstIdx = ((atlasY + y) * atlasSize + (atlasX + x)) * bytesPerPixel
+                let dstX = atlasX + x
+                let dstY = atlasY + y
+                let dstIdx = (dstY * atlasSize + dstX) * bytesPerPixel
                 
-                if dstIdx + 3 < atlasData.count && srcIdx + 3 < pixelData.count {
+                if dstIdx + 3 < atlasData.count && srcIdx + 3 < pixelData.count && dstX < atlasSize && dstY < atlasSize {
                     atlasData[dstIdx] = pixelData[srcIdx]     // R
                     atlasData[dstIdx + 1] = pixelData[srcIdx + 1] // G
                     atlasData[dstIdx + 2] = pixelData[srcIdx + 2] // B
@@ -394,19 +427,26 @@ final class TextureAtlas {
             }
         }
         
-        // Store UV rect (always use full spriteSize for consistent sizing)
+        // Store UV rect (use actual image size)
         let uvRect = Rect(
             x: Float(atlasX) / Float(atlasSize),
             y: Float(atlasY) / Float(atlasSize),
-            width: Float(targetSize) / Float(atlasSize),
-            height: Float(targetSize) / Float(atlasSize)
+            width: Float(copyWidth) / Float(atlasSize),
+            height: Float(copyHeight) / Float(atlasSize)
         )
         textureRects[name] = uvRect
         
-        print("Packed sprite '\(name)' into atlas at (\(atlasX), \(atlasY)), size (\(targetSize), \(targetSize))")
+        print("Packed sprite '\(name)' into atlas at (\(atlasX), \(atlasY)), size (\(copyWidth), \(copyHeight))")
         
-        // Move to next position in atlas
-        atlasX += spriteSize
+        // Move to next position in atlas (use actual width for UI buttons, spriteSize for others)
+        if uiButtonNames.contains(name) {
+            // UI buttons: advance by actual width, round up to spriteSize boundary for next sprite
+            atlasX += copyWidth
+            atlasX = ((atlasX + spriteSize - 1) / spriteSize) * spriteSize
+        } else {
+            // Regular sprites: advance by spriteSize
+            atlasX += spriteSize
+        }
         if atlasX + spriteSize > atlasSize {
             atlasX = 0
             atlasY += spriteSize
