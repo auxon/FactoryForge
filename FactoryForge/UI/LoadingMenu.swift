@@ -4,6 +4,7 @@ import UIKit
 /// Loading menu for starting new game or loading saved games
 final class LoadingMenu: UIPanel_Base {
     private var saveSystem: SaveSystem
+    private var screenSize: Vector2 // Store screen size for coordinate conversion
     private var newGameButton: UIButton!
     private var saveGameButton: UIButton!
     private var saveSlotButtons: [SaveSlotButton] = []
@@ -16,7 +17,8 @@ final class LoadingMenu: UIPanel_Base {
     
     init(screenSize: Vector2) {
         self.saveSystem = SaveSystem()
-        
+        self.screenSize = screenSize
+
         let panelWidth: Float = 500 * UIScale
         let panelHeight: Float = 600 * UIScale
         // Move menu down - center it lower on the screen
@@ -130,7 +132,18 @@ final class LoadingMenu: UIPanel_Base {
         // Only create labels if parent view is available
         guard let parentView = parentView else { return }
         
+        // Convert Metal coordinates to UIKit coordinates
+        // Metal uses pixels (screenSize * scale) with bottom-left origin
+        // UIKit uses points with top-left origin
         let screenScale = CGFloat(UIScreen.main.scale)
+        let screenHeightPoints = CGFloat(parentView.bounds.height)
+        
+        // Calculate Load/Delete button dimensions for accurate label width calculation
+        let imageAspectRatio: Float = 805.0 / 279.0
+        let loadDeleteButtonHeight: Float = 50 * UIScale
+        let loadDeleteButtonWidth: Float = loadDeleteButtonHeight * imageAspectRatio
+        let buttonSpacing: Float = 5 * UIScale
+        let buttonsAreaWidth = loadDeleteButtonWidth * 2 + buttonSpacing * 3 // Total width of Load/Delete buttons + spacing
         
         for (index, slotButton) in saveSlotButtons.enumerated() {
             let slotInfo = slotButton.slotInfo
@@ -138,36 +151,61 @@ final class LoadingMenu: UIPanel_Base {
             // Create label if it doesn't exist
             if index >= slotLabels.count {
                 let label = UILabel()
-                label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+                label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
                 label.textColor = .white
-                label.numberOfLines = 3
+                label.numberOfLines = 1 // Single line
                 label.backgroundColor = .clear
+                label.lineBreakMode = .byCharWrapping
                 parentView.addSubview(label)
                 slotLabels.append(label)
             }
             
             let label = slotLabels[index]
             
-            // Format the date
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateStyle = .short
-            dateFormatter.timeStyle = .short
-            let formattedDate = dateFormatter.string(from: slotInfo.modificationDate)
+            // Just show the save file name
+            label.text = slotInfo.name
             
-            // Create text with name, play time, and date
-            let text = "\(slotInfo.name)\n\(slotInfo.formattedPlayTime)\n\(formattedDate)"
-            label.text = text
+            let labelPadding: Float = 10 * UIScale
             
-            // Position label based on slot button frame (convert Metal coordinates to UIKit)
-            // Metal uses bottom-left origin, UIKit uses top-left origin
-            // Metal coordinates are already in pixels (accounting for screen scale), so we divide by screenScale to get points
-            let screenHeight = CGFloat(parentView.bounds.height)
-            let labelX = CGFloat(slotButton.frame.minX + 10 * UIScale) / screenScale
-            let labelY = screenHeight - (CGFloat(slotButton.frame.maxY) / screenScale) + 5
-            let labelWidth = CGFloat(slotButton.frame.width - 200 * UIScale) / screenScale // Leave room for buttons
-            let labelHeight = CGFloat(slotButton.frame.height - 10 * UIScale) / screenScale
+            // Calculate available width for text (leave room for Load/Delete buttons on the right)
+            let availableWidth = slotButton.frame.width - buttonsAreaWidth - labelPadding * 2
             
-            label.frame = CGRect(x: labelX, y: labelY, width: labelWidth, height: labelHeight)
+            // Ensure label doesn't exceed button bounds
+            let clampedWidth = max(availableWidth, 100 * UIScale) // Minimum 100 pixels
+            
+            // Convert button frame from Metal coordinates (pixels, bottom-left origin) to UIKit (points, top-left origin)
+            // Metal: X is in pixels, Y increases upward from bottom (0 at bottom, screenHeight at top)
+            // UIKit: X and Y are in points, Y increases downward from top (0 at top, screenHeight at bottom)
+            
+            // X coordinate: Convert from Metal pixels (top-left origin) to UIKit points (top-left origin)
+            let buttonMinXPixels = CGFloat(slotButton.frame.minX)
+            let labelXPoints = buttonMinXPixels / screenScale + CGFloat(labelPadding)
+            
+            // Y coordinate: Convert from Metal (top-left origin, pixels) to UIKit (top-left origin, points)
+            // Metal UI: Y=0 at top, Y increases downward. Button center Y is in pixels from top.
+            // UIKit: Y=0 at top, Y increases downward.
+            // Conversion: UIKit Y = Metal Y / screenScale
+            // We want to center the label vertically in the button
+            let buttonCenterYPixels = CGFloat(slotButton.frame.center.y)
+
+            // Convert from Metal pixels (top-left origin) to UIKit points (top-left origin)
+            let buttonCenterYPoints = buttonCenterYPixels / screenScale
+
+            // Position label centered vertically in button
+            // Use proper font metrics for label height
+            let font = UIFont.systemFont(ofSize: 16, weight: .medium)
+            let estimatedLabelHeight: CGFloat = font.lineHeight
+            let labelYPoints = buttonCenterYPoints - estimatedLabelHeight / 2
+            
+            // Width: Convert from pixels to points, leave room for buttons on right
+            let labelWidthPoints = CGFloat(clampedWidth) / screenScale
+            
+            label.frame = CGRect(
+                x: labelXPoints,
+                y: labelYPoints,
+                width: max(labelWidthPoints, 50),
+                height: estimatedLabelHeight
+            )
             label.isHidden = !isOpen
         }
         
