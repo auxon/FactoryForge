@@ -65,12 +65,15 @@ final class CraftingSystem: System {
             if world.get(PowerConsumerComponent.self, for: entity) == nil {
                 // Burner furnace - needs fuel
                 if furnace.fuelRemaining <= 0 {
-                    // Try to consume fuel
+                    // Try to consume fuel (modify in place, don't call world.add here)
                     if !consumeFuel(inventory: &inventory, furnace: &furnace) {
                         return  // No fuel available
                     }
+                    // Save inventory after fuel consumption (outside consumeFuel to avoid exclusivity violation)
+                    world.add(inventory, to: entity)
                 }
                 furnace.fuelRemaining -= deltaTime
+                // furnace component is saved automatically by forEach
             } else {
                 // Electric furnace - check power
                 if let power = world.get(PowerConsumerComponent.self, for: entity), power.satisfaction <= 0 {
@@ -126,8 +129,39 @@ final class CraftingSystem: System {
     }
     
     private func completeRecipe(recipe: Recipe, inventory: inout InventoryComponent, entity: Entity) {
+        // For furnaces, put outputs in the second half of inventory slots
+        let isFurnace = world.has(FurnaceComponent.self, for: entity)
+        let outputStartIndex = isFurnace ? inventory.slots.count / 2 : 0
+        
         for output in recipe.outputs {
-            inventory.add(output)
+            if isFurnace {
+                // Try to add to output slots first (second half)
+                var added = false
+                for i in outputStartIndex..<inventory.slots.count {
+                    if let existing = inventory.slots[i], existing.itemId == output.itemId && existing.count < existing.maxStack {
+                        // Add to existing stack
+                        inventory.slots[i]?.count += output.count
+                        added = true
+                        break
+                    } else if inventory.slots[i] == nil {
+                        // Add to empty slot
+                        inventory.slots[i] = output
+                        added = true
+                        break
+                    }
+                }
+                // If output slots are full, fall back to regular add (will use first available slot)
+                if !added {
+                    let remaining = inventory.add(output)
+                    if remaining > 0 {
+                        // Couldn't add all items - this shouldn't happen if canStartRecipe checked properly
+                        print("Warning: Could not add all output items to furnace inventory")
+                    }
+                }
+            } else {
+                // For assemblers, use regular add
+                inventory.add(output)
+            }
         }
         world.add(inventory, to: entity)
     }
@@ -159,6 +193,7 @@ final class CraftingSystem: System {
             if inventory.has(itemId: fuelId) {
                 inventory.remove(itemId: fuelId, count: 1)
                 furnace.fuelRemaining = fuelValue
+                // Don't call world.add here - caller will handle saving to avoid exclusivity violations
                 return true
             }
         }

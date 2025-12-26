@@ -225,7 +225,8 @@ final class GameLoop {
             world.add(FurnaceComponent(
                 smeltingSpeed: buildingDef.craftingSpeed
             ), to: entity)
-            world.add(InventoryComponent(slots: 2, filter: nil), to: entity)
+            // Furnace needs slots for: input ore, fuel, and output
+            world.add(InventoryComponent(slots: 4, filter: nil), to: entity)
             
         case .assembler:
             world.add(AssemblerComponent(

@@ -225,6 +225,119 @@ final class MachineUI: UIPanel_Base {
                 currentRecipe = assembler.recipe
             }
             
+            // For furnaces, try to add either recipe inputs OR fuel
+            // Check what's needed/missing and add accordingly
+            if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+                // First, check if we need recipe inputs (ore)
+                var needsRecipeInput = false
+                if let recipe = currentRecipe {
+                    // Check if we're missing any recipe inputs
+                    for input in recipe.inputs {
+                        if machineInventory.count(of: input.itemId) < input.count {
+                            needsRecipeInput = true
+                            // Try to add this missing input
+                            if player.inventory.has(itemId: input.itemId) && machineInventory.canAccept(itemId: input.itemId) {
+                                var playerInv = player.inventory
+                                playerInv.remove(itemId: input.itemId, count: 1)
+                                gameLoop.player.inventory = playerInv
+                                
+                                let itemStack = ItemStack(itemId: input.itemId, count: 1)
+                                let remaining = machineInventory.add(itemStack)
+                                gameLoop.world.add(machineInventory, to: entity)
+                                
+                                if remaining > 0 {
+                                    gameLoop.player.inventory.add(itemId: input.itemId, count: remaining)
+                                }
+                                return
+                            }
+                        }
+                    }
+                } else {
+                    // No recipe set - try any smelting recipe inputs (ore) if we don't have any
+                    let smeltingRecipes = gameLoop.recipeRegistry.recipes(in: .smelting)
+                    var hasOre = false
+                    for recipe in smeltingRecipes {
+                        for input in recipe.inputs {
+                            if machineInventory.has(itemId: input.itemId) {
+                                hasOre = true
+                                break
+                            }
+                        }
+                        if hasOre { break }
+                    }
+                    
+                    if !hasOre {
+                        // We don't have ore yet, try to add it
+                        for recipe in smeltingRecipes {
+                            for input in recipe.inputs {
+                                if player.inventory.has(itemId: input.itemId) && machineInventory.canAccept(itemId: input.itemId) {
+                                    var playerInv = player.inventory
+                                    playerInv.remove(itemId: input.itemId, count: 1)
+                                    gameLoop.player.inventory = playerInv
+                                    
+                                    let itemStack = ItemStack(itemId: input.itemId, count: 1)
+                                    let remaining = machineInventory.add(itemStack)
+                                    gameLoop.world.add(machineInventory, to: entity)
+                                    
+                                    if remaining > 0 {
+                                        gameLoop.player.inventory.add(itemId: input.itemId, count: remaining)
+                                    }
+                                    return
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // If we don't need recipe inputs (or already have them), try to add fuel
+                if !needsRecipeInput {
+                    let fuelItems = ["coal", "wood", "solid-fuel"]
+                    for fuelId in fuelItems {
+                        if player.inventory.has(itemId: fuelId) && machineInventory.canAccept(itemId: fuelId) {
+                            var playerInv = player.inventory
+                            playerInv.remove(itemId: fuelId, count: 1)
+                            gameLoop.player.inventory = playerInv
+                            
+                            let itemStack = ItemStack(itemId: fuelId, count: 1)
+                            let remaining = machineInventory.add(itemStack)
+                            gameLoop.world.add(machineInventory, to: entity)
+                            
+                            if remaining > 0 {
+                                gameLoop.player.inventory.add(itemId: fuelId, count: remaining)
+                            }
+                            return
+                        }
+                    }
+                }
+            } else {
+                // For assemblers (non-furnaces), just add recipe inputs
+                if let recipe = currentRecipe {
+                    for input in recipe.inputs {
+                        if player.inventory.has(itemId: input.itemId) && machineInventory.canAccept(itemId: input.itemId) {
+                            var playerInv = player.inventory
+                            playerInv.remove(itemId: input.itemId, count: 1)
+                            gameLoop.player.inventory = playerInv
+                            
+                            let itemStack = ItemStack(itemId: input.itemId, count: 1)
+                            let remaining = machineInventory.add(itemStack)
+                            gameLoop.world.add(machineInventory, to: entity)
+                            
+                            if remaining > 0 {
+                                gameLoop.player.inventory.add(itemId: input.itemId, count: remaining)
+                            }
+                            return
+                        }
+                    }
+                }
+            }
+            
+            // If we get here, nothing was added
+            if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+                currentRecipe = furnace.recipe
+            } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+                currentRecipe = assembler.recipe
+            }
+            
             // If recipe is set, try to add recipe inputs; otherwise try any smelting input
             if let recipe = currentRecipe {
                 // Try to add recipe inputs from player inventory
