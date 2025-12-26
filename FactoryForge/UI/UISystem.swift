@@ -275,7 +275,42 @@ final class UISystem {
         
         return false
     }
-    
+
+    func getTooltip(at screenPos: Vector2) -> String? {
+        // If loading menu is active, check tooltips only for it
+        if let panel = activePanel, panel == .loadingMenu {
+            return nil // Loading menu doesn't need tooltips
+        }
+
+        // Get current screen size from renderer
+        let currentScreenSize = renderer?.screenSize ?? Vector2(800, 600)
+
+        // Check HUD first
+        if let tooltip = hud.getButtonName(at: screenPos, screenSize: currentScreenSize) {
+            return tooltip
+        }
+
+        // Check active panel
+        if let panel = activePanel {
+            switch panel {
+            case .loadingMenu:
+                return nil
+            case .inventory:
+                return inventoryUI.getTooltip(at: screenPos)
+            case .crafting:
+                return craftingMenu.getTooltip(at: screenPos)
+            case .build:
+                return buildMenu.getTooltip(at: screenPos)
+            case .research:
+                return researchUI.getTooltip(at: screenPos)
+            case .machine:
+                return nil // MachineUI doesn't need tooltips yet
+            }
+        }
+
+        return nil
+    }
+
     func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
         if let panel = activePanel {
             switch panel {

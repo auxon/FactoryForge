@@ -199,14 +199,26 @@ final class ResearchUI: UIPanel_Base {
     
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
-        
+
         for button in techButtons {
             if button.handleTap(at: position) {
                 return true
             }
         }
-        
+
         return super.handleTap(at: position)
+    }
+
+    func getTooltip(at position: Vector2) -> String? {
+        guard isOpen else { return nil }
+
+        for button in techButtons {
+            if button.frame.contains(position) {
+                return button.technology.name
+            }
+        }
+
+        return nil
     }
 }
 

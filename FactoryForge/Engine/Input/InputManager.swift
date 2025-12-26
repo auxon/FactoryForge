@@ -101,10 +101,15 @@ final class InputManager: NSObject {
 
         let screenPos = screenPosition(from: recognizer)
 
-        // Check UI system first (needed for loading menu when gameLoop is nil)
-        // Get UI system from gameLoop or renderer
+        // Check for UI tooltips first (before UI system consumes the tap)
         let uiSystem = gameLoop?.uiSystem ?? renderer?.uiSystem
         if let uiSystem = uiSystem {
+            if let tooltip = uiSystem.getTooltip(at: screenPos) {
+                // Show tooltip for UI element
+                onTooltip?(tooltip)
+            }
+
+            // Then check UI system for actual functionality
             if uiSystem.handleTap(at: screenPos) == true {
                 return
             }
@@ -113,29 +118,37 @@ final class InputManager: NSObject {
         // If no game loop exists, we're done (loading menu should have handled it)
         guard let gameLoop = gameLoop else { return }
 
-        // Check for HUD button taps and show tooltip
-        let screenSize = gameLoop.renderer?.screenSize ?? renderer?.screenSize ?? Vector2(800, 600)
-        if let buttonName = gameLoop.uiSystem?.hud.getButtonName(at: screenPos, screenSize: screenSize) {
-            // Show tooltip for button
-            onTooltip?(buttonName)
-        }
-
         // Check for entities/resources BEFORE UI system check, so tooltips always work
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
         
-        // Show tooltips regardless of build mode
-        if let entity = gameLoop.world.getEntityAt(position: tilePos) {
-            // Show tooltip for entity
+        // Show tooltips regardless of build mode - check for entities within a small radius
+        let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
+        var closestEntity: Entity?
+        var closestDistance = Float.greatestFiniteMagnitude
+
+        for entity in nearbyEntities {
+            if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                let distance = pos.worldPosition.distance(to: worldPos)
+                if distance < closestDistance {
+                    closestDistance = distance
+                    closestEntity = entity
+                }
+            }
+        }
+
+        if let entity = closestEntity {
+            // Show tooltip for the closest entity
             if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
                 onTooltip?(tooltipText)
+                return // Don't check resources if we found an entity
             }
-        } else {
-            // Check for resource
-            if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
-                // Show tooltip for resource
-                onTooltip?(resource.type.displayName)
-            }
+        }
+
+        // Check for resource at the exact tile
+        if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+            // Show tooltip for resource
+            onTooltip?(resource.type.displayName)
         }
 
         // UI didn't handle it, process game tap
@@ -298,7 +311,7 @@ final class InputManager: NSObject {
             panStartPosition = screenPos
             cameraStartPosition = renderer.camera.position
             
-            if buildMode == .placing, let buildingId = selectedBuildingId {
+            if buildMode == .placing {
                 // Start belt drag placement
                 buildPreviewPosition = IntVector2(from: worldPos)
             }
@@ -389,35 +402,194 @@ final class InputManager: NSObject {
     
     private func getEntityTooltipText(entity: Entity, gameLoop: GameLoop?) -> String? {
         guard let world = gameLoop?.world else { return nil }
-        
-        // Check for building components to identify building type
-        if world.has(MinerComponent.self, for: entity) {
-            if let sprite = world.get(SpriteComponent.self, for: entity),
-               let building = gameLoop?.buildingRegistry.getByTexture(sprite.textureId) {
-                return building.name
+
+        var tooltipLines: [String] = []
+
+        // Get entity name first
+        let entityName = getEntityName(entity: entity, gameLoop: gameLoop)
+        tooltipLines.append(entityName)
+
+        // Add health information
+        if let health = world.get(HealthComponent.self, for: entity) {
+            let healthPercent = Int(health.percentage * 100)
+            let healthText = health.isDead ? "DESTROYED" : "Health: \(healthPercent)%"
+            tooltipLines.append(healthText)
+        }
+
+        // Add production information for buildings
+        if let miner = world.get(MinerComponent.self, for: entity) {
+            if miner.isActive {
+                if let resource = miner.resourceOutput {
+                    let speedText = String(format: "%.1f", miner.miningSpeed)
+                    tooltipLines.append("Mining: \(resource)")
+                    tooltipLines.append("Speed: \(speedText)/s")
+                } else {
+                    tooltipLines.append("No resource")
+                }
+            } else {
+                tooltipLines.append("Inactive")
             }
-            return "Mining Drill"
         }
-        if world.has(FurnaceComponent.self, for: entity) {
-            if let sprite = world.get(SpriteComponent.self, for: entity),
-               let building = gameLoop?.buildingRegistry.getByTexture(sprite.textureId) {
-                return building.name
+
+        if let furnace = world.get(FurnaceComponent.self, for: entity) {
+            if let recipe = furnace.recipe {
+                let progressPercent = Int(furnace.smeltingProgress * 100)
+                tooltipLines.append("Smelting: \(recipe.name)")
+                tooltipLines.append("Progress: \(progressPercent)%")
+                if furnace.fuelRemaining > 0 {
+                    let fuelText = String(format: "%.1f", furnace.fuelRemaining)
+                    tooltipLines.append("Fuel: \(fuelText)")
+                }
+            } else {
+                tooltipLines.append("No recipe")
             }
-            return "Furnace"
         }
-        if world.has(AssemblerComponent.self, for: entity) {
-            if let sprite = world.get(SpriteComponent.self, for: entity),
-               let building = gameLoop?.buildingRegistry.getByTexture(sprite.textureId) {
-                return building.name
+
+        if let assembler = world.get(AssemblerComponent.self, for: entity) {
+            if let recipe = assembler.recipe {
+                let progressPercent = Int(assembler.craftingProgress * 100)
+                tooltipLines.append("Crafting: \(recipe.name)")
+                tooltipLines.append("Progress: \(progressPercent)%")
+            } else {
+                tooltipLines.append("No recipe")
             }
-            return "Assembling Machine"
         }
-        if world.has(BeltComponent.self, for: entity) {
-            return "Conveyor Belt"
+
+        if let belt = world.get(BeltComponent.self, for: entity) {
+            let totalItems = belt.leftLane.count + belt.rightLane.count
+            let speedText = String(format: "%.1f", belt.speed)
+            tooltipLines.append("Items: \(totalItems)")
+            tooltipLines.append("Speed: \(speedText) tiles/s")
         }
-        if world.has(InserterComponent.self, for: entity) {
-            return "Inserter"
+
+        if let inserter = world.get(InserterComponent.self, for: entity) {
+            let stateText = inserter.state != .idle ? "Working" : "Idle"
+            tooltipLines.append("State: \(stateText)")
         }
+
+        // Add enemy information
+        if let enemy = world.get(EnemyComponent.self, for: entity) {
+            let speedText = String(format: "%.1f", enemy.speed)
+            let damageText = String(format: "%.0f", enemy.damage)
+            tooltipLines.append("Speed: \(speedText) tiles/s")
+            tooltipLines.append("Damage: \(damageText)")
+
+            let stateText = switch enemy.state {
+            case .idle: "Idle"
+            case .wandering: "Wandering"
+            case .attacking: "Attacking"
+            case .returning: "Returning to nest"
+            case .fleeing: "Fleeing"
+            }
+            tooltipLines.append("State: \(stateText)")
+        }
+
+        // Add turret information
+        if let turret = world.get(TurretComponent.self, for: entity) {
+            let damageText = String(format: "%.0f", turret.damage)
+            let rangeText = String(format: "%.0f", turret.range)
+            let fireRateText = String(format: "%.1f", turret.fireRate)
+            tooltipLines.append("Damage: \(damageText)")
+            tooltipLines.append("Range: \(rangeText) tiles")
+            tooltipLines.append("Fire Rate: \(fireRateText)/s")
+
+            if turret.targetEntity != nil {
+                tooltipLines.append("Target acquired")
+            } else {
+                tooltipLines.append("No target")
+            }
+        }
+
+        // Add spawner information
+        if let spawner = world.get(SpawnerComponent.self, for: entity) {
+            let spawnedText = "\(spawner.spawnedCount)/\(spawner.maxEnemies)"
+            let cooldownText = String(format: "%.1f", spawner.spawnCooldown)
+            tooltipLines.append("Enemies: \(spawnedText)")
+            tooltipLines.append("Cooldown: \(cooldownText)s")
+        }
+
+        // Add power information
+        if let generator = world.get(GeneratorComponent.self, for: entity) {
+            let outputText = String(format: "%.0f", generator.currentOutput)
+            tooltipLines.append("Power: \(outputText) kW")
+            if let fuel = generator.currentFuel {
+                let fuelText = String(format: "%.1f", generator.fuelRemaining)
+                tooltipLines.append("Fuel: \(fuel) (\(fuelText))")
+            }
+        }
+
+        if let solar = world.get(SolarPanelComponent.self, for: entity) {
+            let outputText = String(format: "%.0f", solar.currentOutput)
+            tooltipLines.append("Power: \(outputText) kW")
+        }
+
+        if let accumulator = world.get(AccumulatorComponent.self, for: entity) {
+            let chargePercent = Int(accumulator.chargePercentage * 100)
+            let modeText = switch accumulator.mode {
+            case .charging: "Charging"
+            case .discharging: "Discharging"
+            case .idle: "Idle"
+            }
+            tooltipLines.append("Charge: \(chargePercent)%")
+            tooltipLines.append("Mode: \(modeText)")
+        }
+
+        // Add power consumer information
+        if let consumer = world.get(PowerConsumerComponent.self, for: entity) {
+            let consumptionText = String(format: "%.1f", consumer.consumption)
+            let satisfactionPercent = Int(consumer.satisfaction * 100)
+            tooltipLines.append("Power Use: \(consumptionText) kW")
+            tooltipLines.append("Satisfaction: \(satisfactionPercent)%")
+        }
+
+        // Add inventory information for containers
+        if let inventory = world.get(InventoryComponent.self, for: entity) {
+            if !inventory.isEmpty {
+                let totalItems = inventory.getAll().reduce(0) { $0 + $1.count }
+                let slotInfo = "\(inventory.slots.filter { $0 != nil }.count)/\(inventory.slotCount)"
+                tooltipLines.append("Items: \(totalItems)")
+                tooltipLines.append("Slots: \(slotInfo)")
+
+                // Show first few items
+                let items = inventory.getAll().prefix(3)
+                for item in items {
+                    let itemName = gameLoop?.itemRegistry.get(item.itemId)?.name ?? item.itemId
+                    tooltipLines.append("- \(itemName): \(item.count)")
+                }
+                if inventory.getAll().count > 3 {
+                    tooltipLines.append("... and more")
+                }
+            } else {
+                tooltipLines.append("Empty")
+            }
+        }
+
+        // Add lab/research information
+        if let lab = world.get(LabComponent.self, for: entity) {
+            if lab.isResearching {
+                tooltipLines.append("Researching...")
+            } else {
+                tooltipLines.append("Research complete")
+            }
+        }
+
+        // Add projectile information
+        if let projectile = world.get(ProjectileComponent.self, for: entity) {
+            let damageText = String(format: "%.0f", projectile.damage)
+            tooltipLines.append("Projectile")
+            tooltipLines.append("Damage: \(damageText)")
+
+            let targetText = projectile.target != nil ? "Target acquired" : "No target"
+            tooltipLines.append(targetText)
+        }
+
+        // Join all lines with newlines
+        return tooltipLines.joined(separator: "\n")
+    }
+
+    private func getEntityName(entity: Entity, gameLoop: GameLoop?) -> String {
+        guard let world = gameLoop?.world else { return "Entity" }
+
         // Try to get name from sprite texture
         if let sprite = world.get(SpriteComponent.self, for: entity) {
             // Check for player
@@ -436,7 +608,7 @@ final class InputManager: NSObject {
             // Fallback to texture ID
             return sprite.textureId.replacingOccurrences(of: "_", with: " ").capitalized
         }
-        
+
         return "Entity"
     }
     
@@ -507,8 +679,8 @@ extension InputManager: UIGestureRecognizerDelegate {
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        let gesture1Type = type(of: gestureRecognizer)
-        let gesture2Type = type(of: otherGestureRecognizer)
+        let _ = type(of: gestureRecognizer)
+        let _ = type(of: otherGestureRecognizer)
         // print("Checking simultaneous recognition: \(gesture1Type) vs \(gesture2Type)")
 
         // Allow pinch and rotation together

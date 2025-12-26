@@ -91,5 +91,25 @@ enum BuildingType: String, Codable, CaseIterable {
     case chest
     case pipe
     case pumpjack
+
+    var displayName: String {
+        switch self {
+        case .miner: return "Miner"
+        case .furnace: return "Furnace"
+        case .assembler: return "Assembler"
+        case .belt: return "Belt"
+        case .inserter: return "Inserter"
+        case .powerPole: return "Power Pole"
+        case .generator: return "Generator"
+        case .solarPanel: return "Solar Panel"
+        case .accumulator: return "Accumulator"
+        case .lab: return "Lab"
+        case .turret: return "Turret"
+        case .wall: return "Wall"
+        case .chest: return "Chest"
+        case .pipe: return "Pipe"
+        case .pumpjack: return "Pumpjack"
+        }
+    }
 }
 

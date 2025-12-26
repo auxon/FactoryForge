@@ -33,11 +33,11 @@ class GameViewController: UIViewController {
     
     private func setupTooltip() {
         tooltipLabel = UILabel()
-        tooltipLabel.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
+        tooltipLabel.font = UIFont.systemFont(ofSize: 18, weight: .medium)
         tooltipLabel.textColor = .black
         tooltipLabel.textAlignment = .center
         tooltipLabel.backgroundColor = .clear
-        tooltipLabel.numberOfLines = 1
+        tooltipLabel.numberOfLines = 0  // Allow unlimited lines
         tooltipLabel.isHidden = true
         tooltipLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tooltipLabel)
@@ -50,7 +50,7 @@ class GameViewController: UIViewController {
         ])
     }
     
-    func showTooltip(_ text: String, duration: TimeInterval = 1.0) {
+    func showTooltip(_ text: String, duration: TimeInterval = 3.0) {
         // Create attributed string with black text and white outline
         let attributedString = NSMutableAttributedString(string: text)
         let range = NSRange(location: 0, length: text.count)

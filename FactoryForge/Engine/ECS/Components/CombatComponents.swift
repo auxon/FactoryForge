@@ -64,30 +64,33 @@ struct TurretComponent: Component {
 struct EnemyComponent: Component {
     /// Enemy type
     var type: EnemyType
-    
+
     /// Movement speed in tiles per second
     var speed: Float
-    
+
     /// Attack damage
     var damage: Float
-    
+
     /// Attack range
     var attackRange: Float
-    
+
     /// Attack cooldown
     var attackCooldown: Float
-    
+
     /// Time since last attack
     var timeSinceAttack: Float
-    
+
     /// Current target (building to attack)
     var targetEntity: Entity?
-    
+
     /// Current AI state
     var state: EnemyState
-    
+
     /// Spawner that created this enemy (for tracking)
     var spawnerEntity: Entity?
+
+    /// Maximum distance enemy will follow a target before giving up
+    var maxFollowDistance: Float
     
     init(type: EnemyType) {
         self.type = type
@@ -99,6 +102,7 @@ struct EnemyComponent: Component {
         self.targetEntity = nil
         self.state = .idle
         self.spawnerEntity = nil
+        self.maxFollowDistance = 10.0
     }
     
     var canAttack: Bool {

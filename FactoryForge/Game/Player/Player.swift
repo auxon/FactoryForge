@@ -403,7 +403,7 @@ final class Player {
                     // Immediately update texture to match current frame
                     if let currentFrame = animation.update(deltaTime: 0) {
                         sprite.textureId = currentFrame
-                        print("Switched to LEFT animation, frame: \(currentFrame)")
+                        // print("Switched to LEFT animation, frame: \(currentFrame)")
                     }
                 } else {
                     print("ERROR: playerAnimationLeft is nil!")
@@ -419,7 +419,7 @@ final class Player {
                     // Immediately update texture to match current frame
                     if let currentFrame = animation.update(deltaTime: 0) {
                         sprite.textureId = currentFrame
-                        print("Switched to RIGHT animation, frame: \(currentFrame)")
+                        // print("Switched to RIGHT animation, frame: \(currentFrame)")
                     }
                 } else {
                     print("ERROR: playerAnimationRight is nil!")

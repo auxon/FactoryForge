@@ -212,9 +212,16 @@ final class EnemyAISystem: System {
                 // Move toward target
                 if let target = enemy.targetEntity,
                    let targetPos = world.get(PositionComponent.self, for: target) {
-                    let direction = (targetPos.worldPosition - position.worldPosition).normalized
                     let distance = position.worldPosition.distance(to: targetPos.worldPosition)
-                    
+
+                    // Check if target is too far away
+                    if distance > enemy.maxFollowDistance {
+                        // Give up pursuit and return to spawner
+                        enemy.targetEntity = nil
+                        enemy.state = .returning
+                        break
+                    }
+
                     if distance <= enemy.attackRange {
                         // Attack
                         velocity.velocity = .zero
@@ -223,6 +230,7 @@ final class EnemyAISystem: System {
                         }
                     } else {
                         // Move toward target
+                        let direction = (targetPos.worldPosition - position.worldPosition).normalized
                         velocity.velocity = direction * enemy.speed
                     }
                     world.add(velocity, to: entity)
@@ -233,8 +241,44 @@ final class EnemyAISystem: System {
                 }
                 
             case .returning:
-                // Return to nest
-                enemy.state = .idle
+                // Check if player is nearby (smaller radius) and switch back to attacking
+                let nearbyTargets = world.getEntitiesNear(position: position.worldPosition, radius: 10.0)
+                var foundTarget: Entity?
+
+                for candidate in nearbyTargets {
+                    if world.has(EnemyComponent.self, for: candidate) { continue }
+                    if world.has(SpawnerComponent.self, for: candidate) { continue }
+
+                    if world.has(HealthComponent.self, for: candidate) {
+                        foundTarget = candidate
+                        break
+                    }
+                }
+
+                if let target = foundTarget {
+                    enemy.targetEntity = target
+                    enemy.state = .attacking
+                    break
+                }
+
+                // Return to spawner
+                if let spawnerEntity = enemy.spawnerEntity,
+                   let spawnerPos = world.get(PositionComponent.self, for: spawnerEntity) {
+                    let direction = (spawnerPos.worldPosition - position.worldPosition).normalized
+                    let distance = position.worldPosition.distance(to: spawnerPos.worldPosition)
+
+                    if distance < 2.0 {
+                        // Close enough to spawner, go idle
+                        enemy.state = .idle
+                    } else {
+                        // Move toward spawner
+                        velocity.velocity = direction * enemy.speed * 0.8  // Slower return speed
+                        world.add(velocity, to: entity)
+                    }
+                } else {
+                    // No spawner, just go idle
+                    enemy.state = .idle
+                }
                 
             case .fleeing:
                 // Run away from player

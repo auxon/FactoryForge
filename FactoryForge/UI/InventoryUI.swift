@@ -63,15 +63,27 @@ final class InventoryUI: UIPanel_Base {
     
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
-        
+
         for slot in slots {
             if slot.handleTap(at: position) {
                 // Handle slot selection
                 return true
             }
         }
-        
+
         return super.handleTap(at: position)
+    }
+
+    func getTooltip(at position: Vector2) -> String? {
+        guard isOpen else { return nil }
+
+        for slot in slots {
+            if slot.frame.contains(position), let item = slot.item, let itemRegistry = gameLoop?.itemRegistry {
+                return itemRegistry.get(item.itemId)?.name ?? item.itemId
+            }
+        }
+
+        return nil
     }
 }
 
