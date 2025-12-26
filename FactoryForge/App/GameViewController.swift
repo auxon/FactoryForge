@@ -11,6 +11,10 @@ class GameViewController: UIViewController {
     // Tooltip label
     private var tooltipLabel: UILabel!
     private var tooltipHideTimer: Timer?
+
+    // Game over UI
+    private var gameOverLabel: UILabel!
+    private var menuButtonLabel: UILabel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -21,6 +25,7 @@ class GameViewController: UIViewController {
         setupLoadingMenu()
         setupNotifications()
         setupTooltip()
+        setupGameOverUI()
 
         print("View bounds: \(view.bounds), scale: \(UIScreen.main.scale)")
         print("Metal view bounds: \(metalView.bounds)")
@@ -73,6 +78,59 @@ class GameViewController: UIViewController {
         tooltipLabel.isHidden = true
         tooltipHideTimer?.invalidate()
         tooltipHideTimer = nil
+    }
+
+    private func setupGameOverUI() {
+        // GAME OVER label
+        gameOverLabel = UILabel()
+        gameOverLabel.text = "GAME OVER"
+        gameOverLabel.font = UIFont.systemFont(ofSize: 48, weight: .bold)
+        gameOverLabel.textColor = .white
+        gameOverLabel.textAlignment = .center
+        gameOverLabel.backgroundColor = .clear
+        gameOverLabel.isHidden = true
+        gameOverLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(gameOverLabel)
+
+        // MENU button label
+        menuButtonLabel = UILabel()
+        menuButtonLabel.text = "MENU"
+        menuButtonLabel.font = UIFont.systemFont(ofSize: 32, weight: .semibold)
+        menuButtonLabel.textColor = .white
+        menuButtonLabel.textAlignment = .center
+        menuButtonLabel.backgroundColor = .clear
+        menuButtonLabel.isHidden = true
+        menuButtonLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(menuButtonLabel)
+
+        // Layout constraints
+        NSLayoutConstraint.activate([
+            gameOverLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            gameOverLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -60),
+
+            menuButtonLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            menuButtonLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: 20)
+        ])
+
+        // Add tap gesture to menu button
+        let menuTapGesture = UITapGestureRecognizer(target: self, action: #selector(menuButtonTapped))
+        menuButtonLabel.isUserInteractionEnabled = true
+        menuButtonLabel.addGestureRecognizer(menuTapGesture)
+    }
+
+    @objc private func menuButtonTapped() {
+        print("Game over MENU button tapped")
+        gameLoop?.returnToMenu()
+    }
+
+    func showGameOverScreen() {
+        gameOverLabel.isHidden = false
+        menuButtonLabel.isHidden = false
+    }
+
+    func hideGameOverScreen() {
+        gameOverLabel.isHidden = true
+        menuButtonLabel.isHidden = true
     }
     
     private func setupMetalView() {
@@ -235,6 +293,9 @@ class GameViewController: UIViewController {
     private func returnToMainMenu() {
         print("Returning to main menu from game over")
 
+        // Hide game over screen
+        hideGameOverScreen()
+
         // Clean up current game
         gameLoop = nil
 
@@ -268,6 +329,11 @@ class GameViewController: UIViewController {
         // Setup return to menu callback
         gameLoop.onReturnToMenu = { [weak self] in
             self?.returnToMainMenu()
+        }
+
+        // Setup player death callback
+        gameLoop.onPlayerDeath = { [weak self] in
+            self?.showGameOverScreen()
         }
 
         // Setup tooltip callback

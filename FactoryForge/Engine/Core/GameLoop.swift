@@ -30,6 +30,7 @@ final class GameLoop {
 
     // Callbacks
     var onReturnToMenu: (() -> Void)?
+    var onPlayerDeath: (() -> Void)?
     
     // Save system
     let saveSystem: SaveSystem
@@ -389,8 +390,8 @@ final class GameLoop {
             world.add(sprite, to: player.playerEntity)
         }
 
-        // Show game over screen
-        showGameOverScreen()
+        // Notify GameViewController to show game over screen
+        onPlayerDeath?()
 
         // Optional: Play death sound
         AudioManager.shared.playTurretFireSound()

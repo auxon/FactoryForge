@@ -170,9 +170,8 @@ final class HUD {
         // Update screen size from renderer
         screenSize = renderer.screenSize
 
-        // If player is dead, only render game over overlay
+        // If player is dead, don't render HUD (UIKit handles game over screen)
         if let gameLoop = gameLoop, gameLoop.isPlayerDead {
-            renderGameOverOverlay(renderer: renderer)
             return
         }
 
@@ -236,41 +235,6 @@ final class HUD {
         renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "chest", callback: onMenuPressed)
     }
     
-    private func renderGameOverOverlay(renderer: MetalRenderer) {
-        // Semi-transparent black overlay covering the whole screen
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-        renderer.queueSprite(SpriteInstance(
-            position: Vector2(screenSize.x / 2, screenSize.y / 2),
-            size: screenSize,
-            textureRect: solidRect,
-            color: Color(r: 0.0, g: 0.0, b: 0.0, a: 0.7),
-            layer: .ui
-        ))
-
-        // "GAME OVER" text would go here - for now we'll just show a button
-        // TODO: Add text rendering capability
-
-        // MENU button in center of screen
-        let menuButtonY = screenSize.y / 2
-        let menuButtonX = screenSize.x / 2
-
-        // Use a simple colored rectangle for the button background
-        renderer.queueSprite(SpriteInstance(
-            position: Vector2(menuButtonX, menuButtonY),
-            size: Vector2(200, 60),
-            textureRect: solidRect,
-            color: Color(r: 0.3, g: 0.3, b: 0.5, a: 1.0),
-            layer: .ui
-        ))
-
-        // Store the menu button callback for input handling
-        onMenuPressedForGameOver = { [weak self] in
-            self?.gameLoop?.returnToMenu()
-        }
-    }
-
-    // Special callback for game over menu button
-    private var onMenuPressedForGameOver: (() -> Void)?
 
     private func renderMiningAnimations(renderer: MetalRenderer) {
         for animation in miningAnimations {
@@ -486,18 +450,8 @@ final class HUD {
         // Position is already in UIKit coordinates (top-left origin, Y increases downward)
         // Button positions are also in UIKit coordinates, so no conversion needed
 
-        // Check game over menu button FIRST when player is dead
+        // When player is dead, don't handle any HUD taps (UIKit labels handle input)
         if let gameLoop = gameLoop, gameLoop.isPlayerDead {
-            let menuButtonX = screenSize.x / 2
-            let menuButtonY = screenSize.y / 2
-            let menuButtonFrame = Rect(center: Vector2(menuButtonX, menuButtonY), size: Vector2(200, 60))
-
-            if menuButtonFrame.contains(position) {
-                onMenuPressedForGameOver?()
-                return true
-            }
-
-            // When player is dead, don't handle any other HUD taps
             return false
         }
 
