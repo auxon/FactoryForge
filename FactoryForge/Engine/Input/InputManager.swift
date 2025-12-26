@@ -53,7 +53,7 @@ final class InputManager: NSObject {
         setupGestureRecognizers()
     }
     
-    func setGameLoop(_ gameLoop: GameLoop) {
+    func setGameLoop(_ gameLoop: GameLoop?) {
         self.gameLoop = gameLoop
     }
     
@@ -501,7 +501,7 @@ extension InputManager: UIGestureRecognizerDelegate {
     // This allows us to get .changed and .ended events
 
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        print("gestureRecognizerShouldBegin called for \(type(of: gestureRecognizer))")
+        // print("gestureRecognizerShouldBegin called for \(type(of: gestureRecognizer))")
         return true
     }
 
@@ -509,7 +509,7 @@ extension InputManager: UIGestureRecognizerDelegate {
                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         let gesture1Type = type(of: gestureRecognizer)
         let gesture2Type = type(of: otherGestureRecognizer)
-        print("Checking simultaneous recognition: \(gesture1Type) vs \(gesture2Type)")
+        // print("Checking simultaneous recognition: \(gesture1Type) vs \(gesture2Type)")
 
         // Allow pinch and rotation together
         if gestureRecognizer is UIPinchGestureRecognizer && otherGestureRecognizer is UIRotationGestureRecognizer {
@@ -532,7 +532,7 @@ extension InputManager: UIGestureRecognizerDelegate {
         if gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UITapGestureRecognizer {
             return true
         }
-        print("Not allowing simultaneous recognition")
+        // print("Not allowing simultaneous recognition")
         return false
     }
 }

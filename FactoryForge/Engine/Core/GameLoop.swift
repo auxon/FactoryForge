@@ -27,6 +27,9 @@ final class GameLoop {
     
     // UI state
     var uiSystem: UISystem?
+
+    // Callbacks
+    var onReturnToMenu: (() -> Void)?
     
     // Save system
     let saveSystem: SaveSystem
@@ -37,6 +40,9 @@ final class GameLoop {
     // State
     private(set) var isRunning: Bool = true
     var playTime: TimeInterval = 0
+
+    // Player death state
+    private(set) var isPlayerDead: Bool = false
     
     init(renderer: MetalRenderer, seed: UInt64? = nil) {
         self.renderer = renderer
@@ -107,10 +113,20 @@ final class GameLoop {
         let deltaTime = Time.shared.deltaTime
         
         playTime += Double(deltaTime)
-        
+
+        // Check for player death
+        if !isPlayerDead && player.isDead {
+            handlePlayerDeath()
+        }
+
+        // Don't update game systems while player is dead
+        if isPlayerDead {
+            return
+        }
+
         // Update player
         player.update(deltaTime: deltaTime)
-        
+
         // Update chunk loading based on player position
         chunkManager.update(playerPosition: player.position)
         
@@ -123,9 +139,9 @@ final class GameLoop {
         
         // Update UI
         uiSystem?.update(deltaTime: deltaTime)
-        
-        // Update renderer camera to follow player (only if not manually panning)
-        if let inputManager = inputManager, !inputManager.isDragging {
+
+        // Update renderer camera to follow player (only if not manually panning and player is alive)
+        if let inputManager = inputManager, !inputManager.isDragging && !isPlayerDead {
             renderer?.camera.target = player.position
         }
         renderer?.camera.update(deltaTime: deltaTime)
@@ -359,13 +375,63 @@ final class GameLoop {
         }
     }
     
+    // MARK: - Player Death
+
+    private func handlePlayerDeath() {
+        isPlayerDead = true
+
+        // Clear any ongoing crafting when player dies
+        player.cancelCrafting()
+
+        // Hide player sprite during death
+        if var sprite = world.get(SpriteComponent.self, for: player.playerEntity) {
+            sprite.tint = Color(r: 1.0, g: 0.3, b: 0.3, a: 0.5)  // Red tint, semi-transparent
+            world.add(sprite, to: player.playerEntity)
+        }
+
+        // Show game over screen
+        showGameOverScreen()
+
+        // Optional: Play death sound
+        AudioManager.shared.playTurretFireSound()
+    }
+
+    private func showGameOverScreen() {
+        // For now, we'll pause the game and show a simple game over state
+        // The UI will be handled by modifying the HUD to show game over overlay
+        // TODO: This should show "GAME OVER" text and "MENU" button
+    }
+
+    // Called when player chooses to return to menu
+    func returnToMenu() {
+        // Reset death state
+        isPlayerDead = false
+
+        // Reset player state for next game
+        player.heal(player.maxHealth)
+        player.position = Vector2(0, 0)
+
+        if var sprite = world.get(SpriteComponent.self, for: player.playerEntity) {
+            sprite.tint = .white
+            world.add(sprite, to: player.playerEntity)
+        }
+
+        if var health = world.get(HealthComponent.self, for: player.playerEntity) {
+            health.immunityTimer = 0
+            world.add(health, to: player.playerEntity)
+        }
+
+        // Notify GameViewController to return to menu
+        onReturnToMenu?()
+    }
+
     // MARK: - Lifecycle
-    
+
     func pause() {
         Time.shared.isPaused = true
         isRunning = false
     }
-    
+
     func resume() {
         Time.shared.isPaused = false
         isRunning = true

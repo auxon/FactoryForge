@@ -225,11 +225,32 @@ class GameViewController: UIViewController {
     private func deleteSave(slotName: String) {
         let saveSystem = SaveSystem()
         saveSystem.deleteSave(slotName)
-        
+
         print("Deleted save slot: \(slotName)")
-        
+
         // Refresh the loading menu to update the save slot list
         uiSystem?.getLoadingMenu().refreshSaveSlots()
+    }
+
+    private func returnToMainMenu() {
+        print("Returning to main menu from game over")
+
+        // Clean up current game
+        gameLoop = nil
+
+        // Reset renderer
+        renderer.gameLoop = nil
+
+        // Update inputManager for menu-only mode (don't destroy it)
+        inputManager?.setGameLoop(nil)
+
+        // Setup menu-only callbacks
+        inputManager?.onTooltip = { [weak self] text in
+            self?.showTooltip(text)
+        }
+
+        // Show loading menu
+        uiSystem?.openPanel(.loadingMenu)
     }
     
     private func setupInput() {
@@ -243,7 +264,12 @@ class GameViewController: UIViewController {
             inputManager?.setGameLoop(gameLoop)
         }
         gameLoop.inputManager = inputManager
-        
+
+        // Setup return to menu callback
+        gameLoop.onReturnToMenu = { [weak self] in
+            self?.returnToMainMenu()
+        }
+
         // Setup tooltip callback
         inputManager?.onTooltip = { [weak self] text in
             self?.showTooltip(text)

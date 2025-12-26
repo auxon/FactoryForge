@@ -194,19 +194,22 @@ final class CombatSystem: System {
                 }
             }
             
-            // Check for collision with any enemy
-            let nearbyEnemies = world.getEntitiesNear(position: position.worldPosition, radius: 0.5)
-            for enemy in nearbyEnemies {
-                guard enemy != proj.source else { continue }
-                guard world.has(EnemyComponent.self, for: enemy) else { continue }
-                
-                applyDamage(proj.damage, to: enemy, from: proj.source)
-                
+            // Check for collision with any valid target
+            let nearbyEntities = world.getEntitiesNear(position: position.worldPosition, radius: 0.5)
+            for nearbyEntity in nearbyEntities {
+                guard nearbyEntity != proj.source else { continue }
+
+                // Determine if this entity is a valid target for this projectile
+                let isValidTarget = isValidProjectileTarget(nearbyEntity, for: proj)
+                guard isValidTarget else { continue }
+
+                applyDamage(proj.damage, to: nearbyEntity, from: proj.source)
+
                 // Apply splash damage
                 if proj.splashRadius > 0 {
                     applySplashDamage(proj.damage * 0.5, at: position.worldPosition, radius: proj.splashRadius, source: proj.source)
                 }
-                
+
                 world.despawnDeferred(entity)
                 return
             }
@@ -266,7 +269,29 @@ final class CombatSystem: System {
             applyDamage(splashDamage, to: entity, from: source)
         }
     }
-    
+
+    private func isValidProjectileTarget(_ entity: Entity, for projectile: ProjectileComponent) -> Bool {
+        // If projectile has a specific target, only that target is valid
+        if let target = projectile.target {
+            return entity == target
+        }
+
+        // Otherwise, check based on projectile source
+        if let source = projectile.source {
+            // If source is player (no EnemyComponent), projectile hits enemies
+            if !world.has(EnemyComponent.self, for: source) {
+                return world.has(EnemyComponent.self, for: entity)
+            }
+            // If source is enemy (has EnemyComponent), projectile hits player and buildings
+            else {
+                return !world.has(EnemyComponent.self, for: entity) && world.has(HealthComponent.self, for: entity)
+            }
+        }
+
+        // If no source, assume it can hit anything with health (fallback)
+        return world.has(HealthComponent.self, for: entity)
+    }
+
     // MARK: - Visual Effects
     
     private func spawnHitParticles(at position: Vector2, renderer: MetalRenderer) {

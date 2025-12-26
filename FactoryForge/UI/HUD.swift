@@ -169,7 +169,13 @@ final class HUD {
     func render(renderer: MetalRenderer) {
         // Update screen size from renderer
         screenSize = renderer.screenSize
-        
+
+        // If player is dead, only render game over overlay
+        if let gameLoop = gameLoop, gameLoop.isPlayerDead {
+            renderGameOverOverlay(renderer: renderer)
+            return
+        }
+
         // Calculate toolbar positions
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
         var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
@@ -178,46 +184,46 @@ final class HUD {
         // print("Rendering inventory button at Metal position (\(currentX), \(toolbarY))")
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "chest", callback: onInventoryPressed)
         currentX += buttonSize + buttonSpacing
-        
+
         // Render crafting button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "gear", callback: onCraftingPressed)
         currentX += buttonSize + buttonSpacing
-        
+
         // Render build button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "assembler", callback: onBuildPressed)
         currentX += buttonSize + buttonSpacing
-        
+
         // Render research button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "lab", callback: onResearchPressed)
-        
+
         // Render quick bar
         let quickBarY = screenSize.y - bottomMargin - buttonSize - buttonSpacing - slotSize / 2
         let quickBarStartX = screenSize.x / 2 - (slotSize * 5 + buttonSpacing * 4) / 2
-        
+
         for i in 0..<10 {
             let slotX = quickBarStartX + Float(i) * (slotSize + buttonSpacing / 2)
             renderQuickBarSlot(renderer: renderer, index: i, position: Vector2(slotX, quickBarY))
         }
-        
+
             // Render virtual joystick
             joystick.updateScreenSize(screenSize)
             joystick.render(renderer: renderer)
-        
+
         // Debug: Render direction indicator in top-right
         renderDirectionDebug(renderer: renderer)
-        
+
         // Render health bar
         renderHealthBar(renderer: renderer)
-        
+
         // Render minimap
         renderMinimap(renderer: renderer)
-        
+
         // Render resource counters
         renderResourceCounters(renderer: renderer)
-        
+
         // Render menu button (top-right corner)
         renderMenuButton(renderer: renderer)
-        
+
         // Render mining animations
         renderMiningAnimations(renderer: renderer)
     }
@@ -230,6 +236,42 @@ final class HUD {
         renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "chest", callback: onMenuPressed)
     }
     
+    private func renderGameOverOverlay(renderer: MetalRenderer) {
+        // Semi-transparent black overlay covering the whole screen
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        renderer.queueSprite(SpriteInstance(
+            position: Vector2(screenSize.x / 2, screenSize.y / 2),
+            size: screenSize,
+            textureRect: solidRect,
+            color: Color(r: 0.0, g: 0.0, b: 0.0, a: 0.7),
+            layer: .ui
+        ))
+
+        // "GAME OVER" text would go here - for now we'll just show a button
+        // TODO: Add text rendering capability
+
+        // MENU button in center of screen
+        let menuButtonY = screenSize.y / 2
+        let menuButtonX = screenSize.x / 2
+
+        // Use a simple colored rectangle for the button background
+        renderer.queueSprite(SpriteInstance(
+            position: Vector2(menuButtonX, menuButtonY),
+            size: Vector2(200, 60),
+            textureRect: solidRect,
+            color: Color(r: 0.3, g: 0.3, b: 0.5, a: 1.0),
+            layer: .ui
+        ))
+
+        // Store the menu button callback for input handling
+        onMenuPressedForGameOver = { [weak self] in
+            self?.gameLoop?.returnToMenu()
+        }
+    }
+
+    // Special callback for game over menu button
+    private var onMenuPressedForGameOver: (() -> Void)?
+
     private func renderMiningAnimations(renderer: MetalRenderer) {
         for animation in miningAnimations {
             // Get texture for the item
@@ -444,10 +486,25 @@ final class HUD {
         // Position is already in UIKit coordinates (top-left origin, Y increases downward)
         // Button positions are also in UIKit coordinates, so no conversion needed
 
+        // Check game over menu button FIRST when player is dead
+        if let gameLoop = gameLoop, gameLoop.isPlayerDead {
+            let menuButtonX = screenSize.x / 2
+            let menuButtonY = screenSize.y / 2
+            let menuButtonFrame = Rect(center: Vector2(menuButtonX, menuButtonY), size: Vector2(200, 60))
+
+            if menuButtonFrame.contains(position) {
+                onMenuPressedForGameOver?()
+                return true
+            }
+
+            // When player is dead, don't handle any other HUD taps
+            return false
+        }
+
         // Calculate toolbar positions (same as render)
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
         var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
-        
+
         // Check inventory button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
             print("HUD: Inventory button tapped, calling callback")
@@ -475,7 +532,7 @@ final class HUD {
             onResearchPressed?()
             return true
         }
-        
+
         // Check menu button (top-right corner)
         let buttonX = screenSize.x - bottomMargin - buttonSize / 2
         let buttonY = bottomMargin + buttonSize / 2
@@ -483,16 +540,16 @@ final class HUD {
             onMenuPressed?()
             return true
         }
-        
+
         // Check quick bar slots
         let quickBarY = screenSize.y - bottomMargin - buttonSize - buttonSpacing - slotSize / 2
         let quickBarStartX = screenSize.x / 2 - (slotSize * 5 + buttonSpacing * 4) / 2
-        
+
         for i in 0..<10 {
             let slotX = quickBarStartX + Float(i) * (slotSize + buttonSpacing / 2)
             let slotPos = Vector2(slotX, quickBarY)
             let slotFrame = Rect(center: slotPos, size: Vector2(slotSize, slotSize))
-            
+
             if slotFrame.contains(position) {
                 // Quick bar slot tapped
                 selectedQuickBarSlot = i
