@@ -264,6 +264,33 @@ final class InputManager: NSObject {
             
             // Place building
             if let buildingId = selectedBuildingId {
+                // Check if we can place the building and why it might fail
+                guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else {
+                    // Invalid building - this shouldn't happen in normal gameplay
+                    onTooltip?("Unknown building type")
+                    return
+                }
+
+                // Check inventory first
+                if !gameLoop.player.inventory.has(items: buildingDef.cost) {
+                    // Show missing items
+                    let missingItems = buildingDef.cost.filter { !gameLoop.player.inventory.has(items: [$0]) }
+                    if let firstMissing = missingItems.first {
+                        let itemName = gameLoop.itemRegistry.get(firstMissing.itemId)?.name ?? firstMissing.itemId
+                        onTooltip?("Need \(firstMissing.count) \(itemName)")
+                    } else {
+                        onTooltip?("Missing required items")
+                    }
+                    return
+                }
+
+                // Check placement validity
+                if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
+                    onTooltip?("Cannot place building here")
+                    return
+                }
+
+                // Try to place
                 if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection) {
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
                     // Exit build mode after placing (except for belts which allow drag placement)
@@ -271,6 +298,8 @@ final class InputManager: NSObject {
                         exitBuildMode()
                     }
                     // Play placement sound/feedback
+                } else {
+                    onTooltip?("Failed to place building")
                 }
             }
             
