@@ -81,16 +81,36 @@ final class SaveSystem {
     }
     
     private func removePlayerEntityFromWorld(_ world: World) {
-        // Find and remove any entity with player collision layer (they shouldn't be in world saves)
+        // Find and remove any entity with player sprite or player collision layer
+        // (they shouldn't be in world saves - player is managed separately)
         var entitiesToRemove: [Entity] = []
         for entity in world.entities {
+            var isPlayer = false
+            
+            // Check by collision layer (most reliable)
             if let collision = world.get(CollisionComponent.self, for: entity),
                collision.layer == .player {
+                isPlayer = true
+            }
+            
+            // Also check by sprite texture (for old saves that might not have collision component)
+            if let sprite = world.get(SpriteComponent.self, for: entity),
+               sprite.textureId.hasPrefix("player") {
+                isPlayer = true
+            }
+            
+            if isPlayer {
                 entitiesToRemove.append(entity)
             }
         }
+        
+        // Remove all player entities
         for entity in entitiesToRemove {
             world.despawn(entity)
+        }
+        
+        if !entitiesToRemove.isEmpty {
+            print("Removed \(entitiesToRemove.count) player entity/entities from loaded world")
         }
     }
     
