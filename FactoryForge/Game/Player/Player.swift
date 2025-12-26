@@ -4,7 +4,10 @@ import Foundation
 final class Player {
     private var world: World
     private var entity: Entity
-    
+
+    /// The player's entity (for external systems)
+    var playerEntity: Entity { entity }
+
     /// Player inventory
     var inventory: InventoryComponent
     
@@ -153,18 +156,21 @@ final class Player {
         // moveDirection already has magnitude (0-1) from joystick, just scale by speed
         let velocity = moveDirection * moveSpeed
 
-        if var pos = world.get(PositionComponent.self, for: entity) {
+        if var pos = world.get(PositionComponent.self, for: entity),
+           let collision = world.get(CollisionComponent.self, for: entity) {
             let newPos = pos.worldPosition + velocity * deltaTime
 
-            // Convert world position to tile coordinates (centered on 0.5)
-            let adjustedPos = newPos - Vector2(0.5, 0.5)
-            pos.tilePosition = IntVector2(from: adjustedPos)
-            pos.offset = adjustedPos - pos.tilePosition.toVector2
-
-            // Check for walkable tile
-            // TODO: Add proper collision detection
-
-            world.add(pos, to: entity)
+            // Check for collisions before moving
+            let playerRadius = collision.radius
+            if !world.checkCollision(at: newPos, radius: playerRadius, layer: .player, excluding: entity) {
+                // No collision, move to new position
+                // Convert world position to tile coordinates (centered on 0.5)
+                let adjustedPos = newPos - Vector2(0.5, 0.5)
+                pos.tilePosition = IntVector2(from: adjustedPos)
+                pos.offset = adjustedPos - pos.tilePosition.toVector2
+                world.add(pos, to: entity)
+            }
+            // If collision detected, don't move (player stops)
         }
     }
     

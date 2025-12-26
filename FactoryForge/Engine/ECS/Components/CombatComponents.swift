@@ -86,6 +86,9 @@ struct EnemyComponent: Component {
     /// Current AI state
     var state: EnemyState
     
+    /// Spawner that created this enemy (for tracking)
+    var spawnerEntity: Entity?
+    
     init(type: EnemyType) {
         self.type = type
         self.speed = type.baseSpeed
@@ -95,6 +98,7 @@ struct EnemyComponent: Component {
         self.timeSinceAttack = 0
         self.targetEntity = nil
         self.state = .idle
+        self.spawnerEntity = nil
     }
     
     var canAttack: Bool {

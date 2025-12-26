@@ -64,6 +64,7 @@ final class GameLoop {
         pollutionSystem = PollutionSystem(world: world, chunkManager: chunkManager)
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
         combatSystem = CombatSystem(world: world)
+        combatSystem.setRenderer(renderer)
         
         // Register systems in update order
         systems = [

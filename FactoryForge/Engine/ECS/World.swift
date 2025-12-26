@@ -221,6 +221,30 @@ final class World {
         }
     }
     
+    /// Checks if a position would collide with any entities
+    func checkCollision(at position: Vector2, radius: Float, layer: CollisionLayer, excluding: Entity? = nil) -> Bool {
+        let nearbyEntities = getEntitiesNear(position: position, radius: radius * 2)
+        
+        for entity in nearbyEntities {
+            guard entity != excluding else { continue }
+            guard let collision = get(CollisionComponent.self, for: entity) else { continue }
+            guard let entityPos = get(PositionComponent.self, for: entity) else { continue }
+            
+            // Check if collision layers overlap
+            guard !collision.layer.intersection(layer).isEmpty else { continue }
+            
+            // Check if circles overlap
+            let distance = position.distance(to: entityPos.worldPosition)
+            let combinedRadius = radius + collision.radius
+            
+            if distance < combinedRadius {
+                return true
+            }
+        }
+        
+        return false
+    }
+    
     // MARK: - Rendering
     
     /// Renders all visible entities

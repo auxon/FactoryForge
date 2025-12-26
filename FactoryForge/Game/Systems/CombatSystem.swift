@@ -5,9 +5,18 @@ final class CombatSystem: System {
     let priority = SystemPriority.combat.rawValue
     
     private let world: World
+    private weak var renderer: MetalRenderer?
     
     init(world: World) {
         self.world = world
+    }
+    
+    func setRenderer(_ renderer: MetalRenderer?) {
+        self.renderer = renderer
+    }
+    
+    private func getRenderer() -> MetalRenderer? {
+        return renderer
     }
     
     func update(deltaTime: Float) {
@@ -216,14 +225,29 @@ final class CombatSystem: System {
         health.takeDamage(finalDamage)
         
         if health.isDead {
-            world.despawnDeferred(entity)
-            
-            // Play death effect
-            if let position = world.get(PositionComponent.self, for: entity) {
-                // Would spawn particles here
+            // Notify spawner if this was a spawned enemy
+            if var enemyComp = world.get(EnemyComponent.self, for: entity),
+               let spawnerEntity = enemyComp.spawnerEntity,
+               var spawner = world.get(SpawnerComponent.self, for: spawnerEntity) {
+                spawner.enemyDied()
+                world.add(spawner, to: spawnerEntity)
             }
+            
+            // Spawn death particles
+            if let position = world.get(PositionComponent.self, for: entity),
+               let renderer = getRenderer() {
+                spawnDeathParticles(at: position.worldPosition, renderer: renderer)
+            }
+            
+            world.despawnDeferred(entity)
         } else {
             world.add(health, to: entity)
+            
+            // Spawn hit particles
+            if let position = world.get(PositionComponent.self, for: entity),
+               let renderer = getRenderer() {
+                spawnHitParticles(at: position.worldPosition, renderer: renderer)
+            }
         }
     }
     
@@ -240,6 +264,50 @@ final class CombatSystem: System {
             let splashDamage = damage * falloff
             
             applyDamage(splashDamage, to: entity, from: source)
+        }
+    }
+    
+    // MARK: - Visual Effects
+    
+    private func spawnHitParticles(at position: Vector2, renderer: MetalRenderer) {
+        // Spawn a few small particles for hit effect
+        for _ in 0..<3 {
+            let angle = Float.random(in: 0...(Float.pi * 2))
+            let speed = Float.random(in: 2...4)
+            let velocity = Vector2(cosf(angle), sinf(angle)) * speed
+            let offset = Vector2(Float.random(in: -0.2...0.2), Float.random(in: -0.2...0.2))
+            
+            let particle = ParticleInstance(
+                position: position + offset,
+                velocity: velocity,
+                size: 0.1,
+                rotation: 0,
+                color: Color(r: 1.0, g: 0.8, b: 0.0, a: 1.0),
+                life: 0.2,
+                maxLife: 0.2
+            )
+            renderer.queueParticle(particle)
+        }
+    }
+    
+    private func spawnDeathParticles(at position: Vector2, renderer: MetalRenderer) {
+        // Spawn more particles for death effect
+        for _ in 0..<8 {
+            let angle = Float.random(in: 0...(Float.pi * 2))
+            let speed = Float.random(in: 3...6)
+            let velocity = Vector2(cosf(angle), sinf(angle)) * speed
+            let offset = Vector2(Float.random(in: -0.3...0.3), Float.random(in: -0.3...0.3))
+            
+            let particle = ParticleInstance(
+                position: position + offset,
+                velocity: velocity,
+                size: 0.15,
+                rotation: 0,
+                color: Color(r: 0.8, g: 0.2, b: 0.2, a: 1.0),
+                life: 0.5,
+                maxLife: 0.5
+            )
+            renderer.queueParticle(particle)
         }
     }
 }

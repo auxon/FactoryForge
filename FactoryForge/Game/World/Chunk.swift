@@ -29,6 +29,9 @@ final class Chunk {
     /// Biome of this chunk
     let biome: Biome
     
+    /// Spawner positions in this chunk (world coordinates)
+    var spawnerPositions: [IntVector2] = []
+    
     init(coord: ChunkCoord, biome: Biome) {
         self.coord = coord
         self.biome = biome
@@ -165,7 +168,8 @@ extension Chunk {
             coordY: coord.y,
             tiles: tileData,
             pollution: pollution,
-            biome: biome.rawValue
+            biome: biome.rawValue,
+            spawnerPositions: spawnerPositions.map { [$0.x, $0.y] }
         )
     }
     
@@ -183,6 +187,10 @@ extension Chunk {
         }
         
         chunk.pollution = data.pollution
+        chunk.spawnerPositions = (data.spawnerPositions ?? []).compactMap {
+            guard $0.count == 2 else { return nil }
+            return IntVector2(x: Int32($0[0]), y: Int32($0[1]))
+        }
         return chunk
     }
 }
@@ -193,6 +201,7 @@ struct ChunkData: Codable {
     let tiles: [[TileData]]
     let pollution: Float
     let biome: String
+    let spawnerPositions: [[Int32]]?
 }
 
 struct TileData: Codable {

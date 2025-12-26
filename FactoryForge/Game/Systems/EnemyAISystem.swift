@@ -25,6 +25,9 @@ final class EnemyAISystem: System {
     }
     
     func update(deltaTime: Float) {
+        // Create spawners for newly loaded chunks
+        createSpawnersForLoadedChunks()
+        
         // Update spawners
         updateSpawners(deltaTime: deltaTime)
         
@@ -36,6 +39,48 @@ final class EnemyAISystem: System {
         
         // Update evolution
         updateEvolution(deltaTime: deltaTime)
+    }
+    
+    // Track which chunks have had spawners created
+    private var chunksWithSpawners: Set<ChunkCoord> = []
+    
+    private func createSpawnersForLoadedChunks() {
+        for chunk in chunkManager.allLoadedChunks {
+            // Skip if we've already created spawners for this chunk
+            guard !chunksWithSpawners.contains(chunk.coord) else { continue }
+            
+            // Create spawners for each position
+            for spawnerPos in chunk.spawnerPositions {
+                createSpawner(at: spawnerPos)
+            }
+            
+            chunksWithSpawners.insert(chunk.coord)
+        }
+    }
+    
+    private func createSpawner(at position: IntVector2) {
+        // Check if spawner already exists at this position
+        if let existingEntity = world.getEntityAt(position: position),
+           world.has(SpawnerComponent.self, for: existingEntity) {
+            return // Spawner already exists
+        }
+        
+        // Create spawner entity
+        let spawner = world.spawn()
+        
+        world.add(PositionComponent(tilePosition: position), to: spawner)
+        world.add(SpriteComponent(
+            textureId: "spawner",
+            size: Vector2(2.0, 2.0),
+            layer: .building
+        ), to: spawner)
+        world.add(HealthComponent(maxHealth: 350), to: spawner)
+        world.add(SpawnerComponent(maxEnemies: 10, spawnCooldown: 10), to: spawner)
+        
+        // Add to chunk's entity list
+        if let chunk = chunkManager.getChunk(at: position) {
+            chunk.addEntity(spawner, at: position)
+        }
     }
     
     // MARK: - Spawners
@@ -89,7 +134,7 @@ final class EnemyAISystem: System {
         world.add(SpriteComponent(
             textureId: "biter",
             size: Vector2(0.8, 0.8),
-            layer: .entity,
+            layer: .enemy,
             centered: true
         ), to: enemy)
         
@@ -99,6 +144,7 @@ final class EnemyAISystem: System {
         var enemyComp = EnemyComponent(type: enemyType)
         enemyComp.damage *= (1 + evolutionFactor * 0.5)
         enemyComp.speed *= (1 + evolutionFactor * 0.2)
+        enemyComp.spawnerEntity = spawnerEntity  // Track which spawner created this enemy
         world.add(enemyComp, to: enemy)
         
         world.add(VelocityComponent(), to: enemy)
@@ -197,6 +243,7 @@ final class EnemyAISystem: System {
                     velocity.velocity = direction * enemy.speed * 1.5
                     world.add(velocity, to: entity)
                 }
+                break
             }
             
             // Apply velocity
@@ -229,6 +276,17 @@ final class EnemyAISystem: System {
     
     private func findTarget(for entity: Entity, position: PositionComponent, enemy: EnemyComponent) -> Entity? {
         let searchRadius: Float = 20
+        
+        // Prioritize player if in range
+        if let player = player,
+           let playerPos = world.get(PositionComponent.self, for: player.playerEntity) {
+            let distanceToPlayer = position.worldPosition.distance(to: playerPos.worldPosition)
+            if distanceToPlayer <= searchRadius {
+                return player.playerEntity
+            }
+        }
+        
+        // Otherwise find nearest valid target
         let nearbyEntities = world.getEntitiesNear(position: position.worldPosition, radius: searchRadius)
         
         var closestTarget: Entity?
@@ -238,6 +296,9 @@ final class EnemyAISystem: System {
             // Skip if it's an enemy or spawner
             if world.has(EnemyComponent.self, for: candidate) { continue }
             if world.has(SpawnerComponent.self, for: candidate) { continue }
+            
+            // Skip player entity (already checked above)
+            if candidate == player?.playerEntity { continue }
             
             // Must have health
             guard world.has(HealthComponent.self, for: candidate) else { continue }
@@ -303,13 +364,17 @@ final class EnemyAISystem: System {
             let enemy = world.spawn()
             
             world.add(PositionComponent(tilePosition: IntVector2(from: spawnPos)), to: enemy)
-            world.add(SpriteComponent(textureId: "biter", size: Vector2(0.8, 0.8), layer: .entity, centered: true), to: enemy)
+            world.add(SpriteComponent(textureId: "biter", size: Vector2(0.8, 0.8), layer: .enemy, centered: true), to: enemy)
             
             let enemyType = EnemyType.smallBiter
             world.add(HealthComponent(maxHealth: enemyType.baseHealth * (1 + evolutionFactor)), to: enemy)
             
             var enemyComp = EnemyComponent(type: enemyType)
             enemyComp.state = .attacking
+            // Set player as target for attack wave enemies
+            if let playerEntity = player?.playerEntity {
+                enemyComp.targetEntity = playerEntity
+            }
             world.add(enemyComp, to: enemy)
             
             world.add(VelocityComponent(), to: enemy)
@@ -321,9 +386,8 @@ final class EnemyAISystem: System {
     
     private func updateEvolution(deltaTime: Float) {
         // Evolution increases slowly over time and from pollution
-        let timeEvolution = deltaTime / (60 * 60 * 4)  // 4 hours to reach 1.0 from time alone
         let pollutionEvolution = totalPollutionAbsorbed * 0.00001
-        
+
         evolutionFactor = min(1.0, (Time.shared.totalTime / (60 * 60 * 4)) * 0.5 + pollutionEvolution * 0.5)
     }
 }

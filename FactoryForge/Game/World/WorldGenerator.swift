@@ -203,9 +203,7 @@ final class WorldGenerator {
         for y in stride(from: 0, to: Chunk.size, by: 8) {
             for x in stride(from: 0, to: Chunk.size, by: 8) {
                 if rng.nextFloat() < nestChance {
-                    // Mark area for nest placement
-                    // The actual nest entity will be created by EnemyAISystem
-                    // For now, just clear the area
+                    // Clear area for nest
                     for dy in -2...2 {
                         for dx in -2...2 {
                             let localX = x + dx
@@ -220,6 +218,11 @@ final class WorldGenerator {
                             }
                         }
                     }
+                    
+                    // Store spawner position (center of cleared area)
+                    let worldX = origin.x + Int32(x + 4)
+                    let worldY = origin.y + Int32(y + 4)
+                    chunk.spawnerPositions.append(IntVector2(x: worldX, y: worldY))
                 }
             }
         }

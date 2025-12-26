@@ -508,9 +508,10 @@ enum RenderLayer: Int, Comparable, Codable {
     case building = 3
     case item = 4
     case entity = 5
-    case projectile = 6
-    case particle = 7
-    case ui = 8
+    case enemy = 6
+    case projectile = 7
+    case particle = 8
+    case ui = 9
     
     static func < (lhs: RenderLayer, rhs: RenderLayer) -> Bool {
         return lhs.rawValue < rhs.rawValue
