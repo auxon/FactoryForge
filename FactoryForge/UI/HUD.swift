@@ -23,6 +23,10 @@ final class HUD {
     var onCraftingPressed: (() -> Void)?
     var onBuildPressed: (() -> Void)?
     var onResearchPressed: (() -> Void)?
+    var onQuickBarSlotSelected: ((Int) -> Void)? // Called when a quick bar slot is selected
+    
+    // Selected quick bar slot
+    var selectedQuickBarSlot: Int? = nil
 
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
@@ -154,12 +158,18 @@ final class HUD {
     
     private func renderQuickBarSlot(renderer: MetalRenderer, index: Int, position: Vector2) {
         // Slot background - use solid_white texture with tinted color
+        // Highlight if selected
+        let isSelected = selectedQuickBarSlot == index
+        let bgColor = isSelected ? 
+            Color(r: 0.3, g: 0.3, b: 0.4, a: 0.9) : 
+            Color(r: 0.15, g: 0.15, b: 0.2, a: 0.9)
+        
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
             position: position,
             size: Vector2(slotSize, slotSize),
             textureRect: solidRect,
-            color: Color(r: 0.15, g: 0.15, b: 0.2, a: 0.9),
+            color: bgColor,
             layer: .ui
         ))
         
@@ -328,6 +338,7 @@ final class HUD {
         
         // Check inventory button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
+            print("HUD: Inventory button tapped, calling callback")
             onInventoryPressed?()
             return true
         }
@@ -353,8 +364,23 @@ final class HUD {
             return true
         }
         
-        // Check quick bar slots - for now, don't intercept world taps
-        // The quick bar is for future use, so don't block world interaction
+        // Check quick bar slots
+        let quickBarY = screenSize.y - bottomMargin - buttonSize - buttonSpacing - slotSize / 2
+        let quickBarStartX = screenSize.x / 2 - (slotSize * 5 + buttonSpacing * 4) / 2
+        
+        for i in 0..<10 {
+            let slotX = quickBarStartX + Float(i) * (slotSize + buttonSpacing / 2)
+            let slotPos = Vector2(slotX, quickBarY)
+            let slotFrame = Rect(center: slotPos, size: Vector2(slotSize, slotSize))
+            
+            if slotFrame.contains(position) {
+                // Quick bar slot tapped
+                selectedQuickBarSlot = i
+                onQuickBarSlotSelected?(i)
+                print("HUD: Quick bar slot \(i) tapped")
+                return true
+            }
+        }
 
         return false
     }
@@ -362,7 +388,9 @@ final class HUD {
     private func checkButtonTap(at position: Vector2, buttonPos: Vector2) -> Bool {
         let frame = Rect(center: buttonPos, size: Vector2(buttonSize, buttonSize))
         let contains = frame.contains(position)
-        print("Button at (\(buttonPos.x), \(buttonPos.y)) bounds: (\(frame.minX), \(frame.minY)) to (\(frame.maxX), \(frame.maxY)), touch (\(position.x), \(position.y)), contains: \(contains)")
+        if contains {
+            print("HUD: Button tapped at (\(buttonPos.x), \(buttonPos.y)), touch position: (\(position.x), \(position.y))")
+        }
         return contains
     }
 }
