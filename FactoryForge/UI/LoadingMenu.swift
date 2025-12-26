@@ -9,6 +9,7 @@ final class LoadingMenu: UIPanel_Base {
     private var saveGameButton: UIButton!
     private var saveSlotButtons: [SaveSlotButton] = []
     private var slotLabels: [UILabel] = [] // Labels for save slot information
+    private var closeButton: CloseButton!
     
     var onNewGameSelected: (() -> Void)?
     var onSaveSlotSelected: ((String) -> Void)? // Called when a save slot is selected to load
@@ -19,27 +20,37 @@ final class LoadingMenu: UIPanel_Base {
         self.saveSystem = SaveSystem()
         self.screenSize = screenSize
 
-        let panelWidth: Float = 500 * UIScale
-        let panelHeight: Float = 600 * UIScale
-        // Move menu down - center it lower on the screen
+        // Use full screen size for background
         let panelFrame = Rect(
-            center: Vector2(screenSize.x / 2, screenSize.y / 2 + 50 * UIScale),
-            size: Vector2(panelWidth, panelHeight)
+            center: Vector2(screenSize.x / 2, screenSize.y / 2),
+            size: Vector2(screenSize.x, screenSize.y)
         )
-        
+
         super.init(frame: panelFrame)
-        
+
+        setupCloseButton()
         setupButtons()
         refreshSaveSlots()
     }
-    
+
+    private func setupCloseButton() {
+        let buttonSize: Float = 30 * UIScale
+        let buttonX = frame.maxX - 25 * UIScale
+        let buttonY = frame.minY + 25 * UIScale
+
+        closeButton = CloseButton(frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)))
+        closeButton.onTap = { [weak self] in
+            self?.close()
+        }
+    }
+
     private func setupButtons() {
         // Button images are 805x279px (aspect ratio ~2.89:1), calculate size to preserve aspect ratio
         let imageAspectRatio: Float = 805.0 / 279.0  // ~2.89
         let buttonHeight: Float = 90 * UIScale  // Base height
         let buttonWidth: Float = buttonHeight * imageAspectRatio  // Maintain aspect ratio
         let buttonSpacing: Float = 15 * UIScale
-        let buttonY = frame.minY + 40 * UIScale
+        let buttonY = frame.center.y - 200 * UIScale
         
         // New Game button at the top
         newGameButton = UIButton(
@@ -83,7 +94,7 @@ final class LoadingMenu: UIPanel_Base {
         let slotAreaWidth: Float = 460 * UIScale
         let buttonHeight: Float = 60 * UIScale
         let buttonSpacing: Float = 10 * UIScale
-        let startY = frame.minY + 240 * UIScale // Move down to accommodate save button (which is taller now)
+        let startY = frame.center.y - 50 * UIScale // Center the save slot area
         let maxButtons = 7 // Maximum number of save slots to display
         
         // Load/Delete button size (using same aspect ratio as other buttons)
@@ -241,8 +252,13 @@ final class LoadingMenu: UIPanel_Base {
     }
     
     override func render(renderer: MetalRenderer) {
+        guard isOpen else { return }
+
         super.render(renderer: renderer)
-        
+
+        // Render close button
+        closeButton.render(renderer: renderer)
+
         // Render title
         renderTitle(renderer: renderer)
         
@@ -289,7 +305,12 @@ final class LoadingMenu: UIPanel_Base {
     
     override func handleTap(at position: Vector2) -> Bool {
         guard frame.contains(position) else { return false }
-        
+
+        // Check close button first
+        if closeButton.handleTap(at: position) {
+            return true
+        }
+
         // Check New Game button
         if newGameButton?.handleTap(at: position) == true {
             return true
@@ -435,6 +456,11 @@ class SaveSlotButton: UIElement {
         ))
         
         // Text is rendered using UILabel overlays (see setupLabels and updateSlotLabels)
+    }
+
+    func getTooltip(at position: Vector2) -> String? {
+        // Loading menu doesn't need detailed tooltips for individual elements
+        return nil
     }
 }
 

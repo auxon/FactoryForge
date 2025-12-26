@@ -79,10 +79,6 @@ final class Player {
         let playerFramesRight = (0..<16).map { "player_\($0)" }
         let playerFramesLeft = (0..<16).map { "player_left_\($0)" }
         
-        print("Player animation setup:")
-        print("  Right frames: \(playerFramesRight.prefix(3).joined(separator: ", "))...")
-        print("  Left frames: \(playerFramesLeft.prefix(3).joined(separator: ", "))...")
-        
         var playerAnimationRight = SpriteAnimation(
             frames: playerFramesRight,
             frameTime: 0.08,  // 80ms per frame for smooth walking animation

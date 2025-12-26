@@ -519,9 +519,6 @@ final class HUD {
     private func checkButtonTap(at position: Vector2, buttonPos: Vector2) -> Bool {
         let frame = Rect(center: buttonPos, size: Vector2(buttonSize, buttonSize))
         let contains = frame.contains(position)
-        if contains {
-            print("HUD: Button tapped at (\(buttonPos.x), \(buttonPos.y)), touch position: (\(position.x), \(position.y))")
-        }
         return contains
     }
 }
