@@ -4,22 +4,33 @@ import Foundation
 final class CraftingMenu: UIPanel_Base {
     private weak var gameLoop: GameLoop?
     private var recipeButtons: [RecipeButton] = []
+    private var closeButton: CloseButton!
     private var selectedRecipe: Recipe?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 400 * UIScale
-        let panelHeight: Float = 500 * UIScale
-        // Offset panel down from center to avoid top cutoff (account for health bar, etc.)
-        let verticalOffset: Float = 80 * UIScale
+        // Use full screen size for background
         let panelFrame = Rect(
-            center: Vector2(screenSize.x / 2, screenSize.y / 2 + verticalOffset),
-            size: Vector2(panelWidth, panelHeight)
+            center: Vector2(screenSize.x / 2, screenSize.y / 2),
+            size: Vector2(screenSize.x, screenSize.y)
         )
         
         super.init(frame: panelFrame)
         self.gameLoop = gameLoop
+
+        setupCloseButton()
     }
-    
+
+    private func setupCloseButton() {
+        let buttonSize: Float = 30 * UIScale
+        let buttonX = frame.maxX - 25 * UIScale
+        let buttonY = frame.minY + 25 * UIScale
+
+        closeButton = CloseButton(frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)))
+        closeButton.onTap = { [weak self] in
+            self?.close()
+        }
+    }
+
     override func open() {
         super.open()
         refreshRecipes()
@@ -33,8 +44,9 @@ final class CraftingMenu: UIPanel_Base {
         let buttonSize: Float = 50 * UIScale
         let buttonSpacing: Float = 5 * UIScale
         let buttonsPerRow = 6
-        let startX = frame.minX + 20 * UIScale
-        let startY = frame.minY + 40 * UIScale
+        let totalWidth = Float(buttonsPerRow) * buttonSize + Float(buttonsPerRow - 1) * buttonSpacing
+        let startX = frame.center.x - totalWidth / 2 + buttonSize / 2
+        let startY = frame.center.y - 100 * UIScale
         
         let recipes = gameLoop.recipeRegistry.enabled.filter { recipe in
             gameLoop.isRecipeUnlocked(recipe.id)
@@ -82,9 +94,12 @@ final class CraftingMenu: UIPanel_Base {
     
     override func render(renderer: MetalRenderer) {
         guard isOpen else { return }
-        
+
         super.render(renderer: renderer)
-        
+
+        // Render close button
+        closeButton.render(renderer: renderer)
+
         for button in recipeButtons {
             button.render(renderer: renderer)
         }
@@ -139,6 +154,11 @@ final class CraftingMenu: UIPanel_Base {
     
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
+
+        // Check close button first
+        if closeButton.handleTap(at: position) {
+            return true
+        }
 
         for button in recipeButtons {
             if button.handleTap(at: position) {
@@ -203,4 +223,3 @@ class RecipeButton: UIElement {
         ))
     }
 }
-

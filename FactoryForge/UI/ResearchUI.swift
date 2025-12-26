@@ -4,22 +4,33 @@ import Foundation
 final class ResearchUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?
     private var techButtons: [TechButton] = []
+    private var closeButton: CloseButton!
     private var selectedTech: Technology?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 600 * UIScale
-        let panelHeight: Float = 500 * UIScale
-        // Offset panel down from center to avoid top cutoff (account for health bar, etc.)
-        let verticalOffset: Float = 80 * UIScale
+        // Use full screen size for background
         let panelFrame = Rect(
-            center: Vector2(screenSize.x / 2, screenSize.y / 2 + verticalOffset),
-            size: Vector2(panelWidth, panelHeight)
+            center: Vector2(screenSize.x / 2, screenSize.y / 2),
+            size: Vector2(screenSize.x, screenSize.y)
         )
         
         super.init(frame: panelFrame)
         self.gameLoop = gameLoop
+
+        setupCloseButton()
     }
-    
+
+    private func setupCloseButton() {
+        let buttonSize: Float = 30 * UIScale
+        let buttonX = frame.maxX - 25 * UIScale
+        let buttonY = frame.minY + 25 * UIScale
+
+        closeButton = CloseButton(frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)))
+        closeButton.onTap = { [weak self] in
+            self?.close()
+        }
+    }
+
     override func open() {
         super.open()
         refreshTechTree()
@@ -39,20 +50,24 @@ final class ResearchUI: UIPanel_Base {
         let buttonHeight: Float = 40 * UIScale
         let tierSpacing: Float = 150 * UIScale
         let buttonSpacing: Float = 50 * UIScale
-        
+
+        // Calculate total width of all tiers and center them
+        let totalTiersWidth = 3 * buttonWidth + 2 * tierSpacing
+        let startTierX = frame.center.x - totalTiersWidth / 2 + buttonWidth / 2
+
         var totalTechs = 0
-        
+
         // Group by tier
         for tier in 1...3 {
             let techs = registry.technologies(tier: tier)
             totalTechs += techs.count
-            
+
             if techs.isEmpty {
                 continue
             }
-            
-            let tierX = frame.minX + 80 * UIScale + Float(tier - 1) * tierSpacing
-            var currentY = frame.minY + 60 * UIScale
+
+            let tierX = startTierX + Float(tier - 1) * (buttonWidth + tierSpacing)
+            var currentY = frame.center.y - 150 * UIScale
             
             for tech in techs {
                 let button = TechButton(
@@ -102,7 +117,7 @@ final class ResearchUI: UIPanel_Base {
             let tech = button.technology
             
             // Check if completed
-            let wasCompleted = button.isCompleted
+            _ = button.isCompleted
             button.isCompleted = researchSystem.completedTechnologies.contains(tech.id)
             
             // Check if currently researching (this takes priority)
@@ -121,9 +136,12 @@ final class ResearchUI: UIPanel_Base {
     
     override func render(renderer: MetalRenderer) {
         guard isOpen else { return }
-        
+
         super.render(renderer: renderer)
-        
+
+        // Render close button
+        closeButton.render(renderer: renderer)
+
         // Render tech buttons
         for button in techButtons {
             button.render(renderer: renderer)
@@ -139,7 +157,7 @@ final class ResearchUI: UIPanel_Base {
     
     private func renderResearchInfo(renderer: MetalRenderer) {
         guard let researchSystem = gameLoop?.researchSystem,
-              let currentResearch = researchSystem.currentResearch else {
+              researchSystem.currentResearch != nil else {
             return // No active research
         }
         
@@ -161,7 +179,7 @@ final class ResearchUI: UIPanel_Base {
     
     private func renderResearchProgress(renderer: MetalRenderer) {
         guard let researchSystem = gameLoop?.researchSystem,
-              let currentResearch = researchSystem.currentResearch else {
+              researchSystem.currentResearch != nil else {
             return // No active research
         }
         
@@ -199,6 +217,11 @@ final class ResearchUI: UIPanel_Base {
     
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
+
+        // Check close button first
+        if closeButton.handleTap(at: position) {
+            return true
+        }
 
         for button in techButtons {
             if button.handleTap(at: position) {
@@ -263,9 +286,5 @@ class TechButton: UIElement {
             color: bgColor,
             layer: .ui
         ))
-        
-        // Render tech name as text (we'll use a simple placeholder for now)
-        // TODO: Add text rendering support for UI labels
     }
 }
-

@@ -4,27 +4,30 @@ import Foundation
 final class InventoryUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?
     private var slots: [InventorySlot] = []
+    private var closeButton: CloseButton!
     private let slotsPerRow = 10
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 500 * UIScale
-        let panelHeight: Float = 300 * UIScale
+        // Use full screen size for background
         let panelFrame = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
-            size: Vector2(panelWidth, panelHeight)
+            size: Vector2(screenSize.x, screenSize.y)
         )
         
         super.init(frame: panelFrame)
         self.gameLoop = gameLoop
-        
+
+        setupCloseButton()
         setupSlots()
     }
     
     private func setupSlots() {
         let slotSize: Float = 40 * UIScale
         let slotSpacing: Float = 5 * UIScale
-        let startX = frame.minX + 20 * UIScale
-        let startY = frame.minY + 40 * UIScale
+        let totalWidth = Float(slotsPerRow) * slotSize + Float(slotsPerRow - 1) * slotSpacing
+        let totalHeight = Float(4) * slotSize + Float(3) * slotSpacing
+        let startX = frame.center.x - totalWidth / 2 + slotSize / 2
+        let startY = frame.center.y - totalHeight / 2 + slotSize / 2
         
         for i in 0..<40 {
             let row = i / slotsPerRow
@@ -39,7 +42,18 @@ final class InventoryUI: UIPanel_Base {
             ))
         }
     }
-    
+
+    private func setupCloseButton() {
+        let buttonSize: Float = 30 * UIScale
+        let buttonX = frame.maxX - 25 * UIScale
+        let buttonY = frame.minY + 25 * UIScale
+
+        closeButton = CloseButton(frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)))
+        closeButton.onTap = { [weak self] in
+            self?.close()
+        }
+    }
+
     override func update(deltaTime: Float) {
         guard isOpen, let player = gameLoop?.player else { return }
         
@@ -52,9 +66,12 @@ final class InventoryUI: UIPanel_Base {
     
     override func render(renderer: MetalRenderer) {
         guard isOpen else { return }
-        
+
         super.render(renderer: renderer)
-        
+
+        // Render close button
+        closeButton.render(renderer: renderer)
+
         // Render slots
         for slot in slots {
             slot.render(renderer: renderer)
@@ -63,6 +80,11 @@ final class InventoryUI: UIPanel_Base {
     
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
+
+        // Check close button first
+        if closeButton.handleTap(at: position) {
+            return true
+        }
 
         for slot in slots {
             if slot.handleTap(at: position) {

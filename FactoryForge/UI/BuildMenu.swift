@@ -5,26 +5,36 @@ final class BuildMenu: UIPanel_Base {
     private weak var gameLoop: GameLoop?
     private var categoryButtons: [BuildCategoryButton] = []
     private var buildingButtons: [BuildingButton] = []
+    private var closeButton: CloseButton!
     private var selectedCategory: BuildingType?
     
     var onBuildingSelected: ((String) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 350 * UIScale
-        let panelHeight: Float = 450 * UIScale
-        // Offset panel down from center to avoid top cutoff (account for health bar, etc.)
-        let verticalOffset: Float = 80 * UIScale
+        // Use full screen size for background
         let panelFrame = Rect(
-            center: Vector2(screenSize.x / 2, screenSize.y / 2 + verticalOffset),
-            size: Vector2(panelWidth, panelHeight)
+            center: Vector2(screenSize.x / 2, screenSize.y / 2),
+            size: Vector2(screenSize.x, screenSize.y)
         )
         
         super.init(frame: panelFrame)
         self.gameLoop = gameLoop
-        
+
+        setupCloseButton()
         setupCategories()
     }
-    
+
+    private func setupCloseButton() {
+        let buttonSize: Float = 30 * UIScale
+        let buttonX = frame.maxX - 25 * UIScale
+        let buttonY = frame.minY + 25 * UIScale
+
+        closeButton = CloseButton(frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)))
+        closeButton.onTap = { [weak self] in
+            self?.close()
+        }
+    }
+
     private func setupCategories() {
         let categories: [(BuildingType, String)] = [
             (.miner, "miner"),
@@ -38,11 +48,12 @@ final class BuildMenu: UIPanel_Base {
             (.turret, "turret"),
             (.chest, "chest")
         ]
-        
+
         let buttonSize: Float = 40 * UIScale
         let buttonSpacing: Float = 5 * UIScale
-        var currentX = frame.minX + 20 * UIScale + buttonSize / 2
-        let categoryY = frame.minY + 30 * UIScale
+        let totalWidth = Float(categories.count) * buttonSize + Float(categories.count - 1) * buttonSpacing
+        var currentX = frame.center.x - totalWidth / 2 + buttonSize / 2
+        let categoryY = frame.center.y - 150 * UIScale
         
         for (type, textureId) in categories {
             let button = BuildCategoryButton(
@@ -82,8 +93,9 @@ final class BuildMenu: UIPanel_Base {
         let buttonSize: Float = 60 * UIScale
         let buttonSpacing: Float = 10 * UIScale
         let buttonsPerRow = 4
-        let startX = frame.minX + 30 * UIScale
-        let startY = frame.minY + 80 * UIScale
+        let totalWidth = Float(buttonsPerRow) * buttonSize + Float(buttonsPerRow - 1) * buttonSpacing
+        let startX = frame.center.x - totalWidth / 2 + buttonSize / 2
+        let startY = frame.center.y - 50 * UIScale
         
         for (index, building) in buildings.enumerated() {
             let row = index / buttonsPerRow
@@ -119,14 +131,17 @@ final class BuildMenu: UIPanel_Base {
     
     override func render(renderer: MetalRenderer) {
         guard isOpen else { return }
-        
+
         super.render(renderer: renderer)
-        
+
+        // Render close button
+        closeButton.render(renderer: renderer)
+
         // Render category buttons
         for button in categoryButtons {
             button.render(renderer: renderer)
         }
-        
+
         // Render building buttons
         for button in buildingButtons {
             button.render(renderer: renderer)
@@ -135,6 +150,11 @@ final class BuildMenu: UIPanel_Base {
     
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
+
+        // Check close button first
+        if closeButton.handleTap(at: position) {
+            return true
+        }
 
         for button in categoryButtons {
             if button.handleTap(at: position) {

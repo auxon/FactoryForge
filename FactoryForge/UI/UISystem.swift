@@ -417,3 +417,61 @@ class UIPanel_Base {
     }
 }
 
+class CloseButton: UIElement {
+    var frame: Rect
+    var onTap: (() -> Void)?
+
+    init(frame: Rect) {
+        self.frame = frame
+    }
+
+    func handleTap(at position: Vector2) -> Bool {
+        guard frame.contains(position) else { return false }
+        onTap?()
+        return true
+    }
+
+    func render(renderer: MetalRenderer) {
+        // Render background circle
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        renderer.queueSprite(SpriteInstance(
+            position: frame.center,
+            size: frame.size,
+            textureRect: solidRect,
+            color: Color(r: 0.3, g: 0.3, b: 0.3, a: 1),
+            layer: .ui
+        ))
+
+        // Render X symbol using diagonal lines made of small squares
+        let squareSize: Float = 3 * UIScale
+        let spacing = squareSize * 1.2
+        let numSquares = 5
+
+        // First diagonal (top-left to bottom-right)
+        for i in 0..<numSquares {
+            let t = Float(i) / Float(numSquares - 1) - 0.5
+            let pos = frame.center + Vector2(t * spacing * 2, t * spacing * 2)
+            renderer.queueSprite(SpriteInstance(
+                position: pos,
+                size: Vector2(squareSize, squareSize),
+                textureRect: solidRect,
+                color: .white,
+                layer: .ui
+            ))
+        }
+
+        // Second diagonal (top-right to bottom-left)
+        for i in 0..<numSquares {
+            let t = Float(i) / Float(numSquares - 1) - 0.5
+            let pos = frame.center + Vector2(-t * spacing * 2, t * spacing * 2)
+            renderer.queueSprite(SpriteInstance(
+                position: pos,
+                size: Vector2(squareSize, squareSize),
+                textureRect: solidRect,
+                color: .white,
+                layer: .ui
+            ))
+        }
+    }
+}
+
