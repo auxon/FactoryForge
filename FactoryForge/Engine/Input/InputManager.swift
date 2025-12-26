@@ -162,12 +162,24 @@ final class InputManager: NSObject {
                             // Manual mining - mine 1 unit
                             let mined = gameLoop?.chunkManager.mineResource(at: tilePos, amount: 1) ?? 0
                             if mined > 0 {
-                                // Add to player inventory
-                                gameLoop?.player.inventory.add(itemId: resource.type.outputItem, count: mined)
-                                print("Manually mined \(mined) \(resource.type.outputItem), \(resource.amount - mined) remaining")
+                                // Start mining animation
+                                let itemId = resource.type.outputItem
+                                guard let gameLoop = gameLoop else { break }
+                                gameLoop.uiSystem?.hud.startMiningAnimation(
+                                    itemId: itemId,
+                                    fromWorldPosition: worldPos,
+                                    renderer: gameLoop.renderer
+                                )
+                                
+                                // Add to player inventory (after a delay to match animation)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
+                                    gameLoop?.player.inventory.add(itemId: itemId, count: mined)
+                                }
+                                
+                                print("Manually mined \(mined) \(itemId), \(resource.amount - mined) remaining")
 
                                 // Check if resource is now depleted
-                                if let updatedResource = gameLoop?.chunkManager.getResource(at: tilePos) {
+                                if let updatedResource = gameLoop.chunkManager.getResource(at: tilePos) {
                                     print("Resource now has \(updatedResource.amount) remaining")
                                 } else {
                                     print("Resource depleted, tile should now be normal")
@@ -202,9 +214,21 @@ final class InputManager: NSObject {
                     // Manual mining - mine 1 unit
                     let mined = gameLoop?.chunkManager.mineResource(at: tilePos, amount: 1) ?? 0
                     if mined > 0 {
-                        // Add to player inventory
-                        gameLoop?.player.inventory.add(itemId: resource.type.outputItem, count: mined)
-                        print("Manually mined \(mined) \(resource.type.outputItem), \(resource.amount - mined) remaining")
+                        // Start mining animation
+                        let itemId = resource.type.outputItem
+                        guard let gameLoop = gameLoop else { return }
+                        gameLoop.uiSystem?.hud.startMiningAnimation(
+                            itemId: itemId,
+                            fromWorldPosition: worldPos,
+                            renderer: gameLoop.renderer
+                        )
+                        
+                        // Add to player inventory (after a delay to match animation)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
+                            gameLoop?.player.inventory.add(itemId: itemId, count: mined)
+                        }
+                        
+                        print("Manually mined \(mined) \(itemId), \(resource.amount - mined) remaining")
                     }
                 }
                 return // Don't place building if we mined

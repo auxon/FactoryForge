@@ -27,6 +27,22 @@ final class HUD {
     
     // Selected quick bar slot
     var selectedQuickBarSlot: Int? = nil
+    
+    // Mining animations
+    private struct MiningAnimation {
+        var itemId: String
+        var startPosition: Vector2  // World position
+        var targetPosition: Vector2  // Screen position (inventory button)
+        var currentPosition: Vector2  // Current screen position
+        var currentSize: Vector2
+        var startSize: Vector2
+        var targetSize: Vector2
+        var progress: Float  // 0 to 1
+        var duration: Float
+        var elapsedTime: Float
+    }
+    
+    private var miningAnimations: [MiningAnimation] = []
 
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
@@ -52,7 +68,71 @@ final class HUD {
     }
     
     func update(deltaTime: Float) {
-        // HUD update logic if needed
+        // Update mining animations
+        updateMiningAnimations(deltaTime: deltaTime)
+    }
+    
+    private func updateMiningAnimations(deltaTime: Float) {
+        for i in (0..<miningAnimations.count).reversed() {
+            var animation = miningAnimations[i]
+            animation.elapsedTime += deltaTime
+            animation.progress = min(animation.elapsedTime / animation.duration, 1.0)
+            
+            // Update position (lerp from start to target)
+            animation.currentPosition = animation.startPosition.lerp(to: animation.targetPosition, t: animation.progress)
+            
+            // Update size (lerp from start to target, with easing for scale up)
+            let easeProgress = easeOutCubic(animation.progress) // Ease out for smooth scaling
+            animation.currentSize = animation.startSize.lerp(to: animation.targetSize, t: easeProgress)
+            
+            if animation.progress >= 1.0 {
+                // Animation complete - remove it
+                miningAnimations.remove(at: i)
+            } else {
+                miningAnimations[i] = animation
+            }
+        }
+    }
+    
+    private func easeOutCubic(_ t: Float) -> Float {
+        let t1 = 1.0 - t
+        return 1.0 - t1 * t1 * t1
+    }
+    
+    /// Starts a mining animation from a world position to the inventory button
+    func startMiningAnimation(itemId: String, fromWorldPosition worldPos: Vector2, renderer: MetalRenderer?) {
+        guard let renderer = renderer else { return }
+        
+        // Get inventory button position (screen coordinates)
+        let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
+        let inventoryButtonX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
+        let targetScreenPos = Vector2(inventoryButtonX, toolbarY)
+        
+        // Convert world position to screen position
+        let startScreenPos = renderer.worldToScreen(worldPos)
+        
+        // Start size: small (about 20 points)
+        let startSize = Vector2(20 * scale, 20 * scale)
+        // Target size: same as inventory button
+        let targetSize = Vector2(buttonSize, buttonSize)
+        
+        let animation = MiningAnimation(
+            itemId: itemId,
+            startPosition: startScreenPos,
+            targetPosition: targetScreenPos,
+            currentPosition: startScreenPos,
+            currentSize: startSize,
+            startSize: startSize,
+            targetSize: targetSize,
+            progress: 0,
+            duration: 0.5, // 0.5 seconds
+            elapsedTime: 0
+        )
+        
+        miningAnimations.append(animation)
+        
+        // Play mining sound
+        AudioManager.shared.playMiningSound()
     }
     
     func getButtonName(at position: Vector2, screenSize: Vector2) -> String? {
@@ -133,6 +213,26 @@ final class HUD {
         
         // Render resource counters
         renderResourceCounters(renderer: renderer)
+        
+        // Render mining animations
+        renderMiningAnimations(renderer: renderer)
+    }
+    
+    private func renderMiningAnimations(renderer: MetalRenderer) {
+        for animation in miningAnimations {
+            // Get texture for the item
+            let textureId = animation.itemId.replacingOccurrences(of: "-", with: "_")
+            let textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
+            
+            // Render the animated sprite
+            renderer.queueSprite(SpriteInstance(
+                position: animation.currentPosition,
+                size: animation.currentSize,
+                textureRect: textureRect,
+                color: .white,
+                layer: .ui
+            ))
+        }
     }
     
     private func renderButton(renderer: MetalRenderer, position: Vector2, textureId: String, callback: (() -> Void)?) {
