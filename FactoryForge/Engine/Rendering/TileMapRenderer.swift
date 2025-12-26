@@ -12,7 +12,7 @@ final class TileMapRenderer {
     // Instance buffer for tile data
     private var instanceBuffer: MTLBuffer?
     private var instanceCount: Int = 0
-    private let maxInstances = 10000
+    private let maxInstances = 50000
     
     // Queued tiles for current frame
     private var queuedTiles: [TileInstance] = []
@@ -40,7 +40,7 @@ final class TileMapRenderer {
         }
         quadVertexBuffer = buffer
         
-        // Create instance buffer
+        // Create instance buffer (doubled size for extreme zoom levels)
         instanceBuffer = device.makeBuffer(
             length: MemoryLayout<TileInstanceData>.stride * maxInstances,
             options: .storageModeShared
@@ -54,33 +54,40 @@ final class TileMapRenderer {
     func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, camera: Camera2D) {
         guard !queuedTiles.isEmpty else { return }
         guard let instanceBuffer = instanceBuffer else { return }
-        
-        // Convert queued tiles to instance data
-        var instances: [TileInstanceData] = []
-        instances.reserveCapacity(min(queuedTiles.count, maxInstances))
-        
+
         // Expand visible rect generously to ensure all visible tiles are included
         let visibleRect = camera.visibleRect.expanded(by: 5)
-        
-        // Frustum cull first, then limit to maxInstances
+
+        // Frustum cull first
+        var visibleTiles: [TileInstance] = []
         for tile in queuedTiles {
             let worldPos = tile.position.toVector2
-            
-            // Frustum culling - skip tiles outside visible area
-            guard visibleRect.contains(worldPos) else { continue }
-            
+            if visibleRect.contains(worldPos) {
+                visibleTiles.append(tile)
+            }
+        }
+
+        // Sort by distance to camera (closest first) to prioritize important tiles
+        visibleTiles.sort { tile1, tile2 in
+            let dist1 = tile1.position.toVector2.distance(to: camera.position)
+            let dist2 = tile2.position.toVector2.distance(to: camera.position)
+            return dist1 < dist2
+        }
+
+        // Convert to instance data, limiting to maxInstances
+        var instances: [TileInstanceData] = []
+        instances.reserveCapacity(min(visibleTiles.count, maxInstances))
+
+        for tile in visibleTiles.prefix(maxInstances) {
             // Get texture UV from atlas based on tile type
             let textureRect = getTileTextureRect(for: tile)
-            
+
             instances.append(TileInstanceData(
-                position: worldPos,
+                position: tile.position.toVector2,
                 uvOrigin: Vector2(textureRect.origin.x, textureRect.origin.y),
                 uvSize: Vector2(textureRect.size.x, textureRect.size.y),
                 tint: tile.tint.vector4
             ))
-            
-            // Stop if we've hit the instance limit
-            if instances.count >= maxInstances { break }
         }
         
         queuedTiles.removeAll(keepingCapacity: true)
