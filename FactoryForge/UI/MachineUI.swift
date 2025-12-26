@@ -384,7 +384,10 @@ final class MachineUI: UIPanel_Base {
             }
         } else {
             // Output slot - try to take item to player inventory
-            guard let item = slot.item else { return }
+            // Get the actual item from the inventory slot (not from slot.item which might be stale)
+            let outputSlotIndex = machineInventory.slots.count / 2 + slot.index
+            guard outputSlotIndex < machineInventory.slots.count,
+                  let item = machineInventory.slots[outputSlotIndex] else { return }
             
             // Check if player can accept the item
             if gameLoop.player.inventory.canAccept(itemId: item.itemId) {
@@ -392,8 +395,21 @@ final class MachineUI: UIPanel_Base {
                 let remaining = playerInv.add(item)
                 gameLoop.player.inventory = playerInv
                 
-                // Remove from machine
-                machineInventory.remove(itemId: item.itemId, count: item.count - remaining)
+                // Remove from machine inventory slot
+                // remaining = number of items that couldn't be added to player
+                // amountToRemove = number of items successfully added to player
+                let amountToRemove = item.count - remaining
+                if amountToRemove >= item.count {
+                    // All items were added - remove entire stack
+                    machineInventory.slots[outputSlotIndex] = nil
+                } else if amountToRemove > 0 {
+                    // Some items were added - reduce stack count
+                    var updatedItem = item
+                    updatedItem.count -= amountToRemove
+                    machineInventory.slots[outputSlotIndex] = updatedItem
+                }
+                // If amountToRemove == 0, player inventory is full, don't remove anything
+                
                 gameLoop.world.add(machineInventory, to: entity)
             }
         }
