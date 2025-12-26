@@ -8,6 +8,7 @@ let UIScale: Float = Float(UIScreen.main.scale)
 final class UISystem {
     private weak var gameLoop: GameLoop?
     private weak var renderer: MetalRenderer?
+    private weak var inputManager: InputManager?
     
     // UI Panels
     private(set) var hud: HUD
@@ -32,7 +33,7 @@ final class UISystem {
         let screenSize = renderer?.screenSize ?? Vector2(800, 600)
         
         loadingMenu = LoadingMenu(screenSize: screenSize)
-        hud = HUD(screenSize: screenSize, gameLoop: gameLoop)
+        hud = HUD(screenSize: screenSize, gameLoop: gameLoop, inputManager: nil)
         inventoryUI = InventoryUI(screenSize: screenSize, gameLoop: gameLoop)
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
         buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
@@ -45,15 +46,21 @@ final class UISystem {
     func setGameLoop(_ gameLoop: GameLoop) {
         self.gameLoop = gameLoop
         let screenSize = renderer?.screenSize ?? Vector2(800, 600)
-        
+
         // Update all UI components that need gameLoop
-        hud = HUD(screenSize: screenSize, gameLoop: gameLoop)
+        hud = HUD(screenSize: screenSize, gameLoop: gameLoop, inputManager: inputManager)
         inventoryUI = InventoryUI(screenSize: screenSize, gameLoop: gameLoop)
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
         buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
         researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
         setupCallbacks()
+    }
+
+    func setInputManager(_ inputManager: InputManager) {
+        self.inputManager = inputManager
+        // Update HUD with inputManager reference
+        hud.setInputManager(inputManager)
     }
     
     func getLoadingMenu() -> LoadingMenu {
@@ -97,7 +104,7 @@ final class UISystem {
                   let item = player.inventory.slots[slotIndex] else { return }
             
             // Check if this item is a building
-            if let buildingDef = self.gameLoop?.buildingRegistry.get(item.itemId) {
+            if self.gameLoop?.buildingRegistry.get(item.itemId) != nil {
                 // It's a building - enter build mode
                 print("UISystem: Quick bar slot \(slotIndex) contains building '\(item.itemId)', entering build mode")
                 self.gameLoop?.inputManager?.enterBuildMode(buildingId: item.itemId)

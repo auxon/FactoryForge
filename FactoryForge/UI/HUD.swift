@@ -5,6 +5,7 @@ import UIKit
 final class HUD {
     private var screenSize: Vector2
     private weak var gameLoop: GameLoop?
+    private weak var inputManager: InputManager?
     
     // Scale factor for retina displays
     private let scale: Float = Float(UIScreen.main.scale)
@@ -46,9 +47,10 @@ final class HUD {
     private var miningAnimations: [MiningAnimation] = []
 
     
-    init(screenSize: Vector2, gameLoop: GameLoop?) {
+    init(screenSize: Vector2, gameLoop: GameLoop?, inputManager: InputManager?) {
         self.screenSize = screenSize
         self.gameLoop = gameLoop
+        self.inputManager = inputManager
         self.joystick = VirtualJoystick()
         
         joystick.updateScreenSize(screenSize)
@@ -66,6 +68,10 @@ final class HUD {
     func updateScreenSize(_ newSize: Vector2) {
         screenSize = newSize
         joystick.updateScreenSize(newSize)
+    }
+
+    func setInputManager(_ inputManager: InputManager?) {
+        self.inputManager = inputManager
     }
     
     func update(deltaTime: Float) {
@@ -225,6 +231,9 @@ final class HUD {
 
         // Render mining animations
         renderMiningAnimations(renderer: renderer)
+
+        // Render build preview if in build mode
+        renderBuildPreview(renderer: renderer)
     }
     
     private func renderMenuButton(renderer: MetalRenderer) {
@@ -235,6 +244,40 @@ final class HUD {
         renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "chest", callback: onMenuPressed)
     }
     
+
+    private func renderBuildPreview(renderer: MetalRenderer) {
+        guard let inputManager = inputManager,
+              inputManager.buildMode == .placing,
+              let buildingId = inputManager.selectedBuildingId,
+              let previewPos = inputManager.buildPreviewPosition,
+              let gameLoop = gameLoop,
+              let buildingDef = gameLoop.buildingRegistry.get(buildingId) else {
+            return
+        }
+
+        // Convert tile position to world position (center of tile)
+        let worldPos = Vector2(Float(previewPos.x) + 0.5, Float(previewPos.y) + 0.5)
+
+        // Check if placement is valid
+        let isValidPlacement = gameLoop.canPlaceBuilding(buildingId, at: previewPos, direction: inputManager.buildDirection)
+
+        // Choose color based on validity
+        let previewColor = isValidPlacement ?
+            Color(r: 0.2, g: 0.8, b: 0.2, a: 0.6) :  // Green for valid
+            Color(r: 0.8, g: 0.2, b: 0.2, a: 0.6)    // Red for invalid
+
+        // Get building texture
+        let textureRect = renderer.textureAtlas.getTextureRect(for: buildingDef.textureId)
+
+        // Render ghost preview
+        renderer.queueSprite(SpriteInstance(
+            position: worldPos,
+            size: Vector2(1.0, 1.0), // Standard tile size
+            textureRect: textureRect,
+            color: previewColor,
+            layer: .entity // Render above ground but below UI
+        ))
+    }
 
     private func renderMiningAnimations(renderer: MetalRenderer) {
         for animation in miningAnimations {

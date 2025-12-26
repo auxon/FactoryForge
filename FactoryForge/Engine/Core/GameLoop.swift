@@ -199,6 +199,11 @@ final class GameLoop {
         return true
     }
     
+    func canPlaceBuilding(_ buildingId: String, at position: IntVector2, direction: Direction) -> Bool {
+        guard let buildingDef = buildingRegistry.get(buildingId) else { return false }
+        return canPlaceBuilding(buildingDef, at: position)
+    }
+
     private func canPlaceBuilding(_ building: BuildingDefinition, at position: IntVector2) -> Bool {
         for dy in 0..<building.height {
             for dx in 0..<building.width {

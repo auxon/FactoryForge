@@ -31,7 +31,7 @@ final class InputManager: NSObject {
     var buildMode: BuildMode = .none
     var selectedBuildingId: String?
     var buildDirection: Direction = .north
-    private var buildPreviewPosition: IntVector2?
+    var buildPreviewPosition: IntVector2?
     
     // Selection
     var selectedEntity: Entity?

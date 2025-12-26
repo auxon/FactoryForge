@@ -193,6 +193,9 @@ class GameViewController: UIViewController {
     private func setupInputForLoadingMenu() {
         // Create InputManager without GameLoop initially (it will be set later)
         inputManager = InputManager(view: metalView, gameLoop: nil, renderer: renderer)
+
+        // Set inputManager on UI system so HUD can access build mode
+        uiSystem?.setInputManager(inputManager!)
     }
     
     private func startNewGame() {
@@ -324,6 +327,9 @@ class GameViewController: UIViewController {
             // Update existing InputManager with gameLoop
             inputManager?.setGameLoop(gameLoop)
         }
+
+        // Set inputManager on UI system so HUD can access build mode
+        uiSystem?.setInputManager(inputManager!)
         gameLoop.inputManager = inputManager
 
         // Setup return to menu callback
