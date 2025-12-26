@@ -121,6 +121,11 @@ final class InputManager: NSObject {
         // Check for entities/resources BEFORE UI system check, so tooltips always work
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
+
+        // Update build preview position for tap placement
+        if buildMode == .placing {
+            buildPreviewPosition = tilePos
+        }
         
         // Show tooltips regardless of build mode - check for entities within a small radius
         let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
@@ -317,13 +322,18 @@ final class InputManager: NSObject {
             }
             
         case .changed:
+            // Update build preview position for any build mode
+            if buildMode == .placing {
+                buildPreviewPosition = IntVector2(from: worldPos)
+            }
+
             // Handle joystick movement
             if isJoystickActive {
                 joystick?.handleTouchMoved(at: screenPos, touchId: 0)
                 // Prevent camera pan when joystick is active
                 return
             }
-            
+
             // Always allow camera panning (even in build mode)
             if buildMode == .none {
                 // Pan camera
@@ -331,9 +341,6 @@ final class InputManager: NSObject {
                 let worldDelta = delta / renderer.camera.zoom / 32.0
                 renderer.camera.target = cameraStartPosition - Vector2(worldDelta.x, -worldDelta.y)
             } else if buildMode == .placing {
-                // Update build preview
-                buildPreviewPosition = IntVector2(from: worldPos)
-                
                 // For belts, continuously place as we drag
                 if let buildingId = selectedBuildingId,
                    buildingId.contains("belt"),
@@ -351,7 +358,7 @@ final class InputManager: NSObject {
             }
 
             isDragging = false
-            buildPreviewPosition = nil
+            // Don't clear buildPreviewPosition - keep preview visible until build mode exits
             
         default:
             break
@@ -651,6 +658,7 @@ final class InputManager: NSObject {
     func exitBuildMode() {
         buildMode = .none
         selectedBuildingId = nil
+        buildPreviewPosition = nil
     }
     
     func rotateBuildDirection() {

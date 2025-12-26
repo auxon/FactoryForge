@@ -471,7 +471,7 @@ final class HUD {
         guard let player = gameLoop?.player else { return }
         
         for resourceId in resources {
-            let count = player.inventory.count(of: resourceId)
+            _ = player.inventory.count(of: resourceId)
             
             // Icon
             let textureRect = renderer.textureAtlas.getTextureRect(for: resourceId.replacingOccurrences(of: "-", with: "_"))
