@@ -83,6 +83,8 @@
 		0D6FDC672EFEE36A00576EC3 /* save_game.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC662EFEE36A00576EC3 /* save_game.png */; };
 		0D6FDC6A2EFEE52D00576EC3 /* delete_game.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC682EFEE52D00576EC3 /* delete_game.png */; };
 		0D6FDC6B2EFEE52D00576EC3 /* load_game.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC692EFEE52D00576EC3 /* load_game.png */; };
+		0D7457F12EFF204D00C7C473 /* steel_plate.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457EF2EFF204D00C7C473 /* steel_plate.png */; };
+		0D7457F22EFF204D00C7C473 /* stone_brick.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457F02EFF204D00C7C473 /* stone_brick.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -220,6 +222,8 @@
 		0D6FDC662EFEE36A00576EC3 /* save_game.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = save_game.png; sourceTree = "<group>"; };
 		0D6FDC682EFEE52D00576EC3 /* delete_game.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = delete_game.png; sourceTree = "<group>"; };
 		0D6FDC692EFEE52D00576EC3 /* load_game.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = load_game.png; sourceTree = "<group>"; };
+		0D7457EF2EFF204D00C7C473 /* steel_plate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = steel_plate.png; sourceTree = "<group>"; };
+		0D7457F02EFF204D00C7C473 /* stone_brick.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone_brick.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -296,6 +300,8 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D7457EF2EFF204D00C7C473 /* steel_plate.png */,
+				0D7457F02EFF204D00C7C473 /* stone_brick.png */,
 				0D6FDC682EFEE52D00576EC3 /* delete_game.png */,
 				0D6FDC692EFEE52D00576EC3 /* load_game.png */,
 				0D6FDC662EFEE36A00576EC3 /* save_game.png */,
@@ -722,6 +728,8 @@
 				0D6FDC472EFDE1B500576EC3 /* stone_wall.png in Resources */,
 				0D6FDC482EFDE1B500576EC3 /* building_placeholder.png in Resources */,
 				0D6FDC492EFDE1B500576EC3 /* processing_unit.png in Resources */,
+				0D7457F12EFF204D00C7C473 /* steel_plate.png in Resources */,
+				0D7457F22EFF204D00C7C473 /* stone_brick.png in Resources */,
 				0D6FDC4A2EFDE1B500576EC3 /* stone_furnace.png in Resources */,
 				0D6FDC4B2EFDE1B500576EC3 /* big_electric_pole.png in Resources */,
 				0D6FDC4C2EFDE1B500576EC3 /* pipe.png in Resources */,

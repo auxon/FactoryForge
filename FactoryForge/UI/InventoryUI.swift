@@ -6,6 +6,11 @@ final class InventoryUI: UIPanel_Base {
     private var slots: [InventorySlot] = []
     private var closeButton: CloseButton!
     private let slotsPerRow = 10
+
+    // Machine input mode
+    private var machineEntity: Entity?
+    private var machineSlotIndex: Int?
+    var onMachineInputCompleted: (() -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         // Use full screen size for background
@@ -20,7 +25,17 @@ final class InventoryUI: UIPanel_Base {
         setupCloseButton()
         setupSlots()
     }
-    
+
+    func enterMachineInputMode(entity: Entity, slotIndex: Int) {
+        machineEntity = entity
+        machineSlotIndex = slotIndex
+    }
+
+    func exitMachineInputMode() {
+        machineEntity = nil
+        machineSlotIndex = nil
+    }
+
     private func setupSlots() {
         let slotSize: Float = 40 * UIScale
         let slotSpacing: Float = 5 * UIScale
@@ -88,12 +103,66 @@ final class InventoryUI: UIPanel_Base {
 
         for slot in slots {
             if slot.handleTap(at: position) {
-                // Handle slot selection
+                if machineEntity != nil {
+                    // Machine input mode - add item to machine
+                    handleMachineInput(slot: slot)
+                } else {
+                    // Normal inventory mode - just select
+                    // Handle slot selection
+                }
                 return true
             }
         }
 
         return super.handleTap(at: position)
+    }
+
+    override func close() {
+        exitMachineInputMode()
+        super.close()
+    }
+
+    private func handleMachineInput(slot: InventorySlot) {
+        guard let gameLoop = gameLoop,
+              let machineEntity = machineEntity,
+              let itemStack = slot.item,
+              itemStack.count > 0,
+              var machineInventory = gameLoop.world.get(InventoryComponent.self, for: machineEntity) else {
+            return
+        }
+
+        // Check if machine can accept this item
+        if machineInventory.canAccept(itemId: itemStack.itemId) {
+            // Remove one item from player inventory at this slot
+            var playerInv = gameLoop.player.inventory
+            if slot.index < playerInv.slots.count,
+               var slotItem = playerInv.slots[slot.index],
+               slotItem.count > 0 {
+
+                // Take one item
+                slotItem.count -= 1
+                if slotItem.count == 0 {
+                    playerInv.slots[slot.index] = nil
+                } else {
+                    playerInv.slots[slot.index] = slotItem
+                }
+                gameLoop.player.inventory = playerInv
+
+                // Add to machine inventory
+                let itemToAdd = ItemStack(itemId: slotItem.itemId, count: 1)
+                let remaining = machineInventory.add(itemToAdd)
+                gameLoop.world.add(machineInventory, to: machineEntity)
+
+                // Return any items that couldn't be added back to player (shouldn't happen)
+                if remaining > 0 {
+                    gameLoop.player.inventory.add(itemId: slotItem.itemId, count: remaining)
+                }
+
+                // Signal completion and close inventory
+                onMachineInputCompleted?()
+                close()
+            }
+        }
     }
 
     func getTooltip(at position: Vector2) -> String? {

@@ -96,6 +96,17 @@ final class UISystem {
             self?.gameLoop?.inputManager?.enterBuildMode(buildingId: buildingId)
         }
         
+        // Machine UI callback for opening inventory
+        machineUI.onOpenInventoryForMachine = { [weak self] entity, slotIndex in
+            // Open inventory UI in machine input mode
+            self?.inventoryUI.enterMachineInputMode(entity: entity, slotIndex: slotIndex)
+            self?.inventoryUI.onMachineInputCompleted = { [weak self] in
+                // Reopen machine UI after inventory input is completed
+                self?.openPanel(.machine)
+            }
+            self?.openPanel(.inventory)
+        }
+
         // Quick bar slot callback
         hud.onQuickBarSlotSelected = { [weak self] slotIndex in
             guard let self = self,
