@@ -171,7 +171,7 @@ final class GameLoop {
     
     // MARK: - Game Actions
     
-    func placeBuilding(_ buildingId: String, at position: IntVector2, direction: Direction) -> Bool {
+    func placeBuilding(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2 = .zero) -> Bool {
         guard let buildingDef = buildingRegistry.get(buildingId) else { return false }
         guard canPlaceBuilding(buildingDef, at: position) else { return false }
 
@@ -184,8 +184,8 @@ final class GameLoop {
         // Create the building entity
         let entity = world.spawn()
         
-        // Add position component
-        world.add(PositionComponent(tilePosition: position, direction: direction), to: entity)
+        // Add position component with offset to center at tap location
+        world.add(PositionComponent(tilePosition: position, direction: direction, offset: offset), to: entity)
         
         // Add building-specific components based on type
         addBuildingComponents(entity: entity, buildingDef: buildingDef, position: position, direction: direction)

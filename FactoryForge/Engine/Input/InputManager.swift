@@ -276,14 +276,20 @@ final class InputManager: NSObject {
                     return
                 }
 
+                // Calculate offset to center the building at the tap location
+                // Account for sprite rendering offset: buildings are offset by half their size
+                let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
+                let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
+                let tapOffset = worldPos - tileCenter - spriteSize / 2
+
                 // Check placement validity
                 if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
                     onTooltip?("Cannot place building here")
                     return
                 }
 
-                // Try to place
-                if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection) {
+                // Try to place with offset to center at tap location
+                if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
                     // Exit build mode after placing (except for belts which allow drag placement)
                     if !buildingId.contains("belt") {
@@ -366,7 +372,7 @@ final class InputManager: NSObject {
                 if let buildingId = selectedBuildingId,
                    buildingId.contains("belt"),
                    let pos = buildPreviewPosition {
-                    _ = gameLoop.placeBuilding(buildingId, at: pos, direction: buildDirection)
+                    _ = gameLoop.placeBuilding(buildingId, at: pos, direction: buildDirection, offset: .zero)
                 }
             }
             
