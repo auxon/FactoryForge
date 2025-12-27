@@ -240,33 +240,8 @@ final class InputManager: NSObject {
                 exitBuildMode()
                 return
             }
-            
-            // Check for resource to mine (allow mining even in build mode)
-            if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
-                // Check if player can accept the item
-                if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
-                    print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
-                    // Manual mining - mine 1 unit
-                    let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
-                    if mined > 0 {
-                        // Start mining animation
-                        let itemId = resource.type.outputItem
-                        gameLoop.uiSystem?.hud.startMiningAnimation(
-                            itemId: itemId,
-                            fromWorldPosition: worldPos,
-                            renderer: gameLoop.renderer
-                        )
-                        
-                        // Add to player inventory (after a delay to match animation)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
-                            gameLoop?.player.inventory.add(itemId: itemId, count: mined)
-                        }
-                        
-                        print("Manually mined \(mined) \(itemId), \(resource.amount - mined) remaining")
-                    }
-                }
-                return // Don't place building if we mined
-            }
+
+            // In build mode, don't allow manual mining - prioritize building placement
             
             // Place building
             if let buildingId = selectedBuildingId {

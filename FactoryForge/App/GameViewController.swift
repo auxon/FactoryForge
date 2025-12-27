@@ -386,6 +386,10 @@ class GameViewController: UIViewController {
                 print("GameViewController: Assembler selected, opening Machine UI")
                 // Open machine UI
                 gameLoop.uiSystem?.openMachineUI(for: entity)
+            } else if world.has(MinerComponent.self, for: entity) {
+                print("GameViewController: Mining drill selected, opening Machine UI")
+                // Open machine UI
+                gameLoop.uiSystem?.openMachineUI(for: entity)
             }
         }
     }

@@ -1,5 +1,8 @@
 import Foundation
 
+// Import ECS components
+import struct FactoryForge.MinerComponent
+
 /// UI for interacting with machines (assemblers, furnaces, etc.)
 final class MachineUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?
@@ -27,7 +30,7 @@ final class MachineUI: UIPanel_Base {
     private func setupSlots() {
         let slotSize: Float = 40 * UIScale
         let slotSpacing: Float = 5 * UIScale
-        
+
         // Input slots (left side)
         for i in 0..<4 {
             let slotX = frame.minX + 50 * UIScale
@@ -37,7 +40,7 @@ final class MachineUI: UIPanel_Base {
                 index: i
             ))
         }
-        
+
         // Output slots (right side)
         for i in 0..<4 {
             let slotX = frame.maxX - 50 * UIScale
@@ -48,9 +51,34 @@ final class MachineUI: UIPanel_Base {
             ))
         }
     }
+
+    private func setupSlotsForMachine(_ entity: Entity) {
+        guard let gameLoop = gameLoop else { return }
+
+        // Clear existing slots
+        inputSlots.removeAll()
+        outputSlots.removeAll()
+
+        let slotSize: Float = 40 * UIScale
+
+        // Setup slots based on machine type
+        if gameLoop.world.has(MinerComponent.self, for: entity) {
+            // Mining drills: 1 centered output slot
+            let slotX = frame.center.x
+            let slotY = frame.minY + 80 * UIScale + slotSize / 2
+            outputSlots.append(InventorySlot(
+                frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
+                index: 0
+            ))
+        } else {
+            // Default setup for other machines (assemblers, furnaces)
+            setupSlots()
+        }
+    }
     
     func setEntity(_ entity: Entity) {
         currentEntity = entity
+        setupSlotsForMachine(entity)
         refreshRecipeButtons()
     }
     
@@ -101,18 +129,32 @@ final class MachineUI: UIPanel_Base {
     
     override func update(deltaTime: Float) {
         guard isOpen, let entity = currentEntity, let world = gameLoop?.world else { return }
-        
+
         // Update inventory slots from machine inventory
         if let inventory = world.get(InventoryComponent.self, for: entity) {
-            for (index, slot) in inputSlots.enumerated() {
-                if index < inventory.slots.count / 2 {
-                    slot.item = inventory.slots[index]
+            if world.has(MinerComponent.self, for: entity) {
+                // Mining drills: all slots are output slots
+                for (index, slot) in outputSlots.enumerated() {
+                    if index < inventory.slots.count {
+                        slot.item = inventory.slots[index]
+                    }
                 }
-            }
-            for (index, slot) in outputSlots.enumerated() {
-                let inventoryIndex = inventory.slots.count / 2 + index
-                if inventoryIndex < inventory.slots.count {
-                    slot.item = inventory.slots[inventoryIndex]
+                // Clear input slots (mining drills don't have inputs)
+                for slot in inputSlots {
+                    slot.item = nil
+                }
+            } else {
+                // Default behavior for assemblers/furnaces: split inventory in half
+                for (index, slot) in inputSlots.enumerated() {
+                    if index < inventory.slots.count / 2 {
+                        slot.item = inventory.slots[index]
+                    }
+                }
+                for (index, slot) in outputSlots.enumerated() {
+                    let inventoryIndex = inventory.slots.count / 2 + index
+                    if inventoryIndex < inventory.slots.count {
+                        slot.item = inventory.slots[inventoryIndex]
+                    }
                 }
             }
         }

@@ -1,6 +1,9 @@
 import Metal
 import simd
 
+// Import ECS components
+import struct FactoryForge.MinerComponent
+
 /// Renders sprites with sorting by layer
 final class SpriteRenderer {
     private let device: MTLDevice
@@ -84,6 +87,9 @@ final class SpriteRenderer {
         // Add items on belts
         renderBeltItems(world: world, visibleRect: visibleRect)
 
+        // Add progress bars for mining drills
+        renderMiningProgressBars(world: world, visibleRect: visibleRect, camera: camera)
+
         guard !queuedSprites.isEmpty else { return }
 
         // Sort by layer
@@ -140,15 +146,15 @@ final class SpriteRenderer {
         for entity in world.query(BeltComponent.self) {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let belt = world.get(BeltComponent.self, for: entity) else { continue }
-            
+
             let basePos = position.worldPosition
             guard visibleRect.contains(basePos) else { continue }
-            
+
             // Render items on left lane
             for item in belt.leftLane {
                 let itemPos = basePos + Vector2(-0.25, item.progress - 0.5).rotated(by: belt.direction.angle)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId)
-                
+
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,
                     size: Vector2(0.4, 0.4),
@@ -158,12 +164,12 @@ final class SpriteRenderer {
                     layer: .item
                 ))
             }
-            
+
             // Render items on right lane
             for item in belt.rightLane {
                 let itemPos = basePos + Vector2(0.25, item.progress - 0.5).rotated(by: belt.direction.angle)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId)
-                
+
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,
                     size: Vector2(0.4, 0.4),
@@ -172,6 +178,54 @@ final class SpriteRenderer {
                     color: .white,
                     layer: .item
                 ))
+            }
+        }
+    }
+
+    private func renderMiningProgressBars(world: World, visibleRect: Rect, camera: Camera2D) {
+        // Query entities with MinerComponent and SpriteComponent
+        for entity in world.query(MinerComponent.self, SpriteComponent.self) {
+            guard let position = world.get(PositionComponent.self, for: entity),
+                  let miner = world.get(MinerComponent.self, for: entity),
+                  let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
+
+            // Only show progress bar if miner is active
+            guard miner.isActive else { continue }
+
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+
+            // Position progress bar below the drill sprite
+            let progressBarPos = worldPos + Vector2(0, sprite.size.y / 2 + 0.3) // 0.3 units below sprite
+
+            // Progress bar dimensions
+            let barWidth: Float = sprite.size.x * 0.8  // 80% of sprite width
+            let barHeight: Float = 0.15  // Thin bar
+            let progressWidth = barWidth * miner.progress
+
+            // Background bar (gray)
+            let backgroundBar = SpriteInstance(
+                position: progressBarPos,
+                size: Vector2(barWidth, barHeight),
+                rotation: 0,
+                textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+                color: Color(r: 0.3, g: 0.3, b: 0.3, a: 0.8), // Dark gray background
+                layer: .ui
+            )
+
+            // Progress bar (green)
+            let progressBar = SpriteInstance(
+                position: progressBarPos + Vector2(-barWidth/2 + progressWidth/2, 0), // Left-aligned progress
+                size: Vector2(progressWidth, barHeight),
+                rotation: 0,
+                textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+                color: Color(r: 0.2, g: 0.8, b: 0.2, a: 0.9), // Bright green progress
+                layer: .ui
+            )
+
+            queuedSprites.append(backgroundBar)
+            if miner.progress > 0 {
+                queuedSprites.append(progressBar)
             }
         }
     }
