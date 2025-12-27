@@ -96,9 +96,6 @@ final class SpriteRenderer {
                 let frameIndex = Int(animationProgress) % 16
                 let frameNumber = String(format: "%03d", frameIndex + 1)
 
-                // Debug: show time and frame calculation
-                print("DEBUG: Animation calc - time: \(currentTime), fractional: \(fractionalTime), speed: \(animationSpeed), frameIndex: \(frameIndex), frameNumber: \(frameNumber)")
-
                 // Create animated texture ID based on direction
                 let directionName: String
                 switch position.direction {
@@ -110,12 +107,8 @@ final class SpriteRenderer {
 
                 // Try to use animated frame, fall back to static if not available
                 let animatedTextureId = "\(textureId)_\(directionName)_\(frameNumber)"
-                print("DEBUG: Belt animation - original: \(textureId), animated: \(animatedTextureId), hasTexture: \(textureAtlas.hasTexture(animatedTextureId))")
                 if textureAtlas.hasTexture(animatedTextureId) {
                     textureId = animatedTextureId
-                    print("DEBUG: Using animated texture: \(textureId)")
-                } else {
-                    print("DEBUG: Falling back to static texture: \(textureId)")
                 }
             }
 

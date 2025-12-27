@@ -242,19 +242,15 @@ final class TextureAtlas {
         let actualFilename = String(components.last!)
         let subdirectory = components.count > 1 ? components.dropLast().joined(separator: "/") : nil
 
-        print("DEBUG: Loading sprite - full filename: \(filename), actual: \(actualFilename), subdir: \(subdirectory ?? "none")")
-
         var imagePath: String?
 
         // First try bundle (for production builds)
         if let subdirectory = subdirectory {
             // Look for file in subdirectory
             imagePath = Bundle.main.path(forResource: actualFilename, ofType: fileExtension, inDirectory: subdirectory)
-            print("DEBUG: Tried bundle with subdirectory: \(subdirectory)/\(actualFilename).\(fileExtension) -> \(imagePath != nil ? "FOUND" : "NOT FOUND")")
         } else {
             // Look for file in root
             imagePath = Bundle.main.path(forResource: filename, ofType: fileExtension)
-            print("DEBUG: Tried bundle root: \(filename).\(fileExtension) -> \(imagePath != nil ? "FOUND" : "NOT FOUND")")
         }
 
         // If not found in bundle, try local file system (for development)
@@ -262,16 +258,12 @@ final class TextureAtlas {
             let localPath = "FactoryForge/Assets/\(subdirectory)/\(actualFilename).\(fileExtension)"
             if FileManager.default.fileExists(atPath: localPath) {
                 imagePath = localPath
-                print("DEBUG: Found image in local filesystem: \(localPath)")
-            } else {
-                print("DEBUG: Local file not found: \(localPath)")
             }
         }
 
         // Last resort: try the full filename as-is in bundle root (in case subdirs aren't working)
         if imagePath == nil {
             imagePath = Bundle.main.path(forResource: filename, ofType: fileExtension)
-            print("DEBUG: Last resort - tried full filename in root: \(filename).\(fileExtension) -> \(imagePath != nil ? "FOUND" : "NOT FOUND")")
         }
 
         guard let finalImagePath = imagePath else {
@@ -284,7 +276,6 @@ final class TextureAtlas {
             return nil
         }
 
-        print("DEBUG: Successfully loaded image: \(finalImagePath)")
         return image
     }
     
