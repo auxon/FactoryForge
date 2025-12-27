@@ -107,7 +107,9 @@ final class InputManager: NSObject {
     // MARK: - Gesture Handlers
     
     @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
+        print("InputManager: handleTap called with state: \(recognizer.state)")
         guard recognizer.state == .ended else { return }
+        print("InputManager: handleTap processing tap")
 
         let screenPos = screenPosition(from: recognizer)
 
@@ -132,43 +134,51 @@ final class InputManager: NSObject {
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
 
+        print("InputManager: Processing tap at screen(\(screenPos.x), \(screenPos.y)) -> world(\(worldPos.x), \(worldPos.y)) -> tile(\(tilePos.x), \(tilePos.y))")
+
         // Update build preview position for tap placement
         if buildMode == .placing {
+            print("InputManager: In placing mode, updating build preview position")
             buildPreviewPosition = tilePos
         }
-        
-        // Show tooltips regardless of build mode - check for entities within a small radius
-        let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
-        var closestEntity: Entity?
-        var closestDistance = Float.greatestFiniteMagnitude
 
-        for entity in nearbyEntities {
-            if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
-                let distance = pos.worldPosition.distance(to: worldPos)
-                if distance < closestDistance {
-                    closestDistance = distance
-                    closestEntity = entity
+        // Show tooltips for entities only when not in build mode (to allow building placement)
+        if buildMode == .none {
+            let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
+            var closestEntity: Entity?
+            var closestDistance = Float.greatestFiniteMagnitude
+
+            for entity in nearbyEntities {
+                if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    if distance < closestDistance {
+                        closestDistance = distance
+                        closestEntity = entity
+                    }
+                }
+            }
+
+            if let entity = closestEntity {
+                // Show tooltip for the closest entity
+                if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
+                    onTooltip?(tooltipText)
+                    return // Don't check resources if we found an entity
                 }
             }
         }
 
-        if let entity = closestEntity {
-            // Show tooltip for the closest entity
-            if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
-                onTooltip?(tooltipText)
-                return // Don't check resources if we found an entity
+        // Check for resource at the exact tile (only when not in build mode)
+        if buildMode == .none {
+            if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+                // Show tooltip for resource
+                onTooltip?(resource.type.displayName)
             }
-        }
-
-        // Check for resource at the exact tile
-        if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
-            // Show tooltip for resource
-            onTooltip?(resource.type.displayName)
         }
 
         // UI didn't handle it, process game tap
         currentTouchPosition = worldPos
         
+        print("InputManager: Processing tap in switch buildMode = \(buildMode)")
         switch buildMode {
         case .none:
             // Check if player is attacking an enemy (prioritize combat)
@@ -254,8 +264,9 @@ final class InputManager: NSObject {
 
             // In build mode, don't allow manual mining - prioritize building placement
             
-            // Place building
+                // Place building
             if let buildingId = selectedBuildingId {
+                print("InputManager: Attempting to place building \(buildingId)")
                 // Check if we can place the building and why it might fail
                 guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else {
                     // Invalid building - this shouldn't happen in normal gameplay
@@ -263,8 +274,11 @@ final class InputManager: NSObject {
                     return
                 }
 
+                print("InputManager: Checking building placement for \(buildingId) at tile (\(tilePos.x), \(tilePos.y))")
+
                 // Check inventory first
                 if !gameLoop.player.inventory.has(items: buildingDef.cost) {
+                    print("InputManager: Player lacks required items")
                     // Show missing items
                     let missingItems = buildingDef.cost.filter { !gameLoop.player.inventory.has(items: [$0]) }
                     if let firstMissing = missingItems.first {
@@ -276,20 +290,28 @@ final class InputManager: NSObject {
                     return
                 }
 
+                print("InputManager: Player has required items, calculating placement offset")
+
                 // Calculate offset to center the building at the tap location
                 // Account for sprite rendering offset: buildings are offset by half their size
                 let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
                 let tapOffset = worldPos - tileCenter - spriteSize / 2
 
+                print("InputManager: Checking placement validity")
+
                 // Check placement validity
                 if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
+                    print("InputManager: canPlaceBuilding returned false")
                     onTooltip?("Cannot place building here")
                     return
                 }
 
+                print("InputManager: canPlaceBuilding returned true, attempting to place building")
+
                 // Try to place with offset to center at tap location
                 if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
+                    print("InputManager: placeBuilding succeeded")
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
                     // Exit build mode after placing (except for belts which allow drag placement)
                     if !buildingId.contains("belt") {
@@ -297,6 +319,7 @@ final class InputManager: NSObject {
                     }
                     // Play placement sound/feedback
                 } else {
+                    print("InputManager: placeBuilding failed")
                     onTooltip?("Failed to place building")
                 }
             }

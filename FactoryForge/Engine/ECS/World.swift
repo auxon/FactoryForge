@@ -187,7 +187,7 @@ final class World {
     
     /// Checks if there's an entity at a position
     func hasEntityAt(position: IntVector2) -> Bool {
-        return spatialIndex[position] != nil
+        return getEntityAt(position: position) != nil
     }
     
     /// Gets entities within a rectangular area

@@ -289,10 +289,24 @@ final class UISystem {
             case .machine:
                 if machineUI.handleTap(at: screenPos) { return true }
             }
-            
-            // Tap outside panel closes it
-            closeAllPanels()
-            return true
+
+            // Check if tap is inside the panel area - if so, close it
+            let panelHandledTap = switch panel {
+            case .loadingMenu: loadingMenu.frame.contains(screenPos)
+            case .inventory: inventoryUI.frame.contains(screenPos)
+            case .crafting: craftingMenu.frame.contains(screenPos)
+            case .build: buildMenu.frame.contains(screenPos)
+            case .research: researchUI.frame.contains(screenPos)
+            case .machine: machineUI.frame.contains(screenPos)
+            }
+
+            if panelHandledTap {
+                closeAllPanels()
+                return true
+            }
+
+            // Tap outside panel - don't consume it, let it pass to game logic
+            return false
         }
         
         return false
