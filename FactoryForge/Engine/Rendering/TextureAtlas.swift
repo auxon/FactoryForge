@@ -75,6 +75,15 @@ final class TextureAtlas {
         // List of sprite files to load with their textureId mappings
         // Format: (filename, textureId) - if textureId is nil, uses filename
         let spriteFiles: [(filename: String, textureId: String?)] = [
+            // UI - FIRST for stable atlas packing (variable widths affect subsequent textures)
+            ("building_placeholder", nil),
+            ("delete_game", nil),
+            ("load_game", nil),
+            ("menu", nil),
+            ("new_game", nil),
+            ("save_game", nil),
+            ("solid_white", nil),
+
             // Entities (load player sprite sheets first - they extract all frames)
             ("player", nil),
             ("player_left", nil),
@@ -107,29 +116,28 @@ final class TextureAtlas {
             ("assembling_machine_2", nil),
             ("assembling_machine_3", nil),
             
-            // Buildings - Belts (Animated)
-            // Transport Belt North Animation Frames - try different approaches
-            ("transport_belt_north_001", "transport_belt_north_001"),
-            ("transport_belt_north_002", "transport_belt_north_002"),
-            ("transport_belt_north_003", "transport_belt_north_003"),
-            ("transport_belt_north_004", "transport_belt_north_004"),
-            ("transport_belt_north_005", "transport_belt_north_005"),
-            ("transport_belt_north_006", "transport_belt_north_006"),
-            ("transport_belt_north_007", "transport_belt_north_007"),
-            ("transport_belt_north_008", "transport_belt_north_008"),
-            ("transport_belt_north_009", "transport_belt_north_009"),
-            ("transport_belt_north_010", "transport_belt_north_010"),
-            ("transport_belt_north_011", "transport_belt_north_011"),
-            ("transport_belt_north_012", "transport_belt_north_012"),
-            ("transport_belt_north_013", "transport_belt_north_013"),
-            ("transport_belt_north_014", "transport_belt_north_014"),
-            ("transport_belt_north_015", "transport_belt_north_015"),
-            ("transport_belt_north_016", "transport_belt_north_016"),
-
-            // Keep static belt sprites as fallback (will be replaced with full animations later)
+            // Buildings - Belts
             ("transport_belt", nil),
             ("fast_transport_belt", nil),
             ("express_transport_belt", nil),
+
+            // Belt animation frames (north direction only for now)
+            ("transport_belt_north_001", nil),
+            ("transport_belt_north_002", nil),
+            ("transport_belt_north_003", nil),
+            ("transport_belt_north_004", nil),
+            ("transport_belt_north_005", nil),
+            ("transport_belt_north_006", nil),
+            ("transport_belt_north_007", nil),
+            ("transport_belt_north_008", nil),
+            ("transport_belt_north_009", nil),
+            ("transport_belt_north_010", nil),
+            ("transport_belt_north_011", nil),
+            ("transport_belt_north_012", nil),
+            ("transport_belt_north_013", nil),
+            ("transport_belt_north_014", nil),
+            ("transport_belt_north_015", nil),
+            ("transport_belt_north_016", nil),
             
             // Buildings - Inserters
             ("inserter", nil),
@@ -193,14 +201,6 @@ final class TextureAtlas {
             ("piercing_rounds_magazine", nil),
             ("grenade", nil),
             
-            // UI
-            ("solid_white", nil),
-            ("building_placeholder", nil),
-            ("menu", nil),
-            ("new_game", nil),
-            ("save_game", nil),
-            ("load_game", nil),
-            ("delete_game", nil),
         ]
         
         print("Loading \(spriteFiles.count) sprite files...")
@@ -237,41 +237,12 @@ final class TextureAtlas {
     }
     
     private func loadSpriteImage(filename: String, fileExtension: String) -> UIImage? {
-        // Handle subdirectories in filename (e.g., "belts/transport/north/file")
-        let components = filename.split(separator: "/")
-        let actualFilename = String(components.last!)
-        let subdirectory = components.count > 1 ? components.dropLast().joined(separator: "/") : nil
-
-        var imagePath: String?
-
-        // First try bundle (for production builds)
-        if let subdirectory = subdirectory {
-            // Look for file in subdirectory
-            imagePath = Bundle.main.path(forResource: actualFilename, ofType: fileExtension, inDirectory: subdirectory)
-        } else {
-            // Look for file in root
-            imagePath = Bundle.main.path(forResource: filename, ofType: fileExtension)
-        }
-
-        // If not found in bundle, try local file system (for development)
-        if imagePath == nil, let subdirectory = subdirectory {
-            let localPath = "FactoryForge/Assets/\(subdirectory)/\(actualFilename).\(fileExtension)"
-            if FileManager.default.fileExists(atPath: localPath) {
-                imagePath = localPath
-            }
-        }
-
-        // Last resort: try the full filename as-is in bundle root (in case subdirs aren't working)
-        if imagePath == nil {
-            imagePath = Bundle.main.path(forResource: filename, ofType: fileExtension)
-        }
-
-        guard let finalImagePath = imagePath else {
-            print("Warning: Could not find sprite image: \(filename).\(fileExtension) (subdirectory: \(subdirectory ?? "root"))")
+        guard let imagePath = Bundle.main.path(forResource: filename, ofType: fileExtension) else {
+            print("Warning: Could not find sprite image: \(filename).\(fileExtension)")
             return nil
         }
 
-        guard let image = UIImage(contentsOfFile: finalImagePath) else {
+        guard let image = UIImage(contentsOfFile: imagePath) else {
             print("Warning: Could not load sprite image: \(filename).\(fileExtension)")
             return nil
         }
@@ -466,12 +437,17 @@ final class TextureAtlas {
             height: Float(copyHeight) / Float(atlasSize)
         )
         textureRects[name] = uvRect
+
+        // Debug UV coordinates for UI textures
+        if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder"].contains(name) {
+            print("DEBUG: \(name) UV rect: x=\(uvRect.origin.x), y=\(uvRect.origin.y), w=\(uvRect.size.x), h=\(uvRect.size.y)")
+        }
         
-        // Move to next position in atlas (use actual width for UI buttons, spriteSize for others)
+        // Move to next position in atlas (UI buttons get dedicated rows)
         if uiButtonNames.contains(name) {
-            // UI buttons: advance by actual width, round up to spriteSize boundary for next sprite
-            atlasX += copyWidth
-            atlasX = ((atlasX + spriteSize - 1) / spriteSize) * spriteSize
+            // UI buttons: force to next row to avoid overlap with other sprites
+            atlasX = 0
+            atlasY += spriteSize
         } else {
             // Regular sprites: advance by spriteSize
             atlasX += spriteSize
@@ -1322,6 +1298,16 @@ final class TextureAtlas {
                 height: Float(tileSize) / Float(atlasSize)
             )
             textureRects[name] = uvRect
+
+            // Debug UV coordinates for UI textures
+            if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder"].contains(name) {
+                print("DEBUG: \(name) UV rect: x=\(uvRect.origin.x), y=\(uvRect.origin.y), w=\(uvRect.size.x), h=\(uvRect.size.y)")
+            }
+
+        // Debug UV coordinates for UI textures
+        if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder"].contains(name) {
+            print("DEBUG: \(name) UV rect: x=\(uvRect.origin.x), y=\(uvRect.origin.y), w=\(uvRect.size.x), h=\(uvRect.size.y)")
+        }
 
             // Move to next position
             currentX += tileSize

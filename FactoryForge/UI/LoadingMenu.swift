@@ -19,15 +19,15 @@ final class LoadingMenu: UIPanel_Base {
     init(screenSize: Vector2) {
         self.saveSystem = SaveSystem()
         self.screenSize = screenSize
-
+        
         // Use full screen size for background
         let panelFrame = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
             size: Vector2(screenSize.x, screenSize.y)
         )
-
+        
         super.init(frame: panelFrame)
-
+        
         setupCloseButton()
         setupButtons()
         refreshSaveSlots()
@@ -43,7 +43,7 @@ final class LoadingMenu: UIPanel_Base {
             self?.close()
         }
     }
-
+    
     private func setupButtons() {
         // Button images are 805x279px (aspect ratio ~2.89:1), calculate size to preserve aspect ratio
         let imageAspectRatio: Float = 805.0 / 279.0  // ~2.89
@@ -198,10 +198,10 @@ final class LoadingMenu: UIPanel_Base {
             // Conversion: UIKit Y = Metal Y / screenScale
             // We want to center the label vertically in the button
             let buttonCenterYPixels = CGFloat(slotButton.frame.center.y)
-
+            
             // Convert from Metal pixels (top-left origin) to UIKit points (top-left origin)
             let buttonCenterYPoints = buttonCenterYPixels / screenScale
-
+            
             // Position label centered vertically in button
             // Use proper font metrics for label height
             let font = UIFont.systemFont(ofSize: 16, weight: .medium)
@@ -258,7 +258,7 @@ final class LoadingMenu: UIPanel_Base {
 
         // Render close button
         closeButton.render(renderer: renderer)
-
+        
         // Render title
         renderTitle(renderer: renderer)
         
@@ -310,7 +310,7 @@ final class LoadingMenu: UIPanel_Base {
         if closeButton.handleTap(at: position) {
             return true
         }
-
+        
         // Check New Game button
         if newGameButton?.handleTap(at: position) == true {
             return true

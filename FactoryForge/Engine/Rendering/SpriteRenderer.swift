@@ -69,47 +69,21 @@ final class SpriteRenderer {
 
             var textureId = sprite.textureId
 
-            // Handle belt animations
-            if world.has(BeltComponent.self, for: entity),
-               let belt = world.get(BeltComponent.self, for: entity) {
-
-                // Calculate animation frame based on time and belt speed
+            // Belt animation system - animate transport belts
+            if textureId == "transport_belt" {
+                // Calculate animation frame based on time
                 let currentTime = Date().timeIntervalSince1970
-                let animationSpeed: Float
+                let fractionalTime = currentTime - floor(currentTime) // Get fractional seconds
 
-                // Set animation speed based on belt type
-                switch textureId {
-                case "transport_belt":
-                    animationSpeed = 8.0  // 8 FPS
-                case "fast_transport_belt":
-                    animationSpeed = 10.0 // 10 FPS
-                case "express_transport_belt":
-                    animationSpeed = 12.0 // 12 FPS
-                default:
-                    animationSpeed = 8.0
-                }
-
-                // Use fractional seconds for smoother animation
-                let fractionalTime = Float(currentTime - floor(currentTime))
+                // Animation parameters
+                let animationSpeed: Float = 8.0 // Speed multiplier
                 let speedMultiplier = animationSpeed / 8.0
-                let animationProgress = fractionalTime * 16.0 * speedMultiplier
-                let frameIndex = Int(animationProgress) % 16
-                let frameNumber = String(format: "%03d", frameIndex + 1)
+                let animationProgress = Float(fractionalTime) * speedMultiplier
+                let frameIndex = Int(animationProgress * 16.0) % 16
 
-                // Create animated texture ID based on direction
-                let directionName: String
-                switch position.direction {
-                case .north: directionName = "north"
-                case .east: directionName = "east"
-                case .south: directionName = "south"
-                case .west: directionName = "west"
-                }
-
-                // Try to use animated frame, fall back to static if not available
-                let animatedTextureId = "\(textureId)_\(directionName)_\(frameNumber)"
-                if textureAtlas.hasTexture(animatedTextureId) {
-                    textureId = animatedTextureId
-                }
+                // Format frame number with leading zeros (001-016)
+                let frameString = String(format: "%03d", frameIndex + 1)
+                textureId = "transport_belt_north_\(frameString)"
             }
 
             let textureRect = textureAtlas.getTextureRect(for: textureId)
