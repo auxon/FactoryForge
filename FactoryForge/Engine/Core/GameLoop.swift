@@ -172,9 +172,7 @@ final class GameLoop {
     // MARK: - Game Actions
     
     func placeBuilding(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2 = .zero) -> Bool {
-        print("GameLoop: placeBuilding called for \(buildingId) at tile (\(position.x), \(position.y)) with offset (\(offset.x), \(offset.y))")
         guard let buildingDef = buildingRegistry.get(buildingId) else {
-            print("GameLoop: placeBuilding failed - unknown building \(buildingId)")
             return false
         }
         guard canPlaceBuilding(buildingDef, at: position) else { return false }
@@ -204,7 +202,6 @@ final class GameLoop {
             powerSystem.markNetworksDirty()
         }
 
-        print("GameLoop: placeBuilding succeeded for \(buildingId)")
         return true
     }
     
@@ -214,50 +211,37 @@ final class GameLoop {
     }
 
     private func canPlaceBuilding(_ building: BuildingDefinition, at position: IntVector2) -> Bool {
-        print("GameLoop: canPlaceBuilding called for \(building.id) at tile (\(position.x), \(position.y))")
 
         // Debug: Check where the player is
         for entity in world.query(PositionComponent.self) {
             if let pos = world.get(PositionComponent.self, for: entity),
                let collision = world.get(CollisionComponent.self, for: entity),
                collision.layer == .player {
-                print("GameLoop: Player found at tile (\(pos.tilePosition.x), \(pos.tilePosition.y))")
                 break
             }
         }
 
-        print("GameLoop: Checking \(building.width)x\(building.height) building tiles:")
         for dy in 0..<building.height {
             for dx in 0..<building.width {
                 let checkPos = position + IntVector2(Int(dx), Int(dy))
 
                 // Check if tile is buildable
                 guard let tile = chunkManager.getTile(at: checkPos) else {
-                    print("GameLoop: No tile found at (\(checkPos.x), \(checkPos.y))")
                     return false
                 }
                 guard tile.isBuildable else {
-                    print("GameLoop: Tile at (\(checkPos.x), \(checkPos.y)) is not buildable")
                     return false
                 }
 
-                        print("GameLoop: Checking tile (\(checkPos.x), \(checkPos.y))")
-
                 // Check if there's already a building here
                 if world.hasEntityAt(position: checkPos) {
-                    print("GameLoop: Entity found at tile (\(checkPos.x), \(checkPos.y))")
                     // Get the entity and check what it is
                     if let entity = world.getEntityAt(position: checkPos) {
-                        print("GameLoop: Found entity \(entity.id) at tile (\(checkPos.x), \(checkPos.y))")
 
                         // Check if the entity has a collision component
                         if let collision = world.get(CollisionComponent.self, for: entity) {
-                            print("GameLoop: Entity has collision layer: \(collision.layer), rawValue: \(collision.layer.rawValue)")
-                            print("GameLoop: .player rawValue: \(CollisionLayer.player.rawValue)")
-                            print("GameLoop: layer == .player: \(collision.layer == .player)")
                             if collision.layer == .player {
                                 // Allow placement - ignore player
-                                print("GameLoop: Allowing building placement over player at tile (\(checkPos.x), \(checkPos.y))")
                                 continue
                             }
                         } else {
@@ -271,19 +255,15 @@ final class GameLoop {
 
                         // For belts, allow placement on top of buildings too (for belt networks)
                         if building.type == .belt {
-                            print("GameLoop: Allowing belt placement over building at tile (\(checkPos.x), \(checkPos.y))")
                             continue
                         }
                     }
 
                     // Block placement on other entities
-                    print("GameLoop: Blocking building placement due to entity at tile (\(checkPos.x), \(checkPos.y))")
-                    print("GameLoop: canPlaceBuilding returning false")
                     return false
                 }
             }
         }
-        print("GameLoop: canPlaceBuilding returning true")
         return true
     }
     

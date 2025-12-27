@@ -107,9 +107,7 @@ final class InputManager: NSObject {
     // MARK: - Gesture Handlers
     
     @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
-        print("InputManager: handleTap called with state: \(recognizer.state)")
         guard recognizer.state == .ended else { return }
-        print("InputManager: handleTap processing tap")
 
         let screenPos = screenPosition(from: recognizer)
 
@@ -134,11 +132,8 @@ final class InputManager: NSObject {
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
 
-        print("InputManager: Processing tap at screen(\(screenPos.x), \(screenPos.y)) -> world(\(worldPos.x), \(worldPos.y)) -> tile(\(tilePos.x), \(tilePos.y))")
-
         // Update build preview position for tap placement
         if buildMode == .placing {
-            print("InputManager: In placing mode, updating build preview position")
             buildPreviewPosition = tilePos
         }
 
@@ -182,7 +177,6 @@ final class InputManager: NSObject {
         case .none:
             // Check if player is attacking an enemy (prioritize combat)
             let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 3.0)
-            print("Tap at \(worldPos), found \(nearbyEnemies.count) nearby entities")
             var attacked = false
 
             for enemy in nearbyEnemies {
@@ -253,7 +247,6 @@ final class InputManager: NSObject {
             // Check if we're tapping on an existing entity first (allow interaction even in build mode)
             let tilePos = IntVector2(from: worldPos)
             if let entity = gameLoop.world.getEntityAt(position: tilePos) {
-                print("InputManager: Tapped on entity in build mode, exiting build mode and calling onEntitySelected")
                 // Entity was tapped - select it and exit build mode
                 selectedEntity = entity
                 onEntitySelected?(entity)
@@ -265,7 +258,6 @@ final class InputManager: NSObject {
             
                 // Place building
             if let buildingId = selectedBuildingId {
-                print("InputManager: Attempting to place building \(buildingId)")
                 // Check if we can place the building and why it might fail
                 guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else {
                     // Invalid building - this shouldn't happen in normal gameplay
@@ -273,11 +265,8 @@ final class InputManager: NSObject {
                     return
                 }
 
-                print("InputManager: Checking building placement for \(buildingId) at tile (\(tilePos.x), \(tilePos.y))")
-
                 // Check inventory first
                 if !gameLoop.player.inventory.has(items: buildingDef.cost) {
-                    print("InputManager: Player lacks required items")
                     // Show missing items
                     let missingItems = buildingDef.cost.filter { !gameLoop.player.inventory.has(items: [$0]) }
                     if let firstMissing = missingItems.first {
@@ -288,29 +277,21 @@ final class InputManager: NSObject {
                     }
                     return
                 }
-
-                print("InputManager: Player has required items, calculating placement offset")
-
+                
                 // Calculate offset to center the building at the tap location
                 // Account for sprite rendering offset: buildings are offset by half their size
                 let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
                 let tapOffset = worldPos - tileCenter - spriteSize / 2
 
-                print("InputManager: Checking placement validity")
-
                 // Check placement validity
                 if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
-                    print("InputManager: canPlaceBuilding returned false")
                     onTooltip?("Cannot place building here")
                     return
                 }
 
-                print("InputManager: canPlaceBuilding returned true, attempting to place building")
-
                 // Try to place with offset to center at tap location
                 if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
-                    print("InputManager: placeBuilding succeeded")
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
                     // Exit build mode after placing (except for belts which allow drag placement)
                     if !buildingId.contains("belt") {
@@ -318,7 +299,6 @@ final class InputManager: NSObject {
                     }
                     // Play placement sound/feedback
                 } else {
-                    print("InputManager: placeBuilding failed")
                     onTooltip?("Failed to place building")
                 }
             }
@@ -448,7 +428,6 @@ final class InputManager: NSObject {
             if gameLoop.world.has(FurnaceComponent.self, for: entity) ||
                gameLoop.world.has(AssemblerComponent.self, for: entity) ||
                gameLoop.world.has(MinerComponent.self, for: entity) {
-                print("InputManager: Double tap on machine, opening machine UI")
 
                 // Exit build mode if we're in it
                 if buildMode != .none {
@@ -464,8 +443,6 @@ final class InputManager: NSObject {
             if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                 // Check if player can accept the item
                 if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
-                    print("InputManager: Double tap on resource, mining \(resource.type)")
-
                     // Manual mining - mine 1 unit
                     let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
                     if mined > 0 {
