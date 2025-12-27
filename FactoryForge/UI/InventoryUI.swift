@@ -221,28 +221,44 @@ final class InventoryUI: UIPanel_Base {
                var slotItem = playerInv.slots[slot.index],
                slotItem.count > 0 {
 
-                // Take one item
-                slotItem.count -= 1
-                if slotItem.count == 0 {
-                    playerInv.slots[slot.index] = nil
-                } else {
-                    playerInv.slots[slot.index] = slotItem
+                // Transfer as many items as possible (up to the entire stack)
+                // Calculate available space in machine inventory
+                var availableSpace = 0
+                for slot in machineInventory.slots {
+                    if slot == nil {
+                        // Empty slot can hold max stack
+                        availableSpace += slotItem.maxStack
+                    } else if slot!.itemId == slotItem.itemId {
+                        // Existing stack can hold remaining space
+                        availableSpace += slot!.maxStack - slot!.count
+                    }
                 }
-                gameLoop.player.inventory = playerInv
+                let itemsToTransfer = min(slotItem.count, availableSpace)
 
-                // Add to machine inventory
-                let itemToAdd = ItemStack(itemId: slotItem.itemId, count: 1)
-                let remaining = machineInventory.add(itemToAdd)
-                gameLoop.world.add(machineInventory, to: machineEntity)
+                if itemsToTransfer > 0 {
+                    // Remove items from player inventory
+                    slotItem.count -= itemsToTransfer
+                    if slotItem.count == 0 {
+                        playerInv.slots[slot.index] = nil
+                    } else {
+                        playerInv.slots[slot.index] = slotItem
+                    }
+                    gameLoop.player.inventory = playerInv
 
-                // Return any items that couldn't be added back to player (shouldn't happen)
-                if remaining > 0 {
-                    gameLoop.player.inventory.add(itemId: slotItem.itemId, count: remaining)
+                    // Add to machine inventory
+                    let itemToAdd = ItemStack(itemId: slotItem.itemId, count: itemsToTransfer)
+                    let remaining = machineInventory.add(itemToAdd)
+                    gameLoop.world.add(machineInventory, to: machineEntity)
+
+                    // Return any items that couldn't be added back to player (shouldn't happen)
+                    if remaining > 0 {
+                        gameLoop.player.inventory.add(itemId: slotItem.itemId, count: remaining)
+                    }
+
+                    // Signal completion but DON'T close inventory - let player add more items
+                    onMachineInputCompleted?()
+                    // close() - Removed so inventory stays open for multiple transfers
                 }
-
-                // Signal completion and close inventory
-                onMachineInputCompleted?()
-                close()
             }
         }
     }
