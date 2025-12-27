@@ -150,7 +150,7 @@ final class AudioManager {
     }
     
     func playMiningSound() {
-        playSound("mining.wav", volume: 0.3)
+        playSound("mining.m4a", volume: 0.3)
     }
     
     func playCraftingCompleteSound() {
