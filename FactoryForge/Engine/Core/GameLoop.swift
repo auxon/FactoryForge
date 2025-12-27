@@ -219,6 +219,20 @@ final class GameLoop {
 
                 // Check if there's already a building here
                 if world.hasEntityAt(position: checkPos) {
+                    // Check if the entity at this position is the player - ignore player for all buildings
+                    if let entity = world.getEntityAt(position: checkPos),
+                       let collision = world.get(CollisionComponent.self, for: entity),
+                       collision.layer == .player {
+                        // Allow placement - ignore player
+                        continue
+                    }
+
+                    // For belts, allow placement on top of buildings too (for belt networks)
+                    if building.type == .belt {
+                        continue
+                    }
+
+                    // Block placement on other entities
                     return false
                 }
             }
@@ -227,11 +241,12 @@ final class GameLoop {
     }
     
     private func addBuildingComponents(entity: Entity, buildingDef: BuildingDefinition, position: IntVector2, direction: Direction) {
-        // Add render component
+        // Add render component - belts should appear under buildings
+        let renderLayer: RenderLayer = (buildingDef.type == .belt) ? .groundDecoration : .building
         world.add(SpriteComponent(
             textureId: buildingDef.textureId,
             size: Vector2(Float(buildingDef.width), Float(buildingDef.height)),
-            layer: .building
+            layer: renderLayer
         ), to: entity)
         
         // Add health component

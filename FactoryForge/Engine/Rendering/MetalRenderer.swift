@@ -371,8 +371,8 @@ final class Camera2D {
         return Vector2(screenWidth, screenHeight)
     }
     
-    let minZoom: Float = 0.25
-    let maxZoom: Float = 4.0
+    let minZoom: Float = 0.20
+    let maxZoom: Float = 10.0
     let followSpeed: Float = 8.0
     let zoomSpeed: Float = 5.0
     
@@ -385,6 +385,16 @@ final class Camera2D {
     func updateScreenSize(width: Float, height: Float) {
         screenWidth = width
         screenHeight = height
+    }
+
+    func setZoom(_ newZoom: Float, animated: Bool = true) {
+        let clampedZoom = max(minZoom, min(maxZoom, newZoom))
+        if animated {
+            targetZoom = clampedZoom
+        } else {
+            zoom = clampedZoom
+            targetZoom = clampedZoom
+        }
     }
     
     func update(deltaTime: Float) {
@@ -428,16 +438,6 @@ final class Camera2D {
             center: position,
             size: Vector2(halfWidth * 2, halfHeight * 2)
         )
-    }
-    
-    func setZoom(_ newZoom: Float, animated: Bool = true) {
-        let clampedZoom = max(minZoom, min(maxZoom, newZoom))
-        if animated {
-            targetZoom = clampedZoom
-        } else {
-            zoom = clampedZoom
-            targetZoom = clampedZoom
-        }
     }
     
     func worldToScreen(_ worldPos: Vector2) -> Vector2 {
