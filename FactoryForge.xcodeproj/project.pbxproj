@@ -86,6 +86,22 @@
 		0D7457F12EFF204D00C7C473 /* steel_plate.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457EF2EFF204D00C7C473 /* steel_plate.png */; };
 		0D7457F22EFF204D00C7C473 /* stone_brick.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457F02EFF204D00C7C473 /* stone_brick.png */; };
 		0D7457F42EFF6B8700C7C473 /* menu.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457F32EFF6B8700C7C473 /* menu.png */; };
+		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
+		0DE229632F001B9F00BD619D /* transport_belt_north_013.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229592F001B9F00BD619D /* transport_belt_north_013.png */; };
+		0DE229642F001B9F00BD619D /* transport_belt_north_002.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */; };
+		0DE229652F001B9F00BD619D /* transport_belt_north_005.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229512F001B9F00BD619D /* transport_belt_north_005.png */; };
+		0DE229662F001B9F00BD619D /* transport_belt_north_015.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2295B2F001B9F00BD619D /* transport_belt_north_015.png */; };
+		0DE229672F001B9F00BD619D /* transport_belt_north_009.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229552F001B9F00BD619D /* transport_belt_north_009.png */; };
+		0DE229682F001B9F00BD619D /* transport_belt_north_001.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */; };
+		0DE229692F001B9F00BD619D /* transport_belt_north_012.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229582F001B9F00BD619D /* transport_belt_north_012.png */; };
+		0DE2296A2F001B9F00BD619D /* transport_belt_north_014.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2295A2F001B9F00BD619D /* transport_belt_north_014.png */; };
+		0DE2296B2F001B9F00BD619D /* transport_belt_north_006.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229522F001B9F00BD619D /* transport_belt_north_006.png */; };
+		0DE2296C2F001B9F00BD619D /* transport_belt_north_011.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229572F001B9F00BD619D /* transport_belt_north_011.png */; };
+		0DE2296D2F001B9F00BD619D /* transport_belt_north_016.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2295C2F001B9F00BD619D /* transport_belt_north_016.png */; };
+		0DE2296E2F001B9F00BD619D /* transport_belt_north_008.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229542F001B9F00BD619D /* transport_belt_north_008.png */; };
+		0DE2296F2F001B9F00BD619D /* transport_belt_north_007.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229532F001B9F00BD619D /* transport_belt_north_007.png */; };
+		0DE229702F001B9F00BD619D /* transport_belt_north_010.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229562F001B9F00BD619D /* transport_belt_north_010.png */; };
+		0DE229712F001B9F00BD619D /* transport_belt_north_004.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229502F001B9F00BD619D /* transport_belt_north_004.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -226,6 +242,22 @@
 		0D7457EF2EFF204D00C7C473 /* steel_plate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = steel_plate.png; sourceTree = "<group>"; };
 		0D7457F02EFF204D00C7C473 /* stone_brick.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone_brick.png; sourceTree = "<group>"; };
 		0D7457F32EFF6B8700C7C473 /* menu.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = menu.png; sourceTree = "<group>"; };
+		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
+		0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_002.png; sourceTree = "<group>"; };
+		0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_003.png; sourceTree = "<group>"; };
+		0DE229502F001B9F00BD619D /* transport_belt_north_004.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_004.png; sourceTree = "<group>"; };
+		0DE229512F001B9F00BD619D /* transport_belt_north_005.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_005.png; sourceTree = "<group>"; };
+		0DE229522F001B9F00BD619D /* transport_belt_north_006.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_006.png; sourceTree = "<group>"; };
+		0DE229532F001B9F00BD619D /* transport_belt_north_007.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_007.png; sourceTree = "<group>"; };
+		0DE229542F001B9F00BD619D /* transport_belt_north_008.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_008.png; sourceTree = "<group>"; };
+		0DE229552F001B9F00BD619D /* transport_belt_north_009.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_009.png; sourceTree = "<group>"; };
+		0DE229562F001B9F00BD619D /* transport_belt_north_010.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_010.png; sourceTree = "<group>"; };
+		0DE229572F001B9F00BD619D /* transport_belt_north_011.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_011.png; sourceTree = "<group>"; };
+		0DE229582F001B9F00BD619D /* transport_belt_north_012.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_012.png; sourceTree = "<group>"; };
+		0DE229592F001B9F00BD619D /* transport_belt_north_013.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_013.png; sourceTree = "<group>"; };
+		0DE2295A2F001B9F00BD619D /* transport_belt_north_014.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_014.png; sourceTree = "<group>"; };
+		0DE2295B2F001B9F00BD619D /* transport_belt_north_015.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_015.png; sourceTree = "<group>"; };
+		0DE2295C2F001B9F00BD619D /* transport_belt_north_016.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_016.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -302,6 +334,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DE229612F001B9F00BD619D /* belts */,
 				0D7457F32EFF6B8700C7C473 /* menu.png */,
 				0D7457EF2EFF204D00C7C473 /* steel_plate.png */,
 				0D7457F02EFF204D00C7C473 /* stone_brick.png */,
@@ -382,6 +415,149 @@
 				0D6FDBD42EFDD03C00576EC3 /* player.png */,
 			);
 			path = Assets;
+			sourceTree = "<group>";
+		};
+		0DE229422F001B9F00BD619D /* east */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = east;
+			sourceTree = "<group>";
+		};
+		0DE229432F001B9F00BD619D /* north */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = north;
+			sourceTree = "<group>";
+		};
+		0DE229442F001B9F00BD619D /* south */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = south;
+			sourceTree = "<group>";
+		};
+		0DE229452F001B9F00BD619D /* west */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = west;
+			sourceTree = "<group>";
+		};
+		0DE229462F001B9F00BD619D /* express */ = {
+			isa = PBXGroup;
+			children = (
+				0DE229422F001B9F00BD619D /* east */,
+				0DE229432F001B9F00BD619D /* north */,
+				0DE229442F001B9F00BD619D /* south */,
+				0DE229452F001B9F00BD619D /* west */,
+			);
+			path = express;
+			sourceTree = "<group>";
+		};
+		0DE229472F001B9F00BD619D /* east */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = east;
+			sourceTree = "<group>";
+		};
+		0DE229482F001B9F00BD619D /* north */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = north;
+			sourceTree = "<group>";
+		};
+		0DE229492F001B9F00BD619D /* south */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = south;
+			sourceTree = "<group>";
+		};
+		0DE2294A2F001B9F00BD619D /* west */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = west;
+			sourceTree = "<group>";
+		};
+		0DE2294B2F001B9F00BD619D /* fast */ = {
+			isa = PBXGroup;
+			children = (
+				0DE229472F001B9F00BD619D /* east */,
+				0DE229482F001B9F00BD619D /* north */,
+				0DE229492F001B9F00BD619D /* south */,
+				0DE2294A2F001B9F00BD619D /* west */,
+			);
+			path = fast;
+			sourceTree = "<group>";
+		};
+		0DE2294C2F001B9F00BD619D /* east */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = east;
+			sourceTree = "<group>";
+		};
+		0DE2295D2F001B9F00BD619D /* north */ = {
+			isa = PBXGroup;
+			children = (
+				0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */,
+				0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */,
+				0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */,
+				0DE229502F001B9F00BD619D /* transport_belt_north_004.png */,
+				0DE229512F001B9F00BD619D /* transport_belt_north_005.png */,
+				0DE229522F001B9F00BD619D /* transport_belt_north_006.png */,
+				0DE229532F001B9F00BD619D /* transport_belt_north_007.png */,
+				0DE229542F001B9F00BD619D /* transport_belt_north_008.png */,
+				0DE229552F001B9F00BD619D /* transport_belt_north_009.png */,
+				0DE229562F001B9F00BD619D /* transport_belt_north_010.png */,
+				0DE229572F001B9F00BD619D /* transport_belt_north_011.png */,
+				0DE229582F001B9F00BD619D /* transport_belt_north_012.png */,
+				0DE229592F001B9F00BD619D /* transport_belt_north_013.png */,
+				0DE2295A2F001B9F00BD619D /* transport_belt_north_014.png */,
+				0DE2295B2F001B9F00BD619D /* transport_belt_north_015.png */,
+				0DE2295C2F001B9F00BD619D /* transport_belt_north_016.png */,
+			);
+			path = north;
+			sourceTree = "<group>";
+		};
+		0DE2295E2F001B9F00BD619D /* south */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = south;
+			sourceTree = "<group>";
+		};
+		0DE2295F2F001B9F00BD619D /* west */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = west;
+			sourceTree = "<group>";
+		};
+		0DE229602F001B9F00BD619D /* transport */ = {
+			isa = PBXGroup;
+			children = (
+				0DE2294C2F001B9F00BD619D /* east */,
+				0DE2295D2F001B9F00BD619D /* north */,
+				0DE2295E2F001B9F00BD619D /* south */,
+				0DE2295F2F001B9F00BD619D /* west */,
+			);
+			path = transport;
+			sourceTree = "<group>";
+		};
+		0DE229612F001B9F00BD619D /* belts */ = {
+			isa = PBXGroup;
+			children = (
+				0DE229462F001B9F00BD619D /* express */,
+				0DE2294B2F001B9F00BD619D /* fast */,
+				0DE229602F001B9F00BD619D /* transport */,
+			);
+			path = belts;
 			sourceTree = "<group>";
 		};
 		A0000200000 = {
@@ -706,6 +882,22 @@
 				0D6FDC2F2EFDE1B500576EC3 /* stone_2.png in Resources */,
 				0D6FDC302EFDE1B500576EC3 /* electric_engine_unit.png in Resources */,
 				0D6FDC312EFDE1B500576EC3 /* electronic_circuit.png in Resources */,
+				0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */,
+				0DE229632F001B9F00BD619D /* transport_belt_north_013.png in Resources */,
+				0DE229642F001B9F00BD619D /* transport_belt_north_002.png in Resources */,
+				0DE229652F001B9F00BD619D /* transport_belt_north_005.png in Resources */,
+				0DE229662F001B9F00BD619D /* transport_belt_north_015.png in Resources */,
+				0DE229672F001B9F00BD619D /* transport_belt_north_009.png in Resources */,
+				0DE229682F001B9F00BD619D /* transport_belt_north_001.png in Resources */,
+				0DE229692F001B9F00BD619D /* transport_belt_north_012.png in Resources */,
+				0DE2296A2F001B9F00BD619D /* transport_belt_north_014.png in Resources */,
+				0DE2296B2F001B9F00BD619D /* transport_belt_north_006.png in Resources */,
+				0DE2296C2F001B9F00BD619D /* transport_belt_north_011.png in Resources */,
+				0DE2296D2F001B9F00BD619D /* transport_belt_north_016.png in Resources */,
+				0DE2296E2F001B9F00BD619D /* transport_belt_north_008.png in Resources */,
+				0DE2296F2F001B9F00BD619D /* transport_belt_north_007.png in Resources */,
+				0DE229702F001B9F00BD619D /* transport_belt_north_010.png in Resources */,
+				0DE229712F001B9F00BD619D /* transport_belt_north_004.png in Resources */,
 				0D6FDC322EFDE1B500576EC3 /* iron_ore.png in Resources */,
 				0D6FDC332EFDE1B500576EC3 /* solid_white.png in Resources */,
 				0D6FDC342EFDE1B500576EC3 /* tree.png in Resources */,

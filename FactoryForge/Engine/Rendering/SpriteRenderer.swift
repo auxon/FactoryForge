@@ -67,8 +67,59 @@ final class SpriteRenderer {
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
 
-            // Use sprite textureId directly (animation updates textureId in Player.update)
-            let textureRect = textureAtlas.getTextureRect(for: sprite.textureId)
+            var textureId = sprite.textureId
+
+            // Handle belt animations
+            if world.has(BeltComponent.self, for: entity),
+               let belt = world.get(BeltComponent.self, for: entity) {
+
+                // Calculate animation frame based on time and belt speed
+                let currentTime = Date().timeIntervalSince1970
+                let animationSpeed: Float
+
+                // Set animation speed based on belt type
+                switch textureId {
+                case "transport_belt":
+                    animationSpeed = 8.0  // 8 FPS
+                case "fast_transport_belt":
+                    animationSpeed = 10.0 // 10 FPS
+                case "express_transport_belt":
+                    animationSpeed = 12.0 // 12 FPS
+                default:
+                    animationSpeed = 8.0
+                }
+
+                // Use fractional seconds for smoother animation
+                let fractionalTime = Float(currentTime - floor(currentTime))
+                let speedMultiplier = animationSpeed / 8.0
+                let animationProgress = fractionalTime * 16.0 * speedMultiplier
+                let frameIndex = Int(animationProgress) % 16
+                let frameNumber = String(format: "%03d", frameIndex + 1)
+
+                // Debug: show time and frame calculation
+                print("DEBUG: Animation calc - time: \(currentTime), fractional: \(fractionalTime), speed: \(animationSpeed), frameIndex: \(frameIndex), frameNumber: \(frameNumber)")
+
+                // Create animated texture ID based on direction
+                let directionName: String
+                switch position.direction {
+                case .north: directionName = "north"
+                case .east: directionName = "east"
+                case .south: directionName = "south"
+                case .west: directionName = "west"
+                }
+
+                // Try to use animated frame, fall back to static if not available
+                let animatedTextureId = "\(textureId)_\(directionName)_\(frameNumber)"
+                print("DEBUG: Belt animation - original: \(textureId), animated: \(animatedTextureId), hasTexture: \(textureAtlas.hasTexture(animatedTextureId))")
+                if textureAtlas.hasTexture(animatedTextureId) {
+                    textureId = animatedTextureId
+                    print("DEBUG: Using animated texture: \(textureId)")
+                } else {
+                    print("DEBUG: Falling back to static texture: \(textureId)")
+                }
+            }
+
+            let textureRect = textureAtlas.getTextureRect(for: textureId)
 
             // For centered sprites (like player), use position directly
             // For non-centered sprites (buildings), offset by half size to align with tile origin

@@ -107,7 +107,26 @@ final class TextureAtlas {
             ("assembling_machine_2", nil),
             ("assembling_machine_3", nil),
             
-            // Buildings - Belts
+            // Buildings - Belts (Animated)
+            // Transport Belt North Animation Frames - try different approaches
+            ("transport_belt_north_001", "transport_belt_north_001"),
+            ("transport_belt_north_002", "transport_belt_north_002"),
+            ("transport_belt_north_003", "transport_belt_north_003"),
+            ("transport_belt_north_004", "transport_belt_north_004"),
+            ("transport_belt_north_005", "transport_belt_north_005"),
+            ("transport_belt_north_006", "transport_belt_north_006"),
+            ("transport_belt_north_007", "transport_belt_north_007"),
+            ("transport_belt_north_008", "transport_belt_north_008"),
+            ("transport_belt_north_009", "transport_belt_north_009"),
+            ("transport_belt_north_010", "transport_belt_north_010"),
+            ("transport_belt_north_011", "transport_belt_north_011"),
+            ("transport_belt_north_012", "transport_belt_north_012"),
+            ("transport_belt_north_013", "transport_belt_north_013"),
+            ("transport_belt_north_014", "transport_belt_north_014"),
+            ("transport_belt_north_015", "transport_belt_north_015"),
+            ("transport_belt_north_016", "transport_belt_north_016"),
+
+            // Keep static belt sprites as fallback (will be replaced with full animations later)
             ("transport_belt", nil),
             ("fast_transport_belt", nil),
             ("express_transport_belt", nil),
@@ -218,16 +237,54 @@ final class TextureAtlas {
     }
     
     private func loadSpriteImage(filename: String, fileExtension: String) -> UIImage? {
-        guard let imagePath = Bundle.main.path(forResource: filename, ofType: fileExtension) else {
-            print("Warning: Could not find sprite image: \(filename).\(fileExtension)")
+        // Handle subdirectories in filename (e.g., "belts/transport/north/file")
+        let components = filename.split(separator: "/")
+        let actualFilename = String(components.last!)
+        let subdirectory = components.count > 1 ? components.dropLast().joined(separator: "/") : nil
+
+        print("DEBUG: Loading sprite - full filename: \(filename), actual: \(actualFilename), subdir: \(subdirectory ?? "none")")
+
+        var imagePath: String?
+
+        // First try bundle (for production builds)
+        if let subdirectory = subdirectory {
+            // Look for file in subdirectory
+            imagePath = Bundle.main.path(forResource: actualFilename, ofType: fileExtension, inDirectory: subdirectory)
+            print("DEBUG: Tried bundle with subdirectory: \(subdirectory)/\(actualFilename).\(fileExtension) -> \(imagePath != nil ? "FOUND" : "NOT FOUND")")
+        } else {
+            // Look for file in root
+            imagePath = Bundle.main.path(forResource: filename, ofType: fileExtension)
+            print("DEBUG: Tried bundle root: \(filename).\(fileExtension) -> \(imagePath != nil ? "FOUND" : "NOT FOUND")")
+        }
+
+        // If not found in bundle, try local file system (for development)
+        if imagePath == nil, let subdirectory = subdirectory {
+            let localPath = "FactoryForge/Assets/\(subdirectory)/\(actualFilename).\(fileExtension)"
+            if FileManager.default.fileExists(atPath: localPath) {
+                imagePath = localPath
+                print("DEBUG: Found image in local filesystem: \(localPath)")
+            } else {
+                print("DEBUG: Local file not found: \(localPath)")
+            }
+        }
+
+        // Last resort: try the full filename as-is in bundle root (in case subdirs aren't working)
+        if imagePath == nil {
+            imagePath = Bundle.main.path(forResource: filename, ofType: fileExtension)
+            print("DEBUG: Last resort - tried full filename in root: \(filename).\(fileExtension) -> \(imagePath != nil ? "FOUND" : "NOT FOUND")")
+        }
+
+        guard let finalImagePath = imagePath else {
+            print("Warning: Could not find sprite image: \(filename).\(fileExtension) (subdirectory: \(subdirectory ?? "root"))")
             return nil
         }
-        
-        guard let image = UIImage(contentsOfFile: imagePath) else {
+
+        guard let image = UIImage(contentsOfFile: finalImagePath) else {
             print("Warning: Could not load sprite image: \(filename).\(fileExtension)")
             return nil
         }
-        
+
+        print("DEBUG: Successfully loaded image: \(finalImagePath)")
         return image
     }
     
@@ -594,7 +651,12 @@ final class TextureAtlas {
             }
         }
     }
-    
+
+    /// Checks if a texture exists in the atlas
+    func hasTexture(_ name: String) -> Bool {
+        return textureRects[name] != nil
+    }
+
     func getTextureRect(for name: String) -> Rect {
         if let rect = textureRects[name] {
             return rect
