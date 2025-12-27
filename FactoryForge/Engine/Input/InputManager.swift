@@ -64,10 +64,20 @@ final class InputManager: NSObject {
         view.isUserInteractionEnabled = true
         view.isMultipleTouchEnabled = true
         
-        // Tap recognizer
+        // Tap recognizer (supports single and double taps)
         tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tapRecognizer.numberOfTapsRequired = 1  // Single tap for normal interactions
         tapRecognizer.delegate = self
         view.addGestureRecognizer(tapRecognizer)
+
+        // Double tap recognizer for machine UI
+        let doubleTapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
+        doubleTapRecognizer.numberOfTapsRequired = 2
+        doubleTapRecognizer.delegate = self
+        view.addGestureRecognizer(doubleTapRecognizer)
+
+        // Prevent single tap from firing when double tap is detected
+        tapRecognizer.require(toFail: doubleTapRecognizer)
         
         // Pan recognizer for camera movement
         panRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
@@ -234,6 +244,7 @@ final class InputManager: NSObject {
             // Check if we're tapping on an existing entity first (allow interaction even in build mode)
             let tilePos = IntVector2(from: worldPos)
             if let entity = gameLoop.world.getEntityAt(position: tilePos) {
+                print("InputManager: Tapped on entity in build mode, exiting build mode and calling onEntitySelected")
                 // Entity was tapped - select it and exit build mode
                 selectedEntity = entity
                 onEntitySelected?(entity)
@@ -394,7 +405,64 @@ final class InputManager: NSObject {
             break
         }
     }
-    
+
+    @objc private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
+        guard recognizer.state == .ended else { return }
+        guard let gameLoop = gameLoop else { return }
+
+        let screenPos = screenPosition(from: recognizer)
+        let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
+        let tilePos = IntVector2(from: worldPos)
+
+        // Check if there's an entity at this position
+        if let entity = gameLoop.world.getEntityAt(position: tilePos) {
+            // Check if it's a machine we can interact with
+            if gameLoop.world.has(FurnaceComponent.self, for: entity) ||
+               gameLoop.world.has(AssemblerComponent.self, for: entity) ||
+               gameLoop.world.has(MinerComponent.self, for: entity) {
+                print("InputManager: Double tap on machine, opening machine UI")
+
+                // Exit build mode if we're in it
+                if buildMode != .none {
+                    exitBuildMode()
+                }
+
+                // Select the entity and open machine UI
+                selectedEntity = entity
+                onEntitySelected?(entity)
+            }
+        } else {
+            // No entity, check for resource to mine
+            if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+                // Check if player can accept the item
+                if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
+                    print("InputManager: Double tap on resource, mining \(resource.type)")
+
+                    // Manual mining - mine 1 unit
+                    let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
+                    if mined > 0 {
+                        // Start mining animation
+                        let itemId = resource.type.outputItem
+                        gameLoop.uiSystem?.hud.startMiningAnimation(
+                            itemId: itemId,
+                            fromWorldPosition: worldPos,
+                            renderer: gameLoop.renderer
+                        )
+
+                        // Add to player inventory (after a delay to match animation)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
+                            gameLoop?.player.inventory.add(itemId: itemId, count: mined)
+                        }
+
+                        print("Manually mined \(mined) \(itemId)")
+                    }
+                } else {
+                    print("Inventory full, cannot mine")
+                    onTooltip?("Inventory Full")
+                }
+            }
+        }
+    }
 
     @objc private func handleRotation(_ recognizer: UIRotationGestureRecognizer) {
         switch recognizer.state {
@@ -720,6 +788,10 @@ extension InputManager: UIGestureRecognizerDelegate {
             return true
         }
         if gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer is UITapGestureRecognizer {
+            return true
+        }
+        // Allow single tap and double tap together (they're configured with requireToFail)
+        if gestureRecognizer is UITapGestureRecognizer && otherGestureRecognizer is UITapGestureRecognizer {
             return true
         }
         // print("Not allowing simultaneous recognition")
