@@ -180,7 +180,7 @@ final class HUD {
         if let gameLoop = gameLoop, gameLoop.isPlayerDead {
             return
         }
-
+        
         // Calculate toolbar positions
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
         var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
@@ -189,37 +189,37 @@ final class HUD {
         // print("Rendering inventory button at Metal position (\(currentX), \(toolbarY))")
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "chest", callback: onInventoryPressed)
         currentX += buttonSize + buttonSpacing
-
+        
         // Render crafting button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "gear", callback: onCraftingPressed)
         currentX += buttonSize + buttonSpacing
-
+        
         // Render build button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "assembler", callback: onBuildPressed)
         currentX += buttonSize + buttonSpacing
-
+        
         // Render research button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "lab", callback: onResearchPressed)
-
+        
         // Render quick bar
         let quickBarY = screenSize.y - bottomMargin - buttonSize - buttonSpacing - slotSize / 2
         let quickBarStartX = screenSize.x / 2 - (slotSize * 5 + buttonSpacing * 4) / 2
-
+        
         for i in 0..<10 {
             let slotX = quickBarStartX + Float(i) * (slotSize + buttonSpacing / 2)
             renderQuickBarSlot(renderer: renderer, index: i, position: Vector2(slotX, quickBarY))
         }
-
+        
             // Render virtual joystick
             joystick.updateScreenSize(screenSize)
             joystick.render(renderer: renderer)
-
+        
         // Render health bar
         renderHealthBar(renderer: renderer)
-
+        
         // Render menu button (top-right corner)
         renderMenuButton(renderer: renderer)
-
+        
         // Render mining animations
         renderMiningAnimations(renderer: renderer)
 
@@ -269,7 +269,7 @@ final class HUD {
             layer: .entity // Render above ground but below UI
         ))
     }
-
+    
     private func renderMiningAnimations(renderer: MetalRenderer) {
         for animation in miningAnimations {
             // Get texture for the item
@@ -386,7 +386,7 @@ final class HUD {
         // Calculate toolbar positions (same as render)
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
         var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
-
+        
         // Check inventory button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
             print("HUD: Inventory button tapped, calling callback")
@@ -414,7 +414,7 @@ final class HUD {
             onResearchPressed?()
             return true
         }
-
+        
         // Check menu button (top-right corner)
         let buttonX = screenSize.x - bottomMargin - buttonSize / 2
         let buttonY = bottomMargin + buttonSize / 2
@@ -422,16 +422,16 @@ final class HUD {
             onMenuPressed?()
             return true
         }
-
+        
         // Check quick bar slots
         let quickBarY = screenSize.y - bottomMargin - buttonSize - buttonSpacing - slotSize / 2
         let quickBarStartX = screenSize.x / 2 - (slotSize * 5 + buttonSpacing * 4) / 2
-
+        
         for i in 0..<10 {
             let slotX = quickBarStartX + Float(i) * (slotSize + buttonSpacing / 2)
             let slotPos = Vector2(slotX, quickBarY)
             let slotFrame = Rect(center: slotPos, size: Vector2(slotSize, slotSize))
-
+            
             if slotFrame.contains(position) {
                 // Quick bar slot tapped
                 selectedQuickBarSlot = i

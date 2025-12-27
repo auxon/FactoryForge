@@ -225,14 +225,14 @@ final class MachineUI: UIPanel_Base {
     
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
-        
+
         // Check recipe buttons first
         for button in recipeButtons {
             if button.handleTap(at: position) {
                 return true
             }
         }
-        
+
         // Check input slots - allow transferring items from player inventory
         for slot in inputSlots {
             if slot.handleTap(at: position) {
@@ -240,7 +240,7 @@ final class MachineUI: UIPanel_Base {
                 return true
             }
         }
-        
+
         // Check output slots - allow taking items
         for slot in outputSlots {
             if slot.handleTap(at: position) {
@@ -248,8 +248,9 @@ final class MachineUI: UIPanel_Base {
                 return true
             }
         }
-        
-        return super.handleTap(at: position)
+
+        // If tap is within panel bounds but not handled by interactive elements, still consume it
+        return frame.contains(position)
     }
 
     override func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
