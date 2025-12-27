@@ -388,6 +388,10 @@ final class InputManager: NSObject {
             // Handle joystick movement
             if isJoystickActive {
                 joystick?.handleTouchMoved(at: screenPos, touchId: 0)
+                // Exit build mode when player starts moving
+                if buildMode != .none {
+                    exitBuildMode()
+                }
                 // Prevent camera pan when joystick is active
                 return
             }
