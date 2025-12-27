@@ -85,6 +85,7 @@
 		0D6FDC6B2EFEE52D00576EC3 /* load_game.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC692EFEE52D00576EC3 /* load_game.png */; };
 		0D7457F12EFF204D00C7C473 /* steel_plate.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457EF2EFF204D00C7C473 /* steel_plate.png */; };
 		0D7457F22EFF204D00C7C473 /* stone_brick.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457F02EFF204D00C7C473 /* stone_brick.png */; };
+		0D7457F42EFF6B8700C7C473 /* menu.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457F32EFF6B8700C7C473 /* menu.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -224,6 +225,7 @@
 		0D6FDC692EFEE52D00576EC3 /* load_game.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = load_game.png; sourceTree = "<group>"; };
 		0D7457EF2EFF204D00C7C473 /* steel_plate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = steel_plate.png; sourceTree = "<group>"; };
 		0D7457F02EFF204D00C7C473 /* stone_brick.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone_brick.png; sourceTree = "<group>"; };
+		0D7457F32EFF6B8700C7C473 /* menu.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = menu.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -300,6 +302,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D7457F32EFF6B8700C7C473 /* menu.png */,
 				0D7457EF2EFF204D00C7C473 /* steel_plate.png */,
 				0D7457F02EFF204D00C7C473 /* stone_brick.png */,
 				0D6FDC682EFEE52D00576EC3 /* delete_game.png */,
@@ -743,6 +746,7 @@
 				0D6FDC542EFDE1B500576EC3 /* iron_gear_wheel.png in Resources */,
 				0D6FDC552EFDE1B500576EC3 /* express_transport_belt.png in Resources */,
 				0D6FDC562EFDE1B500576EC3 /* advanced_circuit.png in Resources */,
+				0D7457F42EFF6B8700C7C473 /* menu.png in Resources */,
 				0D6FDC572EFDE1B500576EC3 /* assembling_machine_3.png in Resources */,
 				0D6FDC582EFDE1B500576EC3 /* automation_science_pack.png in Resources */,
 				0D6FDC592EFDE1B500576EC3 /* crude_oil.png in Resources */,

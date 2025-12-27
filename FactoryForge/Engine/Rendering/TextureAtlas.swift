@@ -182,6 +182,7 @@ final class TextureAtlas {
             // UI
             ("solid_white", nil),
             ("building_placeholder", nil),
+            ("menu", nil),
             ("new_game", nil),
             ("save_game", nil),
             ("load_game", nil),
