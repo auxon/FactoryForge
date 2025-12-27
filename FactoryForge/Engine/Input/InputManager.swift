@@ -178,7 +178,6 @@ final class InputManager: NSObject {
         // UI didn't handle it, process game tap
         currentTouchPosition = worldPos
         
-        print("InputManager: Processing tap in switch buildMode = \(buildMode)")
         switch buildMode {
         case .none:
             // Check if player is attacking an enemy (prioritize combat)
