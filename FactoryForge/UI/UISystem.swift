@@ -352,6 +352,8 @@ final class UISystem {
             switch panel {
             case .inventory:
                 return inventoryUI.handleDrag(from: startPos, to: endPos)
+            case .machine:
+                return machineUI.handleDrag(from: startPos, to: endPos)
             default:
                 return false
             }

@@ -251,13 +251,55 @@ final class MachineUI: UIPanel_Base {
         
         return super.handleTap(at: position)
     }
+
+    override func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
+        guard isOpen, let entity = currentEntity, let gameLoop = gameLoop else { return false }
+
+        // Check if drag started from an input slot
+        for (index, slot) in inputSlots.enumerated() {
+            if slot.frame.contains(startPos) {
+                // Started dragging from input slot - clear it
+                guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { return false }
+
+                let inputSlotIndex = index
+                if inputSlotIndex < machineInventory.slots.count,
+                   let item = machineInventory.slots[inputSlotIndex] {
+                    // Return items to player inventory if possible
+                    var playerInv = gameLoop.player.inventory
+                    let remaining = playerInv.add(item)
+                    gameLoop.player.inventory = playerInv
+
+                    // Clear the machine slot
+                    machineInventory.slots[inputSlotIndex] = nil
+                    gameLoop.world.add(machineInventory, to: entity)
+
+                    // If couldn't return all items to player, they stay in machine (shouldn't happen in practice)
+                    if remaining > 0 {
+                        print("Warning: Could not return \(remaining) items to player inventory")
+                    }
+
+                    return true
+                }
+            }
+        }
+
+        // Check if drag started from an output slot (though output slots are typically not draggable)
+        for slot in outputSlots {
+            if slot.frame.contains(startPos) {
+                // For now, don't allow dragging from output slots
+                return false
+            }
+        }
+
+        return false
+    }
     
     private func handleSlotTap(slot: InventorySlot, isInput: Bool) {
         guard let entity = currentEntity,
               let gameLoop = gameLoop else { return }
-        
+
         if isInput {
-            // Input slot - open inventory UI to let player choose what to add
+            // Input slot - open inventory UI to let player choose what to add or replace
             onOpenInventoryForMachine?(entity, slot.index)
             return
         } else {

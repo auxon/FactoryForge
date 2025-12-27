@@ -17,6 +17,8 @@ final class InputManager: NSObject {
     private(set) var currentTouchPosition: Vector2 = .zero
     private(set) var isDragging = false
     private(set) var isPinching = false
+    private var isUIDragging = false
+    private var dragStartPosition: Vector2 = .zero
     
     // Joystick touch tracking
     private var joystickTouchId: Int? = nil
@@ -325,6 +327,14 @@ final class InputManager: NSObject {
         
         switch recognizer.state {
         case .began:
+            dragStartPosition = screenPos
+
+            // Check if touch started in UI area FIRST (for drag gestures)
+            if let uiSystem = gameLoop.uiSystem {
+                // Store the start position for drag gestures
+                isUIDragging = false
+            }
+
             // Check if touch started in joystick area FIRST
             if let joystick = joystick {
                 let activationRadius = joystick.baseRadius * 1.5
@@ -351,6 +361,25 @@ final class InputManager: NSObject {
             }
             
         case .changed:
+            // Check for UI drag gesture
+            if !isUIDragging && !isJoystickActive {
+                let dragDistance = (screenPos - dragStartPosition).length
+                if dragDistance > 10 { // Minimum drag distance to start UI drag
+                    // Try to start UI drag
+                    if let uiSystem = gameLoop.uiSystem {
+                        isUIDragging = uiSystem.handleDrag(from: dragStartPosition, to: screenPos)
+                    }
+                }
+            }
+
+            // If UI drag is active, continue it
+            if isUIDragging {
+                if let uiSystem = gameLoop.uiSystem {
+                    uiSystem.handleDrag(from: dragStartPosition, to: screenPos)
+                }
+                return
+            }
+
             // Update build preview position for any build mode
             if buildMode == .placing {
                 buildPreviewPosition = IntVector2(from: worldPos)
@@ -379,6 +408,9 @@ final class InputManager: NSObject {
             }
             
         case .ended, .cancelled:
+            // Reset UI drag state
+            isUIDragging = false
+
             if isJoystickActive {
                 joystick?.handleTouchEnded(touchId: 0)
                 isJoystickActive = false
