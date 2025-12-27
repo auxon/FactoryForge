@@ -120,6 +120,7 @@ final class WorldGenerator {
             .copperOre: 0.8,
             .coal: 0.6,
             .stone: 0.5,
+            .wood: 0.7,  // Wood is fairly common
             .uraniumOre: 0.1,
             .oil: 0.2
         ]
@@ -183,6 +184,9 @@ final class WorldGenerator {
                 if treeNoise > 0.5 - biome.treeChance * 5 {
                     if rng.nextFloat() < biome.treeChance * 3 {
                         tile.type = .tree
+                        // Add wood resource to trees so they can be harvested
+                        let woodAmount = Int(rng.nextFloat() * 150.0 + 50.0)  // 50-200 wood
+                        tile.resource = ResourceDeposit(type: .wood, amount: woodAmount)
                         chunk.setTile(localX: x, localY: y, tile: tile)
                     }
                 }

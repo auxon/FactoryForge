@@ -454,6 +454,49 @@ final class InputManager: NSObject {
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
 
+        // If we're in build mode, place the building instead of normal double-tap behavior
+        if buildMode == .placing, let buildingId = selectedBuildingId {
+            // Calculate offset to center the building at the tap location
+            // Account for sprite rendering offset: buildings are offset by half their size
+            guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else { return }
+
+            // Check inventory first
+            if !gameLoop.player.inventory.has(items: buildingDef.cost) {
+                // Show missing items
+                let missingItems = buildingDef.cost.filter { !gameLoop.player.inventory.has(items: [$0]) }
+                if let firstMissing = missingItems.first {
+                    let itemName = gameLoop.itemRegistry.get(firstMissing.itemId)?.name ?? firstMissing.itemId
+                    onTooltip?("Need \(firstMissing.count) \(itemName)")
+                } else {
+                    onTooltip?("Missing required items")
+                }
+                return
+            }
+
+            let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
+            let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
+            let tapOffset = worldPos - tileCenter - spriteSize / 2
+
+            // Check placement validity
+            if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
+                onTooltip?("Cannot place building here")
+                return
+            }
+
+            // Try to place with offset to center at tap location
+            if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
+                onBuildingPlaced?(buildingId, tilePos, buildDirection)
+                // Exit build mode after placing (except for belts which allow drag placement)
+                if !buildingId.contains("belt") {
+                    exitBuildMode()
+                }
+                // Play placement sound/feedback
+            } else {
+                onTooltip?("Failed to place building")
+            }
+            return
+        }
+
         // Check if there's an entity at this position
         if let entity = gameLoop.world.getEntityAt(position: tilePos) {
             // Check if it's a machine we can interact with

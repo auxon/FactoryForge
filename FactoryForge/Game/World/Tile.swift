@@ -84,6 +84,8 @@ struct ResourceDeposit: Codable {
             return Color(r: 0.2, g: 0.8, b: 0.4, a: alpha)  // Green
         case .oil:
             return Color(r: 0.4, g: 0.2, b: 0.6, a: alpha)  // Purple
+        case .wood:
+            return Color(r: 0.6, g: 0.4, b: 0.2, a: alpha)  // Brown wood
         }
     }
     
@@ -112,6 +114,7 @@ enum ResourceType: String, Codable, CaseIterable {
     case stone = "stone"
     case uraniumOre = "uranium-ore"
     case oil = "crude-oil"
+    case wood = "wood"
     
     var displayName: String {
         switch self {
@@ -121,6 +124,7 @@ enum ResourceType: String, Codable, CaseIterable {
         case .stone: return "Stone"
         case .uraniumOre: return "Uranium Ore"
         case .oil: return "Crude Oil"
+        case .wood: return "Wood"
         }
     }
     
@@ -132,6 +136,7 @@ enum ResourceType: String, Codable, CaseIterable {
         case .stone: return .stone
         case .uraniumOre: return .stone  // Uranium uses stone texture with tint
         case .oil: return .sand
+        case .wood: return .tree
         }
     }
     
@@ -147,13 +152,14 @@ enum ResourceType: String, Codable, CaseIterable {
         case .stone: return Color(r: 0.6, g: 0.55, b: 0.5, a: 1)
         case .uraniumOre: return Color(r: 0.3, g: 0.8, b: 0.3, a: 1)
         case .oil: return Color(r: 0.1, g: 0.1, b: 0.1, a: 1)
+        case .wood: return Color(r: 0.6, g: 0.4, b: 0.2, a: 1)  // Brown wood color
         }
     }
     
     /// Typical amount per deposit tile
     var typicalAmount: ClosedRange<Int> {
         switch self {
-        case .ironOre, .copperOre, .coal, .stone:
+        case .ironOre, .copperOre, .coal, .stone, .wood:
             return 2000...10000
         case .uraniumOre:
             return 500...2000
@@ -165,7 +171,7 @@ enum ResourceType: String, Codable, CaseIterable {
     /// Minimum distance from spawn for this resource to appear
     var minimumSpawnDistance: Float {
         switch self {
-        case .ironOre, .copperOre, .coal, .stone:
+        case .ironOre, .copperOre, .coal, .stone, .wood:
             return 0
         case .uraniumOre:
             return 200
