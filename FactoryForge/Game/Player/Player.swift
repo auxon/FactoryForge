@@ -305,11 +305,18 @@ final class Player {
     /// Attempts to attack an enemy at the given world position
     /// Returns true if attack was successful
     func attack(at targetPosition: Vector2) -> Bool {
+        print("Player attack called at position: \(targetPosition)")
         // Check cooldown
-        guard attackCooldown <= 0 else { return false }
+        guard attackCooldown <= 0 else {
+            print("Attack on cooldown: \(attackCooldown)")
+            return false
+        }
         
         // Check if player has ammo
-        guard inventory.has(itemId: "firearm-magazine") || inventory.has(itemId: "piercing-rounds-magazine") else {
+        let hasFirearm = inventory.has(itemId: "firearm-magazine")
+        let hasPiercing = inventory.has(itemId: "piercing-rounds-magazine")
+        guard hasFirearm || hasPiercing else {
+            print("No ammo: firearm=\(hasFirearm), piercing=\(hasPiercing)")
             return false  // No ammo
         }
         
@@ -318,7 +325,11 @@ final class Player {
         
         // Check range
         let distance = playerPos.worldPosition.distance(to: targetPosition)
-        guard distance <= attackRange else { return false }
+        print("Attack distance: \(distance), range: \(attackRange)")
+        guard distance <= attackRange else {
+            print("Target out of range")
+            return false
+        }
         
         // Find enemy at target position
         let nearbyEnemies = world.getEntitiesNear(position: targetPosition, radius: 1.0)
@@ -337,7 +348,11 @@ final class Player {
             }
         }
         
-        guard let enemy = targetEnemy else { return false }
+        guard let enemy = targetEnemy else {
+            print("No enemy found at target position")
+            return false
+        }
+        print("Found enemy to attack: \(enemy)")
         
         // Consume ammo
         if inventory.has(itemId: "piercing-rounds-magazine") {
@@ -364,8 +379,9 @@ final class Player {
         attackCooldown = attackCooldownTime
         
         // Play sound
-        AudioManager.shared.playTurretFireSound()
-        
+        // AudioManager.shared.playTurretFireSound() // Temporarily disabled for debugging
+
+        print("Player attack successful - projectile created")
         return true
     }
     

@@ -31,6 +31,7 @@ final class GameLoop {
     // Callbacks
     var onReturnToMenu: (() -> Void)?
     var onPlayerDeath: (() -> Void)?
+    var onUpdate: (() -> Void)?
     
     // Save system
     let saveSystem: SaveSystem
@@ -146,6 +147,9 @@ final class GameLoop {
             renderer?.camera.target = player.position
         }
         renderer?.camera.update(deltaTime: deltaTime)
+
+        // Call update callback
+        onUpdate?()
     }
     
     // Input manager reference (set by GameViewController)

@@ -49,7 +49,7 @@ class GameViewController: UIViewController {
             tooltipLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20)
         ])
     }
-    
+
     func showTooltip(_ text: String, duration: TimeInterval = 3.0) {
         // Create attributed string with black text and white outline
         let attributedString = NSMutableAttributedString(string: text)
@@ -157,6 +157,18 @@ class GameViewController: UIViewController {
         // Create UISystem without GameLoop initially
         uiSystem = UISystem(gameLoop: nil, renderer: renderer)
         renderer.uiSystem = uiSystem
+
+        // Set up inventory label callbacks
+        uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                // Bring labels to front so they're above the metal view
+                self?.view.bringSubviewToFront($0)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
     }
     
     private func setupLoadingMenu() {
@@ -205,10 +217,22 @@ class GameViewController: UIViewController {
         
         // Set UI system on game loop
         gameLoop?.uiSystem = uiSystem
-        
+
         // Update UI system with game loop
         uiSystem?.setGameLoop(gameLoop!)
-        
+
+        // Re-set up inventory label callbacks (UI system was recreated)
+        uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                // Bring labels to front so they're above the metal view
+                self?.view.bringSubviewToFront($0)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+
         // Setup input
         setupInput()
         

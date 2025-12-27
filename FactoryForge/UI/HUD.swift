@@ -217,9 +217,6 @@ final class HUD {
         // Render health bar
         renderHealthBar(renderer: renderer)
 
-        // Render resource counters
-        renderResourceCounters(renderer: renderer)
-
         // Render menu button (top-right corner)
         renderMenuButton(renderer: renderer)
 
@@ -372,31 +369,6 @@ final class HUD {
             color: Color(r: 0.8, g: 0.2, b: 0.2, a: 1),
             layer: .ui
         ))
-    }
-    
-    private func renderResourceCounters(renderer: MetalRenderer) {
-        // Resource counters in top left (below health bar)
-        let resources = ["iron-plate", "copper-plate", "coal", "stone"]
-        let counterY: Float = 60 * scale
-        var currentX: Float = 20 * scale
-        let iconSize: Float = 30 * scale
-        
-        guard let player = gameLoop?.player else { return }
-        
-        for resourceId in resources {
-            _ = player.inventory.count(of: resourceId)
-            
-            // Icon
-            let textureRect = renderer.textureAtlas.getTextureRect(for: resourceId.replacingOccurrences(of: "-", with: "_"))
-            renderer.queueSprite(SpriteInstance(
-                position: Vector2(currentX + iconSize / 2, counterY),
-                size: Vector2(iconSize, iconSize),
-                textureRect: textureRect,
-                layer: .ui
-            ))
-            
-            currentX += 80 * scale
-        }
     }
     
     func handleTap(at position: Vector2, screenSize: Vector2) -> Bool {

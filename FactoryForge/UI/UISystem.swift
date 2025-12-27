@@ -66,6 +66,10 @@ final class UISystem {
     func getLoadingMenu() -> LoadingMenu {
         return loadingMenu
     }
+
+    func getInventoryUI() -> InventoryUI {
+        return inventoryUI
+    }
     
     private func setupCallbacks() {
         // HUD button callbacks

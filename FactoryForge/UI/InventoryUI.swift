@@ -1,29 +1,39 @@
 import Foundation
+import UIKit
 
 /// Player inventory panel
 final class InventoryUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?
     private var slots: [InventorySlot] = []
+    private var countLabels: [UILabel] = []
     private var closeButton: CloseButton!
     private let slotsPerRow = 10
+    private let screenSize: Vector2
 
     // Machine input mode
     private var machineEntity: Entity?
     private var machineSlotIndex: Int?
     var onMachineInputCompleted: (() -> Void)?
+
+    // Callbacks for managing UIKit labels
+    var onAddLabels: (([UILabel]) -> Void)?
+    var onRemoveLabels: (([UILabel]) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
+        self.screenSize = screenSize
+
         // Use full screen size for background
         let panelFrame = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
             size: Vector2(screenSize.x, screenSize.y)
         )
-        
+
         super.init(frame: panelFrame)
         self.gameLoop = gameLoop
 
         setupCloseButton()
         setupSlots()
+        setupCountLabels()
     }
 
     func enterMachineInputMode(entity: Entity, slotIndex: Int) {
@@ -58,6 +68,22 @@ final class InventoryUI: UIPanel_Base {
         }
     }
 
+    private func setupCountLabels() {
+        for _ in 0..<40 {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 10, weight: UIFont.Weight.bold)
+            label.textColor = UIColor.white
+            label.textAlignment = NSTextAlignment.right
+            label.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            label.layer.cornerRadius = 2
+            label.layer.masksToBounds = true
+            label.translatesAutoresizingMaskIntoConstraints = true
+            label.text = ""
+            label.isHidden = true
+            countLabels.append(label)
+        }
+    }
+
     private func setupCloseButton() {
         let buttonSize: Float = 30 * UIScale
         let buttonX = frame.maxX - 25 * UIScale
@@ -71,10 +97,60 @@ final class InventoryUI: UIPanel_Base {
 
     override func update(deltaTime: Float) {
         guard isOpen, let player = gameLoop?.player else { return }
-        
+
         for (index, slot) in slots.enumerated() {
             if index < player.inventory.slots.count {
                 slot.item = player.inventory.slots[index]
+
+                // Update count label
+                if index < countLabels.count {
+                    let label = countLabels[index]
+
+                    // Position label in bottom-right corner of slot
+                    // Calculate position based on slot index in the grid (10 columns x 4 rows)
+                    let slotsPerRow = 10
+                    let slotSize: Float = 40 * UIScale
+                    let slotSpacing: Float = 5 * UIScale
+
+                    // Calculate slot position in grid
+                    let row = index / slotsPerRow
+                    let col = index % slotsPerRow
+
+                    // Calculate total grid size
+                    let totalWidth = Float(slotsPerRow) * slotSize + Float(slotsPerRow - 1) * slotSpacing
+                    let totalHeight = 4 * slotSize + 3 * slotSpacing
+
+                    // Calculate grid top-left position (centered on screen)
+                    let gridStartX = (screenSize.x - totalWidth) / 2
+                    let gridStartY = (screenSize.y - totalHeight) / 2
+
+                    // Calculate this slot's top-left position
+                    let slotX = gridStartX + Float(col) * (slotSize + slotSpacing)
+                    let slotY = gridStartY + Float(row) * (slotSize + slotSpacing)
+
+                    // Label position: bottom-right corner of slot
+                    let labelWidth: Float = 24
+                    let labelHeight: Float = 16
+                    let labelX = slotX + slotSize - labelWidth
+                    let labelY = slotY + slotSize - labelHeight
+
+                    // Convert to UIView coordinates (pixels to points)
+                    let scale = UIScreen.main.scale
+                    let uiX = CGFloat(labelX) / scale
+                    let uiY = CGFloat(labelY) / scale
+
+                    // Set the frame
+                    label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
+
+                    // Show label only if item count > 1
+                    if let item = slot.item, item.count > 1 {
+                        label.text = "\(item.count)"
+                        label.isHidden = false
+                    } else {
+                        label.text = ""
+                        label.isHidden = true
+                    }
+                }
             }
         }
     }
@@ -117,7 +193,13 @@ final class InventoryUI: UIPanel_Base {
         return super.handleTap(at: position)
     }
 
+    override func open() {
+        super.open()
+        onAddLabels?(countLabels)
+    }
+
     override func close() {
+        onRemoveLabels?(countLabels)
         exitMachineInputMode()
         super.close()
     }

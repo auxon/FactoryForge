@@ -147,6 +147,7 @@ final class CombatSystem: System {
     
     private func updateProjectiles(deltaTime: Float) {
         world.forEach(ProjectileComponent.self) { [self] entity, projectile in
+            print("Updating projectile \(entity), lifetime: \(projectile.lifetime)")
             var proj = projectile
             proj.lifetime -= deltaTime
             
@@ -188,6 +189,7 @@ final class CombatSystem: System {
                 
                 if distance < 0.5 {
                     // Hit target
+                    print("Projectile \(entity) hit target \(target), distance: \(distance)")
                     applyDamage(proj.damage, to: target, from: proj.source)
                     world.despawnDeferred(entity)
                     return
@@ -203,6 +205,7 @@ final class CombatSystem: System {
                 let isValidTarget = isValidProjectileTarget(nearbyEntity, for: proj)
                 guard isValidTarget else { continue }
 
+                print("Projectile \(entity) hit entity \(nearbyEntity)")
                 applyDamage(proj.damage, to: nearbyEntity, from: proj.source)
 
                 // Apply splash damage

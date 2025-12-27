@@ -162,16 +162,22 @@ final class InputManager: NSObject {
         switch buildMode {
         case .none:
             // Check if player is attacking an enemy (prioritize combat)
-            let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
+            let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 3.0)
+            print("Tap at \(worldPos), found \(nearbyEnemies.count) nearby entities")
             var attacked = false
-            
+
             for enemy in nearbyEnemies {
                 if gameLoop.world.has(EnemyComponent.self, for: enemy) {
+                    print("Found enemy entity: \(enemy)")
                     // Try to attack the enemy at its position
                     if let enemyPos = gameLoop.world.get(PositionComponent.self, for: enemy) {
+                        print("Enemy position: \(enemyPos.worldPosition)")
                         if gameLoop.player.attack(at: enemyPos.worldPosition) {
                             attacked = true
+                            print("Attack successful")
                             break
+                        } else {
+                            print("Attack failed")
                         }
                     }
                 }

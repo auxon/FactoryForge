@@ -59,11 +59,6 @@ final class TextureAtlas {
         // Load individual sprite files first (higher priority)
         // This includes player.png and player_left.png which extract all frames
         loadIndividualSprites(into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize)
-
-        // Then try to load from sprite sheet image (only if not already loaded)
-        if let spriteSheetImage = loadSpriteSheet() {
-            createAtlasFromImage(spriteSheetImage, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY)
-        }
         
         // Fallback to procedural generation for any missing sprites
         createProceduralAtlas(into: &atlasData, atlasX: &atlasX, atlasY: &atlasY)
@@ -248,9 +243,6 @@ final class TextureAtlas {
         // Get actual image size
         let imageWidth = cgImage.width
         let imageHeight = cgImage.height
-        
-        print("Packing sprite '\(name)': source image is \(imageWidth)x\(imageHeight), target size is \(spriteSize)x\(spriteSize)")
-        
         let targetSize = spriteSize
         let processedImage: UIImage
         
@@ -276,13 +268,11 @@ final class TextureAtlas {
                     
                     // Pack this frame into the atlas (skip border crop since it's already extracted)
                     if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
-                        print("  Loaded \(prefix) animation frame \(frameIndex) as '\(frameName)'")
                     }
                 }
             }
             
             // All frames have been loaded into the atlas, return false to indicate this was handled separately
-            print("  Successfully loaded all 16 frames from \(name) sprite sheet")
             return false
         } else if imageWidth > targetSize || imageHeight > targetSize {
             // Handle UI buttons specially - scale to larger size preserving aspect ratio
@@ -291,8 +281,6 @@ final class TextureAtlas {
                 let aspectRatio = Float(imageWidth) / Float(imageHeight)
                 let scaledHeight = targetSize
                 let scaledWidth = Int(Float(scaledHeight) * aspectRatio)
-                
-                print("  Scaling UI button from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
                 
                 UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
                 image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
@@ -304,8 +292,6 @@ final class TextureAtlas {
                 let scaledWidth = Int(Float(imageWidth) * scale)
                 let scaledHeight = Int(Float(imageHeight) * scale)
                 
-                print("  Scaling image from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
-                
                 UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
                 image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
                 processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
@@ -313,7 +299,7 @@ final class TextureAtlas {
             } else {
                 // Crop pixels from each side to remove transparent borders
                 // Use a percentage-based crop for better results across different image sizes
-                let cropPercentage: Float = 0.15  // Crop 15% from each side (30% total removed)
+                let cropPercentage: Float = 0.18  // Crop 18% from each side (30% total removed)
                 let borderCropX = Int(Float(imageWidth) * cropPercentage)
                 let borderCropY = Int(Float(imageHeight) * cropPercentage)
                 let cropX = borderCropX
@@ -330,8 +316,6 @@ final class TextureAtlas {
                     let scaledWidth = Int(Float(cropWidth) * scale)
                     let scaledHeight = Int(Float(cropHeight) * scale)
                     
-                    print("  Cropped borders and scaling from \(cropWidth)x\(cropHeight) to \(scaledWidth)x\(scaledHeight)")
-                    
                     UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
                     croppedImage.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
                     processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
@@ -341,8 +325,6 @@ final class TextureAtlas {
                     let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
                     let scaledWidth = Int(Float(imageWidth) * scale)
                     let scaledHeight = Int(Float(imageHeight) * scale)
-                    
-                    print("  Scaling image from \(imageWidth)x\(imageHeight) to \(scaledWidth)x\(scaledHeight)")
                     
                     UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
                     image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
@@ -437,8 +419,6 @@ final class TextureAtlas {
         )
         textureRects[name] = uvRect
         
-        print("Packed sprite '\(name)' into atlas at (\(atlasX), \(atlasY)), size (\(copyWidth), \(copyHeight))")
-        
         // Move to next position in atlas (use actual width for UI buttons, spriteSize for others)
         if uiButtonNames.contains(name) {
             // UI buttons: advance by actual width, round up to spriteSize boundary for next sprite
@@ -454,20 +434,6 @@ final class TextureAtlas {
         }
         
         return true
-    }
-    
-    private func loadSpriteSheet() -> UIImage? {
-        guard let imagePath = Bundle.main.path(forResource: "Generated Image December 25, 2025 - 2_20PM", ofType: "png") else {
-            print("Warning: Could not find sprite sheet image, falling back to procedural generation")
-            return nil
-        }
-        
-        guard let image = UIImage(contentsOfFile: imagePath) else {
-            print("Warning: Could not load sprite sheet image, falling back to procedural generation")
-            return nil
-        }
-        
-        return image
     }
     
     private func createAtlasFromImage(_ image: UIImage, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int) {
@@ -1276,7 +1242,6 @@ final class TextureAtlas {
         for (name, generator) in tiles {
             // Skip if already loaded from sprite files
             guard textureRects[name] == nil else {
-                print("Skipping procedural generation for '\(name)' (already loaded)")
                 continue
             }
             
