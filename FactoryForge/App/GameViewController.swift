@@ -1,5 +1,7 @@
 import UIKit
 import MetalKit
+import Security
+import Darwin
 
 class GameViewController: UIViewController {
     private var metalView: MTKView!
@@ -253,15 +255,54 @@ class GameViewController: UIViewController {
     }
     
     private func startNewGame() {
-        // Create new game with random seed
-        gameLoop = GameLoop(renderer: renderer, seed: nil)
+        // Clear any saved chunks from previous games to ensure fresh terrain generation
+        clearSavedChunks()
+
+        // Create new game with truly random seed using system entropy
+        var randomSeed: UInt64 = 0
+        let result = SecRandomCopyBytes(kSecRandomDefault, MemoryLayout<UInt64>.size, &randomSeed)
+
+        if result != errSecSuccess {
+            // Fallback: Use multiple entropy sources to ensure randomness
+            let timestamp = UInt64(Date().timeIntervalSince1970 * 1000000)
+            let processId = UInt64(getpid())
+            let threadId = UInt64(pthread_self().hashValue)
+
+            // Combine multiple sources of entropy
+            randomSeed = timestamp ^ processId ^ threadId ^ UInt64.random(in: 1...UInt64.max)
+        }
+
+        // Ensure seed is never 0 (which could cause issues)
+        if randomSeed == 0 {
+            randomSeed = UInt64.random(in: 1...UInt64.max)
+        }
+
+        print("GameViewController: Starting new game with random seed: \(randomSeed)")
+        print("  - SecRandomCopyBytes result: \(result == errSecSuccess ? "SUCCESS" : "FAILED")")
+        gameLoop = GameLoop(renderer: renderer, seed: randomSeed)
         renderer.gameLoop = gameLoop
-        
+
+        // Reset camera to snap to new player position immediately
+        if let playerPosition = gameLoop?.player.position {
+            renderer.camera.position = playerPosition
+            renderer.camera.target = playerPosition
+            renderer.camera.zoom = 1.0  // Reset to default zoom
+            renderer.camera.targetZoom = 1.0
+            // Force camera to snap immediately by resetting its first update flag
+            renderer.camera.resetForNewGame()
+        }
+
+        // Clear any cached rendering data
+        renderer.clearCachesForNewGame()
+
         // Set UI system on game loop
         gameLoop?.uiSystem = uiSystem
 
         // Update UI system with game loop
         uiSystem?.setGameLoop(gameLoop!)
+
+        // Force immediate redraw after UI system update
+        metalView.setNeedsDisplay()
 
         // Re-set up inventory label callbacks (UI system was recreated)
         uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
@@ -560,6 +601,34 @@ class GameViewController: UIViewController {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+
+    /// Clear all saved chunk files to ensure fresh terrain generation for new games
+    private func clearSavedChunks() {
+        let fileManager = FileManager.default
+        guard let documentsDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return
+        }
+
+        let chunksDir = documentsDir.appendingPathComponent("saves/chunks")
+
+        do {
+            // Check if chunks directory exists
+            if fileManager.fileExists(atPath: chunksDir.path) {
+                // Get all files in the chunks directory
+                let chunkFiles = try fileManager.contentsOfDirectory(at: chunksDir, includingPropertiesForKeys: nil)
+
+                // Delete all chunk files (files starting with "chunk_")
+                for fileURL in chunkFiles where fileURL.lastPathComponent.hasPrefix("chunk_") {
+                    try fileManager.removeItem(at: fileURL)
+                    print("GameViewController: Deleted saved chunk: \(fileURL.lastPathComponent)")
+                }
+
+                print("GameViewController: Cleared \(chunkFiles.filter { $0.lastPathComponent.hasPrefix("chunk_") }.count) saved chunk files")
+            }
+        } catch {
+            print("GameViewController: Error clearing saved chunks: \(error)")
+        }
     }
 }
 

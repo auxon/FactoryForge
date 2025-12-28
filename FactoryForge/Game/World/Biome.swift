@@ -36,12 +36,12 @@ enum Biome: String, Codable, CaseIterable {
     /// Probability of trees in this biome
     var treeChance: Float {
         switch self {
-        case .grassland: return 0.02
-        case .desert: return 0.001
-        case .forest: return 0.15
-        case .swamp: return 0.05
-        case .tundra: return 0.01
-        case .volcanic: return 0
+        case .grassland: return 0.08  // Increased from 0.02
+        case .desert: return 0.005    // Increased from 0.001
+        case .forest: return 0.25     // Increased from 0.15
+        case .swamp: return 0.15      // Increased from 0.05
+        case .tundra: return 0.04     // Increased from 0.01
+        case .volcanic: return 0.01   // Increased from 0
         }
     }
     
@@ -112,34 +112,47 @@ struct BiomeGenerator {
             octaves: 3,
             persistence: 0.5
         )
-        
+
         let humidity = humidityNoise.octaveNoise(
             x: position.x * scale,
             y: position.y * scale,
             octaves: 3,
             persistence: 0.5
         )
-        
+
+        // Debug logging for spawn position
+        if position.x == 0 && position.y == 0 {
+            print("BiomeGenerator: Spawn position (0,0) - temperature: \(temperature), humidity: \(humidity)")
+        }
+
         // Map noise values to biomes
+        let biome: Biome
         if temperature > 0.3 {
             if humidity > 0.2 {
-                return .forest
+                biome = .forest
             } else if humidity < -0.2 {
-                return .desert
+                biome = .desert
             } else {
-                return .grassland
+                biome = .grassland
             }
         } else if temperature < -0.3 {
-            return .tundra
+            biome = .tundra
         } else {
             if humidity > 0.3 {
-                return .swamp
+                biome = .swamp
             } else if humidity < -0.3 {
-                return .volcanic
+                biome = .volcanic
             } else {
-                return .grassland
+                biome = .grassland
             }
         }
+
+        // Debug logging for spawn position
+        if position.x == 0 && position.y == 0 {
+            print("BiomeGenerator: Spawn biome determined as: \(biome)")
+        }
+
+        return biome
     }
     
     func getBiome(at chunkCoord: ChunkCoord) -> Biome {
@@ -147,7 +160,13 @@ struct BiomeGenerator {
             Float(chunkCoord.x) * Chunk.sizeFloat + Chunk.sizeFloat / 2,
             Float(chunkCoord.y) * Chunk.sizeFloat + Chunk.sizeFloat / 2
         )
-        return getBiome(at: worldPos)
+        let biome = getBiome(at: worldPos)
+        // Debug logging for spawn chunk (0,0)
+        if chunkCoord.x == 0 && chunkCoord.y == 0 {
+            print("BiomeGenerator: Spawn chunk (0,0) has biome: \(biome)")
+        }
+        return biome
     }
 }
+
 

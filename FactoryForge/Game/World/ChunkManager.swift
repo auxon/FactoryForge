@@ -25,6 +25,7 @@ final class ChunkManager {
     
     init(seed: UInt64) {
         self.seed = seed
+        print("ChunkManager: Initialized with seed: \(seed)")
         self.worldGenerator = WorldGenerator(seed: seed)
         self.biomeGenerator = BiomeGenerator(seed: seed)
     }
@@ -76,7 +77,7 @@ final class ChunkManager {
             let chunk = worldGenerator.generateChunk(at: coord, biome: biome)
             chunks[coord] = chunk
         }
-        
+
         loadedChunks.insert(coord)
     }
     
@@ -132,7 +133,7 @@ final class ChunkManager {
     func render(renderer: MetalRenderer, camera: Camera2D) {
         // Expand visible rect significantly to ensure all visible chunks are included
         let visibleRect = camera.visibleRect.expanded(by: Chunk.sizeFloat * 2)
-        
+
         for chunk in chunks.values {
             if chunk.worldBounds.intersects(visibleRect) {
                 renderer.queueTiles(chunk.getTileInstances())

@@ -341,6 +341,13 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         // Draw
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
     }
+
+    /// Clear any cached rendering data when starting a new game
+    public func clearCachesForNewGame() {
+        // Clear any renderer-specific cached data here
+        // Currently no persistent caches, but this method ensures
+        // future caches get cleared when starting new games
+    }
 }
 
 // MARK: - UI Shader Types
@@ -396,6 +403,12 @@ final class Camera2D {
             targetZoom = clampedZoom
         }
     }
+
+    /// Reset camera for new game - forces immediate snap to target position
+    public func resetForNewGame() {
+        isFirstUpdate = true
+    }
+
     
     func update(deltaTime: Float) {
         // On first update, snap to target immediately

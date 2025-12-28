@@ -57,7 +57,9 @@ final class GameLoop {
         
         // Initialize world
         world = World()
-        chunkManager = ChunkManager(seed: seed ?? UInt64.random(in: 0...UInt64.max))
+        let worldSeed = seed ?? UInt64.random(in: 0...UInt64.max)
+        print("GameLoop: Using seed for world generation: \(worldSeed)")
+        chunkManager = ChunkManager(seed: worldSeed)
         
         // Initialize player
         player = Player(world: world)

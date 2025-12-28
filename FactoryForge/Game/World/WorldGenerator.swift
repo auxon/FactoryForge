@@ -120,7 +120,7 @@ final class WorldGenerator {
             .copperOre: 0.8,
             .coal: 0.6,
             .stone: 0.5,
-            .wood: 0.7,  // Wood is fairly common
+            .wood: 1.2,  // Wood is now very common
             .uraniumOre: 0.1,
             .oil: 0.2
         ]
@@ -180,15 +180,14 @@ final class WorldGenerator {
                 let worldY = Float(origin.y + Int32(y))
                 
                 let treeNoise = self.treeNoise.noise(x: worldX * 0.1, y: worldY * 0.1)
-                
-                if treeNoise > 0.5 - biome.treeChance * 5 {
-                    if rng.nextFloat() < biome.treeChance * 3 {
-                        tile.type = .tree
-                        // Add wood resource to trees so they can be harvested
-                        let woodAmount = Int(rng.nextFloat() * 150.0 + 50.0)  // 50-200 wood
-                        tile.resource = ResourceDeposit(type: .wood, amount: woodAmount)
-                        chunk.setTile(localX: x, localY: y, tile: tile)
-                    }
+
+                // Simplified tree placement logic - just use treeChance directly
+                if treeNoise > 0.3 && rng.nextFloat() < biome.treeChance {
+                    tile.type = .tree
+                    // Add wood resource to trees so they can be harvested
+                    let woodAmount = Int(rng.nextFloat() * 400.0 + 100.0)  // 100-500 wood
+                    tile.resource = ResourceDeposit(type: .wood, amount: woodAmount)
+                    chunk.setTile(localX: x, localY: y, tile: tile)
                 }
             }
         }
