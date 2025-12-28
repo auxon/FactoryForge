@@ -239,6 +239,11 @@ final class UISystem {
         machineUI.setEntity(entity)
         openPanel(.machine)
     }
+
+    func openChestInventory(for entity: Entity) {
+        inventoryUI.enterChestMode(entity: entity)
+        openPanel(.inventory)
+    }
     
     func updateScreenSize(_ newSize: Vector2) {
         hud.updateScreenSize(newSize)

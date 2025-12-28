@@ -509,21 +509,22 @@ final class InputManager: NSObject {
             let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
             let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
             let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
-            print("InputManager: Entity components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner)")
+            let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+            print("InputManager: Entity components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner), Chest: \(hasChest)")
 
-            if hasFurnace || hasAssembler || hasMiner {
-                print("InputManager: Opening machine UI for entity")
+            if hasFurnace || hasAssembler || hasMiner || hasChest {
+                print("InputManager: Opening UI for entity")
 
                 // Exit build mode if we're in it
                 if buildMode != .none {
                     exitBuildMode()
                 }
 
-                // Select the entity and open machine UI
+                // Select the entity and open appropriate UI
                 selectedEntity = entity
                 onEntitySelected?(entity)
             } else {
-                print("InputManager: Entity is not a machine")
+                print("InputManager: Entity is not a machine or chest")
             }
         } else {
             print("InputManager: No entity found at tile position")

@@ -417,6 +417,10 @@ class GameViewController: UIViewController {
                 print("GameViewController: Mining drill selected, opening Machine UI")
                 // Open machine UI
                 gameLoop.uiSystem?.openMachineUI(for: entity)
+            } else if world.has(ChestComponent.self, for: entity) {
+                print("GameViewController: Chest selected, opening Inventory UI")
+                // Open inventory UI for chest
+                gameLoop.uiSystem?.openChestInventory(for: entity)
             }
         }
     }

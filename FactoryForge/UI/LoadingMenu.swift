@@ -41,6 +41,7 @@ final class LoadingMenu: UIPanel_Base {
 
         closeButton = CloseButton(frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)))
         closeButton.onTap = { [weak self] in
+            AudioManager.shared.playClickSound()
             self?.close()
         }
     }
@@ -62,6 +63,7 @@ final class LoadingMenu: UIPanel_Base {
             textureId: "new_game"
         )
         newGameButton.onTap = { [weak self] in
+            AudioManager.shared.playClickSound()
             self?.onNewGameSelected?()
         }
         
@@ -75,6 +77,7 @@ final class LoadingMenu: UIPanel_Base {
             textureId: "save_game"
         )
         saveGameButton.onTap = { [weak self] in
+            AudioManager.shared.playClickSound()
             self?.onSaveGameRequested?()
         }
 
@@ -90,6 +93,7 @@ final class LoadingMenu: UIPanel_Base {
             textureId: "disable_audio"  // Use menu texture for now, could be replaced with audio icon
         )
         audioToggleButton.onTap = {
+            AudioManager.shared.playClickSound()
             AudioManager.shared.toggleMute()
             print("Audio toggled: \(AudioManager.shared.isMuted ? "MUTED" : "UNMUTED")")
         }
@@ -134,9 +138,11 @@ final class LoadingMenu: UIPanel_Base {
                 self?.onSaveSlotSelected?(slot.name)
             }
             slotButton.onLoadTap = { [weak self] in
+                AudioManager.shared.playClickSound()
                 self?.onSaveSlotSelected?(slot.name)
             }
             slotButton.onDeleteTap = { [weak self] in
+                AudioManager.shared.playClickSound()
                 self?.onSaveSlotDelete?(slot.name)
             }
             saveSlotButtons.append(slotButton)
