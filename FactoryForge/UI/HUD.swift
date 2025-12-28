@@ -178,7 +178,7 @@ final class HUD {
         if let gameLoop = gameLoop, gameLoop.isPlayerDead {
             return
         }
-        
+
         // Calculate toolbar positions
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
         var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
@@ -286,7 +286,7 @@ final class HUD {
             color: Color(r: 0.2, g: 0.2, b: 0.25, a: 0.9),
             layer: .ui
         ))
-        
+
         // Button icon
         let textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
         renderer.queueSprite(SpriteInstance(

@@ -230,7 +230,7 @@ final class UISystem {
                 machineUI.close()
             }
         }
-        
+
         activePanel = nil
         isAnyPanelOpen = false
     }

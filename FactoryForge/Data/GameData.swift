@@ -33,7 +33,7 @@ final class GameData {
 }
 
 struct GameSettings: Codable {
-    var musicVolume: Float = 0.5
+    var musicVolume: Float = 0.2
     var soundVolume: Float = 0.7
     var showTutorials: Bool = true
     var autoSave: Bool = true

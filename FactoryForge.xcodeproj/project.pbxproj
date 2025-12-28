@@ -115,6 +115,7 @@
 		0DE229872F01796500BD619D /* power_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229862F01796500BD619D /* power_pole.png */; };
 		0DE229892F01799C00BD619D /* turret.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229882F01799C00BD619D /* turret.png */; };
 		0DE2298B2F01969900BD619D /* disable_audio.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2298A2F01969900BD619D /* disable_audio.png */; };
+		0DE2298D2F01B12700BD619D /* crafting_complete.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2298C2F01B12700BD619D /* crafting_complete.m4a */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -284,6 +285,7 @@
 		0DE229862F01796500BD619D /* power_pole.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = power_pole.png; sourceTree = "<group>"; };
 		0DE229882F01799C00BD619D /* turret.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = turret.png; sourceTree = "<group>"; };
 		0DE2298A2F01969900BD619D /* disable_audio.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = disable_audio.png; sourceTree = "<group>"; };
+		0DE2298C2F01B12700BD619D /* crafting_complete.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = crafting_complete.m4a; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -600,6 +602,7 @@
 		0DE229742F0064D200BD619D /* sounds */ = {
 			isa = PBXGroup;
 			children = (
+				0DE2298C2F01B12700BD619D /* crafting_complete.m4a */,
 				0DE229762F006A6F00BD619D /* click.m4a */,
 				0DE229732F0064D200BD619D /* mining.m4a */,
 				0DE2297D2F01796500BD619D /* little_maze.m4a */,
@@ -1008,6 +1011,7 @@
 				0D6FDC5D2EFDE1B500576EC3 /* steel_chest.png in Resources */,
 				0D6FDC5E2EFDE1B500576EC3 /* long_handed_inserter.png in Resources */,
 				0D6FDC5F2EFDE1B500576EC3 /* steel_furnace.png in Resources */,
+				0DE2298D2F01B12700BD619D /* crafting_complete.m4a in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

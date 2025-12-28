@@ -191,6 +191,7 @@ class GameViewController: UIViewController {
         
         // Setup callbacks
         let loadingMenu = uiSystem.getLoadingMenu()
+        print("GameViewController: Setting up LoadingMenu callbacks")
         loadingMenu.onNewGameSelected = { [weak self] in
             self?.startNewGame()
         }
@@ -205,6 +206,18 @@ class GameViewController: UIViewController {
         
         loadingMenu.onSaveGameRequested = { [weak self] in
             self?.saveCurrentGame()
+        }
+
+        loadingMenu.onCloseTapped = { [weak self] in
+            self?.uiSystem?.closeAllPanels()
+            // Force multiple redraws to ensure HUD renders properly after menu closes
+            self?.metalView.setNeedsDisplay()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
+                self?.metalView.setNeedsDisplay()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                self?.metalView.setNeedsDisplay()
+            }
         }
         
         // Setup UILabel overlays for save slot information
@@ -259,14 +272,30 @@ class GameViewController: UIViewController {
 
         // Setup input
         setupInput()
-        
+
         // Enable save button in loading menu (game is now running)
         uiSystem?.getLoadingMenu().onSaveGameRequested = { [weak self] in
             self?.saveCurrentGame()
         }
-        
+
+        // Ensure renderer has the correct uiSystem reference before closing panels
+        if let uiSystem = uiSystem {
+            renderer.uiSystem = uiSystem
+        }
+
         // Close loading menu
         uiSystem?.closeAllPanels()
+
+        // Force multiple redraws to ensure HUD renders properly after menu closes
+        metalView.setNeedsDisplay()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+            self.metalView.setNeedsDisplay()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            self.metalView.setNeedsDisplay()
+        }
+        // Force redraw to ensure HUD renders properly after menu closes
+        metalView.setNeedsDisplay()
     }
     
     private func loadGame(from slotName: String) {
@@ -293,15 +322,23 @@ class GameViewController: UIViewController {
         
         // Setup input
         setupInput()
-        
+
         // Enable save button in loading menu (game is now running)
         uiSystem?.getLoadingMenu().onSaveGameRequested = { [weak self] in
             self?.saveCurrentGame()
         }
-        
+
+        // Update UI system with game loop to ensure HUD has correct reference
+        uiSystem?.setGameLoop(gameLoop!)
+
+        // Ensure renderer has the correct uiSystem reference
+        if let uiSystem = uiSystem {
+            renderer.uiSystem = uiSystem
+        }
+
         // Close loading menu
         uiSystem?.closeAllPanels()
-        
+
         // Update chunk manager with player position to load surrounding chunks
         gameLoop?.chunkManager.update(playerPosition: gameLoop!.player.position)
     }
@@ -327,6 +364,11 @@ class GameViewController: UIViewController {
         
         // Close the loading menu after saving
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            // Ensure renderer has the correct uiSystem reference
+            if let uiSystem = self?.uiSystem {
+                self?.renderer.uiSystem = uiSystem
+            }
+
             self?.uiSystem?.closeAllPanels()
         }
     }

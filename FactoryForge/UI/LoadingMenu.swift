@@ -16,6 +16,7 @@ final class LoadingMenu: UIPanel_Base {
     var onSaveSlotSelected: ((String) -> Void)? // Called when a save slot is selected to load
     var onSaveSlotDelete: ((String) -> Void)? // Called when delete button is pressed for a save slot
     var onSaveGameRequested: (() -> Void)? // Called when save button is pressed
+    var onCloseTapped: (() -> Void)? // Called when close button (X) is tapped
     
     init(screenSize: Vector2) {
         self.saveSystem = SaveSystem()
@@ -42,7 +43,7 @@ final class LoadingMenu: UIPanel_Base {
         closeButton = CloseButton(frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)))
         closeButton.onTap = { [weak self] in
             AudioManager.shared.playClickSound()
-            self?.close()
+            self?.onCloseTapped?()
         }
     }
     
@@ -120,7 +121,7 @@ final class LoadingMenu: UIPanel_Base {
         
         // Load/Delete button size (using same aspect ratio as other buttons)
         let imageAspectRatio: Float = 805.0 / 279.0
-        let loadDeleteButtonHeight: Float = buttonHeight  // Use same height as save slot buttons for consistency
+        let loadDeleteButtonHeight: Float = 60 * UIScale  // Match the button height used in save slots
         let loadDeleteButtonWidth: Float = loadDeleteButtonHeight * imageAspectRatio
         
         for (index, slot) in slots.prefix(maxButtons).enumerated() {
@@ -342,7 +343,7 @@ final class LoadingMenu: UIPanel_Base {
         if closeButton.handleTap(at: position) {
             return true
         }
-        
+
         // Check New Game button
         if newGameButton?.handleTap(at: position) == true {
             return true

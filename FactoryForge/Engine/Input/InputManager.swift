@@ -61,7 +61,7 @@ final class InputManager: NSObject {
     
     private func setupGestureRecognizers() {
         guard let view = view else { return }
-        
+
         // Ensure view can receive touches
         view.isUserInteractionEnabled = true
         view.isMultipleTouchEnabled = true
@@ -853,15 +853,11 @@ extension InputManager: UIGestureRecognizerDelegate {
     // This allows us to get .changed and .ended events
 
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        // print("gestureRecognizerShouldBegin called for \(type(of: gestureRecognizer))")
         return true
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        let _ = type(of: gestureRecognizer)
-        let _ = type(of: otherGestureRecognizer)
-        // print("Checking simultaneous recognition: \(gesture1Type) vs \(gesture2Type)")
 
         // Allow pinch and rotation together
         if gestureRecognizer is UIPinchGestureRecognizer && otherGestureRecognizer is UIRotationGestureRecognizer {

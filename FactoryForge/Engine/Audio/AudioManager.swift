@@ -214,7 +214,7 @@ final class AudioManager {
     }
 
     func playCraftingCompleteSound() {
-        playSound("crafting_complete.wav", volume: 0.5)
+        playSound("crafting_complete.m4a", volume: 0.5)
     }
 
     func playBackgroundMusic() {
