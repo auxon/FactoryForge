@@ -48,10 +48,10 @@ final class LoadingMenu: UIPanel_Base {
     private func setupButtons() {
         // Button images are 805x279px (aspect ratio ~2.89:1), calculate size to preserve aspect ratio
         let imageAspectRatio: Float = 805.0 / 279.0  // ~2.89
-        let buttonHeight: Float = 90 * UIScale  // Base height
+        let buttonHeight: Float = 60 * UIScale  // Reduced from 90 to make buttons smaller
         let buttonWidth: Float = buttonHeight * imageAspectRatio  // Maintain aspect ratio
-        let buttonSpacing: Float = 15 * UIScale
-        let buttonY = frame.center.y - 200 * UIScale
+        let buttonSpacing: Float = 10 * UIScale  // Reduced spacing
+        let buttonY = frame.center.y - 150 * UIScale  // Moved up from -200 to leave more space
         
         // New Game button at the top
         newGameButton = UIButton(
@@ -111,12 +111,12 @@ final class LoadingMenu: UIPanel_Base {
         let slotAreaWidth: Float = 460 * UIScale
         let buttonHeight: Float = 60 * UIScale
         let buttonSpacing: Float = 10 * UIScale
-        let startY = frame.center.y - 50 * UIScale // Center the save slot area
+        let startY = frame.center.y - 20 * UIScale // Moved up from -50 to have better spacing from buttons
         let maxButtons = 7 // Maximum number of save slots to display
         
         // Load/Delete button size (using same aspect ratio as other buttons)
         let imageAspectRatio: Float = 805.0 / 279.0
-        let loadDeleteButtonHeight: Float = 50 * UIScale
+        let loadDeleteButtonHeight: Float = buttonHeight  // Use same height as save slot buttons for consistency
         let loadDeleteButtonWidth: Float = loadDeleteButtonHeight * imageAspectRatio
         
         for (index, slot) in slots.prefix(maxButtons).enumerated() {
@@ -168,7 +168,7 @@ final class LoadingMenu: UIPanel_Base {
         
         // Calculate Load/Delete button dimensions for accurate label width calculation
         let imageAspectRatio: Float = 805.0 / 279.0
-        let loadDeleteButtonHeight: Float = 50 * UIScale
+        let loadDeleteButtonHeight: Float = 60 * UIScale  // Match the button height used in save slots
         let loadDeleteButtonWidth: Float = loadDeleteButtonHeight * imageAspectRatio
         let buttonSpacing: Float = 5 * UIScale
         let buttonsAreaWidth = loadDeleteButtonWidth * 2 + buttonSpacing * 3 // Total width of Load/Delete buttons + spacing
@@ -374,7 +374,7 @@ class SaveSlotButton: UIElement {
     
     // Load and delete button frames (positioned on the right side of the slot)
     private var loadButtonFrame: Rect {
-        let buttonHeight: Float = 50 * UIScale
+        let buttonHeight: Float = 60 * UIScale  // Match the button height used in save slots
         let imageAspectRatio: Float = 805.0 / 279.0
         let buttonWidth: Float = buttonHeight * imageAspectRatio
         let spacing: Float = 5 * UIScale
@@ -383,9 +383,9 @@ class SaveSlotButton: UIElement {
             size: Vector2(buttonWidth, buttonHeight)
         )
     }
-    
+
     private var deleteButtonFrame: Rect {
-        let buttonHeight: Float = 50 * UIScale
+        let buttonHeight: Float = 60 * UIScale  // Match the button height used in save slots
         let imageAspectRatio: Float = 805.0 / 279.0
         let buttonWidth: Float = buttonHeight * imageAspectRatio
         let spacing: Float = 5 * UIScale
