@@ -78,6 +78,7 @@ final class TextureAtlas {
             // UI - FIRST for stable atlas packing (variable widths affect subsequent textures)
             ("building_placeholder", nil),
             ("delete_game", nil),
+            ("inventory", nil),
             ("load_game", nil),
             ("menu", nil),
             ("new_game", nil),

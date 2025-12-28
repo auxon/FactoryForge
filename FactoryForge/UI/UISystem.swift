@@ -112,22 +112,6 @@ final class UISystem {
         }
 
         // Quick bar slot callback
-        hud.onQuickBarSlotSelected = { [weak self] slotIndex in
-            guard let self = self,
-                  let player = self.gameLoop?.player,
-                  slotIndex < player.inventory.slots.count,
-                  let item = player.inventory.slots[slotIndex] else { return }
-            
-            // Check if this item is a building
-            if self.gameLoop?.buildingRegistry.get(item.itemId) != nil {
-                // It's a building - enter build mode
-                print("UISystem: Quick bar slot \(slotIndex) contains building '\(item.itemId)', entering build mode")
-                self.gameLoop?.inputManager?.enterBuildMode(buildingId: item.itemId)
-            } else {
-                // Not a building - just select the slot for now
-                print("UISystem: Quick bar slot \(slotIndex) contains item '\(item.itemId)' (not a building)")
-            }
-        }
     }
     
     // MARK: - Update
@@ -336,6 +320,7 @@ final class UISystem {
     }
 
     func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
+        // Check active panels
         if let panel = activePanel {
             switch panel {
             case .inventory:

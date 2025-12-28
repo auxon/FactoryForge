@@ -183,8 +183,17 @@ final class InventoryUI: UIPanel_Base {
                     // Machine input mode - add item to machine
                     handleMachineInput(slot: slot)
                 } else {
-                    // Normal inventory mode - just select
-                    // Handle slot selection
+                    // Normal inventory mode - check if item is a building
+                    if let itemStack = slot.item,
+                       let gameLoop = gameLoop,
+                       gameLoop.buildingRegistry.get(itemStack.itemId) != nil {
+                        // It's a building - enter build mode
+                        gameLoop.inputManager?.enterBuildMode(buildingId: itemStack.itemId)
+                        close() // Close inventory when entering build mode
+                    } else {
+                        // Not a building - just select the slot
+                        // Handle slot selection (could add visual feedback here)
+                    }
                 }
                 return true
             }
@@ -274,6 +283,7 @@ final class InventoryUI: UIPanel_Base {
 
         return nil
     }
+
 }
 
 class InventorySlot: UIElement {

@@ -14,7 +14,6 @@ final class HUD {
     private var buttonSize: Float { 60 * scale }
     private var buttonSpacing: Float { 10 * scale }
     private var bottomMargin: Float { 30 * scale }
-    private var slotSize: Float { 50 * scale }
     
     // Virtual joystick for movement
     let joystick: VirtualJoystick
@@ -25,10 +24,6 @@ final class HUD {
     var onBuildPressed: (() -> Void)?
     var onResearchPressed: (() -> Void)?
     var onMenuPressed: (() -> Void)? // Called when menu button is pressed
-    var onQuickBarSlotSelected: ((Int) -> Void)? // Called when a quick bar slot is selected
-    
-    // Selected quick bar slot
-    var selectedQuickBarSlot: Int? = nil
     
     // Mining animations
     private struct MiningAnimation {
@@ -63,7 +58,9 @@ final class HUD {
                 gameLoop?.player.stopMoving()
             }
         }
+
     }
+
     
     func updateScreenSize(_ newSize: Vector2) {
         screenSize = newSize
@@ -78,6 +75,7 @@ final class HUD {
         // Update mining animations
         updateMiningAnimations(deltaTime: deltaTime)
     }
+
     
     private func updateMiningAnimations(deltaTime: Float) {
         for i in (0..<miningAnimations.count).reversed() {
@@ -187,7 +185,7 @@ final class HUD {
 
         // Render inventory button
         // print("Rendering inventory button at Metal position (\(currentX), \(toolbarY))")
-        renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "chest", callback: onInventoryPressed)
+        renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "inventory", callback: onInventoryPressed)
         currentX += buttonSize + buttonSpacing
         
         // Render crafting button
@@ -200,17 +198,8 @@ final class HUD {
         
         // Render research button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "lab", callback: onResearchPressed)
-        
-        // Render quick bar
-        let quickBarY = screenSize.y - bottomMargin - buttonSize - buttonSpacing - slotSize / 2
-        let quickBarStartX = screenSize.x / 2 - (slotSize * 5 + buttonSpacing * 4) / 2
-        
-        for i in 0..<10 {
-            let slotX = quickBarStartX + Float(i) * (slotSize + buttonSpacing / 2)
-            renderQuickBarSlot(renderer: renderer, index: i, position: Vector2(slotX, quickBarY))
-        }
-        
-            // Render virtual joystick
+
+        // Render virtual joystick
             joystick.updateScreenSize(screenSize)
             joystick.render(renderer: renderer)
         
@@ -308,36 +297,6 @@ final class HUD {
         ))
     }
     
-    private func renderQuickBarSlot(renderer: MetalRenderer, index: Int, position: Vector2) {
-        // Slot background - use solid_white texture with tinted color
-        // Highlight if selected
-        let isSelected = selectedQuickBarSlot == index
-        let bgColor = isSelected ? 
-            Color(r: 0.3, g: 0.3, b: 0.4, a: 0.9) : 
-            Color(r: 0.15, g: 0.15, b: 0.2, a: 0.9)
-        
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-        renderer.queueSprite(SpriteInstance(
-            position: position,
-            size: Vector2(slotSize, slotSize),
-            textureRect: solidRect,
-            color: bgColor,
-            layer: .ui
-        ))
-        
-        // Item if present
-        if let player = gameLoop?.player, index < player.inventory.slots.count {
-            if let item = player.inventory.slots[index] {
-                let textureRect = renderer.textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
-                renderer.queueSprite(SpriteInstance(
-                    position: position,
-                    size: Vector2(slotSize * 0.8, slotSize * 0.8),
-                    textureRect: textureRect,
-                    layer: .ui
-                ))
-            }
-        }
-    }
     
     private func renderHealthBar(renderer: MetalRenderer) {
         guard let player = gameLoop?.player else { return }
@@ -422,28 +381,11 @@ final class HUD {
             onMenuPressed?()
             return true
         }
-        
-        // Check quick bar slots
-        let quickBarY = screenSize.y - bottomMargin - buttonSize - buttonSpacing - slotSize / 2
-        let quickBarStartX = screenSize.x / 2 - (slotSize * 5 + buttonSpacing * 4) / 2
-        
-        for i in 0..<10 {
-            let slotX = quickBarStartX + Float(i) * (slotSize + buttonSpacing / 2)
-            let slotPos = Vector2(slotX, quickBarY)
-            let slotFrame = Rect(center: slotPos, size: Vector2(slotSize, slotSize))
-            
-            if slotFrame.contains(position) {
-                // Quick bar slot tapped
-                selectedQuickBarSlot = i
-                onQuickBarSlotSelected?(i)
-                print("HUD: Quick bar slot \(i) tapped")
-                return true
-            }
-        }
 
         return false
     }
-    
+
+
     private func checkButtonTap(at position: Vector2, buttonPos: Vector2) -> Bool {
         let frame = Rect(center: buttonPos, size: Vector2(buttonSize, buttonSize))
         let contains = frame.contains(position)

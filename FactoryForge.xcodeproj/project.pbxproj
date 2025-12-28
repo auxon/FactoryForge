@@ -104,6 +104,7 @@
 		0DE229712F001B9F00BD619D /* transport_belt_north_004.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229502F001B9F00BD619D /* transport_belt_north_004.png */; };
 		0DE229752F0064D200BD619D /* mining.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229732F0064D200BD619D /* mining.m4a */; };
 		0DE229772F006A6F00BD619D /* click.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229762F006A6F00BD619D /* click.m4a */; };
+		0DE229792F0173B500BD619D /* inventory.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229782F0173B500BD619D /* inventory.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -262,6 +263,7 @@
 		0DE2295C2F001B9F00BD619D /* transport_belt_north_016.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_016.png; sourceTree = "<group>"; };
 		0DE229732F0064D200BD619D /* mining.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = mining.m4a; sourceTree = "<group>"; };
 		0DE229762F006A6F00BD619D /* click.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = click.m4a; sourceTree = "<group>"; };
+		0DE229782F0173B500BD619D /* inventory.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inventory.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -338,6 +340,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DE229782F0173B500BD619D /* inventory.png */,
 				0DE229742F0064D200BD619D /* sounds */,
 				0DE229612F001B9F00BD619D /* belts */,
 				0D7457F32EFF6B8700C7C473 /* menu.png */,
@@ -922,6 +925,7 @@
 				0D6FDC382EFDE1B500576EC3 /* electric_mining_drill.png in Resources */,
 				0D6FDC392EFDE1B500576EC3 /* copper_cable.png in Resources */,
 				0D6FDC3A2EFDE1B500576EC3 /* production_science_pack.png in Resources */,
+				0DE229792F0173B500BD619D /* inventory.png in Resources */,
 				0D6FDC3B2EFDE1B500576EC3 /* assembling_machine_1.png in Resources */,
 				0D6FDC672EFEE36A00576EC3 /* save_game.png in Resources */,
 				0D6FDC3C2EFDE1B500576EC3 /* fast_transport_belt.png in Resources */,

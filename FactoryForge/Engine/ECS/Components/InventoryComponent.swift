@@ -7,7 +7,7 @@ struct InventoryComponent: Component {
     
     /// Items in each slot
     var slots: [ItemStack?]
-    
+
     /// Optional item filter (only allows specific items)
     var filter: ((String) -> Bool)?
     
@@ -186,6 +186,7 @@ struct InventoryComponent: Component {
         }
         return nil
     }
+
 }
 
 /// A stack of items
