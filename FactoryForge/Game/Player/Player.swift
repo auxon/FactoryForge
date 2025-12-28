@@ -116,7 +116,7 @@ final class Player {
     }
     
     private func giveStartingItems() {
-        inventory.add(itemId: "iron-plate", count: 8)
+        inventory.add(itemId: "iron-plate", count: 10)  // Enough to build both burner miner and stone furnace
         inventory.add(itemId: "burner-mining-drill", count: 1)
         inventory.add(itemId: "stone-furnace", count: 1)
         inventory.add(itemId: "firearm-magazine", count: 10)  // Starting ammo for self-defense
