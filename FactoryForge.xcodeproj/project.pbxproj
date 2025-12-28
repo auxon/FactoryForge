@@ -105,6 +105,14 @@
 		0DE229752F0064D200BD619D /* mining.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229732F0064D200BD619D /* mining.m4a */; };
 		0DE229772F006A6F00BD619D /* click.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229762F006A6F00BD619D /* click.m4a */; };
 		0DE229792F0173B500BD619D /* inventory.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229782F0173B500BD619D /* inventory.png */; };
+		0DE2297B2F01760A00BD619D /* gear.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2297A2F01760A00BD619D /* gear.png */; };
+		0DE2297D2F01762A00BD619D /* assembler.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2297C2F01762A00BD619D /* assembler.png */; };
+		0DE2297F2F0177B900BD619D /* miner.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2297E2F0177B900BD619D /* miner.png */; };
+		0DE229812F0177EB00BD619D /* furnace.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229802F0177EA00BD619D /* furnace.png */; };
+		0DE229832F01781900BD619D /* belt.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229822F01781900BD619D /* belt.png */; };
+		0DE229852F01794500BD619D /* chest.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229842F01794500BD619D /* chest.png */; };
+		0DE229872F01796500BD619D /* power_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229862F01796500BD619D /* power_pole.png */; };
+		0DE229892F01799C00BD619D /* turret.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229882F01799C00BD619D /* turret.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -264,6 +272,14 @@
 		0DE229732F0064D200BD619D /* mining.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = mining.m4a; sourceTree = "<group>"; };
 		0DE229762F006A6F00BD619D /* click.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = click.m4a; sourceTree = "<group>"; };
 		0DE229782F0173B500BD619D /* inventory.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inventory.png; sourceTree = "<group>"; };
+		0DE2297A2F01760A00BD619D /* gear.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gear.png; sourceTree = "<group>"; };
+		0DE2297C2F01762A00BD619D /* assembler.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = assembler.png; sourceTree = "<group>"; };
+		0DE2297E2F0177B900BD619D /* miner.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = miner.png; sourceTree = "<group>"; };
+		0DE229802F0177EA00BD619D /* furnace.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = furnace.png; sourceTree = "<group>"; };
+		0DE229822F01781900BD619D /* belt.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = belt.png; sourceTree = "<group>"; };
+		0DE229842F01794500BD619D /* chest.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chest.png; sourceTree = "<group>"; };
+		0DE229862F01796500BD619D /* power_pole.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = power_pole.png; sourceTree = "<group>"; };
+		0DE229882F01799C00BD619D /* turret.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = turret.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -340,6 +356,14 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DE229882F01799C00BD619D /* turret.png */,
+				0DE229862F01796500BD619D /* power_pole.png */,
+				0DE229842F01794500BD619D /* chest.png */,
+				0DE229822F01781900BD619D /* belt.png */,
+				0DE229802F0177EA00BD619D /* furnace.png */,
+				0DE2297E2F0177B900BD619D /* miner.png */,
+				0DE2297C2F01762A00BD619D /* assembler.png */,
+				0DE2297A2F01760A00BD619D /* gear.png */,
 				0DE229782F0173B500BD619D /* inventory.png */,
 				0DE229742F0064D200BD619D /* sounds */,
 				0DE229612F001B9F00BD619D /* belts */,
@@ -886,6 +910,7 @@
 				0D6FDC242EFDE1B500576EC3 /* laser_turret.png in Resources */,
 				0D6FDC252EFDE1B500576EC3 /* electric_furnace.png in Resources */,
 				0D6FDC262EFDE1B500576EC3 /* piercing_rounds_magazine.png in Resources */,
+				0DE229852F01794500BD619D /* chest.png in Resources */,
 				0D6FDC6A2EFEE52D00576EC3 /* delete_game.png in Resources */,
 				0D6FDC6B2EFEE52D00576EC3 /* load_game.png in Resources */,
 				0D6FDC272EFDE1B500576EC3 /* firearm_magazine.png in Resources */,
@@ -906,7 +931,9 @@
 				0DE229662F001B9F00BD619D /* transport_belt_north_015.png in Resources */,
 				0DE229672F001B9F00BD619D /* transport_belt_north_009.png in Resources */,
 				0DE229682F001B9F00BD619D /* transport_belt_north_001.png in Resources */,
+				0DE229812F0177EB00BD619D /* furnace.png in Resources */,
 				0DE229692F001B9F00BD619D /* transport_belt_north_012.png in Resources */,
+				0DE2297D2F01762A00BD619D /* assembler.png in Resources */,
 				0DE2296A2F001B9F00BD619D /* transport_belt_north_014.png in Resources */,
 				0DE2296B2F001B9F00BD619D /* transport_belt_north_006.png in Resources */,
 				0DE2296C2F001B9F00BD619D /* transport_belt_north_011.png in Resources */,
@@ -921,9 +948,11 @@
 				0D6FDC352EFDE1B500576EC3 /* boiler.png in Resources */,
 				0D6FDC362EFDE1B500576EC3 /* logistic_science_pack.png in Resources */,
 				0D6FDC372EFDE1B500576EC3 /* sand.png in Resources */,
+				0DE2297B2F01760A00BD619D /* gear.png in Resources */,
 				0DE229752F0064D200BD619D /* mining.m4a in Resources */,
 				0D6FDC382EFDE1B500576EC3 /* electric_mining_drill.png in Resources */,
 				0D6FDC392EFDE1B500576EC3 /* copper_cable.png in Resources */,
+				0DE2297F2F0177B900BD619D /* miner.png in Resources */,
 				0D6FDC3A2EFDE1B500576EC3 /* production_science_pack.png in Resources */,
 				0DE229792F0173B500BD619D /* inventory.png in Resources */,
 				0D6FDC3B2EFDE1B500576EC3 /* assembling_machine_1.png in Resources */,
@@ -935,6 +964,7 @@
 				0D6FDC402EFDE1B500576EC3 /* stone.png in Resources */,
 				0D6FDC412EFDE1B500576EC3 /* uranium_ore.png in Resources */,
 				0D6FDC422EFDE1B500576EC3 /* radar.png in Resources */,
+				0DE229832F01781900BD619D /* belt.png in Resources */,
 				0DE229772F006A6F00BD619D /* click.m4a in Resources */,
 				0D6FDC432EFDE1B500576EC3 /* accumulator.png in Resources */,
 				0D6FDC442EFDE1B500576EC3 /* burner_miner_drill.png in Resources */,
@@ -950,11 +980,13 @@
 				0D6FDC4C2EFDE1B500576EC3 /* pipe.png in Resources */,
 				0D6FDC4D2EFDE1B500576EC3 /* copper_plate.png in Resources */,
 				0D6FDC4E2EFDE1B500576EC3 /* water.png in Resources */,
+				0DE229872F01796500BD619D /* power_pole.png in Resources */,
 				0D6FDC4F2EFDE1B500576EC3 /* engine_unit.png in Resources */,
 				0D6FDC502EFDE1B500576EC3 /* iron_plate.png in Resources */,
 				0D6FDC512EFDE1B500576EC3 /* steam_engine.png in Resources */,
 				0D6FDC522EFDE1B500576EC3 /* spawner.png in Resources */,
 				0D6FDC532EFDE1B500576EC3 /* gun_turret.png in Resources */,
+				0DE229892F01799C00BD619D /* turret.png in Resources */,
 				0D6FDC542EFDE1B500576EC3 /* iron_gear_wheel.png in Resources */,
 				0D6FDC552EFDE1B500576EC3 /* express_transport_belt.png in Resources */,
 				0D6FDC562EFDE1B500576EC3 /* advanced_circuit.png in Resources */,

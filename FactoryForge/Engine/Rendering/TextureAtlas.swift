@@ -79,6 +79,8 @@ final class TextureAtlas {
             ("building_placeholder", nil),
             ("delete_game", nil),
             ("inventory", nil),
+            ("gear", nil),
+            ("assembler", nil),
             ("load_game", nil),
             ("menu", nil),
             ("new_game", nil),
@@ -201,7 +203,14 @@ final class TextureAtlas {
             ("firearm_magazine", nil),
             ("piercing_rounds_magazine", nil),
             ("grenade", nil),
-            
+
+            // Build menu categories non-duplicates only
+            ("miner", nil),
+            ("furnace", nil),
+            ("belt", nil),
+            ("power_pole", nil),
+            ("turret", nil),
+            ("chest", nil),
         ]
         
         print("Loading \(spriteFiles.count) sprite files...")
