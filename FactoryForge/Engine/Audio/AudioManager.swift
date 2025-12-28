@@ -220,6 +220,17 @@ final class AudioManager {
     func playBackgroundMusic() {
         playMusic("little_maze.m4a", loop: true)
     }
+
+    func toggleMute() {
+        isMuted.toggle()
+        if isMuted {
+            stopMusic()
+            stopAllSounds()
+        } else {
+            // Resume music if it was playing
+            playBackgroundMusic()
+        }
+    }
     
     // MARK: - Cleanup
     

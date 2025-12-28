@@ -85,6 +85,7 @@ final class TextureAtlas {
             ("menu", nil),
             ("new_game", nil),
             ("save_game", nil),
+            ("disable_audio", nil),
             ("solid_white", nil),
 
             // Entities (load player sprite sheets first - they extract all frames)

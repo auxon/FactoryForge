@@ -7,6 +7,7 @@ final class LoadingMenu: UIPanel_Base {
     private var screenSize: Vector2 // Store screen size for coordinate conversion
     private var newGameButton: UIButton!
     private var saveGameButton: UIButton!
+    private var audioToggleButton: UIButton!
     private var saveSlotButtons: [SaveSlotButton] = []
     private var slotLabels: [UILabel] = [] // Labels for save slot information
     private var closeButton: CloseButton!
@@ -75,6 +76,22 @@ final class LoadingMenu: UIPanel_Base {
         )
         saveGameButton.onTap = { [weak self] in
             self?.onSaveGameRequested?()
+        }
+
+        // Audio Toggle button (bottom right)
+        let audioButtonSize: Float = 50 * UIScale
+        let audioButtonX = frame.maxX - 60 * UIScale
+        let audioButtonY = frame.maxY - 60 * UIScale
+        audioToggleButton = UIButton(
+            frame: Rect(
+                center: Vector2(audioButtonX, audioButtonY),
+                size: Vector2(audioButtonSize, audioButtonSize)
+            ),
+            textureId: "disable_audio"  // Use menu texture for now, could be replaced with audio icon
+        )
+        audioToggleButton.onTap = {
+            AudioManager.shared.toggleMute()
+            print("Audio toggled: \(AudioManager.shared.isMuted ? "MUTED" : "UNMUTED")")
         }
     }
     
@@ -269,7 +286,10 @@ final class LoadingMenu: UIPanel_Base {
         if onSaveGameRequested != nil {
             renderSaveGameButton(renderer: renderer)
         }
-        
+
+        // Render Audio Toggle button
+        renderAudioToggleButton(renderer: renderer)
+
         // Render save slot buttons
         for button in saveSlotButtons {
             button.render(renderer: renderer)
@@ -297,6 +317,12 @@ final class LoadingMenu: UIPanel_Base {
         // Use the button's built-in render method - button size now matches image aspect ratio
         button.render(renderer: renderer)
     }
+
+    private func renderAudioToggleButton(renderer: MetalRenderer) {
+        guard let button = audioToggleButton else { return }
+        // Use the button's built-in render method
+        button.render(renderer: renderer)
+    }
     
     private func renderEmptyState(renderer: MetalRenderer) {
         // Could render "No saved games" text here
@@ -320,7 +346,12 @@ final class LoadingMenu: UIPanel_Base {
         if onSaveGameRequested != nil, saveGameButton?.handleTap(at: position) == true {
             return true
         }
-        
+
+        // Check Audio Toggle button
+        if audioToggleButton?.handleTap(at: position) == true {
+            return true
+        }
+
         // Check save slot buttons
         for button in saveSlotButtons {
             if button.handleTap(at: position) {
