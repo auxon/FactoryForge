@@ -74,6 +74,10 @@ final class UISystem {
     func getMachineUI() -> MachineUI {
         return machineUI
     }
+
+    func getResearchUI() -> ResearchUI {
+        return researchUI
+    }
     
     private func setupCallbacks() {
         // HUD button callbacks

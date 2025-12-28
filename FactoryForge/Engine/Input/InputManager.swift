@@ -510,9 +510,10 @@ final class InputManager: NSObject {
             let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
             let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
             let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
-            print("InputManager: Entity components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner), Chest: \(hasChest)")
+            let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
+            print("InputManager: Entity components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner), Chest: \(hasChest), Lab: \(hasLab)")
 
-            if hasFurnace || hasAssembler || hasMiner || hasChest {
+            if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab {
                 print("InputManager: Opening UI for entity")
 
                 // Exit build mode if we're in it

@@ -143,7 +143,8 @@ class GameViewController: UIViewController {
         metalView.colorPixelFormat = .bgra8Unorm
         metalView.depthStencilPixelFormat = .depth32Float
         metalView.preferredFramesPerSecond = 60
-        metalView.clearColor = MTLClearColor(red: 0.1, green: 0.15, blue: 0.1, alpha: 1.0)
+        metalView.clearColor = MTLClearColor(red: 0.0, green: 0.0, blue: 0.0, alpha: 0.0) // Transparent background
+        metalView.isOpaque = false // Allow transparency
         view.addSubview(metalView)
     }
     
@@ -179,6 +180,22 @@ class GameViewController: UIViewController {
             }
         }
         uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+
+        // Set up research UI label callbacks
+        uiSystem?.getResearchUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                // Bring labels to front so they're above the metal view
+                self?.view.bringSubviewToFront($0)
+                // Also ensure they're above the Metal view by inserting at the top
+                if let metalView = self?.metalView {
+                    self?.view.insertSubview($0, aboveSubview: metalView)
+                }
+            }
+        }
+        uiSystem?.getResearchUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
         }
     }
@@ -270,6 +287,22 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
+        // Re-set up research UI label callbacks (UI system was recreated)
+        uiSystem?.getResearchUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                // Bring labels to front so they're above the metal view
+                self?.view.bringSubviewToFront($0)
+                // Also ensure they're above the Metal view by inserting at the top
+                if let metalView = self?.metalView {
+                    self?.view.insertSubview($0, aboveSubview: metalView)
+                }
+            }
+        }
+        uiSystem?.getResearchUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+
         // Setup input
         setupInput()
 
@@ -330,6 +363,38 @@ class GameViewController: UIViewController {
 
         // Update UI system with game loop to ensure HUD has correct reference
         uiSystem?.setGameLoop(gameLoop!)
+
+        // Re-set up label callbacks (UI system was recreated)
+        uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                self?.view.bringSubviewToFront($0)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+        uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                self?.view.bringSubviewToFront($0)
+            }
+        }
+        uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+        uiSystem?.getResearchUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                self?.view.bringSubviewToFront($0)
+                if let metalView = self?.metalView {
+                    self?.view.insertSubview($0, aboveSubview: metalView)
+                }
+            }
+        }
+        uiSystem?.getResearchUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
 
         // Ensure renderer has the correct uiSystem reference
         if let uiSystem = uiSystem {
