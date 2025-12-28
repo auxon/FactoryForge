@@ -72,23 +72,29 @@ final class CraftingMenu: UIPanel_Base {
     
     private func selectRecipe(_ recipe: Recipe) {
         selectedRecipe = recipe
-        
+
         // Check if player can craft
         guard let player = gameLoop?.player else { return }
-        
+
         if player.craft(recipe: recipe) {
             AudioManager.shared.playClickSound()
+            // Recipe successfully queued for crafting
+        } else {
+            // Could not craft (missing ingredients) - no sound feedback needed
         }
     }
     
     override func update(deltaTime: Float) {
         guard isOpen else { return }
-        
-        // Update button states based on craftability
+
+        // Update button states based on craftability and crafting status
         guard let player = gameLoop?.player else { return }
-        
+
         for button in recipeButtons {
             button.canCraft = button.recipe.canCraft(with: player.inventory)
+            button.isCrafting = player.isCrafting(recipe: button.recipe)
+            button.craftingProgress = player.getCraftingProgress(recipe: button.recipe) ?? 0.0
+            button.queuedCount = player.getQueuedCount(recipe: button.recipe)
         }
     }
     
@@ -174,7 +180,22 @@ final class CraftingMenu: UIPanel_Base {
 
         for button in recipeButtons {
             if button.frame.contains(position) {
-                return button.recipe.name
+                var tooltip = button.recipe.name
+
+                if button.isCrafting {
+                    if button.craftingProgress > 0 {
+                        let percent = Int(button.craftingProgress * 100)
+                        tooltip += " (Crafting: \(percent)%)"
+                    } else {
+                        tooltip += " (Queued)"
+                    }
+                }
+
+                if button.queuedCount > 0 {
+                    tooltip += " (\(button.queuedCount) queued)"
+                }
+
+                return tooltip
             }
         }
 
@@ -186,6 +207,9 @@ class RecipeButton: UIElement {
     var frame: Rect
     let recipe: Recipe
     var canCraft: Bool = false
+    var isCrafting: Bool = false
+    var craftingProgress: Float = 0.0
+    var queuedCount: Int = 0
     var onTap: (() -> Void)?
     
     init(frame: Rect, recipe: Recipe) {
@@ -200,11 +224,19 @@ class RecipeButton: UIElement {
     }
     
     func render(renderer: MetalRenderer) {
-        let bgColor = canCraft ?
-            Color(r: 0.2, g: 0.3, b: 0.2, a: 1) :
-            Color(r: 0.25, g: 0.2, b: 0.2, a: 1)
-        
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+
+        // Base background color
+        var bgColor: Color
+        if isCrafting {
+            // Crafting: brighter blue background
+            bgColor = Color(r: 0.3, g: 0.4, b: 0.6, a: 1)
+        } else if canCraft {
+            bgColor = Color(r: 0.2, g: 0.3, b: 0.2, a: 1)
+        } else {
+            bgColor = Color(r: 0.25, g: 0.2, b: 0.2, a: 1)
+        }
+
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size,
@@ -212,14 +244,62 @@ class RecipeButton: UIElement {
             color: bgColor,
             layer: .ui
         ))
-        
+
+        // Recipe icon
         let textureRect = renderer.textureAtlas.getTextureRect(for: recipe.textureId)
+        let iconColor = isCrafting ? Color(r: 1.2, g: 1.2, b: 1.2, a: 1) : // Brighter when crafting
+                       (canCraft ? .white : Color(r: 0.5, g: 0.5, b: 0.5, a: 1))
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size * 0.8,
             textureRect: textureRect,
-            color: canCraft ? .white : Color(r: 0.5, g: 0.5, b: 0.5, a: 1),
+            color: iconColor,
             layer: .ui
         ))
+
+        // Crafting progress overlay (clock-like progress indicator)
+        if isCrafting && craftingProgress > 0 {
+            // Create a circular progress indicator using multiple small segments
+            let center = frame.center
+            let radius: Float = frame.size.x * 0.35
+            let segmentCount = 16
+            let segmentAngle = 2 * Float.pi / Float(segmentCount)
+            let progressSegments = Int(craftingProgress * Float(segmentCount))
+
+            for i in 0..<progressSegments {
+                let angle = Float(i) * segmentAngle - Float.pi / 2 // Start from top
+                let segmentCenter = center + Vector2(
+                    cos(angle) * radius * 0.8,
+                    sin(angle) * radius * 0.8
+                )
+                let segmentSize = Vector2(radius * 0.15, radius * 0.15)
+
+                renderer.queueSprite(SpriteInstance(
+                    position: segmentCenter,
+                    size: segmentSize,
+                    textureRect: solidRect,
+                    color: Color(r: 0.9, g: 0.8, b: 0.2, a: 0.8), // Golden progress segments
+                    layer: .ui
+                ))
+            }
+        }
+
+        // Queue count indicator (small number in corner if queued)
+        if queuedCount > 0 {
+            // Draw a small circle with number in bottom-right corner
+            let indicatorSize: Float = frame.size.x * 0.25
+            let indicatorPos = frame.center + Vector2(frame.size.x * 0.3, frame.size.y * 0.3)
+
+            renderer.queueSprite(SpriteInstance(
+                position: indicatorPos,
+                size: Vector2(indicatorSize, indicatorSize),
+                textureRect: solidRect,
+                color: Color(r: 0.8, g: 0.6, b: 0.2, a: 1), // Orange queue indicator
+                layer: .ui
+            ))
+
+            // Note: Number rendering would require additional text rendering system
+            // For now, just the indicator shows there are queued items
+        }
     }
 }

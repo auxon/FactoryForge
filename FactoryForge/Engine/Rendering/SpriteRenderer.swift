@@ -108,6 +108,9 @@ final class SpriteRenderer {
         // Add progress bars for mining drills
         renderMiningProgressBars(world: world, visibleRect: visibleRect, camera: camera)
 
+        // Add progress bars for crafting machines (furnaces and assemblers)
+        renderCraftingProgressBars(world: world, visibleRect: visibleRect, camera: camera)
+
         guard !queuedSprites.isEmpty else { return }
 
         // Sort by layer
@@ -247,7 +250,103 @@ final class SpriteRenderer {
             }
         }
     }
-    
+
+    private func renderCraftingProgressBars(world: World, visibleRect: Rect, camera: Camera2D) {
+        // Query entities with crafting components and sprite components
+
+        // Render furnace progress bars
+        for entity in world.query(FurnaceComponent.self, SpriteComponent.self) {
+            guard let position = world.get(PositionComponent.self, for: entity),
+                  let furnace = world.get(FurnaceComponent.self, for: entity),
+                  let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
+
+            // Only show progress bar if furnace has a recipe and is actively crafting
+            guard furnace.recipe != nil && furnace.fuelRemaining > 0 else { continue }
+
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+
+            // Position progress bar below the furnace sprite
+            let progressBarPos = worldPos + Vector2(0, sprite.size.y / 2 + 0.3) // 0.3 units below sprite
+
+            // Progress bar dimensions
+            let barWidth: Float = sprite.size.x * 0.8  // 80% of sprite width
+            let barHeight: Float = 0.15  // Thin bar
+            let progressWidth = barWidth * furnace.smeltingProgress
+
+            // Background bar (gray)
+            let backgroundBar = SpriteInstance(
+                position: progressBarPos,
+                size: Vector2(barWidth, barHeight),
+                rotation: 0,
+                textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+                color: Color(r: 0.3, g: 0.3, b: 0.3, a: 0.8), // Dark gray background
+                layer: .ui
+            )
+
+            // Progress bar (orange for furnaces)
+            let progressBar = SpriteInstance(
+                position: progressBarPos + Vector2(-barWidth/2 + progressWidth/2, 0), // Left-aligned progress
+                size: Vector2(progressWidth, barHeight),
+                rotation: 0,
+                textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+                color: Color(r: 0.9, g: 0.6, b: 0.2, a: 0.9), // Orange progress for furnaces
+                layer: .ui
+            )
+
+            queuedSprites.append(backgroundBar)
+            if furnace.smeltingProgress > 0 {
+                queuedSprites.append(progressBar)
+            }
+        }
+
+        // Render assembler progress bars
+        for entity in world.query(AssemblerComponent.self, SpriteComponent.self) {
+            guard let position = world.get(PositionComponent.self, for: entity),
+                  let assembler = world.get(AssemblerComponent.self, for: entity),
+                  let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
+
+            // Only show progress bar if assembler has a recipe and is actively crafting
+            guard assembler.recipe != nil else { continue }
+
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+
+            // Position progress bar below the assembler sprite
+            let progressBarPos = worldPos + Vector2(0, sprite.size.y / 2 + 0.3) // 0.3 units below sprite
+
+            // Progress bar dimensions
+            let barWidth: Float = sprite.size.x * 0.8  // 80% of sprite width
+            let barHeight: Float = 0.15  // Thin bar
+            let progressWidth = barWidth * assembler.craftingProgress
+
+            // Background bar (gray)
+            let backgroundBar = SpriteInstance(
+                position: progressBarPos,
+                size: Vector2(barWidth, barHeight),
+                rotation: 0,
+                textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+                color: Color(r: 0.3, g: 0.3, b: 0.3, a: 0.8), // Dark gray background
+                layer: .ui
+            )
+
+            // Progress bar (blue for assemblers)
+            let progressBar = SpriteInstance(
+                position: progressBarPos + Vector2(-barWidth/2 + progressWidth/2, 0), // Left-aligned progress
+                size: Vector2(progressWidth, barHeight),
+                rotation: 0,
+                textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+                color: Color(r: 0.2, g: 0.6, b: 0.9, a: 0.9), // Blue progress for assemblers
+                layer: .ui
+            )
+
+            queuedSprites.append(backgroundBar)
+            if assembler.craftingProgress > 0 {
+                queuedSprites.append(progressBar)
+            }
+        }
+    }
+
     private func createTransform(position: Vector2, size: Vector2, rotation: Float) -> Matrix4 {
         let translation = Matrix4.translation(position)
         let rotationMat = Matrix4.rotationZ(rotation)

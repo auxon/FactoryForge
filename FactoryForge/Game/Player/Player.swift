@@ -233,6 +233,29 @@ final class Player {
         return true
     }
     
+    /// Check if a specific recipe is currently being crafted or queued
+    func isCrafting(recipe: Recipe) -> Bool {
+        // Check current craft
+        if let current = currentCraft, current.recipe.id == recipe.id {
+            return true
+        }
+        // Check queue
+        return craftingQueue.contains { $0.recipe.id == recipe.id }
+    }
+
+    /// Get crafting progress for a specific recipe (0-1, or nil if not crafting)
+    func getCraftingProgress(recipe: Recipe) -> Float? {
+        if let current = currentCraft, current.recipe.id == recipe.id {
+            return craftingProgress
+        }
+        return nil
+    }
+
+    /// Get the number of queued crafts for a specific recipe
+    func getQueuedCount(recipe: Recipe) -> Int {
+        return craftingQueue.filter { $0.recipe.id == recipe.id }.count
+    }
+
     func cancelCrafting() {
         // Return items for current craft
         if let craft = currentCraft {
@@ -242,7 +265,7 @@ final class Player {
             currentCraft = nil
             craftingProgress = 0
         }
-        
+
         // Return items for queued crafts
         for craft in craftingQueue {
             for input in craft.recipe.inputs {
