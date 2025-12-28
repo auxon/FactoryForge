@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 // Import ECS components
 import struct FactoryForge.MinerComponent
@@ -10,6 +11,14 @@ final class MachineUI: UIPanel_Base {
     private var recipeButtons: [RecipeButton] = []
     private var inputSlots: [InventorySlot] = []
     private var outputSlots: [InventorySlot] = []
+
+    // Count labels for input and output slots
+    private var inputCountLabels: [UILabel] = []
+    private var outputCountLabels: [UILabel] = []
+
+    // Callbacks for managing UIKit labels
+    var onAddLabels: (([UILabel]) -> Void)?
+    var onRemoveLabels: (([UILabel]) -> Void)?
 
     var onOpenInventoryForMachine: ((Entity, Int) -> Void)?
     
@@ -23,7 +32,7 @@ final class MachineUI: UIPanel_Base {
         
         super.init(frame: panelFrame)
         self.gameLoop = gameLoop
-        
+
         setupSlots()
     }
     
@@ -50,6 +59,44 @@ final class MachineUI: UIPanel_Base {
                 index: i
             ))
         }
+
+        setupCountLabels()
+    }
+
+    private func setupCountLabels() {
+        // Clear existing labels
+        inputCountLabels.removeAll()
+        outputCountLabels.removeAll()
+
+        // Create labels for input slots
+        for _ in inputSlots {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 8, weight: UIFont.Weight.bold)
+            label.textColor = UIColor.white
+            label.textAlignment = NSTextAlignment.right
+            label.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            label.layer.cornerRadius = 1
+            label.layer.masksToBounds = true
+            label.translatesAutoresizingMaskIntoConstraints = true
+            label.text = ""
+            label.isHidden = true
+            inputCountLabels.append(label)
+        }
+
+        // Create labels for output slots
+        for _ in outputSlots {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 8, weight: UIFont.Weight.bold)
+            label.textColor = UIColor.white
+            label.textAlignment = NSTextAlignment.right
+            label.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            label.layer.cornerRadius = 1
+            label.layer.masksToBounds = true
+            label.translatesAutoresizingMaskIntoConstraints = true
+            label.text = ""
+            label.isHidden = true
+            outputCountLabels.append(label)
+        }
     }
 
     private func setupSlotsForMachine(_ entity: Entity) {
@@ -72,14 +119,51 @@ final class MachineUI: UIPanel_Base {
             ))
         } else {
             // Default setup for other machines (assemblers, furnaces)
-            setupSlots()
+            let slotSpacing: Float = 5 * UIScale
+
+            // Input slots (left side)
+            for i in 0..<4 {
+                let slotX = frame.minX + 50 * UIScale
+                let slotY = frame.minY + 80 * UIScale + Float(i) * (slotSize + slotSpacing)
+                inputSlots.append(InventorySlot(
+                    frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
+                    index: i
+                ))
+            }
+
+            // Output slots (right side)
+            for i in 0..<4 {
+                let slotX = frame.maxX - 50 * UIScale
+                let slotY = frame.minY + 80 * UIScale + Float(i) * (slotSize + slotSpacing)
+                outputSlots.append(InventorySlot(
+                    frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
+                    index: i
+                ))
+            }
         }
+
+        // Setup count labels for the new slots
+        setupCountLabels()
     }
     
     func setEntity(_ entity: Entity) {
         currentEntity = entity
         setupSlotsForMachine(entity)
         refreshRecipeButtons()
+    }
+
+    override func open() {
+        super.open()
+        // Add all count labels to the view
+        let allLabels = inputCountLabels + outputCountLabels
+        onAddLabels?(allLabels)
+    }
+
+    override func close() {
+        // Remove all count labels from the view
+        let allLabels = inputCountLabels + outputCountLabels
+        onRemoveLabels?(allLabels)
+        super.close()
     }
     
     private func refreshRecipeButtons() {
@@ -137,6 +221,7 @@ final class MachineUI: UIPanel_Base {
                 for (index, slot) in outputSlots.enumerated() {
                     if index < inventory.slots.count {
                         slot.item = inventory.slots[index]
+                        updateCountLabel(for: slot, label: outputCountLabels[index], item: slot.item)
                     }
                 }
                 // Clear input slots (mining drills don't have inputs)
@@ -148,15 +233,41 @@ final class MachineUI: UIPanel_Base {
                 for (index, slot) in inputSlots.enumerated() {
                     if index < inventory.slots.count / 2 {
                         slot.item = inventory.slots[index]
+                        updateCountLabel(for: slot, label: inputCountLabels[index], item: slot.item)
                     }
                 }
                 for (index, slot) in outputSlots.enumerated() {
                     let inventoryIndex = inventory.slots.count / 2 + index
                     if inventoryIndex < inventory.slots.count {
                         slot.item = inventory.slots[inventoryIndex]
+                        updateCountLabel(for: slot, label: outputCountLabels[index], item: slot.item)
                     }
                 }
             }
+        }
+    }
+
+    private func updateCountLabel(for slot: InventorySlot, label: UILabel, item: ItemStack?) {
+        // Label position: bottom-right corner of slot
+        let labelWidth: Float = 16
+        let labelHeight: Float = 12
+        let labelX = slot.frame.maxX - labelWidth
+        let labelY = slot.frame.maxY - labelHeight
+
+        // Convert to UIView coordinates
+        let scale = UIScreen.main.scale
+        let uiX = CGFloat(labelX) / scale
+        let uiY = CGFloat(labelY) / scale
+
+        label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
+
+        // Show label only if item count > 1
+        if let item = item, item.count > 1 {
+            label.text = "\(item.count)"
+            label.isHidden = false
+        } else {
+            label.text = ""
+            label.isHidden = true
         }
     }
     

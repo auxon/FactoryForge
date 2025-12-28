@@ -70,6 +70,10 @@ final class UISystem {
     func getInventoryUI() -> InventoryUI {
         return inventoryUI
     }
+
+    func getMachineUI() -> MachineUI {
+        return machineUI
+    }
     
     private func setupCallbacks() {
         // HUD button callbacks

@@ -169,6 +169,18 @@ class GameViewController: UIViewController {
         uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
         }
+
+        // Set up machine UI label callbacks
+        uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                // Bring labels to front so they're above the metal view
+                self?.view.bringSubviewToFront($0)
+            }
+        }
+        uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
     }
     
     private func setupLoadingMenu() {
@@ -230,6 +242,18 @@ class GameViewController: UIViewController {
             }
         }
         uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+
+        // Re-set up machine UI label callbacks
+        uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                // Bring labels to front so they're above the metal view
+                self?.view.bringSubviewToFront($0)
+            }
+        }
+        uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
         }
 
