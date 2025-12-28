@@ -130,7 +130,7 @@ final class AudioManager {
     }
     
     func playClickSound() {
-        playSound("click.wav")
+        playSound("click.m4a")
     }
     
     func playResearchCompleteSound() {
