@@ -328,7 +328,7 @@ final class TextureAtlas {
             } else {
                 // Crop pixels from each side to remove transparent borders
                 // Use a percentage-based crop for better results across different image sizes
-                let cropPercentage: Float = 0.18  // Crop 18% from each side (30% total removed)
+                let cropPercentage: Float = 0.20  // Crop 20% from each side (30% total removed)
                 let borderCropX = Int(Float(imageWidth) * cropPercentage)
                 let borderCropY = Int(Float(imageHeight) * cropPercentage)
                 let cropX = borderCropX

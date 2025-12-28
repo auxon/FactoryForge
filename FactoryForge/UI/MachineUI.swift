@@ -174,11 +174,21 @@ final class MachineUI: UIPanel_Base {
         
         // Get available recipes for this machine type
         var availableRecipes: [Recipe] = []
-        
+
         if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            print("MachineUI: Machine is assembler with category: \(assembler.craftingCategory)")
             availableRecipes = gameLoop.recipeRegistry.recipes(in: CraftingCategory(rawValue: assembler.craftingCategory) ?? .crafting)
+            print("MachineUI: Found \(availableRecipes.count) crafting recipes for assembler")
         } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+            print("MachineUI: Machine is furnace")
             availableRecipes = gameLoop.recipeRegistry.recipes(in: .smelting)
+            print("MachineUI: Found \(availableRecipes.count) smelting recipes for furnace")
+        } else if gameLoop.world.has(MinerComponent.self, for: entity) {
+            print("MachineUI: Machine is mining drill (no recipes needed)")
+            availableRecipes = []
+        } else {
+            print("MachineUI: Machine type not recognized")
+            availableRecipes = []
         }
         
         let buttonSize: Float = 40 * UIScale
@@ -187,28 +197,105 @@ final class MachineUI: UIPanel_Base {
         let startX = frame.center.x - Float(buttonsPerRow) * (buttonSize + buttonSpacing) / 2
         let startY = frame.minY + 250 * UIScale
         
+        print("MachineUI: Found \(availableRecipes.count) available recipes")
         for (index, recipe) in availableRecipes.enumerated() {
             let row = index / buttonsPerRow
             let col = index % buttonsPerRow
-            
+
             let buttonX = startX + Float(col) * (buttonSize + buttonSpacing) + buttonSize / 2
             let buttonY = startY + Float(row) * (buttonSize + buttonSpacing)
-            
+
             let button = RecipeButton(
                 frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)),
                 recipe: recipe
             )
             button.onTap = { [weak self] in
+                print("MachineUI: Recipe button tapped for '\(recipe.name)'")
                 self?.selectRecipe(recipe)
             }
             recipeButtons.append(button)
+            print("MachineUI: Created recipe button \(index) for '\(recipe.name)' at (\(buttonX), \(buttonY))")
         }
     }
     
     private func selectRecipe(_ recipe: Recipe) {
-        guard let entity = currentEntity else { return }
+        guard let entity = currentEntity else {
+            print("MachineUI: No current entity for recipe selection")
+            return
+        }
+        print("MachineUI: Setting recipe '\(recipe.name)' (id: \(recipe.id)) for entity")
+
+        // Check what type of machine this is
+        if let gameLoop = gameLoop {
+            if gameLoop.world.has(AssemblerComponent.self, for: entity) {
+                print("MachineUI: Entity has AssemblerComponent")
+            } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+                print("MachineUI: Entity has FurnaceComponent")
+            } else if gameLoop.world.has(MinerComponent.self, for: entity) {
+                print("MachineUI: Entity has MinerComponent (miners don't use recipes)")
+            } else {
+                print("MachineUI: Entity has no recognized machine component")
+            }
+        }
+
         gameLoop?.setRecipe(for: entity, recipeId: recipe.id)
         AudioManager.shared.playClickSound()
+
+        // Automatically try to fill machine with required items from player inventory
+        autoFillMachineWithRecipe(recipe, for: entity)
+
+        // Check if recipe was set
+        if let gameLoop = gameLoop {
+            if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+                print("MachineUI: After setting - assembler recipe: \(assembler.recipe?.name ?? "nil")")
+            } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+                print("MachineUI: After setting - furnace recipe: \(furnace.recipe?.name ?? "nil")")
+            }
+        }
+    }
+
+    private func autoFillMachineWithRecipe(_ recipe: Recipe, for entity: Entity) {
+        guard let gameLoop = gameLoop,
+              var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) else {
+            return
+        }
+
+        print("MachineUI: Auto-filling machine with recipe inputs: \(recipe.inputs.map { "\($0.itemId) x\($0.count)" }.joined(separator: ", "))")
+
+        // Try to fill input slots with required items from player inventory
+        var playerInventory = gameLoop.player.inventory
+        var itemsFilled = 0
+
+        for (index, inputItem) in recipe.inputs.enumerated() {
+            if index >= machineInventory.slots.count / 2 { break } // Don't exceed input slots
+
+            let machineSlotIndex = index
+            if machineInventory.slots[machineSlotIndex] == nil {
+                // Slot is empty, try to take the required item from player inventory
+                if playerInventory.has(itemId: inputItem.itemId, count: inputItem.count) {
+                    // Remove from player inventory
+                    let _ = playerInventory.remove(itemId: inputItem.itemId, count: inputItem.count)
+                    // Add to machine inventory
+                    machineInventory.slots[machineSlotIndex] = ItemStack(itemId: inputItem.itemId, count: inputItem.count)
+                    itemsFilled += 1
+                    print("MachineUI: Filled slot \(machineSlotIndex) with \(inputItem.itemId) x\(inputItem.count)")
+                } else {
+                    print("MachineUI: Cannot fill slot \(machineSlotIndex) - player doesn't have \(inputItem.itemId) x\(inputItem.count)")
+                }
+            } else {
+                print("MachineUI: Slot \(machineSlotIndex) already has an item")
+            }
+        }
+
+        // Save the updated inventories
+        gameLoop.player.inventory = playerInventory
+        gameLoop.world.add(machineInventory, to: entity)
+
+        if itemsFilled > 0 {
+            print("MachineUI: Successfully auto-filled \(itemsFilled) input slots")
+        } else {
+            print("MachineUI: No items were auto-filled (either slots were occupied or player lacks required items)")
+        }
     }
     
     override func update(deltaTime: Float) {
@@ -338,8 +425,9 @@ final class MachineUI: UIPanel_Base {
         guard isOpen else { return false }
 
         // Check recipe buttons first
-        for button in recipeButtons {
+        for (index, button) in recipeButtons.enumerated() {
             if button.handleTap(at: position) {
+                print("MachineUI: Recipe button \(index) tapped for recipe '\(button.recipe.name)'")
                 return true
             }
         }

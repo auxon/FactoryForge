@@ -10,7 +10,7 @@ final class AudioManager {
     
     private let maxPoolSize = 5
     
-    var musicVolume: Float = 0.5 {
+    var musicVolume: Float = 0.25 {
         didSet {
             musicPlayer?.volume = musicVolume
         }
@@ -36,14 +36,44 @@ final class AudioManager {
     
     func playMusic(_ filename: String, loop: Bool = true) {
         guard !isMuted else { return }
-        
-        guard let url = Bundle.main.url(forResource: filename, withExtension: nil) else {
-            print("Music file not found: \(filename)")
+
+        // Handle files in subdirectories (e.g., "sounds/little_maze.m4a")
+        var resourceName = filename
+        var subdirectory: String? = nil
+
+        if filename.contains("/") {
+            let components = filename.split(separator: "/", maxSplits: 1)
+            subdirectory = String(components[0])
+            resourceName = String(components[1])
+        }
+
+        // If there's an extension, separate it
+        var resource = resourceName
+        var extensionName: String? = nil
+        if resourceName.contains(".") {
+            let components = resourceName.split(separator: ".", maxSplits: 1)
+            resource = String(components[0])
+            extensionName = String(components[1])
+        }
+
+        // Try with subdirectory first, then without
+        var url: URL? = nil
+        if let subdirectory = subdirectory {
+            url = Bundle.main.url(forResource: resource, withExtension: extensionName, subdirectory: subdirectory)
+        }
+
+        // If subdirectory didn't work, try without subdirectory (files might be flattened)
+        if url == nil {
+            url = Bundle.main.url(forResource: filename, withExtension: nil)
+        }
+
+        guard let finalUrl = url else {
+            print("Music file not found: \(filename) (tried with subdirectory: \(subdirectory ?? "nil") and without)")
             return
         }
-        
+
         do {
-            musicPlayer = try AVAudioPlayer(contentsOf: url)
+            musicPlayer = try AVAudioPlayer(contentsOf: finalUrl)
             musicPlayer?.volume = musicVolume
             musicPlayer?.numberOfLoops = loop ? -1 : 0
             musicPlayer?.prepareToPlay()
@@ -104,13 +134,43 @@ final class AudioManager {
     }
     
     private func createPlayer(for filename: String) -> AVAudioPlayer? {
-        guard let url = Bundle.main.url(forResource: filename, withExtension: nil) else {
-            print("Sound file not found: \(filename)")
+        // Handle files in subdirectories (e.g., "sounds/little_maze.m4a")
+        var resourceName = filename
+        var subdirectory: String? = nil
+
+        if filename.contains("/") {
+            let components = filename.split(separator: "/", maxSplits: 1)
+            subdirectory = String(components[0])
+            resourceName = String(components[1])
+        }
+
+        // If there's an extension, separate it
+        var resource = resourceName
+        var extensionName: String? = nil
+        if resourceName.contains(".") {
+            let components = resourceName.split(separator: ".", maxSplits: 1)
+            resource = String(components[0])
+            extensionName = String(components[1])
+        }
+
+        // Try with subdirectory first, then without
+        var url: URL? = nil
+        if let subdirectory = subdirectory {
+            url = Bundle.main.url(forResource: resource, withExtension: extensionName, subdirectory: subdirectory)
+        }
+
+        // If subdirectory didn't work, try without subdirectory (files might be flattened)
+        if url == nil {
+            url = Bundle.main.url(forResource: filename, withExtension: nil)
+        }
+
+        guard let finalUrl = url else {
+            print("Sound file not found: \(filename) (tried with subdirectory: \(subdirectory ?? "nil") and without)")
             return nil
         }
-        
+
         do {
-            let player = try AVAudioPlayer(contentsOf: url)
+            let player = try AVAudioPlayer(contentsOf: finalUrl)
             player.prepareToPlay()
             return player
         } catch {
@@ -152,9 +212,13 @@ final class AudioManager {
     func playMiningSound() {
         playSound("mining.m4a", volume: 0.3)
     }
-    
+
     func playCraftingCompleteSound() {
         playSound("crafting_complete.wav", volume: 0.5)
+    }
+
+    func playBackgroundMusic() {
+        playMusic("little_maze.m4a", loop: true)
     }
     
     // MARK: - Cleanup

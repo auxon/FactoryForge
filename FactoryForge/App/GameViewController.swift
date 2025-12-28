@@ -390,6 +390,9 @@ class GameViewController: UIViewController {
             self?.showGameOverScreen()
         }
 
+        // Start background music
+        AudioManager.shared.playBackgroundMusic()
+
         // Setup tooltip callback
         inputManager?.onTooltip = { [weak self] text in
             self?.showTooltip(text)

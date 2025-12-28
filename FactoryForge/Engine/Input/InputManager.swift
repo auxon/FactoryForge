@@ -502,11 +502,17 @@ final class InputManager: NSObject {
         }
 
         // Check if there's an entity at this position
+        print("InputManager: Double-tap at tile (\(tilePos.x), \(tilePos.y)), worldPos: (\(worldPos.x), \(worldPos.y))")
         if let entity = gameLoop.world.getEntityAt(position: tilePos) {
+            print("InputManager: Found entity \(entity) at tile position")
             // Check if it's a machine we can interact with
-            if gameLoop.world.has(FurnaceComponent.self, for: entity) ||
-               gameLoop.world.has(AssemblerComponent.self, for: entity) ||
-               gameLoop.world.has(MinerComponent.self, for: entity) {
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+            let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+            print("InputManager: Entity components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner)")
+
+            if hasFurnace || hasAssembler || hasMiner {
+                print("InputManager: Opening machine UI for entity")
 
                 // Exit build mode if we're in it
                 if buildMode != .none {
@@ -516,8 +522,11 @@ final class InputManager: NSObject {
                 // Select the entity and open machine UI
                 selectedEntity = entity
                 onEntitySelected?(entity)
+            } else {
+                print("InputManager: Entity is not a machine")
             }
         } else {
+            print("InputManager: No entity found at tile position")
             // No entity, check for resource to mine
             if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                 // Check if player can accept the item

@@ -104,6 +104,7 @@
 		0DE229712F001B9F00BD619D /* transport_belt_north_004.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229502F001B9F00BD619D /* transport_belt_north_004.png */; };
 		0DE229752F0064D200BD619D /* mining.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229732F0064D200BD619D /* mining.m4a */; };
 		0DE229772F006A6F00BD619D /* click.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229762F006A6F00BD619D /* click.m4a */; };
+		0DE2297C2F01796500BD619D /* little_maze.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2297D2F01796500BD619D /* little_maze.m4a */; };
 		0DE229792F0173B500BD619D /* inventory.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229782F0173B500BD619D /* inventory.png */; };
 		0DE2297B2F01760A00BD619D /* gear.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2297A2F01760A00BD619D /* gear.png */; };
 		0DE2297D2F01762A00BD619D /* assembler.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2297C2F01762A00BD619D /* assembler.png */; };
@@ -271,6 +272,7 @@
 		0DE2295C2F001B9F00BD619D /* transport_belt_north_016.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_016.png; sourceTree = "<group>"; };
 		0DE229732F0064D200BD619D /* mining.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = mining.m4a; sourceTree = "<group>"; };
 		0DE229762F006A6F00BD619D /* click.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = click.m4a; sourceTree = "<group>"; };
+		0DE2297D2F01796500BD619D /* little_maze.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = little_maze.m4a; sourceTree = "<group>"; };
 		0DE229782F0173B500BD619D /* inventory.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inventory.png; sourceTree = "<group>"; };
 		0DE2297A2F01760A00BD619D /* gear.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gear.png; sourceTree = "<group>"; };
 		0DE2297C2F01762A00BD619D /* assembler.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = assembler.png; sourceTree = "<group>"; };
@@ -597,6 +599,7 @@
 			children = (
 				0DE229762F006A6F00BD619D /* click.m4a */,
 				0DE229732F0064D200BD619D /* mining.m4a */,
+				0DE2297D2F01796500BD619D /* little_maze.m4a */,
 			);
 			path = sounds;
 			sourceTree = "<group>";
@@ -966,6 +969,7 @@
 				0D6FDC422EFDE1B500576EC3 /* radar.png in Resources */,
 				0DE229832F01781900BD619D /* belt.png in Resources */,
 				0DE229772F006A6F00BD619D /* click.m4a in Resources */,
+				0DE2297C2F01796500BD619D /* little_maze.m4a in Resources */,
 				0D6FDC432EFDE1B500576EC3 /* accumulator.png in Resources */,
 				0D6FDC442EFDE1B500576EC3 /* burner_miner_drill.png in Resources */,
 				0D6FDC452EFDE1B500576EC3 /* coal_2.png in Resources */,
