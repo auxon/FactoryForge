@@ -211,76 +211,109 @@ final class CraftingMenu: UIPanel_Base {
     }
     
     private func createRecipeLabels(recipe: Recipe, renderer: MetalRenderer) {
+        print("CraftingMenu: createRecipeLabels called for recipe \(recipe.name)")
         let iconSize: Float = 30 * UIScale
         let iconSpacing: Float = 40 * UIScale
         let detailsY = frame.maxY - 100 * UIScale
+        let screenScale = CGFloat(UIScreen.main.scale)
+        print("CraftingMenu: detailsY = \(detailsY), frame.maxY = \(frame.maxY), frame.minY = \(frame.minY), frame.height = \(frame.height)")
+        print("CraftingMenu: screenScale = \(screenScale), detailsY in points = \(CGFloat(detailsY) / screenScale)")
 
         // Recipe inputs - create labels for counts
+        // Icons are centered at (inputX, detailsY), so pass center position
         var inputX = frame.minX + 50 * UIScale
+        print("CraftingMenu: Creating labels for \(recipe.inputs.count) inputs")
         for input in recipe.inputs {
-            // Create label for input count
-            if input.count > 1 {  // Only show count if > 1
-                let label = createCountLabel(text: "\(input.count)", panelX: inputX + iconSize/2 + 2, panelY: detailsY + iconSize/2 + 2)
-                recipeLabels.append(label)
-            }
+            // Create label for input count (always show count for clarity)
+            print("CraftingMenu: Creating label for input \(input.itemId) count \(input.count)")
+            let label = createCountLabel(text: "\(input.count)", iconCenterX: inputX, iconCenterY: detailsY, iconSize: iconSize, screenHeight: renderer.screenSize.y)
+            recipeLabels.append(label)
 
             inputX += iconSpacing
         }
 
         // Recipe outputs - create labels for counts
+        // Icons are centered at (outputX, detailsY), so pass center position
         let outputStartX = inputX + 60 * UIScale
         var outputX = outputStartX
+        print("CraftingMenu: Creating labels for \(recipe.outputs.count) outputs")
         for output in recipe.outputs {
-            // Create label for output count
-            if output.count > 1 {  // Only show count if > 1
-                let label = createCountLabel(text: "\(output.count)", panelX: outputX + iconSize/2 + 2, panelY: detailsY + iconSize/2 + 2)
-                recipeLabels.append(label)
-            }
+            // Create label for output count (always show count for clarity)
+            print("CraftingMenu: Creating label for output \(output.itemId) count \(output.count)")
+            let label = createCountLabel(text: "\(output.count)", iconCenterX: outputX, iconCenterY: detailsY, iconSize: iconSize, screenHeight: renderer.screenSize.y)
+            recipeLabels.append(label)
 
             outputX += iconSpacing
         }
+        print("CraftingMenu: Created \(recipeLabels.count) total labels")
 
         // Add labels to view
         if !recipeLabels.isEmpty {
-            onAddLabels?(recipeLabels)
+            print("CraftingMenu: About to call onAddLabels with \(recipeLabels.count) labels")
+            if let callback = onAddLabels {
+                print("CraftingMenu: onAddLabels callback exists, calling it")
+                callback(recipeLabels)
+                print("CraftingMenu: Callback called")
+            } else {
+                print("CraftingMenu: ERROR - onAddLabels is nil!")
+            }
+        } else {
+            print("CraftingMenu: No labels to add (recipeLabels is empty)")
         }
     }
 
-    private func createCountLabel(text: String, panelX: Float, panelY: Float) -> UILabel {
+    private func createCountLabel(text: String, iconCenterX: Float, iconCenterY: Float, iconSize: Float, screenHeight: Float) -> UILabel {
         let label = UILabel()
         label.text = text
-        label.font = UIFont.systemFont(ofSize: CGFloat(10 * UIScale), weight: .bold)
+        label.font = UIFont.systemFont(ofSize: 8, weight: .bold)  // Match MachineUI font size
         label.textColor = .white
-        label.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 0.9)
+        label.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 1.0)
         label.textAlignment = .center
         label.layer.cornerRadius = 2
         label.layer.masksToBounds = true
+        label.translatesAutoresizingMaskIntoConstraints = true  // Match MachineUI
+        label.isHidden = false
+        label.alpha = 1.0
+        label.isOpaque = false
+        
         label.sizeToFit()
 
         // Minimal padding
         let padding: CGFloat = 2
-        label.frame = CGRect(
-            x: 0, y: 0,
-            width: label.frame.width + padding * 2,
-            height: label.frame.height + padding
-        )
+        let labelWidth = label.frame.width + padding * 2
+        let labelHeight = label.frame.height + padding
 
-        // Position in bottom-right corner of the icon
-        let screenScale = UIScreen.main.scale
-        let iconSize: Float = 30 * UIScale
+        // Calculate icon's top-left position (matching InventoryUI approach exactly)
+        // UI sprites use a coordinate system where Y increases downward (like UIKit)
+        // because the shader flips Y. So we treat it like UIKit coordinates.
+        // Icon center is at (iconCenterX, iconCenterY), size is iconSize
+        // - Left edge: iconCenterX - iconSize/2
+        // - Right edge: iconCenterX + iconSize/2
+        // - Top edge: iconCenterY - iconSize/2 (lower Y = top in UIKit-like system)
+        // - Bottom edge: iconCenterY + iconSize/2 (higher Y = bottom)
+        let iconTopLeftX = iconCenterX - iconSize / 2
+        let iconTopLeftY = iconCenterY - iconSize / 2  // Top-left: center - half size
+        
+        // Label position: bottom-right corner of icon (matching InventoryUI exactly)
+        // Bottom-right means: right edge - label width, bottom edge - label height
+        let labelWidthFloat = Float(labelWidth)
+        let labelHeightFloat = Float(labelHeight)
+        let labelX = iconTopLeftX + iconSize - labelWidthFloat  // Right edge - label width
+        let labelY = iconTopLeftY + iconSize - labelHeightFloat  // Bottom edge - label height
+        
+        // Convert to UIView coordinates (pixels to points) - matching InventoryUI
+        let scale = UIScreen.main.scale
+        let uiX = CGFloat(labelX) / CGFloat(scale)
+        let uiY = CGFloat(labelY) / CGFloat(scale)
+        
+        print("CraftingMenu: Label '\(text)': icon center=(\(iconCenterX), \(iconCenterY)) px, iconSize=\(iconSize) px")
+        print("CraftingMenu: Label '\(text)': icon top-left=(\(iconTopLeftX), \(iconTopLeftY)) px")
+        print("CraftingMenu: Label '\(text)': label position in Metal=(\(labelX), \(labelY)) px")
+        print("CraftingMenu: Label '\(text)': UIKit position=(\(uiX), \(uiY)) pts")
 
-        // Calculate label position (bottom-right corner)
-        let labelWidth = Float(label.frame.width)
-        let labelHeight = Float(label.frame.height)
-
-        // Position at bottom-right corner with slight inset
-        let labelX = panelX + iconSize - labelWidth - 1  // 1 pixel inset from right edge
-        let labelY = panelY + iconSize - labelHeight - 1  // 1 pixel inset from bottom edge
-
-        let screenX = CGFloat(labelX) / screenScale
-        let screenY = CGFloat(labelY) / screenScale
-
-        label.frame.origin = CGPoint(x: screenX, y: screenY)
+        label.frame = CGRect(x: uiX, y: uiY, width: labelWidth, height: labelHeight)
+        
+        print("CraftingMenu: Label '\(text)' frame set to: \(label.frame)")
 
         return label
     }
