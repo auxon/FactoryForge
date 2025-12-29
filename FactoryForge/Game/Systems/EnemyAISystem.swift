@@ -77,12 +77,12 @@ final class EnemyAISystem: System {
     }
     
     private func createSpawner(at position: IntVector2) {
-        print("EnemyAISystem: Creating spawner at position \(position)")
+        // print("EnemyAISystem: Creating spawner at position \(position)")
 
         // Check if spawner already exists at this position
         if let existingEntity = world.getEntityAt(position: position),
            world.has(SpawnerComponent.self, for: existingEntity) {
-            print("EnemyAISystem: Spawner already exists at \(position)")
+            // print("EnemyAISystem: Spawner already exists at \(position)")
             return // Spawner already exists
         }
 
@@ -108,7 +108,7 @@ final class EnemyAISystem: System {
     
     private func updateSpawners(deltaTime: Float) {
         let spawnerCount = world.query(SpawnerComponent.self).count
-        print("EnemyAISystem: Updating \(spawnerCount) spawners")
+        // print("EnemyAISystem: Updating \(spawnerCount) spawners")
 
         // Collect spawner modifications
         var spawnerModifications: [(Entity, SpawnerComponent)] = []
@@ -150,11 +150,11 @@ final class EnemyAISystem: System {
     private func forceSpawnTestEnemy() {
         guard let player = player,
               let playerPos = world.get(PositionComponent.self, for: player.playerEntity) else {
-            print("EnemyAISystem: Cannot spawn test enemy - no player position")
+            // print("EnemyAISystem: Cannot spawn test enemy - no player position")
             return
         }
 
-        print("EnemyAISystem: Force spawning test enemy near player at \(playerPos.worldPosition)")
+        // print("EnemyAISystem: Force spawning test enemy near player at \(playerPos.worldPosition)")
 
         // Spawn directly near player for testing
         let spawnPos = playerPos.worldPosition + Vector2(5, 5)  // 5 units away
@@ -182,11 +182,11 @@ final class EnemyAISystem: System {
         // Store the biter object for animation updates
         activeBiters[biter.biterEntity] = biter
 
-        print("EnemyAISystem: Test enemy spawned at \(spawnPos)")
+        // print("EnemyAISystem: Test enemy spawned at \(spawnPos)")
     }
 
     private func spawnEnemy(from spawnerEntity: Entity, spawner: inout SpawnerComponent, position: PositionComponent) {
-        print("EnemyAISystem: Spawning enemy from spawner at position \(position.worldPosition)")
+        // print("EnemyAISystem: Spawning enemy from spawner at position \(position.worldPosition)")
 
         // Select enemy type based on evolution
         let enemyType = selectEnemyType(for: spawner)
@@ -272,7 +272,7 @@ final class EnemyAISystem: System {
             guard let position = world.get(PositionComponent.self, for: entity),
                   var velocity = world.get(VelocityComponent.self, for: entity) else { return }
 
-            print("EnemyAISystem: Processing enemy \(entity.id), state: \(enemy.state)")
+            // print("EnemyAISystem: Processing enemy \(entity.id), state: \(enemy.state)")
 
             switch enemy.state {
             case EnemyState.idle:
@@ -303,28 +303,28 @@ final class EnemyAISystem: System {
                         enemy.targetEntity = target
                         enemy.state = EnemyState.attacking
                         enemy.timeSinceAttack = enemy.attackCooldown  // Allow immediate attack when switching to attacking
-                        print("EnemyAISystem: Enemy \(entity.id) found target and switching to attacking state")
+                        // print("EnemyAISystem: Enemy \(entity.id) found target and switching to attacking state")
                     }
                 }
 
             case EnemyState.attacking:
-                print("EnemyAISystem: Enemy \(entity.id) is in ATTACKING state")
+                // print("EnemyAISystem: Enemy \(entity.id) is in ATTACKING state")
                 // Move toward target
                 if let target = enemy.targetEntity,
                    let targetPos = world.get(PositionComponent.self, for: target) {
                     let distance = position.worldPosition.distance(to: targetPos.worldPosition)
-                    print("EnemyAISystem: Enemy \(entity.id) distance to target: \(distance), attackRange: \(enemy.attackRange)")
+                    // print("EnemyAISystem: Enemy \(entity.id) distance to target: \(distance), attackRange: \(enemy.attackRange)")
 
                     // Check if target is too far away
                     if distance > enemy.maxFollowDistance {
-                        print("EnemyAISystem: Enemy \(entity.id) giving up pursuit")
+                        // print("EnemyAISystem: Enemy \(entity.id) giving up pursuit")
                         enemy.targetEntity = nil
                         enemy.state = EnemyState.returning
                         break
                     }
 
                     if distance <= enemy.attackRange {
-                        print("EnemyAISystem: Enemy \(entity.id) IN ATTACK RANGE!")
+                        // print("EnemyAISystem: Enemy \(entity.id) IN ATTACK RANGE!")
                         // Attack
                         velocity.velocity = Vector2.zero
                         world.add(velocity, to: entity)
@@ -335,10 +335,10 @@ final class EnemyAISystem: System {
                         }
 
                         if enemy.canAttack {
-                            print("EnemyAISystem: Enemy \(entity.id) ATTACKING!")
+                            // print("EnemyAISystem: Enemy \(entity.id) ATTACKING!")
                             attackTarget(enemy: &enemy, target: target)
                         } else {
-                            print("EnemyAISystem: Enemy \(entity.id) on cooldown (\(enemy.timeSinceAttack)/\(enemy.attackCooldown))")
+                            // print("EnemyAISystem: Enemy \(entity.id) on cooldown (\(enemy.timeSinceAttack)/\(enemy.attackCooldown))")
                         }
                     } else {
                         // Move toward target
@@ -353,7 +353,7 @@ final class EnemyAISystem: System {
                     }
                 } else {
                     // Lost target
-                    print("EnemyAISystem: Enemy \(entity.id) lost target")
+                    // print("EnemyAISystem: Enemy \(entity.id) lost target")
                     enemy.targetEntity = nil
                     enemy.state = EnemyState.idle
                 }
@@ -441,7 +441,7 @@ final class EnemyAISystem: System {
 
         // Prioritize player if in range
         if let player = player {
-            print("EnemyAISystem: Player exists, playerEntity: \(player.playerEntity.id)")
+            // print("EnemyAISystem: Player exists, playerEntity: \(player.playerEntity.id)")
             if let playerPos = world.get(PositionComponent.self, for: player.playerEntity) {
             let distanceToPlayer = position.worldPosition.distance(to: playerPos.worldPosition)
             if distanceToPlayer <= searchRadius {
@@ -449,10 +449,10 @@ final class EnemyAISystem: System {
                     return player.playerEntity
                 }
             } else {
-                print("EnemyAISystem: Player exists but no position component")
+                // print("EnemyAISystem: Player exists but no position component")
             }
         } else {
-            print("EnemyAISystem: No player reference")
+            //print("EnemyAISystem: No player reference")
         }
         
         // Otherwise find nearest valid target

@@ -209,6 +209,10 @@ final class AudioManager {
         playSound("turret_fire.wav", volume: 0.4)
     }
     
+    func playPlayerFireSound() {
+        playSound("player_fire.m4a", volume: 0.4)
+    }
+    
     func playMiningSound() {
         playSound("mining.m4a", volume: 0.3)
     }

@@ -131,11 +131,6 @@ final class Player {
         // Update crafting
         updateCrafting(deltaTime: deltaTime)
         
-        // Update attack cooldown
-        if attackCooldown > 0 {
-            attackCooldown = max(0, attackCooldown - deltaTime)
-        }
-        
         // Update health immunity
         if var health = world.get(HealthComponent.self, for: entity) {
             health.update(deltaTime: deltaTime)
@@ -325,21 +320,92 @@ final class Player {
     
     // MARK: - Combat
     
+    /// Attempts to attack a specific enemy entity
+    /// Returns true if attack was successful
+    func attackEnemy(enemy: Entity) -> Bool {
+        print("Player attackEnemy called on entity: \(enemy)")
+
+        // Check if player has ammo
+        let hasFirearm = inventory.has(itemId: "firearm-magazine")
+        let hasPiercing = inventory.has(itemId: "piercing-rounds-magazine")
+        print("Player ammo check: firearm=\(hasFirearm), piercing=\(hasPiercing)")
+        guard hasFirearm || hasPiercing else {
+            print("Player attackEnemy FAILED: no ammo")
+            return false
+        }
+
+        // Get enemy position and check range
+        guard let enemyPos = world.get(PositionComponent.self, for: enemy) else {
+            print("Player attackEnemy FAILED: enemy has no position")
+            return false
+        }
+
+        guard let playerPos = world.get(PositionComponent.self, for: entity) else {
+            print("Player attackEnemy FAILED: player has no position")
+            return false
+        }
+
+        let distance = playerPos.worldPosition.distance(to: enemyPos.worldPosition)
+        print("Player attackEnemy range check: distance=\(distance), range=\(attackRange)")
+        guard distance <= attackRange else {
+            print("Player attackEnemy FAILED: enemy out of range")
+            return false
+        }
+
+        // Check if enemy is valid target
+        guard world.has(EnemyComponent.self, for: enemy) else {
+            print("Player attackEnemy FAILED: target is not an enemy")
+            return false
+        }
+
+        guard let health = world.get(HealthComponent.self, for: enemy), !health.isDead else {
+            print("Player attackEnemy FAILED: enemy is dead or has no health")
+            return false
+        }
+
+        print("Player attackEnemy SUCCESS: attacking enemy \(enemy)")
+
+        // Consume ammo
+        if inventory.has(itemId: "piercing-rounds-magazine") {
+            inventory.remove(itemId: "piercing-rounds-magazine", count: 1)
+        } else {
+            inventory.remove(itemId: "firearm-magazine", count: 1)
+        }
+
+        // Create projectile
+        print("Player attackEnemy: creating projectile")
+        let projectile = world.spawn()
+        let direction = (enemyPos.worldPosition - playerPos.worldPosition).normalized
+        let startPos = playerPos.worldPosition + direction * 0.5
+
+        world.add(PositionComponent(tilePosition: IntVector2(from: startPos)), to: projectile)
+        world.add(SpriteComponent(textureId: "bullet", size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
+        world.add(VelocityComponent(velocity: direction * 30), to: projectile)
+
+        var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30)
+        projectileComp.target = enemy
+        projectileComp.source = entity
+        world.add(projectileComp, to: projectile)
+
+        print("Player attackEnemy: projectile created with ID \(projectile), targeting enemy \(enemy)")
+
+        // Play sound
+        AudioManager.shared.playPlayerFireSound()
+
+        return true
+    }
+
     /// Attempts to attack an enemy at the given world position
     /// Returns true if attack was successful
     func attack(at targetPosition: Vector2) -> Bool {
         print("Player attack called at position: \(targetPosition)")
-        // Check cooldown
-        guard attackCooldown <= 0 else {
-            print("Attack on cooldown: \(attackCooldown)")
-            return false
-        }
         
         // Check if player has ammo
         let hasFirearm = inventory.has(itemId: "firearm-magazine")
         let hasPiercing = inventory.has(itemId: "piercing-rounds-magazine")
+        print("Player ammo check: firearm=\(hasFirearm), piercing=\(hasPiercing)")
         guard hasFirearm || hasPiercing else {
-            print("No ammo: firearm=\(hasFirearm), piercing=\(hasPiercing)")
+            print("Player attack FAILED: no ammo")
             return false  // No ammo
         }
         
@@ -348,34 +414,45 @@ final class Player {
         
         // Check range
         let distance = playerPos.worldPosition.distance(to: targetPosition)
-        print("Attack distance: \(distance), range: \(attackRange)")
+        print("Player attack range check: distance=\(distance), range=\(attackRange)")
         guard distance <= attackRange else {
-            print("Target out of range")
+            print("Player attack FAILED: target out of range")
             return false
         }
         
         // Find enemy at target position
-        let nearbyEnemies = world.getEntitiesNear(position: targetPosition, radius: 1.0)
+        let nearbyEnemies = world.getEntitiesNear(position: targetPosition, radius: 2.0)
+        print("Player attack: found \(nearbyEnemies.count) nearby entities")
         var targetEnemy: Entity?
-        
+
         for enemy in nearbyEnemies {
-            guard world.has(EnemyComponent.self, for: enemy) else { continue }
-            guard let health = world.get(HealthComponent.self, for: enemy), !health.isDead else { continue }
-            
+            guard world.has(EnemyComponent.self, for: enemy) else {
+                print("Entity \(enemy) is not an enemy")
+                continue
+            }
+            guard let health = world.get(HealthComponent.self, for: enemy), !health.isDead else {
+                print("Entity \(enemy) has no health or is dead")
+                continue
+            }
+
             if let enemyPos = world.get(PositionComponent.self, for: enemy) {
                 let enemyDistance = playerPos.worldPosition.distance(to: enemyPos.worldPosition)
+                print("Enemy \(enemy) at distance \(enemyDistance)")
                 if enemyDistance <= attackRange {
                     targetEnemy = enemy
+                    print("Player attack: selected enemy \(enemy) at distance \(enemyDistance)")
                     break
+                } else {
+                    print("Enemy \(enemy) too far (\(enemyDistance) > \(attackRange))")
                 }
             }
         }
-        
+
         guard let enemy = targetEnemy else {
-            print("No enemy found at target position")
+            print("Player attack FAILED: no valid enemy found at target position")
             return false
         }
-        print("Found enemy to attack: \(enemy)")
+        print("Player attack SUCCESS: attacking enemy \(enemy)")
         
         // Consume ammo
         if inventory.has(itemId: "piercing-rounds-magazine") {
@@ -385,24 +462,24 @@ final class Player {
         }
         
         // Create projectile
+        print("Player attack: creating projectile")
         let projectile = world.spawn()
         let direction = (targetPosition - playerPos.worldPosition).normalized
         let startPos = playerPos.worldPosition + direction * 0.5
-        
+
         world.add(PositionComponent(tilePosition: IntVector2(from: startPos)), to: projectile)
         world.add(SpriteComponent(textureId: "bullet", size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
         world.add(VelocityComponent(velocity: direction * 30), to: projectile)
-        
+
         var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30)
         projectileComp.target = enemy
         projectileComp.source = entity
         world.add(projectileComp, to: projectile)
-        
-        // Set cooldown
-        attackCooldown = attackCooldownTime
+
+        print("Player attack: projectile created with ID \(projectile), targeting enemy \(enemy)")
         
         // Play sound
-        // AudioManager.shared.playTurretFireSound() // Temporarily disabled for debugging
+        AudioManager.shared.playPlayerFireSound()
 
         print("Player attack successful - projectile created")
         return true

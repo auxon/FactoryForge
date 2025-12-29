@@ -146,7 +146,9 @@ final class CombatSystem: System {
     // MARK: - Projectiles
     
     private func updateProjectiles(deltaTime: Float) {
+        // print("CombatSystem: updating projectiles")
         world.forEach(ProjectileComponent.self) { [self] entity, projectile in
+            // print("CombatSystem: processing projectile \(entity)")
             print("Updating projectile \(entity), lifetime: \(projectile.lifetime)")
             var proj = projectile
             proj.lifetime -= deltaTime
@@ -205,7 +207,7 @@ final class CombatSystem: System {
                 let isValidTarget = isValidProjectileTarget(nearbyEntity, for: proj)
                 guard isValidTarget else { continue }
 
-                print("Projectile \(entity) hit entity \(nearbyEntity)")
+                // print("CombatSystem: Projectile \(entity) hit entity \(nearbyEntity) for \(proj.damage) damage")
                 applyDamage(proj.damage, to: nearbyEntity, from: proj.source)
 
                 // Apply splash damage

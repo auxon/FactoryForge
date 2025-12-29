@@ -66,17 +66,18 @@ final class InputManager: NSObject {
         view.isUserInteractionEnabled = true
         view.isMultipleTouchEnabled = true
         
-        // Tap recognizer (supports single and double taps)
-        tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-        tapRecognizer.numberOfTapsRequired = 1  // Single tap for normal interactions
-        tapRecognizer.delegate = self
-        view.addGestureRecognizer(tapRecognizer)
-
-        // Double tap recognizer for machine UI
+        // Double tap recognizer (must be added first)
         let doubleTapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
         doubleTapRecognizer.numberOfTapsRequired = 2
         doubleTapRecognizer.delegate = self
         view.addGestureRecognizer(doubleTapRecognizer)
+
+        // Single tap recognizer (requires double tap to fail)
+        tapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tapRecognizer.numberOfTapsRequired = 1
+        tapRecognizer.require(toFail: doubleTapRecognizer)  // Wait for double tap to fail
+        tapRecognizer.delegate = self
+        view.addGestureRecognizer(tapRecognizer)
 
         // Prevent single tap from firing when double tap is detected
         tapRecognizer.require(toFail: doubleTapRecognizer)
@@ -108,10 +109,12 @@ final class InputManager: NSObject {
     
     // MARK: - Gesture Handlers
     
-    @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
+    @objc private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
         guard recognizer.state == .ended else { return }
 
+        print("InputManager: DOUBLE TAP GESTURE DETECTED")
         let screenPos = screenPosition(from: recognizer)
+        print("InputManager: Double tap screen position: \(screenPos)")
 
         // Check for UI tooltips first (before UI system consumes the tap)
         let uiSystem = gameLoop?.uiSystem ?? renderer?.uiSystem
@@ -121,18 +124,152 @@ final class InputManager: NSObject {
                 onTooltip?(tooltip)
             }
 
+            // Don't call handleTap for double taps - double taps are for game actions, not UI
+            // The UI system should only handle single taps
+            print("InputManager: Double tap detected, skipping UI tap handler")
+        }
+
+        // If no game loop exists, we're done (loading menu should have handled it)
+        guard let gameLoop = gameLoop else {
+            print("InputManager: Double tap - no game loop available")
+            return
+        }
+
+        // Check for entities/resources BEFORE UI system check, so tooltips always work
+        let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
+        let tilePos = IntVector2(from: worldPos)
+        print("InputManager: Double tap - world position: \(worldPos), tile position: (\(tilePos.x), \(tilePos.y))")
+
+        // Update build preview position for tap placement
+        if buildMode == .placing {
+            buildPreviewPosition = tilePos
+        }
+
+        // Show tooltips for entities only when not in build mode (to allow building placement)
+        // Note: For double taps, we show tooltips but don't return early - we still want combat to work
+        if buildMode == .none {
+            let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
+            var closestEntity: Entity?
+            var closestDistance = Float.greatestFiniteMagnitude
+
+            for entity in nearbyEntities {
+                if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    if distance < closestDistance {
+                        closestDistance = distance
+                        closestEntity = entity
+                    }
+                }
+            }
+
+            if let entity = closestEntity {
+                // Show tooltip for the closest entity, but continue to combat code below
+                if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
+                    onTooltip?(tooltipText)
+                    // Don't return - continue to process combat even if we show a tooltip
+                }
+            }
+        }
+
+        // Check for resource at the exact tile (only when not in build mode)
+        if buildMode == .none {
+            if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+                // Show tooltip for resource
+                onTooltip?(resource.type.displayName)
+            }
+        }
+
+        // UI didn't handle it, process game tap
+        currentTouchPosition = worldPos
+
+        switch buildMode {
+        case .none:
+            // Check if player is attacking an enemy (prioritize combat)
+            // Use a larger radius for double taps to make it easier to hit enemies
+            let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 5.0)
+            print("InputManager: Double tap - found \(nearbyEnemies.count) entities near position \(worldPos)")
+            var attacked = false
+
+            for enemy in nearbyEnemies {
+                if gameLoop.world.has(EnemyComponent.self, for: enemy) {
+                    print("InputManager: Double tapping on enemy \(enemy)")
+                    // Try to attack the enemy directly
+                    if gameLoop.player.attackEnemy(enemy: enemy) {
+                        attacked = true
+                        print("InputManager: Player double attack initiated successfully")
+                        break
+                    } else {
+                        print("InputManager: Player double attack failed")
+                    }
+                } else {
+                    print("InputManager: Entity \(enemy) is not an enemy")
+                }
+            }
+
+            if !attacked {
+                print("InputManager: Double tap - no enemy attacked, found \(nearbyEnemies.count) nearby entities")
+            }
+
+            if attacked {
+                // Attack was successful, don't process further
+                return
+            } else {
+                // No enemy attacked, handle building/machine interaction
+                handleNonCombatDoubleTap(at: screenPos, worldPos: worldPos, tilePos: tilePos, gameLoop: gameLoop)
+            }
+
+        case .placing:
+            // Place the building
+            if let selectedId = selectedBuildingId {
+                onBuildingPlaced?(selectedId, tilePos, buildDirection)
+            }
+
+        case .selecting:
+            // Select entity at position (not implemented yet)
+            onEntitySelected?(nil)
+
+        case .removing:
+            // Remove building at position (not implemented yet)
+            break
+        }
+    }
+
+    @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
+        guard recognizer.state == .ended else { return }
+
+        print("InputManager: TAP GESTURE DETECTED")
+        let screenPos = screenPosition(from: recognizer)
+        print("InputManager: Screen position: \(screenPos)")
+
+        // Check for UI tooltips first (before UI system consumes the tap)
+        let uiSystem = gameLoop?.uiSystem ?? renderer?.uiSystem
+        print("InputManager: UI system available: \(uiSystem != nil)")
+        if let uiSystem = uiSystem {
+            if let tooltip = uiSystem.getTooltip(at: screenPos) {
+                // Show tooltip for UI element
+                print("InputManager: Showing tooltip: \(tooltip)")
+                onTooltip?(tooltip)
+            }
+
             // Then check UI system for actual functionality
-            if uiSystem.handleTap(at: screenPos) == true {
+            let uiHandled = uiSystem.handleTap(at: screenPos)
+            print("InputManager: UI system handled tap: \(uiHandled)")
+            if uiHandled == true {
+                print("InputManager: Tap consumed by UI system")
                 return
             }
         }
 
         // If no game loop exists, we're done (loading menu should have handled it)
-        guard let gameLoop = gameLoop else { return }
+        guard let gameLoop = gameLoop else {
+            print("InputManager: No game loop available")
+            return
+        }
 
         // Check for entities/resources BEFORE UI system check, so tooltips always work
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
+        print("InputManager: World position: \(worldPos), tile position: (\(tilePos.x), \(tilePos.y))")
 
         // Update build preview position for tap placement
         if buildMode == .placing {
@@ -178,24 +315,29 @@ final class InputManager: NSObject {
         switch buildMode {
         case .none:
             // Check if player is attacking an enemy (prioritize combat)
-            let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 3.0)
+            let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 5.0)
+            print("InputManager: Found \(nearbyEnemies.count) entities near tap position")
             var attacked = false
 
             for enemy in nearbyEnemies {
                 if gameLoop.world.has(EnemyComponent.self, for: enemy) {
-                    print("Found enemy entity: \(enemy)")
-                    // Try to attack the enemy at its position
-                    if let enemyPos = gameLoop.world.get(PositionComponent.self, for: enemy) {
-                        print("Enemy position: \(enemyPos.worldPosition)")
-                        if gameLoop.player.attack(at: enemyPos.worldPosition) {
-                            attacked = true
-                            print("Attack successful")
-                            break
-                        } else {
-                            print("Attack failed")
-                        }
+                    print("InputManager: Tapping on enemy \(enemy)")
+                    // Try to attack the enemy directly by its entity ID instead of position
+                    // This avoids precision issues with position conversion
+                    if gameLoop.player.attackEnemy(enemy: enemy) {
+                        attacked = true
+                        print("InputManager: Player attack on enemy \(enemy) initiated successfully")
+                        break
+                    } else {
+                        print("InputManager: Player attack on enemy \(enemy) failed")
                     }
+                } else {
+                    print("InputManager: Entity \(enemy) is not an enemy")
                 }
+            }
+
+            if !attacked {
+                print("InputManager: No enemy attacked, processing other tap logic")
             }
             
             if !attacked {
@@ -310,6 +452,24 @@ final class InputManager: NSObject {
             let tilePos = IntVector2(from: worldPos)
             _ = gameLoop.removeBuilding(at: tilePos)
             // Stay in remove mode for continuous removal
+
+        case .selecting:
+            // Select entity at position
+            let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
+            var selected: Entity?
+
+            for entity in nearbyEntities {
+                if gameLoop.world.has(FurnaceComponent.self, for: entity) ||
+                   gameLoop.world.has(AssemblerComponent.self, for: entity) ||
+                   gameLoop.world.has(MinerComponent.self, for: entity) ||
+                   gameLoop.world.has(ChestComponent.self, for: entity) ||
+                   gameLoop.world.has(LabComponent.self, for: entity) {
+                    selected = entity
+                    break
+                }
+            }
+
+            onEntitySelected?(selected)
         }
         
         onTap?(worldPos)
@@ -321,10 +481,10 @@ final class InputManager: NSObject {
         let screenPos = screenPosition(from: recognizer)
         let worldPos = renderer.screenToWorld(screenPos)
         currentTouchPosition = worldPos
-        
+
         // Get joystick from HUD
         let joystick = gameLoop.uiSystem?.hud.joystick
-        
+
         switch recognizer.state {
         case .began:
             dragStartPosition = screenPos
@@ -375,7 +535,7 @@ final class InputManager: NSObject {
             // If UI drag is active, continue it
             if isUIDragging {
                 if let uiSystem = gameLoop.uiSystem {
-                    uiSystem.handleDrag(from: dragStartPosition, to: screenPos)
+                    _ = uiSystem.handleDrag(from: dragStartPosition, to: screenPos)
                 }
                 return
             }
@@ -450,14 +610,8 @@ final class InputManager: NSObject {
         }
     }
 
-    @objc private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
-        guard recognizer.state == .ended else { return }
-        guard let gameLoop = gameLoop else { return }
 
-        let screenPos = screenPosition(from: recognizer)
-        let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
-        let tilePos = IntVector2(from: worldPos)
-
+    private func handleNonCombatDoubleTap(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop) {
         // If we're in build mode, place the building instead of normal double-tap behavior
         if buildMode == .placing, let buildingId = selectedBuildingId {
             // Calculate offset to center the building at the tap location
@@ -845,6 +999,7 @@ enum BuildMode {
     case none
     case placing
     case removing
+    case selecting
 }
 
 // MARK: - UIGestureRecognizerDelegate
