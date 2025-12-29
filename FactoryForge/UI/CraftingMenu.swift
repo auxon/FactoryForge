@@ -185,13 +185,12 @@ final class CraftingMenu: UIPanel_Base {
             inputX += iconSpacing
         }
 
-        // Arrow (use solid white texture)
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        // Arrow
+        let arrowRect = renderer.textureAtlas.getTextureRect(for: "right_arrow")
         renderer.queueSprite(SpriteInstance(
             position: Vector2(inputX + 20 * UIScale, detailsY),
             size: Vector2(iconSize, iconSize),
-            textureRect: solidRect,
-            color: .white,
+            textureRect: arrowRect,
             layer: .ui
         ))
 

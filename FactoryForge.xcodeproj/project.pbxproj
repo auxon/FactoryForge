@@ -116,6 +116,7 @@
 		0DE229892F01799C00BD619D /* turret.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229882F01799C00BD619D /* turret.png */; };
 		0DE2298B2F01969900BD619D /* disable_audio.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2298A2F01969900BD619D /* disable_audio.png */; };
 		0DE2298D2F01B12700BD619D /* crafting_complete.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2298C2F01B12700BD619D /* crafting_complete.m4a */; };
+		0DE2298F2F02154900BD619D /* right_arrow.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2298E2F02154900BD619D /* right_arrow.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -286,6 +287,7 @@
 		0DE229882F01799C00BD619D /* turret.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = turret.png; sourceTree = "<group>"; };
 		0DE2298A2F01969900BD619D /* disable_audio.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = disable_audio.png; sourceTree = "<group>"; };
 		0DE2298C2F01B12700BD619D /* crafting_complete.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = crafting_complete.m4a; sourceTree = "<group>"; };
+		0DE2298E2F02154900BD619D /* right_arrow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = right_arrow.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -362,6 +364,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DE2298E2F02154900BD619D /* right_arrow.png */,
 				0DE2298A2F01969900BD619D /* disable_audio.png */,
 				0DE229882F01799C00BD619D /* turret.png */,
 				0DE229862F01796500BD619D /* power_pole.png */,
@@ -949,6 +952,7 @@
 				0DE2296C2F001B9F00BD619D /* transport_belt_north_011.png in Resources */,
 				0DE2296D2F001B9F00BD619D /* transport_belt_north_016.png in Resources */,
 				0DE2296E2F001B9F00BD619D /* transport_belt_north_008.png in Resources */,
+				0DE2298F2F02154900BD619D /* right_arrow.png in Resources */,
 				0DE2296F2F001B9F00BD619D /* transport_belt_north_007.png in Resources */,
 				0DE229702F001B9F00BD619D /* transport_belt_north_010.png in Resources */,
 				0DE229712F001B9F00BD619D /* transport_belt_north_004.png in Resources */,
