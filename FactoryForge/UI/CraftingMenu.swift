@@ -95,11 +95,7 @@ final class CraftingMenu: UIPanel_Base {
     }
     
     private func selectRecipe(_ recipe: Recipe) {
-        // Prevent multiple rapid selections of the same recipe
-        if selectedRecipe?.id == recipe.id {
-            return
-        }
-
+        // Update selected recipe for display purposes
         selectedRecipe = recipe
 
         // Check if player can craft
