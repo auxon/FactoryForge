@@ -18,13 +18,17 @@ class GameViewController: UIViewController {
     private var gameOverLabel: UILabel!
     private var menuButtonLabel: UILabel!
     
+    // Splash screen
+    private var splashImageView: UIImageView!
+    private var splashTimer: Timer?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setupMetalView()
         setupRenderer()
         setupUISystem()
-        setupLoadingMenu()
+        setupSplashScreen()
         setupNotifications()
         setupTooltip()
         setupGameOverUI()
@@ -33,6 +37,47 @@ class GameViewController: UIViewController {
         print("Metal view bounds: \(metalView.bounds)")
     }
     
+    private func setupSplashScreen() {
+        // Create splash image view
+        splashImageView = UIImageView()
+        splashImageView.image = UIImage(named: "splash")
+        splashImageView.contentMode = .scaleAspectFit  // Fit the entire image on screen
+        splashImageView.clipsToBounds = true
+        splashImageView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(splashImageView)
+
+        // Make splash screen cover entire view
+        NSLayoutConstraint.activate([
+            splashImageView.topAnchor.constraint(equalTo: view.topAnchor),
+            splashImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            splashImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            splashImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        // Bring splash screen to front
+        view.bringSubviewToFront(splashImageView)
+
+        // After 3 seconds, hide splash and show loading menu
+        splashTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+            self?.hideSplashAndShowLoadingMenu()
+        }
+    }
+
+    private func hideSplashAndShowLoadingMenu() {
+        // Fade out splash screen
+        UIView.animate(withDuration: 0.5, animations: { [weak self] in
+            self?.splashImageView?.alpha = 0.0
+        }) { [weak self] _ in
+            self?.splashImageView?.removeFromSuperview()
+            self?.splashImageView = nil
+            self?.splashTimer?.invalidate()
+            self?.splashTimer = nil
+
+            // Now show loading menu
+            self?.setupLoadingMenu()
+        }
+    }
+
     private func setupTooltip() {
         tooltipLabel = UILabel()
         tooltipLabel.font = UIFont.systemFont(ofSize: 18, weight: .medium)
@@ -43,7 +88,7 @@ class GameViewController: UIViewController {
         tooltipLabel.isHidden = true
         tooltipLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tooltipLabel)
-        
+
         NSLayoutConstraint.activate([
             tooltipLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             tooltipLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -248,7 +293,7 @@ class GameViewController: UIViewController {
     private func setupLoadingMenu() {
         guard let uiSystem = uiSystem else { return }
         
-        // Show loading menu immediately
+        // Show loading menu
         uiSystem.openPanel(.loadingMenu)
         
         // Setup callbacks
