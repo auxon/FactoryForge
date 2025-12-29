@@ -53,7 +53,7 @@ final class BuildingRegistry {
             maxHealth: 300,
             cost: [ItemStack(itemId: "electric-mining-drill", count: 1)]
         )
-        electricMiner.miningSpeed = 0.5
+        electricMiner.miningSpeed = 0.75
         electricMiner.powerConsumption = 90
         register(electricMiner)
         
