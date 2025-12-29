@@ -70,7 +70,26 @@ final class SpriteRenderer {
             var textureId = sprite.textureId
 
             // Belt animation system - animate transport belts
-            if textureId == "transport_belt" {
+            let beltTypes = ["transport_belt", "fast_transport_belt", "express_transport_belt"]
+            if beltTypes.contains(textureId) {
+                // Get belt direction from BeltComponent
+                let direction: Direction
+                if let belt = world.get(BeltComponent.self, for: entity) {
+                    direction = belt.direction
+                } else {
+                    // Fallback to north if no belt component found
+                    direction = .north
+                }
+                
+                // Convert direction to string
+                let directionString: String
+                switch direction {
+                case .north: directionString = "north"
+                case .east: directionString = "east"
+                case .south: directionString = "south"
+                case .west: directionString = "west"
+                }
+                
                 // Calculate animation frame based on time
                 let currentTime = Date().timeIntervalSince1970
                 let fractionalTime = currentTime - floor(currentTime) // Get fractional seconds
@@ -83,7 +102,8 @@ final class SpriteRenderer {
 
                 // Format frame number with leading zeros (001-016)
                 let frameString = String(format: "%03d", frameIndex + 1)
-                textureId = "transport_belt_north_\(frameString)"
+                // Use transport_belt prefix for all belt types (as requested)
+                textureId = "transport_belt_\(directionString)_\(frameString)"
             }
 
             let textureRect = textureAtlas.getTextureRect(for: textureId)
