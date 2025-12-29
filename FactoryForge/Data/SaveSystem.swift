@@ -19,6 +19,9 @@ final class SaveSystem {
     // MARK: - Save
     
     func save(gameLoop: GameLoop, slotName: String = "autosave") {
+        // Save all loaded chunks to disk before saving the game state
+        gameLoop.chunkManager.saveAllChunks()
+        
         let saveData = createSaveData(from: gameLoop)
         
         guard let directory = saveDirectory else {
@@ -58,6 +61,10 @@ final class SaveSystem {
     // MARK: - Load
     
     func load(saveData: GameSave, into gameLoop: GameLoop) {
+        // Clear all loaded chunks so they will be loaded fresh from disk
+        // This prevents regenerating chunks that should be loaded from saved state
+        gameLoop.chunkManager.clearLoadedChunks()
+        
         // Load world state FIRST (this clears the world, including the player's entity)
         gameLoop.world.deserialize(saveData.worldData)
         

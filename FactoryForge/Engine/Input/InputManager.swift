@@ -693,11 +693,36 @@ final class InputManager: NSObject {
             return
         }
 
-        // Check if there's an entity at this position
+        // Find the closest interactable entity near the tap position (use world position for better accuracy)
         print("InputManager: Double-tap at tile (\(tilePos.x), \(tilePos.y)), worldPos: (\(worldPos.x), \(worldPos.y))")
-        if let entity = gameLoop.world.getEntityAt(position: tilePos) {
-            print("InputManager: Found entity \(entity) at tile position")
-            // Check if it's a machine we can interact with
+        let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
+        var closestEntity: Entity?
+        var closestDistance = Float.greatestFiniteMagnitude
+        
+        // Find the closest entity that has an interactable component
+        for entity in nearbyEntities {
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+            let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+            let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+            let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
+            
+            // Only consider entities with interactable components
+            guard hasFurnace || hasAssembler || hasMiner || hasChest || hasLab else { continue }
+            
+            // Calculate distance to find the closest one
+            if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                let distance = pos.worldPosition.distance(to: worldPos)
+                if distance < closestDistance {
+                    closestDistance = distance
+                    closestEntity = entity
+                }
+            }
+        }
+        
+        if let entity = closestEntity {
+            print("InputManager: Found closest interactable entity \(entity) at distance \(closestDistance)")
+            // Check what type it is for logging
             let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
             let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
             let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
@@ -705,22 +730,18 @@ final class InputManager: NSObject {
             let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
             print("InputManager: Entity components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner), Chest: \(hasChest), Lab: \(hasLab)")
 
-            if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab {
-                print("InputManager: Opening UI for entity")
+            print("InputManager: Opening UI for entity")
 
-                // Exit build mode if we're in it
-                if buildMode != .none {
-                    exitBuildMode()
-                }
-
-                // Select the entity and open appropriate UI
-                selectedEntity = entity
-                onEntitySelected?(entity)
-            } else {
-                print("InputManager: Entity is not a machine or chest")
+            // Exit build mode if we're in it
+            if buildMode != .none {
+                exitBuildMode()
             }
+
+            // Select the entity and open appropriate UI
+            selectedEntity = entity
+            onEntitySelected?(entity)
         } else {
-            print("InputManager: No entity found at tile position")
+            print("InputManager: No interactable entity found near position")
             // No entity, check for resource to mine
             if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                 // Check if player can accept the item

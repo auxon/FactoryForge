@@ -128,6 +128,19 @@ final class ChunkManager {
         return Array(chunks.values)
     }
     
+    /// Clears all loaded chunks (used when loading a save to force reload from disk)
+    func clearLoadedChunks() {
+        // Save any dirty chunks before clearing
+        for (coord, chunk) in chunks {
+            if chunk.isDirty {
+                saveChunkToDisk(chunk)
+            }
+        }
+        chunks.removeAll()
+        loadedChunks.removeAll()
+        print("ChunkManager: Cleared all loaded chunks")
+    }
+    
     // MARK: - Rendering
     
     func render(renderer: MetalRenderer, camera: Camera2D) {
@@ -142,6 +155,16 @@ final class ChunkManager {
     }
     
     // MARK: - Persistence
+    
+    /// Saves all currently loaded chunks to disk (used before saving the game)
+    func saveAllChunks() {
+        for (coord, chunk) in chunks {
+            saveChunkToDisk(chunk)
+            // Mark as not dirty since we just saved it
+            chunk.isDirty = false
+        }
+        print("ChunkManager: Saved \(chunks.count) chunks to disk")
+    }
     
     private func saveChunkToDisk(_ chunk: Chunk) {
         // TODO: Implement chunk saving
