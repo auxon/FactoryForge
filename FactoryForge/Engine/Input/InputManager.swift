@@ -219,9 +219,47 @@ final class InputManager: NSObject {
             }
 
         case .placing:
-            // Place the building
-            if let selectedId = selectedBuildingId {
-                onBuildingPlaced?(selectedId, tilePos, buildDirection)
+            // Place the building (use same logic as single-tap for consistency)
+            if let buildingId = selectedBuildingId {
+                guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else {
+                    onTooltip?("Unknown building type")
+                    return
+                }
+
+                // Check inventory first
+                if !gameLoop.player.inventory.has(items: buildingDef.cost) {
+                    // Show missing items
+                    let missingItems = buildingDef.cost.filter { !gameLoop.player.inventory.has(items: [$0]) }
+                    if let firstMissing = missingItems.first {
+                        let itemName = gameLoop.itemRegistry.get(firstMissing.itemId)?.name ?? firstMissing.itemId
+                        onTooltip?("Need \(firstMissing.count) \(itemName)")
+                    } else {
+                        onTooltip?("Missing required items")
+                    }
+                    return
+                }
+                
+                // Calculate offset to center the building at the tap location
+                let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
+                let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
+                let tapOffset = worldPos - tileCenter - spriteSize / 2
+
+                // Check placement validity
+                if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
+                    onTooltip?("Cannot place building here")
+                    return
+                }
+
+                // Try to place with offset to center at tap location
+                if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
+                    onBuildingPlaced?(buildingId, tilePos, buildDirection)
+                    // Exit build mode after placing (except for belts which allow drag placement)
+                    if !buildingId.contains("belt") {
+                        exitBuildMode()
+                    }
+                } else {
+                    onTooltip?("Failed to place building")
+                }
             }
 
         case .selecting:

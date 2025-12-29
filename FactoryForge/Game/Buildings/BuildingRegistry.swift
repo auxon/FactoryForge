@@ -41,7 +41,7 @@ final class BuildingRegistry {
             maxHealth: 150,
             cost: [ItemStack(itemId: "iron-plate", count: 5)]
         )
-        burnerMiner.miningSpeed = 0.25
+        burnerMiner.miningSpeed = 0.50
         register(burnerMiner)
         
         var electricMiner = BuildingDefinition(
