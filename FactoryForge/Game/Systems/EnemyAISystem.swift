@@ -144,7 +144,11 @@ final class EnemyAISystem: System {
             layer: .building
         ), to: spawner)
         world.add(HealthComponent(maxHealth: 350), to: spawner)
-        world.add(SpawnerComponent(maxEnemies: 10, spawnCooldown: 10), to: spawner)
+        
+        // Create spawner with all currently available enemy types
+        var spawnerComp = SpawnerComponent(maxEnemies: 10, spawnCooldown: 10)
+        spawnerComp.enemyTypes = getAvailableEnemyTypes()
+        world.add(spawnerComp, to: spawner)
         
         // Add to chunk's entity list
         if let chunk = chunkManager.getChunk(at: position) {
@@ -164,6 +168,12 @@ final class EnemyAISystem: System {
         world.forEach(SpawnerComponent.self) { [self] entity, spawner in
             var spawner = spawner
             spawner.update(deltaTime: deltaTime)
+            
+            // Update spawner's available enemy types based on current evolution
+            let availableTypes = getAvailableEnemyTypes()
+            if Set(spawner.enemyTypes) != Set(availableTypes) {
+                spawner.enemyTypes = availableTypes
+            }
 
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
 
@@ -240,21 +250,20 @@ final class EnemyAISystem: System {
     }
     
     private func selectEnemyType(for spawner: SpawnerComponent) -> EnemyType {
-        var availableTypes: [EnemyType] = [.smallBiter]
+        var availableTypes: [EnemyType] = [.smallBiter, .mediumBiter]  // Start with medium biters available
         
-        if evolutionFactor > 0.2 {
-            availableTypes.append(.mediumBiter)
+        if evolutionFactor > 0.1 {
             availableTypes.append(.smallSpitter)
         }
-        if evolutionFactor > 0.5 {
+        if evolutionFactor > 0.3 {
             availableTypes.append(.bigBiter)
             availableTypes.append(.mediumSpitter)
         }
-        if evolutionFactor > 0.8 {
+        if evolutionFactor > 0.6 {
             availableTypes.append(.behemothBiter)
             availableTypes.append(.bigSpitter)
         }
-        if evolutionFactor > 0.95 {
+        if evolutionFactor > 0.9 {
             availableTypes.append(.behemothSpitter)
         }
         
@@ -265,6 +274,28 @@ final class EnemyAISystem: System {
         }
         
         return availableTypes.randomElement() ?? .smallBiter
+    }
+    
+    /// Returns all enemy types currently available based on evolution factor
+    private func getAvailableEnemyTypes() -> [EnemyType] {
+        var availableTypes: [EnemyType] = [.smallBiter, .mediumBiter]  // Start with medium biters available
+        
+        if evolutionFactor > 0.1 {
+            availableTypes.append(.smallSpitter)
+        }
+        if evolutionFactor > 0.3 {
+            availableTypes.append(.bigBiter)
+            availableTypes.append(.mediumSpitter)
+        }
+        if evolutionFactor > 0.6 {
+            availableTypes.append(.behemothBiter)
+            availableTypes.append(.bigSpitter)
+        }
+        if evolutionFactor > 0.9 {
+            availableTypes.append(.behemothSpitter)
+        }
+        
+        return availableTypes
     }
     
     // MARK: - Enemy AI
@@ -563,8 +594,9 @@ final class EnemyAISystem: System {
             let biter = Biter(world: world)
             biter.position = spawnPos
             
-            // Add health component
-            let enemyType = EnemyType.smallBiter
+            // Select enemy type based on evolution (same as spawnEnemy)
+            let tempSpawner = SpawnerComponent(maxEnemies: 10, spawnCooldown: 10)
+            let enemyType = selectEnemyType(for: tempSpawner)
             let scaledHealth = enemyType.baseHealth * (1 + evolutionFactor)
             world.add(HealthComponent(maxHealth: scaledHealth), to: biter.biterEntity)
             
@@ -572,7 +604,7 @@ final class EnemyAISystem: System {
             var enemyComp = EnemyComponent(type: enemyType)
             enemyComp.damage *= (1 + evolutionFactor * 0.5)
             enemyComp.speed *= (1 + evolutionFactor * 0.2)
-            enemyComp.attackRange *= 1.0  // Keep base attack range (1.0 total for biters)
+            // Attack range is set by enemy type (biters = 1.0, spitters = 13-16)
             enemyComp.maxFollowDistance = 15.0
             enemyComp.state = .attacking
             // Set player as target for attack wave enemies
