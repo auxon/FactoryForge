@@ -213,6 +213,10 @@ final class AudioManager {
         playSound("mining.m4a", volume: 0.3)
     }
 
+    func playChopSound() {
+        playSound("chop.m4a", volume: 0.3)
+    }
+
     func playCraftingCompleteSound() {
         playSound("crafting_complete.m4a", volume: 0.5)
     }

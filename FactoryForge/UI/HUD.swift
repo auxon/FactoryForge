@@ -135,9 +135,13 @@ final class HUD {
         )
         
         miningAnimations.append(animation)
-        
-        // Play mining sound
-        AudioManager.shared.playMiningSound()
+
+        // Play appropriate sound based on item type
+        if itemId == "wood" {
+            AudioManager.shared.playChopSound()
+        } else {
+            AudioManager.shared.playMiningSound()
+        }
     }
     
     func getButtonName(at position: Vector2, screenSize: Vector2) -> String? {
