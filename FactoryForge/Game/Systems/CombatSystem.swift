@@ -112,6 +112,18 @@ final class CombatSystem: System {
         return closestEnemy
     }
     
+    /// Determines which bullet sprite to use based on direction
+    private func getBulletSprite(for direction: Vector2) -> String {
+        // Check if movement is primarily vertical or horizontal
+        if abs(direction.y) > abs(direction.x) {
+            // Primarily vertical
+            return direction.y > 0 ? "bullet_up" : "bullet_down"
+        } else {
+            // Primarily horizontal
+            return direction.x > 0 ? "bullet_right" : "bullet_left"
+        }
+    }
+    
     private func fire(turret: inout TurretComponent, entity: Entity, position: PositionComponent, target: Entity, targetPos: PositionComponent) {
         turret.fire()
         
@@ -131,7 +143,7 @@ final class CombatSystem: System {
         let startPos = position.worldPosition + direction * 0.5
         
         world.add(PositionComponent(tilePosition: IntVector2(from: startPos)), to: projectile)
-        world.add(SpriteComponent(textureId: "bullet", size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
+        world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
         world.add(VelocityComponent(velocity: direction * 30), to: projectile)
         
         var projectileComp = ProjectileComponent(damage: turret.damage, speed: 30)

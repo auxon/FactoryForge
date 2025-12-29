@@ -97,6 +97,10 @@ final class TextureAtlas {
             ("biter", nil),
             ("spawner", nil),
             ("bullet", nil),
+            ("bullet_up", nil),
+            ("bullet_down", nil),
+            ("bullet_left", nil),
+            ("bullet_right", nil),
             
             // Terrain (try regular version first, fallback to _2 if needed)
             ("grass", nil),
@@ -237,9 +241,12 @@ final class TextureAtlas {
             if let image = image {
                 // UI buttons need larger slots to preserve quality (they're 805x279px)
                 let uiButtonNames = ["new_game", "save_game", "load_game", "delete_game"]
+                // Bullet images use their actual size (not forced to 32x32)
+                let bulletNames = ["bullet", "bullet_up", "bullet_down", "bullet_left", "bullet_right"]
                 let buttonSpriteSize = uiButtonNames.contains(textureId) ? 256 : spriteSize
+                let useActualSize = bulletNames.contains(textureId)
                 
-                if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: buttonSpriteSize) {
+                if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: buttonSpriteSize, useActualSize: useActualSize) {
                     print("✓ Loaded: \(filename).png -> textureId: \(textureId)")
                 } else {
                     print("✗ Failed to pack: \(filename).png")
@@ -264,7 +271,7 @@ final class TextureAtlas {
         return image
     }
     
-    private func packSpriteIntoAtlas(image: UIImage, name: String, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int, skipBorderCrop: Bool = false) -> Bool {
+    private func packSpriteIntoAtlas(image: UIImage, name: String, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int, skipBorderCrop: Bool = false, useActualSize: Bool = false) -> Bool {
         guard let cgImage = image.cgImage else {
             print("Warning: Could not get CGImage for \(name)")
             return false
@@ -343,6 +350,20 @@ final class TextureAtlas {
                 image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
                 processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
                 UIGraphicsEndImageContext()
+            } else if useActualSize {
+                // Bullet images: use actual size, only scale down if too large
+                if imageWidth > targetSize || imageHeight > targetSize {
+                    let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
+                    let scaledWidth = Int(Float(imageWidth) * scale)
+                    let scaledHeight = Int(Float(imageHeight) * scale)
+                    
+                    UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
+                    image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
+                    processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+                    UIGraphicsEndImageContext()
+                } else {
+                    processedImage = image
+                }
             } else if skipBorderCrop {
                 // Scale directly without cropping borders
                 let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
@@ -398,10 +419,13 @@ final class TextureAtlas {
             return false
         }
         
-        // For UI buttons, keep their aspect ratio; for others, scale to square targetSize
+        // For UI buttons and bullets, keep their aspect ratio; for others, scale to square targetSize
         let finalImage: UIImage
         if uiButtonNames.contains(name) {
             // UI buttons: keep aspect ratio, use actual processed size
+            finalImage = processedImage
+        } else if useActualSize {
+            // Bullet images: use actual size without scaling
             finalImage = processedImage
         } else {
             // Other sprites: scale to square targetSize
@@ -476,16 +500,24 @@ final class TextureAtlas {
         )
         textureRects[name] = uvRect
 
-        // Debug UV coordinates for UI textures
-        if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder"].contains(name) {
-            print("DEBUG: \(name) UV rect: x=\(uvRect.origin.x), y=\(uvRect.origin.y), w=\(uvRect.size.x), h=\(uvRect.size.y)")
+        // Debug UV coordinates for UI textures and bullets
+        if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder", "bullet", "bullet_up", "bullet_down", "bullet_left", "bullet_right"].contains(name) {
+            print("DEBUG: \(name) UV rect: x=\(uvRect.origin.x), y=\(uvRect.origin.y), w=\(uvRect.size.x), h=\(uvRect.size.y), actual size: \(copyWidth)x\(copyHeight)")
         }
         
-        // Move to next position in atlas (UI buttons get dedicated rows)
+        // Move to next position in atlas (UI buttons and bullets use actual size)
         if uiButtonNames.contains(name) {
             // UI buttons: force to next row to avoid overlap with other sprites
             atlasX = 0
             atlasY += spriteSize
+        } else if useActualSize {
+            // Bullet images: advance by actual width (rounded up to next multiple of 4 for alignment)
+            let advanceWidth = ((copyWidth + 3) / 4) * 4  // Round up to multiple of 4
+            atlasX += advanceWidth
+            if atlasX + spriteSize > atlasSize {
+                atlasX = 0
+                atlasY += max(spriteSize, ((copyHeight + 3) / 4) * 4)  // Round up height too
+            }
         } else {
             // Regular sprites: advance by spriteSize
             atlasX += spriteSize

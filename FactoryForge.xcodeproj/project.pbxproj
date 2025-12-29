@@ -124,6 +124,10 @@
 		0DE229992F022E6500BD619D /* biter_right.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229972F022E6500BD619D /* biter_right.png */; };
 		0DE2299C2F0230BE00BD619D /* Biter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DE2299A2F0230BE00BD619D /* Biter.swift */; };
 		0DE2299E2F024C6000BD619D /* player_fire.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2299D2F024C6000BD619D /* player_fire.m4a */; };
+		0DFF59A82F02C08F00A8699D /* bullet_left.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A52F02C08F00A8699D /* bullet_left.png */; };
+		0DFF59A92F02C08F00A8699D /* bullet_right.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A62F02C08F00A8699D /* bullet_right.png */; };
+		0DFF59AA2F02C08F00A8699D /* bullet_down.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A42F02C08F00A8699D /* bullet_down.png */; };
+		0DFF59AB2F02C08F00A8699D /* bullet_up.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A72F02C08F00A8699D /* bullet_up.png */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -302,6 +306,10 @@
 		0DE229972F022E6500BD619D /* biter_right.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = biter_right.png; sourceTree = "<group>"; };
 		0DE2299A2F0230BE00BD619D /* Biter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Biter.swift; sourceTree = "<group>"; };
 		0DE2299D2F024C6000BD619D /* player_fire.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = player_fire.m4a; sourceTree = "<group>"; };
+		0DFF59A42F02C08F00A8699D /* bullet_down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_down.png; sourceTree = "<group>"; };
+		0DFF59A52F02C08F00A8699D /* bullet_left.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_left.png; sourceTree = "<group>"; };
+		0DFF59A62F02C08F00A8699D /* bullet_right.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_right.png; sourceTree = "<group>"; };
+		0DFF59A72F02C08F00A8699D /* bullet_up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_up.png; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -378,6 +386,10 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DFF59A42F02C08F00A8699D /* bullet_down.png */,
+				0DFF59A52F02C08F00A8699D /* bullet_left.png */,
+				0DFF59A62F02C08F00A8699D /* bullet_right.png */,
+				0DFF59A72F02C08F00A8699D /* bullet_up.png */,
 				0DE229962F022E6500BD619D /* biter_left.png */,
 				0DE229972F022E6500BD619D /* biter_right.png */,
 				0DE229902F02199F00BD619D /* splash.png */,
@@ -982,6 +994,10 @@
 				0DE2296D2F001B9F00BD619D /* transport_belt_north_016.png in Resources */,
 				0DE2296E2F001B9F00BD619D /* transport_belt_north_008.png in Resources */,
 				0DE2298F2F02154900BD619D /* right_arrow.png in Resources */,
+				0DFF59A82F02C08F00A8699D /* bullet_left.png in Resources */,
+				0DFF59A92F02C08F00A8699D /* bullet_right.png in Resources */,
+				0DFF59AA2F02C08F00A8699D /* bullet_down.png in Resources */,
+				0DFF59AB2F02C08F00A8699D /* bullet_up.png in Resources */,
 				0DE2296F2F001B9F00BD619D /* transport_belt_north_007.png in Resources */,
 				0DE229702F001B9F00BD619D /* transport_belt_north_010.png in Resources */,
 				0DE229712F001B9F00BD619D /* transport_belt_north_004.png in Resources */,
