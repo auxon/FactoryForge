@@ -17,6 +17,14 @@ final class Biter {
         self.entity = world.spawn()
         setupBiterEntity()
     }
+    
+    /// Initializes a Biter wrapper for an existing entity
+    /// This is used for enemies loaded from save files
+    init(world: World, existingEntity: Entity) {
+        self.world = world
+        self.entity = existingEntity
+        setupBiterAnimations()
+    }
 
     /// Recreates the biter entity (used when loading a game after world deserialization)
     func recreateEntity(in world: World) {
@@ -28,7 +36,10 @@ final class Biter {
     private func setupBiterEntity() {
         // Set up biter entity
         world.add(PositionComponent(tilePosition: .zero), to: entity)
-
+        setupBiterAnimations()
+    }
+    
+    private func setupBiterAnimations() {
         // Create biter animation with all 16 frames for both directions
         let biterFramesRight = (0..<16).map { "biter_right_\($0)" }
         let biterFramesLeft = (0..<16).map { "biter_left_\($0)" }
@@ -47,14 +58,20 @@ final class Biter {
         )
         biterAnimationLeft.pause()
 
-        var spriteComponent = SpriteComponent(
+        // Get existing sprite component or create new one
+        var spriteComponent = world.get(SpriteComponent.self, for: entity) ?? SpriteComponent(
             textureId: "biter_right_0",  // Default to first right frame
             size: Vector2(0.8, 0.8),     // Smaller than player
             tint: .white,
             layer: .enemy,
             centered: true
         )
-        spriteComponent.animation = biterAnimationRight
+        
+        // Update texture ID and animation if not already set
+        if spriteComponent.textureId == "biter" || spriteComponent.animation == nil {
+            spriteComponent.textureId = "biter_right_0"
+            spriteComponent.animation = biterAnimationRight
+        }
 
         // Store references to both animations for switching directions
         self.biterAnimationRight = biterAnimationRight

@@ -34,11 +34,64 @@ final class EnemyAISystem: System {
         }
     }
     
+    /// Registers existing enemies that don't have Biter objects yet
+    /// This is needed for enemies loaded from save files or created without Biter objects
+    private func registerExistingEnemies() {
+        world.forEach(EnemyComponent.self) { [self] entity, enemy in
+            // Skip if already registered
+            guard activeBiters[entity] == nil else { return }
+            
+            // Skip if entity doesn't have required components
+            guard world.has(PositionComponent.self, for: entity) else { return }
+            
+            print("EnemyAISystem: Registering existing enemy \(entity.id), state: \(enemy.state)")
+            
+            // Ensure enemy has all required components
+            if !world.has(VelocityComponent.self, for: entity) {
+                print("EnemyAISystem: Adding missing VelocityComponent to enemy \(entity.id)")
+                world.add(VelocityComponent(), to: entity)
+            }
+            
+            if !world.has(CollisionComponent.self, for: entity) {
+                print("EnemyAISystem: Adding missing CollisionComponent to enemy \(entity.id)")
+                world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: entity)
+            }
+            
+            // Ensure enemy is in a moving state (wandering or attacking)
+            // If it's idle, switch to wandering so it can move
+            var updatedEnemy = enemy
+            if updatedEnemy.state == .idle {
+                print("EnemyAISystem: Switching enemy \(entity.id) from idle to wandering")
+                updatedEnemy.state = .wandering
+                world.add(updatedEnemy, to: entity)
+            }
+            
+            // Ensure enemy has proper follow distance and attack range
+            if updatedEnemy.maxFollowDistance == 0 {
+                updatedEnemy.maxFollowDistance = 15.0
+            }
+            if updatedEnemy.attackRange == 0 {
+                updatedEnemy.attackRange = 1.0
+            }
+            world.add(updatedEnemy, to: entity)
+            
+            // Create Biter wrapper for existing entity (doesn't create new entity)
+            let biter = Biter(world: world, existingEntity: entity)
+            
+            // Register the biter (using the existing entity)
+            activeBiters[entity] = biter
+            print("EnemyAISystem: Successfully registered enemy \(entity.id) with Biter wrapper")
+        }
+    }
+    
     func update(deltaTime: Float) {
         // Force spawn a test enemy near player (temporary debug)
         if world.query(EnemyComponent.self).count == 0 {
             forceSpawnTestEnemy()
         }
+
+        // Register any existing enemies that don't have Biter objects
+        registerExistingEnemies()
 
         // Clean up dead biters
         cleanupDeadBiters()
@@ -263,7 +316,6 @@ final class EnemyAISystem: System {
         // Collect all modifications to apply after iteration
         var enemyModifications: [(Entity, EnemyComponent)] = []
         var velocityModifications: [(Entity, VelocityComponent)] = []
-        var positionModifications: [(Entity, PositionComponent)] = []
 
         // Process each enemy entity
         world.forEach(EnemyComponent.self) { [self] entity, enemy in
@@ -280,6 +332,7 @@ final class EnemyAISystem: System {
                 if let target = findTarget(for: entity, position: position, enemy: enemy) {
                     enemy.targetEntity = target
                     enemy.state = EnemyState.attacking
+                    enemyModifications.append((entity, enemy))  // Collect for later
                 }
 
             case EnemyState.wandering:
@@ -290,7 +343,7 @@ final class EnemyAISystem: System {
                         Float.random(in: -1...1)
                     ).normalized * enemy.speed * 0.5  // Slightly faster wandering
                 }
-                world.add(velocity, to: entity)
+                velocityModifications.append((entity, velocity))  // Collect for later
 
                 // Update biter animation
                 if let biter = activeBiters[entity] {
@@ -303,6 +356,7 @@ final class EnemyAISystem: System {
                         enemy.targetEntity = target
                         enemy.state = EnemyState.attacking
                         enemy.timeSinceAttack = enemy.attackCooldown  // Allow immediate attack when switching to attacking
+                        enemyModifications.append((entity, enemy))  // Collect for later
                         // print("EnemyAISystem: Enemy \(entity.id) found target and switching to attacking state")
                     }
                 }
@@ -320,6 +374,7 @@ final class EnemyAISystem: System {
                         // print("EnemyAISystem: Enemy \(entity.id) giving up pursuit")
                         enemy.targetEntity = nil
                         enemy.state = EnemyState.returning
+                        enemyModifications.append((entity, enemy))  // Collect for later
                         break
                     }
 
@@ -327,7 +382,7 @@ final class EnemyAISystem: System {
                         // print("EnemyAISystem: Enemy \(entity.id) IN ATTACK RANGE!")
                         // Attack
                         velocity.velocity = Vector2.zero
-                        world.add(velocity, to: entity)
+                        velocityModifications.append((entity, velocity))  // Collect for later
 
                         // Update biter animation (stopped moving)
                         if let biter = activeBiters[entity] {
@@ -337,6 +392,7 @@ final class EnemyAISystem: System {
                         if enemy.canAttack {
                             // print("EnemyAISystem: Enemy \(entity.id) ATTACKING!")
                             attackTarget(enemy: &enemy, target: target)
+                            enemyModifications.append((entity, enemy))  // Collect after attack
                         } else {
                             // print("EnemyAISystem: Enemy \(entity.id) on cooldown (\(enemy.timeSinceAttack)/\(enemy.attackCooldown))")
                         }
@@ -344,7 +400,7 @@ final class EnemyAISystem: System {
                         // Move toward target
                         let direction = (targetPos.worldPosition - position.worldPosition).normalized
                         velocity.velocity = direction * enemy.speed
-                        world.add(velocity, to: entity)
+                        velocityModifications.append((entity, velocity))  // Collect for later
 
                         // Update biter animation
                         if let biter = activeBiters[entity] {
@@ -356,6 +412,7 @@ final class EnemyAISystem: System {
                     // print("EnemyAISystem: Enemy \(entity.id) lost target")
                     enemy.targetEntity = nil
                     enemy.state = EnemyState.idle
+                    enemyModifications.append((entity, enemy))  // Collect for later
                 }
 
             case EnemyState.returning:
@@ -376,6 +433,7 @@ final class EnemyAISystem: System {
                 if let target = foundTarget {
                     enemy.targetEntity = target
                     enemy.state = EnemyState.attacking
+                    enemyModifications.append((entity, enemy))  // Collect for later
                     break
                 }
 
@@ -387,9 +445,10 @@ final class EnemyAISystem: System {
 
                     if distance < 2.0 {
                         enemy.state = EnemyState.idle
+                        enemyModifications.append((entity, enemy))  // Collect for later
                     } else {
                         velocity.velocity = direction * enemy.speed * 0.8
-                        world.add(velocity, to: entity)
+                        velocityModifications.append((entity, velocity))  // Collect for later
 
                         if let biter = activeBiters[entity] {
                             biter.updateAnimation(velocity: velocity.velocity)
@@ -397,19 +456,30 @@ final class EnemyAISystem: System {
                     }
                 } else {
                     enemy.state = EnemyState.idle
+                    enemyModifications.append((entity, enemy))  // Collect for later
                 }
 
             case EnemyState.fleeing:
                 if let playerPos = player?.position {
                     let direction = (position.worldPosition - playerPos).normalized
                     velocity.velocity = direction * enemy.speed * 1.5
-                    world.add(velocity, to: entity)
+                    velocityModifications.append((entity, velocity))  // Collect for later
                 }
                 break
             }
-
+        }
+        
+        // Apply all modifications after iteration completes
+        for (entity, enemy) in enemyModifications {
+            world.add(enemy, to: entity)
+        }
+        
+        for (entity, velocity) in velocityModifications {
+            world.add(velocity, to: entity)
+            
             // Apply velocity to position
-            if velocity.velocity.lengthSquared > 0.001 {
+            if let position = world.get(PositionComponent.self, for: entity),
+               velocity.velocity.lengthSquared > 0.001 {
                 var pos = position
                 pos.offset = pos.offset + velocity.velocity * deltaTime
 
@@ -532,25 +602,34 @@ final class EnemyAISystem: System {
             )
             let spawnPos = origin + offset
             
-            // Create attacking enemy
-            let enemy = world.spawn()
+            // Create biter object (like spawnEnemy does)
+            let biter = Biter(world: world)
+            biter.position = spawnPos
             
-            world.add(PositionComponent(tilePosition: IntVector2(from: spawnPos)), to: enemy)
-            world.add(SpriteComponent(textureId: "biter", size: Vector2(0.8, 0.8), layer: .enemy, centered: true), to: enemy)
-            
+            // Add health component
             let enemyType = EnemyType.smallBiter
-            world.add(HealthComponent(maxHealth: enemyType.baseHealth * (1 + evolutionFactor)), to: enemy)
+            let scaledHealth = enemyType.baseHealth * (1 + evolutionFactor)
+            world.add(HealthComponent(maxHealth: scaledHealth), to: biter.biterEntity)
             
+            // Add enemy component
             var enemyComp = EnemyComponent(type: enemyType)
+            enemyComp.damage *= (1 + evolutionFactor * 0.5)
+            enemyComp.speed *= (1 + evolutionFactor * 0.2)
+            enemyComp.attackRange *= 1.0  // Keep base attack range (1.0 total for biters)
+            enemyComp.maxFollowDistance = 15.0
             enemyComp.state = .attacking
             // Set player as target for attack wave enemies
             if let playerEntity = player?.playerEntity {
                 enemyComp.targetEntity = playerEntity
             }
-            world.add(enemyComp, to: enemy)
+            world.add(enemyComp, to: biter.biterEntity)
             
-            world.add(VelocityComponent(), to: enemy)
-            world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: enemy)
+            // Add velocity and collision components
+            world.add(VelocityComponent(), to: biter.biterEntity)
+            world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: biter.biterEntity)
+            
+            // Store the biter object for animation updates
+            activeBiters[biter.biterEntity] = biter
         }
     }
     
