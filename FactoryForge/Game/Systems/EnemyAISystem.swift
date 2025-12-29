@@ -3,40 +3,58 @@ import Foundation
 /// System that handles enemy AI and spawning
 final class EnemyAISystem: System {
     let priority = SystemPriority.enemyAI.rawValue
-    
+
     private let world: World
     private let chunkManager: ChunkManager
     private weak var player: Player?
-    
+
     /// Evolution factor (0-1) affects enemy strength
     private(set) var evolutionFactor: Float = 0
-    
+
     /// Total pollution absorbed (drives evolution)
     private var totalPollutionAbsorbed: Float = 0
-    
+
     /// Attack wave cooldown
     private var attackWaveCooldown: Float = 0
     private let attackWaveInterval: Float = 300  // 5 minutes
-    
+
+    /// Active biter objects for animation management
+    private var activeBiters: [Entity: Biter] = [:]
+
     init(world: World, chunkManager: ChunkManager, player: Player) {
         self.world = world
         self.chunkManager = chunkManager
         self.player = player
     }
+
+    private func cleanupDeadBiters() {
+        // Remove biters that no longer have health components (dead)
+        activeBiters = activeBiters.filter { entity, biter in
+            return world.has(HealthComponent.self, for: entity)
+        }
+    }
     
     func update(deltaTime: Float) {
+        // Force spawn a test enemy near player (temporary debug)
+        if world.query(EnemyComponent.self).count == 0 {
+            forceSpawnTestEnemy()
+        }
+
+        // Clean up dead biters
+        cleanupDeadBiters()
+
         // Create spawners for newly loaded chunks
         createSpawnersForLoadedChunks()
-        
+
         // Update spawners
         updateSpawners(deltaTime: deltaTime)
-        
+
         // Update enemy AI
         updateEnemies(deltaTime: deltaTime)
-        
+
         // Check for attack waves
         updateAttackWaves(deltaTime: deltaTime)
-        
+
         // Update evolution
         updateEvolution(deltaTime: deltaTime)
     }
@@ -59,12 +77,15 @@ final class EnemyAISystem: System {
     }
     
     private func createSpawner(at position: IntVector2) {
+        print("EnemyAISystem: Creating spawner at position \(position)")
+
         // Check if spawner already exists at this position
         if let existingEntity = world.getEntityAt(position: position),
            world.has(SpawnerComponent.self, for: existingEntity) {
+            print("EnemyAISystem: Spawner already exists at \(position)")
             return // Spawner already exists
         }
-        
+
         // Create spawner entity
         let spawner = world.spawn()
         
@@ -86,11 +107,18 @@ final class EnemyAISystem: System {
     // MARK: - Spawners
     
     private func updateSpawners(deltaTime: Float) {
+        let spawnerCount = world.query(SpawnerComponent.self).count
+        print("EnemyAISystem: Updating \(spawnerCount) spawners")
+
+        // Collect spawner modifications
+        var spawnerModifications: [(Entity, SpawnerComponent)] = []
+
         world.forEach(SpawnerComponent.self) { [self] entity, spawner in
+            var spawner = spawner
             spawner.update(deltaTime: deltaTime)
-            
+
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
-            
+
             // Absorb pollution
             let pollution = chunkManager.getPollution(at: position.tilePosition)
             if pollution > 0 {
@@ -99,20 +127,67 @@ final class EnemyAISystem: System {
                 totalPollutionAbsorbed += absorbed
                 chunkManager.addPollution(at: position.tilePosition, amount: -absorbed)
             }
-            
+
             // Spawn enemies if possible
             if spawner.canSpawn {
                 spawnEnemy(from: entity, spawner: &spawner, position: position)
             }
-            
+
             // Trigger attack wave if threshold reached
             if spawner.shouldTriggerAttack() {
                 triggerAttackWave(from: position.worldPosition)
             }
+
+            spawnerModifications.append((entity, spawner))
+        }
+
+        // Apply spawner modifications
+        for (entity, spawner) in spawnerModifications {
+            world.add(spawner, to: entity)
         }
     }
-    
+
+    private func forceSpawnTestEnemy() {
+        guard let player = player,
+              let playerPos = world.get(PositionComponent.self, for: player.playerEntity) else {
+            print("EnemyAISystem: Cannot spawn test enemy - no player position")
+            return
+        }
+
+        print("EnemyAISystem: Force spawning test enemy near player at \(playerPos.worldPosition)")
+
+        // Spawn directly near player for testing
+        let spawnPos = playerPos.worldPosition + Vector2(5, 5)  // 5 units away
+
+        // Create biter object
+        let biter = Biter(world: world)
+
+        // Set initial position
+        biter.position = spawnPos
+
+        // Add health component
+        world.add(HealthComponent(maxHealth: 15), to: biter.biterEntity)
+
+        // Add enemy component
+        var enemyComp = EnemyComponent(type: .smallBiter)
+        enemyComp.attackRange *= 1.0  // Keep base attack range for testing
+        enemyComp.maxFollowDistance = 15.0  // Reasonable follow distance
+        enemyComp.state = EnemyState.wandering  // Start wandering to actively seek targets
+        world.add(enemyComp, to: biter.biterEntity)
+
+        // Add velocity and collision components
+        world.add(VelocityComponent(), to: biter.biterEntity)
+        world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: biter.biterEntity)
+
+        // Store the biter object for animation updates
+        activeBiters[biter.biterEntity] = biter
+
+        print("EnemyAISystem: Test enemy spawned at \(spawnPos)")
+    }
+
     private func spawnEnemy(from spawnerEntity: Entity, spawner: inout SpawnerComponent, position: PositionComponent) {
+        print("EnemyAISystem: Spawning enemy from spawner at position \(position.worldPosition)")
+
         // Select enemy type based on evolution
         let enemyType = selectEnemyType(for: spawner)
         
@@ -122,33 +197,34 @@ final class EnemyAISystem: System {
         let spawnOffset = Vector2(cosf(angle) * distance, sinf(angle) * distance)
         let spawnPos = position.worldPosition + spawnOffset
         
-        // Create enemy entity
-        let enemy = world.spawn()
-        
-        world.add(PositionComponent(
-            tilePosition: IntVector2(from: spawnPos),
-            offset: Vector2(spawnPos.x.truncatingRemainder(dividingBy: 1),
-                           spawnPos.y.truncatingRemainder(dividingBy: 1))
-        ), to: enemy)
-        
-        world.add(SpriteComponent(
-            textureId: "biter",
-            size: Vector2(0.8, 0.8),
-            layer: .enemy,
-            centered: true
-        ), to: enemy)
-        
+        // Create biter object
+        let biter = Biter(world: world)
+
+        // Set initial position
+        biter.position = spawnPos
+
+        // Add health component
         let scaledHealth = enemyType.baseHealth * (1 + evolutionFactor)
-        world.add(HealthComponent(maxHealth: scaledHealth), to: enemy)
-        
+        world.add(HealthComponent(maxHealth: scaledHealth), to: biter.biterEntity)
+
+        // Add enemy component
         var enemyComp = EnemyComponent(type: enemyType)
         enemyComp.damage *= (1 + evolutionFactor * 0.5)
         enemyComp.speed *= (1 + evolutionFactor * 0.2)
+        enemyComp.attackRange *= 1.0  // Keep base attack range (1.0 total for biters)
+        enemyComp.maxFollowDistance = 15.0  // Reasonable follow distance
         enemyComp.spawnerEntity = spawnerEntity  // Track which spawner created this enemy
-        world.add(enemyComp, to: enemy)
-        
-        world.add(VelocityComponent(), to: enemy)
-        world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: enemy)
+        enemyComp.state = .wandering  // Start wandering to actively seek targets
+        world.add(enemyComp, to: biter.biterEntity)
+
+        // Add velocity and collision components
+        world.add(VelocityComponent(), to: biter.biterEntity)
+        world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: biter.biterEntity)
+
+        // Store the biter object for animation updates
+        activeBiters[biter.biterEntity] = biter
+
+        let enemy = biter.biterEntity
         
         spawner.spawn()
     }
@@ -184,64 +260,106 @@ final class EnemyAISystem: System {
     // MARK: - Enemy AI
     
     private func updateEnemies(deltaTime: Float) {
+        // Collect all modifications to apply after iteration
+        var enemyModifications: [(Entity, EnemyComponent)] = []
+        var velocityModifications: [(Entity, VelocityComponent)] = []
+        var positionModifications: [(Entity, PositionComponent)] = []
+
+        // Process each enemy entity
         world.forEach(EnemyComponent.self) { [self] entity, enemy in
             enemy.update(deltaTime: deltaTime)
-            
+
             guard let position = world.get(PositionComponent.self, for: entity),
                   var velocity = world.get(VelocityComponent.self, for: entity) else { return }
-            
+
+            print("EnemyAISystem: Processing enemy \(entity.id), state: \(enemy.state)")
+
             switch enemy.state {
-            case .idle:
+            case EnemyState.idle:
                 // Look for targets
                 if let target = findTarget(for: entity, position: position, enemy: enemy) {
                     enemy.targetEntity = target
-                    enemy.state = .attacking
+                    enemy.state = EnemyState.attacking
                 }
-                
-            case .wandering:
-                // Random movement
-                if Float.random(in: 0...1) < 0.01 {
+
+            case EnemyState.wandering:
+                // Random movement - increased frequency for more active behavior
+                if Float.random(in: 0...1) < 0.1 {  // 10% chance per frame to change direction
                     velocity.velocity = Vector2(
                         Float.random(in: -1...1),
                         Float.random(in: -1...1)
-                    ).normalized * enemy.speed * 0.3
+                    ).normalized * enemy.speed * 0.5  // Slightly faster wandering
                 }
                 world.add(velocity, to: entity)
-                
-            case .attacking:
+
+                // Update biter animation
+                if let biter = activeBiters[entity] {
+                    biter.updateAnimation(velocity: velocity.velocity)
+                }
+
+                // While wandering, frequently check for targets
+                if Float.random(in: 0...1) < 0.2 {  // 20% chance per frame to check for targets
+                    if let target = findTarget(for: entity, position: position, enemy: enemy) {
+                        enemy.targetEntity = target
+                        enemy.state = EnemyState.attacking
+                        enemy.timeSinceAttack = enemy.attackCooldown  // Allow immediate attack when switching to attacking
+                        print("EnemyAISystem: Enemy \(entity.id) found target and switching to attacking state")
+                    }
+                }
+
+            case EnemyState.attacking:
+                print("EnemyAISystem: Enemy \(entity.id) is in ATTACKING state")
                 // Move toward target
                 if let target = enemy.targetEntity,
                    let targetPos = world.get(PositionComponent.self, for: target) {
                     let distance = position.worldPosition.distance(to: targetPos.worldPosition)
+                    print("EnemyAISystem: Enemy \(entity.id) distance to target: \(distance), attackRange: \(enemy.attackRange)")
 
                     // Check if target is too far away
                     if distance > enemy.maxFollowDistance {
-                        // Give up pursuit and return to spawner
+                        print("EnemyAISystem: Enemy \(entity.id) giving up pursuit")
                         enemy.targetEntity = nil
-                        enemy.state = .returning
+                        enemy.state = EnemyState.returning
                         break
                     }
 
                     if distance <= enemy.attackRange {
+                        print("EnemyAISystem: Enemy \(entity.id) IN ATTACK RANGE!")
                         // Attack
-                        velocity.velocity = .zero
+                        velocity.velocity = Vector2.zero
+                        world.add(velocity, to: entity)
+
+                        // Update biter animation (stopped moving)
+                        if let biter = activeBiters[entity] {
+                            biter.updateAnimation(velocity: Vector2.zero)
+                        }
+
                         if enemy.canAttack {
+                            print("EnemyAISystem: Enemy \(entity.id) ATTACKING!")
                             attackTarget(enemy: &enemy, target: target)
+                        } else {
+                            print("EnemyAISystem: Enemy \(entity.id) on cooldown (\(enemy.timeSinceAttack)/\(enemy.attackCooldown))")
                         }
                     } else {
                         // Move toward target
                         let direction = (targetPos.worldPosition - position.worldPosition).normalized
                         velocity.velocity = direction * enemy.speed
+                        world.add(velocity, to: entity)
+
+                        // Update biter animation
+                        if let biter = activeBiters[entity] {
+                            biter.updateAnimation(velocity: velocity.velocity)
+                        }
                     }
-                    world.add(velocity, to: entity)
                 } else {
                     // Lost target
+                    print("EnemyAISystem: Enemy \(entity.id) lost target")
                     enemy.targetEntity = nil
-                    enemy.state = .idle
+                    enemy.state = EnemyState.idle
                 }
-                
-            case .returning:
-                // Check if player is nearby (smaller radius) and switch back to attacking
+
+            case EnemyState.returning:
+                // Check if player is nearby and switch back to attacking
                 let nearbyTargets = world.getEntitiesNear(position: position.worldPosition, radius: 10.0)
                 var foundTarget: Entity?
 
@@ -257,7 +375,7 @@ final class EnemyAISystem: System {
 
                 if let target = foundTarget {
                     enemy.targetEntity = target
-                    enemy.state = .attacking
+                    enemy.state = EnemyState.attacking
                     break
                 }
 
@@ -268,20 +386,20 @@ final class EnemyAISystem: System {
                     let distance = position.worldPosition.distance(to: spawnerPos.worldPosition)
 
                     if distance < 2.0 {
-                        // Close enough to spawner, go idle
-                        enemy.state = .idle
+                        enemy.state = EnemyState.idle
                     } else {
-                        // Move toward spawner
-                        velocity.velocity = direction * enemy.speed * 0.8  // Slower return speed
+                        velocity.velocity = direction * enemy.speed * 0.8
                         world.add(velocity, to: entity)
+
+                        if let biter = activeBiters[entity] {
+                            biter.updateAnimation(velocity: velocity.velocity)
+                        }
                     }
                 } else {
-                    // No spawner, just go idle
-                    enemy.state = .idle
+                    enemy.state = EnemyState.idle
                 }
-                
-            case .fleeing:
-                // Run away from player
+
+            case EnemyState.fleeing:
                 if let playerPos = player?.position {
                     let direction = (position.worldPosition - playerPos).normalized
                     velocity.velocity = direction * enemy.speed * 1.5
@@ -289,12 +407,12 @@ final class EnemyAISystem: System {
                 }
                 break
             }
-            
-            // Apply velocity
+
+            // Apply velocity to position
             if velocity.velocity.lengthSquared > 0.001 {
                 var pos = position
                 pos.offset = pos.offset + velocity.velocity * deltaTime
-                
+
                 // Handle tile transitions
                 while pos.offset.x >= 1 {
                     pos.offset.x -= 1
@@ -312,22 +430,29 @@ final class EnemyAISystem: System {
                     pos.offset.y += 1
                     pos.tilePosition.y -= 1
                 }
-                
+
                 world.add(pos, to: entity)
             }
         }
     }
     
     private func findTarget(for entity: Entity, position: PositionComponent, enemy: EnemyComponent) -> Entity? {
-        let searchRadius: Float = 20
-        
+        let searchRadius: Float = 15  // Search radius should be close to attack range to avoid premature attacking state
+
         // Prioritize player if in range
-        if let player = player,
-           let playerPos = world.get(PositionComponent.self, for: player.playerEntity) {
+        if let player = player {
+            print("EnemyAISystem: Player exists, playerEntity: \(player.playerEntity.id)")
+            if let playerPos = world.get(PositionComponent.self, for: player.playerEntity) {
             let distanceToPlayer = position.worldPosition.distance(to: playerPos.worldPosition)
             if distanceToPlayer <= searchRadius {
-                return player.playerEntity
+                    print("EnemyAISystem: Found player as target!")
+                    return player.playerEntity
+                }
+            } else {
+                print("EnemyAISystem: Player exists but no position component")
             }
+        } else {
+            print("EnemyAISystem: No player reference")
         }
         
         // Otherwise find nearest valid target
@@ -360,14 +485,17 @@ final class EnemyAISystem: System {
     
     private func attackTarget(enemy: inout EnemyComponent, target: Entity) {
         guard var health = world.get(HealthComponent.self, for: target) else { return }
-        
-        health.takeDamage(enemy.damage)
+
+        let damageDealt = health.takeDamage(enemy.damage)
         enemy.attack()
-        
+
+        print("Enemy \(enemy.type) attacked target \(target.id) for \(damageDealt) damage! Target health: \(health.current)/\(health.max)")
+
         if health.isDead {
+            print("Target \(target.id) died from enemy attack!")
             world.despawnDeferred(target)
             enemy.targetEntity = nil
-            enemy.state = .idle
+            enemy.state = EnemyState.idle
         } else {
             world.add(health, to: target)
         }
@@ -392,7 +520,7 @@ final class EnemyAISystem: System {
     }
     
     private func triggerAttackWave(from origin: Vector2) {
-        guard let playerPos = player?.position else { return }
+        guard (player?.position) != nil else { return }
         
         // Determine wave size based on pollution and evolution
         let waveSize = Int(5 + evolutionFactor * 15)

@@ -92,6 +92,8 @@ final class TextureAtlas {
             // Entities (load player sprite sheets first - they extract all frames)
             ("player", nil),
             ("player_left", nil),
+            ("biter_left", nil),
+            ("biter_right", nil),
             ("biter", nil),
             ("spawner", nil),
             ("bullet", nil),
@@ -277,32 +279,56 @@ final class TextureAtlas {
         let targetSize = spriteSize
         let processedImage: UIImage
         
-        // Check if this is a player sprite sheet (player.png or player_left.png)
-        // Player sprite sheets are 1024x1024 with 4x4 grid (16 frames, each 256x256)
-        // Load all 16 frames for animation
+        // Check if this is a sprite sheet with animations (player or biter)
+        // Player and biter sprite sheets are 1024x1024 with 4x4 grid (16 frames, each 256x256)
         if (name == "player" || name == "player_left") && imageWidth == 1024 && imageHeight == 1024 {
-            // Load all 16 frames from 4x4 grid
+            // Load all 16 frames from 4x4 grid for player
             let frameSize = 256  // 1024 / 4 = 256
             let framesPerRow = 4
             let prefix = name == "player_left" ? "player_left" : "player"
-            
+
             for frameIndex in 0..<16 {
                 let row = frameIndex / framesPerRow
                 let col = frameIndex % framesPerRow
                 let frameX = col * frameSize
                 let frameY = row * frameSize
                 let frameRect = CGRect(x: frameX, y: frameY, width: frameSize, height: frameSize)
-                
+
                 if let croppedCGImage = cgImage.cropping(to: frameRect) {
                     let frameImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
                     let frameName = "\(prefix)_\(frameIndex)"
-                    
+
                     // Pack this frame into the atlas (skip border crop since it's already extracted)
                     if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
                     }
                 }
             }
-            
+
+            // All frames have been loaded into the atlas, return false to indicate this was handled separately
+            return false
+        } else if (name == "biter_left" || name == "biter_right") && imageWidth == 1024 && imageHeight == 1024 {
+            // Load all 16 frames from 4x4 grid for biter (256x256 frames, same as player)
+            let frameSize = 256  // 1024 / 4 = 256
+            let framesPerRow = 4
+            let prefix = name == "biter_left" ? "biter_left" : "biter_right"
+
+            for frameIndex in 0..<16 {
+                let row = frameIndex / framesPerRow
+                let col = frameIndex % framesPerRow
+                let frameX = col * frameSize
+                let frameY = row * frameSize
+                let frameRect = CGRect(x: frameX, y: frameY, width: frameSize, height: frameSize)
+
+                if let croppedCGImage = cgImage.cropping(to: frameRect) {
+                    let frameImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
+                    let frameName = "\(prefix)_\(frameIndex)"
+
+                    // Pack this frame into the atlas (skip border crop since it's already extracted)
+                    if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
+                    }
+                }
+            }
+
             // All frames have been loaded into the atlas, return false to indicate this was handled separately
             return false
         } else if imageWidth > targetSize || imageHeight > targetSize {
@@ -547,16 +573,15 @@ final class TextureAtlas {
             "accumulator": (1, 14),
             
             // ENTITIES AND ITEMS - Row 2 (or try row 3 if shifted)
-            "biter": (2, 0),
-            "spawner": (2, 1),
-            "bullet": (2, 2),
-            "player": (2, 3),
-            "iron_plate": (2, 4),
-            "copper_plate": (2, 5),
-            "gear": (2, 6),
-            "circuit": (2, 7),
-            "science_pack_red": (2, 8),
-            "science_pack_green": (2, 9),
+            "spawner": (2, 0),
+            "bullet": (2, 1),
+            "player": (2, 2),
+            "iron_plate": (2, 3),
+            "copper_plate": (2, 4),
+            "gear": (2, 5),
+            "circuit": (2, 6),
+            "science_pack_red": (2, 7),
+            "science_pack_green": (2, 8),
             
             // UI ELEMENTS - Row 3 (or try row 4 if shifted)
             "solid_white": (3, 0),
@@ -567,9 +592,9 @@ final class TextureAtlas {
         let atlasTileSize = 32
         
         for (spriteName, layout) in spriteLayout.sorted(by: { $0.key < $1.key }) {
-            // Skip player sprite if it was already loaded individually
-            if spriteName == "player" && textureRects["player"] != nil {
-                print("Skipping 'player' from sprite sheet (already loaded individually)")
+            // Skip player and biter sprites if they were already loaded individually
+            if (spriteName == "player" || spriteName == "biter") && textureRects[spriteName] != nil {
+                print("Skipping '\(spriteName)' from sprite sheet (already loaded individually)")
                 continue
             }
             // Calculate actual source position

@@ -120,6 +120,9 @@
 		0DE229912F02199F00BD619D /* splash.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229902F02199F00BD619D /* splash.png */; };
 		0DE229932F0221A700BD619D /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DE229922F0221A700BD619D /* SceneDelegate.swift */; };
 		0DE229952F02281C00BD619D /* chop.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229942F02281C00BD619D /* chop.m4a */; };
+		0DE229982F022E6500BD619D /* biter_left.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229962F022E6500BD619D /* biter_left.png */; };
+		0DE229992F022E6500BD619D /* biter_right.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229972F022E6500BD619D /* biter_right.png */; };
+		0DE2299C2F0230BE00BD619D /* Biter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DE2299A2F0230BE00BD619D /* Biter.swift */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -294,6 +297,9 @@
 		0DE229902F02199F00BD619D /* splash.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = splash.png; sourceTree = "<group>"; };
 		0DE229922F0221A700BD619D /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		0DE229942F02281C00BD619D /* chop.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = chop.m4a; sourceTree = "<group>"; };
+		0DE229962F022E6500BD619D /* biter_left.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = biter_left.png; sourceTree = "<group>"; };
+		0DE229972F022E6500BD619D /* biter_right.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = biter_right.png; sourceTree = "<group>"; };
+		0DE2299A2F0230BE00BD619D /* Biter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Biter.swift; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -370,6 +376,8 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DE229962F022E6500BD619D /* biter_left.png */,
+				0DE229972F022E6500BD619D /* biter_right.png */,
 				0DE229902F02199F00BD619D /* splash.png */,
 				0DE2298E2F02154900BD619D /* right_arrow.png */,
 				0DE2298A2F01969900BD619D /* disable_audio.png */,
@@ -621,6 +629,14 @@
 			path = sounds;
 			sourceTree = "<group>";
 		};
+		0DE2299B2F0230BE00BD619D /* Enemies */ = {
+			isa = PBXGroup;
+			children = (
+				0DE2299A2F0230BE00BD619D /* Biter.swift */,
+			);
+			path = Enemies;
+			sourceTree = "<group>";
+		};
 		A0000200000 = {
 			isa = PBXGroup;
 			children = (
@@ -750,6 +766,7 @@
 		A0000200030 /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				0DE2299B2F0230BE00BD619D /* Enemies */,
 				A0000200031 /* World */,
 				A0000200032 /* Items */,
 				A0000200033 /* Recipes */,
@@ -986,6 +1003,8 @@
 				0D6FDC3F2EFDE1B500576EC3 /* solar_panel.png in Resources */,
 				0D6FDC402EFDE1B500576EC3 /* stone.png in Resources */,
 				0D6FDC412EFDE1B500576EC3 /* uranium_ore.png in Resources */,
+				0DE229982F022E6500BD619D /* biter_left.png in Resources */,
+				0DE229992F022E6500BD619D /* biter_right.png in Resources */,
 				0D6FDC422EFDE1B500576EC3 /* radar.png in Resources */,
 				0DE229832F01781900BD619D /* belt.png in Resources */,
 				0DE229772F006A6F00BD619D /* click.m4a in Resources */,
@@ -1043,6 +1062,7 @@
 				A1001002001 /* Math.swift in Sources */,
 				A1001003001 /* Time.swift in Sources */,
 				A1002001001 /* Entity.swift in Sources */,
+				0DE2299C2F0230BE00BD619D /* Biter.swift in Sources */,
 				A1002002001 /* Component.swift in Sources */,
 				A1002003001 /* System.swift in Sources */,
 				A1002004001 /* World.swift in Sources */,
