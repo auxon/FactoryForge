@@ -85,11 +85,6 @@ final class EnemyAISystem: System {
     }
     
     func update(deltaTime: Float) {
-        // Force spawn a test enemy near player (temporary debug)
-        if world.query(EnemyComponent.self).count == 0 {
-            forceSpawnTestEnemy()
-        }
-
         // Register any existing enemies that don't have Biter objects
         registerExistingEnemies()
 
@@ -198,44 +193,6 @@ final class EnemyAISystem: System {
         for (entity, spawner) in spawnerModifications {
             world.add(spawner, to: entity)
         }
-    }
-
-    private func forceSpawnTestEnemy() {
-        guard let player = player,
-              let playerPos = world.get(PositionComponent.self, for: player.playerEntity) else {
-            // print("EnemyAISystem: Cannot spawn test enemy - no player position")
-            return
-        }
-
-        // print("EnemyAISystem: Force spawning test enemy near player at \(playerPos.worldPosition)")
-
-        // Spawn directly near player for testing
-        let spawnPos = playerPos.worldPosition + Vector2(5, 5)  // 5 units away
-
-        // Create biter object
-        let biter = Biter(world: world)
-
-        // Set initial position
-        biter.position = spawnPos
-
-        // Add health component
-        world.add(HealthComponent(maxHealth: 15), to: biter.biterEntity)
-
-        // Add enemy component
-        var enemyComp = EnemyComponent(type: .smallBiter)
-        enemyComp.attackRange *= 1.0  // Keep base attack range for testing
-        enemyComp.maxFollowDistance = 15.0  // Reasonable follow distance
-        enemyComp.state = EnemyState.wandering  // Start wandering to actively seek targets
-        world.add(enemyComp, to: biter.biterEntity)
-
-        // Add velocity and collision components
-        world.add(VelocityComponent(), to: biter.biterEntity)
-        world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: biter.biterEntity)
-
-        // Store the biter object for animation updates
-        activeBiters[biter.biterEntity] = biter
-
-        // print("EnemyAISystem: Test enemy spawned at \(spawnPos)")
     }
 
     private func spawnEnemy(from spawnerEntity: Entity, spawner: inout SpawnerComponent, position: PositionComponent) {
