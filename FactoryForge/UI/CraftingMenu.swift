@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Crafting menu panel
 final class CraftingMenu: UIPanel_Base {
@@ -6,6 +7,12 @@ final class CraftingMenu: UIPanel_Base {
     private var recipeButtons: [RecipeButton] = []
     private var closeButton: CloseButton!
     private var selectedRecipe: Recipe?
+    private var lastRenderedRecipe: Recipe?
+    private var recipeLabels: [UILabel] = [] // Track labels for recipe details
+
+    // Callbacks for managing UIKit labels
+    var onAddLabels: (([UILabel]) -> Void)?
+    var onRemoveLabels: (([UILabel]) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         // Use full screen size for background
@@ -34,6 +41,23 @@ final class CraftingMenu: UIPanel_Base {
     override func open() {
         super.open()
         refreshRecipes()
+        setupLabels()
+    }
+
+    override func close() {
+        super.close()
+        selectedRecipe = nil
+        lastRenderedRecipe = nil
+        removeLabels()
+    }
+
+    private func setupLabels() {
+        // Labels will be created when rendering recipe details
+    }
+
+    private func removeLabels() {
+        onRemoveLabels?(recipeLabels)
+        recipeLabels.removeAll()
     }
     
     private func refreshRecipes() {
@@ -71,6 +95,11 @@ final class CraftingMenu: UIPanel_Base {
     }
     
     private func selectRecipe(_ recipe: Recipe) {
+        // Prevent multiple rapid selections of the same recipe
+        if selectedRecipe?.id == recipe.id {
+            return
+        }
+
         selectedRecipe = recipe
 
         // Check if player can craft
@@ -112,15 +141,36 @@ final class CraftingMenu: UIPanel_Base {
         
         // Render selected recipe details
         if let recipe = selectedRecipe {
-            renderRecipeDetails(recipe: recipe, renderer: renderer)
+            // Always render the icons (every frame)
+            renderRecipeIcons(recipe: recipe, renderer: renderer)
+            
+            // Only recreate labels if recipe changed
+            if recipe.id != lastRenderedRecipe?.id {
+                // Clear previous labels
+                if !recipeLabels.isEmpty {
+                    onRemoveLabels?(recipeLabels)
+                    recipeLabels.removeAll()
+                }
+                // Create new labels for this recipe
+                createRecipeLabels(recipe: recipe, renderer: renderer)
+                lastRenderedRecipe = recipe
+            }
+            // If recipe hasn't changed, labels already exist and persist
+        } else if lastRenderedRecipe != nil {
+            // Recipe was deselected, clear the details
+            if !recipeLabels.isEmpty {
+                onRemoveLabels?(recipeLabels)
+                recipeLabels.removeAll()
+            }
+            lastRenderedRecipe = nil
         }
     }
     
-    private func renderRecipeDetails(recipe: Recipe, renderer: MetalRenderer) {
+    private func renderRecipeIcons(recipe: Recipe, renderer: MetalRenderer) {
         let iconSize: Float = 30 * UIScale
         let iconSpacing: Float = 40 * UIScale
         let detailsY = frame.maxY - 100 * UIScale
-        
+
         // Recipe inputs
         var inputX = frame.minX + 50 * UIScale
         for input in recipe.inputs {
@@ -131,9 +181,10 @@ final class CraftingMenu: UIPanel_Base {
                 textureRect: textureRect,
                 layer: .ui
             ))
+
             inputX += iconSpacing
         }
-        
+
         // Arrow (use solid white texture)
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
@@ -143,7 +194,7 @@ final class CraftingMenu: UIPanel_Base {
             color: .white,
             layer: .ui
         ))
-        
+
         // Recipe outputs
         var outputX = inputX + 60 * UIScale
         for output in recipe.outputs {
@@ -154,8 +205,84 @@ final class CraftingMenu: UIPanel_Base {
                 textureRect: textureRect,
                 layer: .ui
             ))
+
             outputX += iconSpacing
         }
+    }
+    
+    private func createRecipeLabels(recipe: Recipe, renderer: MetalRenderer) {
+        let iconSize: Float = 30 * UIScale
+        let iconSpacing: Float = 40 * UIScale
+        let detailsY = frame.maxY - 100 * UIScale
+
+        // Recipe inputs - create labels for counts
+        var inputX = frame.minX + 50 * UIScale
+        for input in recipe.inputs {
+            // Create label for input count
+            if input.count > 1 {  // Only show count if > 1
+                let label = createCountLabel(text: "\(input.count)", panelX: inputX + iconSize/2 + 2, panelY: detailsY + iconSize/2 + 2)
+                recipeLabels.append(label)
+            }
+
+            inputX += iconSpacing
+        }
+
+        // Recipe outputs - create labels for counts
+        let outputStartX = inputX + 60 * UIScale
+        var outputX = outputStartX
+        for output in recipe.outputs {
+            // Create label for output count
+            if output.count > 1 {  // Only show count if > 1
+                let label = createCountLabel(text: "\(output.count)", panelX: outputX + iconSize/2 + 2, panelY: detailsY + iconSize/2 + 2)
+                recipeLabels.append(label)
+            }
+
+            outputX += iconSpacing
+        }
+
+        // Add labels to view
+        if !recipeLabels.isEmpty {
+            onAddLabels?(recipeLabels)
+        }
+    }
+
+    private func createCountLabel(text: String, panelX: Float, panelY: Float) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.font = UIFont.systemFont(ofSize: CGFloat(10 * UIScale), weight: .bold)
+        label.textColor = .white
+        label.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 0.9)
+        label.textAlignment = .center
+        label.layer.cornerRadius = 2
+        label.layer.masksToBounds = true
+        label.sizeToFit()
+
+        // Minimal padding
+        let padding: CGFloat = 2
+        label.frame = CGRect(
+            x: 0, y: 0,
+            width: label.frame.width + padding * 2,
+            height: label.frame.height + padding
+        )
+
+        // Position in bottom-right corner of the icon
+        let screenScale = UIScreen.main.scale
+        let iconSize: Float = 30 * UIScale
+
+        // Calculate label position (bottom-right corner)
+        let labelWidth = Float(label.frame.width)
+        let labelHeight = Float(label.frame.height)
+
+        // Position at bottom-right corner with slight inset
+        let labelX = panelX + iconSize - labelWidth - 1  // 1 pixel inset from right edge
+        let labelY = panelY + iconSize - labelHeight - 1  // 1 pixel inset from bottom edge
+
+        let screenX = CGFloat(labelX) / screenScale
+        let screenY = CGFloat(labelY) / screenScale
+
+        label.frame.origin = CGPoint(x: screenX, y: screenY)
+
+        return label
     }
     
     override func handleTap(at position: Vector2) -> Bool {

@@ -78,6 +78,10 @@ final class UISystem {
     func getResearchUI() -> ResearchUI {
         return researchUI
     }
+
+    func getCraftingMenu() -> CraftingMenu {
+        return craftingMenu
+    }
     
     private func setupCallbacks() {
         // HUD button callbacks

@@ -344,6 +344,22 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
+        // Re-set up crafting menu label callbacks (UI system was recreated)
+        uiSystem?.getCraftingMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                // Bring labels to front so they're above the metal view
+                self?.view.bringSubviewToFront($0)
+                // Also ensure they're above the Metal view by inserting at the top
+                if let metalView = self?.metalView {
+                    self?.view.insertSubview($0, aboveSubview: metalView)
+                }
+            }
+        }
+        uiSystem?.getCraftingMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+
         // Setup input
         setupInput()
 
