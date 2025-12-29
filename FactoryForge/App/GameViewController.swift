@@ -24,7 +24,7 @@ class GameViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         setupMetalView()
         setupRenderer()
         setupUISystem()
@@ -32,6 +32,11 @@ class GameViewController: UIViewController {
         setupNotifications()
         setupTooltip()
         setupGameOverUI()
+
+        // Ensure splash screen is on top after all views are added
+        if let splash = splashImageView {
+            view.bringSubviewToFront(splash)
+        }
 
         print("View bounds: \(view.bounds), scale: \(UIScreen.main.scale)")
         print("Metal view bounds: \(metalView.bounds)")

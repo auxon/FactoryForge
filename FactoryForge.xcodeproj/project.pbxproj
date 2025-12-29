@@ -118,6 +118,7 @@
 		0DE2298D2F01B12700BD619D /* crafting_complete.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2298C2F01B12700BD619D /* crafting_complete.m4a */; };
 		0DE2298F2F02154900BD619D /* right_arrow.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2298E2F02154900BD619D /* right_arrow.png */; };
 		0DE229912F02199F00BD619D /* splash.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229902F02199F00BD619D /* splash.png */; };
+		0DE229932F0221A700BD619D /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DE229922F0221A700BD619D /* SceneDelegate.swift */; };
 		A1000001001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000 /* AppDelegate.swift */; };
 		A1000002001 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000002000 /* GameViewController.swift */; };
 		A1001001001 /* GameLoop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1001001000 /* GameLoop.swift */; };
@@ -290,6 +291,7 @@
 		0DE2298C2F01B12700BD619D /* crafting_complete.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = crafting_complete.m4a; sourceTree = "<group>"; };
 		0DE2298E2F02154900BD619D /* right_arrow.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = right_arrow.png; sourceTree = "<group>"; };
 		0DE229902F02199F00BD619D /* splash.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = splash.png; sourceTree = "<group>"; };
+		0DE229922F0221A700BD619D /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		A0000000000 /* FactoryForge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FactoryForge.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A0000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1000001000 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -648,6 +650,7 @@
 		A0000200010 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				0DE229922F0221A700BD619D /* SceneDelegate.swift */,
 				A1000001000 /* AppDelegate.swift */,
 				A1000002000 /* GameViewController.swift */,
 				A0000000001 /* Info.plist */,
@@ -1065,6 +1068,7 @@
 				A1009001001 /* Recipe.swift in Sources */,
 				A1009002001 /* RecipeRegistry.swift in Sources */,
 				A1010001001 /* Building.swift in Sources */,
+				0DE229932F0221A700BD619D /* SceneDelegate.swift in Sources */,
 				A1010002001 /* BuildingRegistry.swift in Sources */,
 				A1011001001 /* MiningSystem.swift in Sources */,
 				A1011002001 /* BeltSystem.swift in Sources */,
