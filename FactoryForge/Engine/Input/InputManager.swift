@@ -757,7 +757,7 @@ final class InputManager: NSObject {
             
             print("InputManager: Entity \(entityAtTile) components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner), Chest: \(hasChest), Lab: \(hasLab), Generator: \(hasGenerator), Belt: \(hasBelt), Inserter: \(hasInserter), Pole: \(hasPole)")
             
-            if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator {
+            if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole {
                 closestEntity = entityAtTile
                 print("InputManager: Found interactable entity at exact tile position: \(entityAtTile)")
             } else {
@@ -904,6 +904,27 @@ final class InputManager: NSObject {
                 }
             }
             
+            // Check power poles
+            let poleEntities = gameLoop.world.query(PowerPoleComponent.self)
+            print("InputManager: Found \(poleEntities.count) entities with PowerPole component")
+            for entity in poleEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                    print("InputManager: Found PowerPole entity \(entity) with tap within bounds, distance: \(distance)")
+                }
+            }
+            
             // If we found candidates within bounds, use the closest one
             if !candidates.isEmpty {
                 candidates.sort { $0.1 < $1.1 }  // Sort by distance
@@ -916,31 +937,32 @@ final class InputManager: NSObject {
                 print("InputManager: No entities within bounds, checking \(nearbyEntities.count) nearby entities")
                 var closestDistance = Float.greatestFiniteMagnitude
                 
-                for entity in nearbyEntities {
-                    let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
-                    let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
-                    let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
-                    let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
-                    let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
-                    let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
-                    
-                    // Also check if it's a boiler by sprite texture/size (2x3 = boiler)
-                    var isBoiler = false
-                    if let sprite = gameLoop.world.get(SpriteComponent.self, for: entity),
-                       let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
-                        // Boiler is 2x3 tiles
-                        if sprite.size.x == 2.0 && sprite.size.y == 3.0 {
-                            // Check if tap is within bounds
-                            let origin = pos.tilePosition
-                            if tilePos.x >= origin.x && tilePos.x < origin.x + 2 &&
-                               tilePos.y >= origin.y && tilePos.y < origin.y + 3 {
-                                isBoiler = true
-                                print("InputManager: Found potential boiler entity \(entity) by size/texture check")
-                            }
+            for entity in nearbyEntities {
+                let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+                let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+                let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+                let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+                let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
+                let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
+                let hasPowerPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
+                
+                // Also check if it's a boiler by sprite texture/size (2x3 = boiler)
+                var isBoiler = false
+                if let sprite = gameLoop.world.get(SpriteComponent.self, for: entity),
+                   let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                    // Boiler is 2x3 tiles
+                    if sprite.size.x == 2.0 && sprite.size.y == 3.0 {
+                        // Check if tap is within bounds
+                        let origin = pos.tilePosition
+                        if tilePos.x >= origin.x && tilePos.x < origin.x + 2 &&
+                           tilePos.y >= origin.y && tilePos.y < origin.y + 3 {
+                            isBoiler = true
+                            print("InputManager: Found potential boiler entity \(entity) by size/texture check")
                         }
                     }
-                    
-                    guard hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || isBoiler else { continue }
+                }
+                
+                guard hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPowerPole || isBoiler else { continue }
                     
                     if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
                         let distance = pos.worldPosition.distance(to: worldPos)
@@ -965,7 +987,8 @@ final class InputManager: NSObject {
             let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
             let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
             let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
-            print("InputManager: Entity components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner), Chest: \(hasChest), Lab: \(hasLab), Generator: \(hasGenerator)")
+            let hasPowerPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
+            print("InputManager: Entity components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner), Chest: \(hasChest), Lab: \(hasLab), Generator: \(hasGenerator), PowerPole: \(hasPowerPole)")
 
             print("InputManager: Opening UI for entity")
 

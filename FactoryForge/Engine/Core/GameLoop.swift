@@ -395,10 +395,38 @@ final class GameLoop {
             }
         }
         
-        // Get building cost to return
+        // Recycle building into recipe ingredients
         if let sprite = world.get(SpriteComponent.self, for: entity),
            let buildingDef = buildingRegistry.getByTexture(sprite.textureId) {
-            for stack in buildingDef.cost {
+            
+            // Find the item that corresponds to this building
+            var itemId: String? = nil
+            for item in itemRegistry.all {
+                if item.placedAs == buildingDef.id {
+                    itemId = item.id
+                    break
+                }
+            }
+            
+            // Try to find a recipe that produces this item
+            var recycledItems: [ItemStack] = []
+            if let itemId = itemId {
+                let recipes = recipeRegistry.recipes(producing: itemId)
+                if let recipe = recipes.first {
+                    // Return the recipe inputs (recycled ingredients)
+                    recycledItems = recipe.inputs
+                    print("GameLoop: Recycling \(buildingDef.name) into recipe ingredients: \(recycledItems)")
+                }
+            }
+            
+            // If no recipe found, fall back to building cost
+            if recycledItems.isEmpty {
+                recycledItems = buildingDef.cost
+                print("GameLoop: No recipe found for \(buildingDef.name), returning building cost: \(recycledItems)")
+            }
+            
+            // Add recycled items to player inventory
+            for stack in recycledItems {
                 player.inventory.add(stack)
             }
         }
@@ -434,8 +462,20 @@ final class GameLoop {
         // Get building definition to check placement validity
         guard let buildingDef = buildingRegistry.getByTexture(sprite.textureId) else { return false }
         
-        // Check if new position is valid
-        guard canPlaceBuilding(buildingDef, at: newPosition) else { return false }
+        // If moving to the same position, allow it (no-op)
+        if oldPosition.tilePosition == newPosition {
+            return true
+        }
+        
+        // Check if new position is valid (but allow the entity being moved to be at that position)
+        // We need to temporarily remove the entity from the spatial index to check placement
+        let oldEntityAtNewPos = world.getEntityAt(position: newPosition)
+        let isMovingToOwnPosition = oldEntityAtNewPos == entity
+        
+        // If there's a different entity at the new position, check if we can place there
+        if !isMovingToOwnPosition {
+            guard canPlaceBuilding(buildingDef, at: newPosition) else { return false }
+        }
         
         // Get old position
         let oldTilePos = oldPosition.tilePosition

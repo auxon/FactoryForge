@@ -1,9 +1,6 @@
 import Metal
 import simd
 
-// Import ECS components
-import struct FactoryForge.MinerComponent
-
 /// Renders sprites with sorting by layer
 final class SpriteRenderer {
     private let device: MTLDevice

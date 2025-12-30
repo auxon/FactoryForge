@@ -269,8 +269,8 @@ final class HUD {
             layer: .ui
         ))
 
-        // Button icon - try to use a trash/delete icon, fallback to "gear" if not available
-        var textureId = "trash" // Try trash icon first
+        // Button icon - try to use a recycle icon, fallback to "gear" if not available
+        var textureId = "recycle" // Try recycle icon first
         var textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
         
         // If texture not found, fallback to "gear" icon
