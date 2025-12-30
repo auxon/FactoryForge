@@ -246,7 +246,7 @@ final class CombatSystem: System {
         
         if health.isDead {
             // Notify spawner if this was a spawned enemy
-            if var enemyComp = world.get(EnemyComponent.self, for: entity),
+            if let enemyComp = world.get(EnemyComponent.self, for: entity),
                let spawnerEntity = enemyComp.spawnerEntity,
                var spawner = world.get(SpawnerComponent.self, for: spawnerEntity) {
                 spawner.enemyDied()

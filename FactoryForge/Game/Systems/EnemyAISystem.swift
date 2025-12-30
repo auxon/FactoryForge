@@ -159,7 +159,7 @@ final class EnemyAISystem: System {
     // MARK: - Spawners
     
     private func updateSpawners(deltaTime: Float) {
-        let spawnerCount = world.query(SpawnerComponent.self).count
+        // let spawnerCount = world.query(SpawnerComponent.self).count
         // print("EnemyAISystem: Updating \(spawnerCount) spawners")
 
         // Collect spawner modifications
@@ -243,8 +243,6 @@ final class EnemyAISystem: System {
 
         // Store the biter object for animation updates
         activeBiters[biter.biterEntity] = biter
-
-        let enemy = biter.biterEntity
         
         spawner.spawn()
     }

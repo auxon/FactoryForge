@@ -1,9 +1,6 @@
 import Foundation
 import UIKit
 
-// Import ECS components
-import struct FactoryForge.MinerComponent
-
 /// UI for interacting with machines (assemblers, furnaces, etc.)
 final class MachineUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?

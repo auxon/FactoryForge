@@ -24,6 +24,11 @@ final class HUD {
     var onBuildPressed: (() -> Void)?
     var onResearchPressed: (() -> Void)?
     var onMenuPressed: (() -> Void)? // Called when menu button is pressed
+    var onMoveBuildingPressed: (() -> Void)? // Called when move button is pressed
+    var onDeleteBuildingPressed: (() -> Void)? // Called when delete button is pressed
+    
+    // Selected building
+    var selectedEntity: Entity?
     
     // Mining animations
     private struct MiningAnimation {
@@ -218,6 +223,9 @@ final class HUD {
 
         // Render build preview if in build mode
         renderBuildPreview(renderer: renderer)
+        
+        // Render move and delete buttons if a building is selected
+        renderBuildingActionButtons(renderer: renderer)
     }
     
     private func renderMenuButton(renderer: MetalRenderer) {
@@ -228,12 +236,96 @@ final class HUD {
         renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "menu", callback: onMenuPressed)
     }
     
+    private func renderBuildingActionButtons(renderer: MetalRenderer) {
+        // Only render if a building is selected
+        guard selectedEntity != nil else { return }
+        
+        // Position buttons on the right side for thumb accessibility
+        // Place them vertically stacked, starting from about 1/3 down the screen
+        let rightMargin: Float = bottomMargin + buttonSize / 2
+        let startY: Float = screenSize.y * 0.33 // Start at 1/3 down the screen
+        let spacing: Float = buttonSize + buttonSpacing
+        
+        // Move button (top)
+        let moveButtonY = startY
+        let moveButtonX = screenSize.x - rightMargin
+        renderButton(renderer: renderer, position: Vector2(moveButtonX, moveButtonY), textureId: "gear", callback: onMoveBuildingPressed)
+        
+        // Delete button (below move button)
+        let deleteButtonY = startY + spacing
+        let deleteButtonX = screenSize.x - rightMargin
+        // Use a red tint for delete button
+        renderDeleteButton(renderer: renderer, position: Vector2(deleteButtonX, deleteButtonY))
+    }
+    
+    private func renderDeleteButton(renderer: MetalRenderer, position: Vector2) {
+        // Button background - use solid_white texture with red tinted color
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        renderer.queueSprite(SpriteInstance(
+            position: position,
+            size: Vector2(buttonSize, buttonSize),
+            textureRect: solidRect,
+            color: Color(r: 0.6, g: 0.2, b: 0.2, a: 0.9), // Red tint
+            layer: .ui
+        ))
+
+        // Button icon - try to use a trash/delete icon, fallback to "gear" if not available
+        var textureId = "trash" // Try trash icon first
+        var textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
+        
+        // If texture not found, fallback to "gear" icon
+        if textureRect.minX == 0 && textureRect.minY == 0 && textureRect.maxX == 0 && textureRect.maxY == 0 {
+            textureId = "gear"
+            textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
+        }
+        
+        renderer.queueSprite(SpriteInstance(
+            position: position,
+            size: Vector2(buttonSize - 10, buttonSize - 10),
+            textureRect: textureRect,
+            layer: .ui
+        ))
+    }
+    
 
     private func renderBuildPreview(renderer: MetalRenderer) {
         guard let inputManager = inputManager,
-              inputManager.buildMode == .placing,
+              let gameLoop = gameLoop else {
+            return
+        }
+        
+        // Handle move mode preview
+        if inputManager.buildMode == .moving,
+           let entityToMove = inputManager.entityToMove,
+           let sprite = gameLoop.world.get(SpriteComponent.self, for: entityToMove),
+           let previewPos = inputManager.buildPreviewPosition {
+            let worldPos = Vector2(Float(previewPos.x) + 0.5, Float(previewPos.y) + 0.5)
+            let textureRect = renderer.textureAtlas.getTextureRect(for: sprite.textureId)
+            
+            // Check if move is valid (use private canPlaceBuilding with BuildingDefinition)
+            // We'll check if the position is valid by trying to get entity at that position
+            let existingEntity = gameLoop.world.getEntityAt(position: previewPos)
+            let isValidMove = existingEntity == nil || existingEntity == entityToMove
+            
+            // Choose color based on validity
+            let previewColor = isValidMove ?
+                Color(r: 0.2, g: 0.8, b: 0.2, a: 0.6) :  // Green for valid
+                Color(r: 0.8, g: 0.2, b: 0.2, a: 0.6)    // Red for invalid
+            
+            // Render ghost preview
+            renderer.queueSprite(SpriteInstance(
+                position: worldPos,
+                size: sprite.size,
+                textureRect: textureRect,
+                color: previewColor,
+                layer: .entity
+            ))
+            return
+        }
+        
+        // Handle build mode preview
+        guard inputManager.buildMode == .placing,
               let buildingId = inputManager.selectedBuildingId,
-              let gameLoop = gameLoop,
               let buildingDef = gameLoop.buildingRegistry.get(buildingId) else {
             return
         }
@@ -407,6 +499,37 @@ final class HUD {
         if checkButtonTap(at: position, buttonPos: Vector2(buttonX, buttonY)) {
             onMenuPressed?()
             return true
+        }
+        
+        // Check move and delete buttons if a building is selected
+        if selectedEntity != nil {
+            let rightMargin: Float = bottomMargin + buttonSize / 2
+            let startY: Float = screenSize.y * 0.33
+            let spacing: Float = buttonSize + buttonSpacing
+            
+            // Move button
+            let moveButtonX = screenSize.x - rightMargin
+            let moveButtonY = startY
+            print("HUD: Checking move button - tap at \(position), button at (\(moveButtonX), \(moveButtonY)), screenSize: \(screenSize)")
+            if checkButtonTap(at: position, buttonPos: Vector2(moveButtonX, moveButtonY)) {
+                print("HUD: Move button tapped, selectedEntity: \(selectedEntity != nil ? "exists" : "nil")")
+                print("HUD: onMoveBuildingPressed callback: \(onMoveBuildingPressed != nil ? "set" : "nil")")
+                onMoveBuildingPressed?()
+                return true
+            }
+            
+            // Delete button
+            let deleteButtonX = screenSize.x - rightMargin
+            let deleteButtonY = startY + spacing
+            print("HUD: Checking delete button - tap at \(position), button at (\(deleteButtonX), \(deleteButtonY))")
+            if checkButtonTap(at: position, buttonPos: Vector2(deleteButtonX, deleteButtonY)) {
+                print("HUD: Delete button tapped, selectedEntity: \(selectedEntity != nil ? "exists" : "nil")")
+                print("HUD: onDeleteBuildingPressed callback: \(onDeleteBuildingPressed != nil ? "set" : "nil")")
+                onDeleteBuildingPressed?()
+                return true
+            }
+        } else {
+            print("HUD: No selected entity, skipping move/delete button checks")
         }
 
         return false

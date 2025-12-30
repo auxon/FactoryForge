@@ -339,7 +339,7 @@ final class BuildingRegistry {
         laserTurret.powerConsumption = 800
         register(laserTurret)
         
-        var wall = BuildingDefinition(
+        let wall = BuildingDefinition(
             id: "stone-wall",
             name: "Wall",
             type: .wall,

@@ -171,7 +171,7 @@ final class LoadingMenu: UIPanel_Base {
         // Metal uses pixels (screenSize * scale) with bottom-left origin
         // UIKit uses points with top-left origin
         let screenScale = CGFloat(UIScreen.main.scale)
-        let screenHeightPoints = CGFloat(parentView.bounds.height)
+        // let screenHeightPoints = CGFloat(parentView.bounds.height)  // Unused for now
         
         // Calculate Load/Delete button dimensions for accurate label width calculation
         let imageAspectRatio: Float = 805.0 / 279.0

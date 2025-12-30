@@ -216,7 +216,7 @@ final class GameLoop {
 
         // Debug: Check where the player is
         for entity in world.query(PositionComponent.self) {
-            if let pos = world.get(PositionComponent.self, for: entity),
+            if let _ = world.get(PositionComponent.self, for: entity),
                let collision = world.get(CollisionComponent.self, for: entity),
                collision.layer == .player {
                 break
@@ -415,6 +415,56 @@ final class GameLoop {
         
         // Despawn entity
         world.despawn(entity)
+        
+        // Trigger power network rebuild
+        powerSystem.markNetworksDirty()
+        
+        return true
+    }
+    
+    func removeBuilding(entity: Entity) -> Bool {
+        guard let position = world.get(PositionComponent.self, for: entity) else { return false }
+        return removeBuilding(at: position.tilePosition)
+    }
+    
+    func moveBuilding(entity: Entity, to newPosition: IntVector2) -> Bool {
+        guard let oldPosition = world.get(PositionComponent.self, for: entity) else { return false }
+        guard let sprite = world.get(SpriteComponent.self, for: entity) else { return false }
+        
+        // Get building definition to check placement validity
+        guard let buildingDef = buildingRegistry.getByTexture(sprite.textureId) else { return false }
+        
+        // Check if new position is valid
+        guard canPlaceBuilding(buildingDef, at: newPosition) else { return false }
+        
+        // Get old position
+        let oldTilePos = oldPosition.tilePosition
+        
+        // Update position component
+        var newPos = oldPosition
+        newPos.tilePosition = newPosition
+        world.add(newPos, to: entity)
+        
+        // Remove from old chunk
+        if let oldChunk = chunkManager.getChunk(at: oldTilePos) {
+            oldChunk.removeEntity(entity)
+        }
+        
+        // Remove from belt system if needed
+        if world.has(BeltComponent.self, for: entity) {
+            beltSystem.unregisterBelt(at: oldTilePos)
+        }
+        
+        // Add to new chunk
+        if let newChunk = chunkManager.getChunk(at: newPosition) {
+            newChunk.addEntity(entity, at: newPosition)
+        }
+        
+        // Re-register belt if needed
+        if world.has(BeltComponent.self, for: entity),
+           let belt = world.get(BeltComponent.self, for: entity) {
+            beltSystem.registerBelt(entity: entity, at: newPosition, direction: belt.direction)
+        }
         
         // Trigger power network rebuild
         powerSystem.markNetworksDirty()

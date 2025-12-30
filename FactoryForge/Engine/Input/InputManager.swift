@@ -35,6 +35,9 @@ final class InputManager: NSObject {
     var buildDirection: Direction = .north
     var buildPreviewPosition: IntVector2?
     
+    // Building movement
+    var entityToMove: Entity?  // Entity being moved (accessible for preview rendering)
+    
     // Belt placement (entity-to-entity connection)
     private var beltSourceEntity: Entity?  // First entity selected (source)
     var beltPathPreview: [IntVector2] = []  // Preview path for rendering
@@ -273,6 +276,21 @@ final class InputManager: NSObject {
         case .removing:
             // Remove building at position (not implemented yet)
             break
+            
+        case .moving:
+            // Move building to new position (same logic as single tap)
+            let tilePos = IntVector2(from: worldPos)
+            if let entity = entityToMove {
+                if gameLoop.moveBuilding(entity: entity, to: tilePos) {
+                    onTooltip?("Building moved")
+                    exitBuildMode()
+                    // Clear selection
+                    selectedEntity = nil
+                    onEntitySelected?(nil)
+                } else {
+                    onTooltip?("Cannot move building here")
+                }
+            }
         }
     }
 
@@ -517,6 +535,21 @@ final class InputManager: NSObject {
             }
 
             onEntitySelected?(selected)
+            
+        case .moving:
+            // Move building to new position
+            let tilePos = IntVector2(from: worldPos)
+            if let entity = entityToMove {
+                if gameLoop.moveBuilding(entity: entity, to: tilePos) {
+                    onTooltip?("Building moved")
+                    exitBuildMode()
+                    // Clear selection
+                    selectedEntity = nil
+                    onEntitySelected?(nil)
+                } else {
+                    onTooltip?("Cannot move building here")
+                }
+            }
         }
         
         onTap?(worldPos)
@@ -560,12 +593,12 @@ final class InputManager: NSObject {
             panStartPosition = screenPos
             cameraStartPosition = renderer.camera.position
             
-            if buildMode == .placing {
+            if buildMode == .placing || buildMode == .moving {
                 // Update build preview position
                 buildPreviewPosition = IntVector2(from: worldPos)
                 
                 // Update belt path preview if we're placing belts and have a source entity
-                if let buildingId = selectedBuildingId, buildingId.contains("belt"), beltSourceEntity != nil {
+                if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt"), beltSourceEntity != nil {
                     updateBeltPathPreview(at: worldPos, gameLoop: gameLoop)
                 }
             }
@@ -591,11 +624,11 @@ final class InputManager: NSObject {
             }
 
             // Update build preview position for any build mode
-            if buildMode == .placing {
+            if buildMode == .placing || buildMode == .moving {
                 buildPreviewPosition = IntVector2(from: worldPos)
                 
                 // Update belt path preview if we're placing belts and have a source entity
-                if let buildingId = selectedBuildingId, buildingId.contains("belt"), beltSourceEntity != nil {
+                if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt"), beltSourceEntity != nil {
                     updateBeltPathPreview(at: worldPos, gameLoop: gameLoop)
                 }
             }
@@ -1251,6 +1284,16 @@ final class InputManager: NSObject {
         buildPreviewPosition = nil
         beltSourceEntity = nil
         beltPathPreview = []
+        entityToMove = nil
+    }
+    
+    func enterMoveMode(entity: Entity) {
+        buildMode = .moving
+        entityToMove = entity
+        selectedBuildingId = nil
+        buildPreviewPosition = nil
+        beltSourceEntity = nil
+        beltPathPreview = []
     }
     
     // MARK: - Belt Placement
@@ -1420,6 +1463,7 @@ enum BuildMode {
     case placing
     case removing
     case selecting
+    case moving
 }
 
 // MARK: - UIGestureRecognizerDelegate

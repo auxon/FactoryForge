@@ -393,7 +393,10 @@ class GameViewController: UIViewController {
 
         // Update UI system with game loop
         uiSystem?.setGameLoop(gameLoop!)
-
+        
+        // Setup input (this will also set up HUD callbacks)
+        setupInput()
+        
         // Force immediate redraw after UI system update
         metalView.setNeedsDisplay()
 
@@ -474,9 +477,6 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
-        // Setup input
-        setupInput()
-
         // Enable save button in loading menu (game is now running)
         uiSystem?.getLoadingMenu().onSaveGameRequested = { [weak self] in
             self?.saveCurrentGame()
@@ -533,7 +533,11 @@ class GameViewController: UIViewController {
         }
 
         // Update UI system with game loop to ensure HUD has correct reference
+        // NOTE: This recreates the HUD, so callbacks must be set AFTER this
         uiSystem?.setGameLoop(gameLoop!)
+        
+        // Re-setup HUD callbacks after HUD is recreated by setGameLoop
+        setupHUDBuildingCallbacks()
 
         // Re-set up label callbacks (UI system was recreated)
         uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
@@ -716,8 +720,15 @@ class GameViewController: UIViewController {
         
         // Setup entity selection callback - open machine UI for furnaces/assemblers
         inputManager?.onEntitySelected = { [weak self] entity in
-            guard let self = self, let entity = entity else { return }
+            guard let self = self else { return }
             guard let gameLoop = self.gameLoop else { return }
+            
+            // Update HUD with selected entity
+            self.uiSystem?.hud.selectedEntity = entity
+            
+            // If no entity selected, clear selection
+            guard let entity = entity else { return }
+            
             let world = gameLoop.world
             
             // Check if it's a machine we can interact with
@@ -751,6 +762,57 @@ class GameViewController: UIViewController {
                         gameLoop.uiSystem?.openMachineUI(for: entity)
                     }
                 }
+            }
+        }
+        
+        // Setup HUD building callbacks
+        setupHUDBuildingCallbacks()
+    }
+    
+    private func setupHUDBuildingCallbacks() {
+        print("GameViewController: setupHUDBuildingCallbacks() called, uiSystem=\(uiSystem != nil ? "exists" : "nil"), hud=\(uiSystem?.hud != nil ? "exists" : "nil")")
+        
+        // Setup move building callback
+        uiSystem?.hud.onMoveBuildingPressed = { [weak self] in
+            print("GameViewController: Move button callback triggered")
+            guard let self = self, let gameLoop = self.gameLoop else {
+                print("GameViewController: Move callback - self or gameLoop is nil")
+                return
+            }
+            guard let selectedEntity = self.uiSystem?.hud.selectedEntity else {
+                print("GameViewController: Move callback - no selected entity")
+                return
+            }
+            
+            print("GameViewController: Entering move mode for entity \(selectedEntity)")
+            // Enter move mode
+            self.inputManager?.enterMoveMode(entity: selectedEntity)
+            self.showTooltip("Tap where you want to move the building")
+        }
+        
+        // Setup delete building callback
+        uiSystem?.hud.onDeleteBuildingPressed = { [weak self] in
+            print("GameViewController: Delete button callback triggered")
+            guard let self = self, let gameLoop = self.gameLoop else {
+                print("GameViewController: Delete callback - self or gameLoop is nil")
+                return
+            }
+            guard let selectedEntity = self.uiSystem?.hud.selectedEntity else {
+                print("GameViewController: Delete callback - no selected entity")
+                return
+            }
+            
+            print("GameViewController: Deleting entity \(selectedEntity)")
+            // Delete the building
+            if gameLoop.removeBuilding(entity: selectedEntity) {
+                // Clear selection
+                self.uiSystem?.hud.selectedEntity = nil
+                self.inputManager?.selectedEntity = nil
+                self.showTooltip("Building deleted")
+                print("GameViewController: Building deleted successfully")
+            } else {
+                self.showTooltip("Failed to delete building")
+                print("GameViewController: Failed to delete building")
             }
         }
     }
