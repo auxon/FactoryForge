@@ -86,22 +86,42 @@ final class UISystem {
     private func setupCallbacks() {
         // HUD button callbacks
         hud.onInventoryPressed = { [weak self] in
+            // Close machine UI if open when clicking any HUD button
+            if self?.activePanel == .machine {
+                self?.closeAllPanels()
+            }
             self?.togglePanel(.inventory)
         }
         
         hud.onCraftingPressed = { [weak self] in
+            // Close machine UI if open when clicking any HUD button
+            if self?.activePanel == .machine {
+                self?.closeAllPanels()
+            }
             self?.togglePanel(.crafting)
         }
         
         hud.onBuildPressed = { [weak self] in
+            // Close machine UI if open when clicking any HUD button
+            if self?.activePanel == .machine {
+                self?.closeAllPanels()
+            }
             self?.togglePanel(.build)
         }
         
         hud.onResearchPressed = { [weak self] in
+            // Close machine UI if open when clicking any HUD button
+            if self?.activePanel == .machine {
+                self?.closeAllPanels()
+            }
             self?.togglePanel(.research)
         }
         
         hud.onMenuPressed = { [weak self] in
+            // Close machine UI if open when clicking any HUD button
+            if self?.activePanel == .machine {
+                self?.closeAllPanels()
+            }
             self?.openPanel(.loadingMenu)
         }
         

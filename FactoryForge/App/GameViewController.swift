@@ -784,6 +784,9 @@ class GameViewController: UIViewController {
                 return
             }
             
+            // Close machine UI if open
+            self.uiSystem?.closeAllPanels()
+            
             print("GameViewController: Entering move mode for entity \(selectedEntity)")
             // Enter move mode
             self.inputManager?.enterMoveMode(entity: selectedEntity)
@@ -801,6 +804,9 @@ class GameViewController: UIViewController {
                 print("GameViewController: Delete callback - no selected entity")
                 return
             }
+            
+            // Close machine UI if open
+            self.uiSystem?.closeAllPanels()
             
             print("GameViewController: Deleting entity \(selectedEntity)")
             // Delete the building
