@@ -541,6 +541,26 @@ final class GameLoop {
         return true
     }
     
+    func rotateBelt(entity: Entity) -> Bool {
+        // Check if entity is a belt
+        guard var belt = world.get(BeltComponent.self, for: entity),
+              let position = world.get(PositionComponent.self, for: entity) else {
+            return false
+        }
+        
+        // Rotate direction clockwise
+        belt.direction = belt.direction.clockwise
+        
+        // Update belt component
+        world.add(belt, to: entity)
+        
+        // Re-register belt in belt system with new direction
+        beltSystem.unregisterBelt(at: position.tilePosition)
+        beltSystem.registerBelt(entity: entity, at: position.tilePosition, direction: belt.direction)
+        
+        return true
+    }
+    
     func setRecipe(for entity: Entity, recipeId: String) {
         guard let recipe = recipeRegistry.get(recipeId) else { return }
         

@@ -26,6 +26,7 @@ final class HUD {
     var onMenuPressed: (() -> Void)? // Called when menu button is pressed
     var onMoveBuildingPressed: (() -> Void)? // Called when move button is pressed
     var onDeleteBuildingPressed: (() -> Void)? // Called when delete button is pressed
+    var onRotateBuildingPressed: (() -> Void)? // Called when rotate button is pressed (for belts)
     
     // Selected building
     var selectedEntity: Entity?
@@ -238,7 +239,10 @@ final class HUD {
     
     private func renderBuildingActionButtons(renderer: MetalRenderer) {
         // Only render if a building is selected
-        guard selectedEntity != nil else { return }
+        guard let selectedEntity = selectedEntity else { return }
+        
+        // Check if selected entity is a belt
+        let isBelt = gameLoop?.world.has(BeltComponent.self, for: selectedEntity) ?? false
         
         // Position buttons on the right side for thumb accessibility
         // Place them vertically stacked, starting from about 1/3 down the screen
@@ -256,6 +260,13 @@ final class HUD {
         let deleteButtonX = screenSize.x - rightMargin
         // Use a red tint for delete button
         renderDeleteButton(renderer: renderer, position: Vector2(deleteButtonX, deleteButtonY))
+        
+        // Rotate button (below delete button, only for belts)
+        if isBelt {
+            let rotateButtonY = startY + spacing * 2
+            let rotateButtonX = screenSize.x - rightMargin
+            renderButton(renderer: renderer, position: Vector2(rotateButtonX, rotateButtonY), textureId: "gear", callback: onRotateBuildingPressed)
+        }
     }
     
     private func renderDeleteButton(renderer: MetalRenderer, position: Vector2) {
@@ -521,6 +532,18 @@ final class HUD {
                 print("HUD: onDeleteBuildingPressed callback: \(onDeleteBuildingPressed != nil ? "set" : "nil")")
                 onDeleteBuildingPressed?()
                 return true
+            }
+            
+            // Rotate button (only for belts)
+            if let selectedEntity = selectedEntity,
+               gameLoop?.world.has(BeltComponent.self, for: selectedEntity) ?? false {
+                let rotateButtonX = screenSize.x - rightMargin
+                let rotateButtonY = startY + spacing * 2
+                if checkButtonTap(at: position, buttonPos: Vector2(rotateButtonX, rotateButtonY)) {
+                    print("HUD: Rotate button tapped")
+                    onRotateBuildingPressed?()
+                    return true
+                }
             }
         } else {
             print("HUD: No selected entity, skipping move/delete button checks")

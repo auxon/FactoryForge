@@ -821,6 +821,31 @@ class GameViewController: UIViewController {
                 print("GameViewController: Failed to delete building")
             }
         }
+        
+        // Setup rotate building callback (for belts)
+        uiSystem?.hud.onRotateBuildingPressed = { [weak self] in
+            guard let self = self, let gameLoop = self.gameLoop else {
+                print("GameViewController: Rotate callback - self or gameLoop is nil")
+                return
+            }
+            guard let selectedEntity = self.uiSystem?.hud.selectedEntity else {
+                print("GameViewController: Rotate callback - no selected entity")
+                return
+            }
+            
+            // Close machine UI if open
+            self.uiSystem?.closeAllPanels()
+            
+            print("GameViewController: Rotating belt entity \(selectedEntity)")
+            // Rotate the belt
+            if gameLoop.rotateBelt(entity: selectedEntity) {
+                self.showTooltip("Belt rotated")
+                print("GameViewController: Belt rotated successfully")
+            } else {
+                self.showTooltip("Failed to rotate belt")
+                print("GameViewController: Failed to rotate belt")
+            }
+        }
     }
     
     private func setupNotifications() {
