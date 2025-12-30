@@ -249,7 +249,7 @@ final class HUD {
         // Move button (top)
         let moveButtonY = startY
         let moveButtonX = screenSize.x - rightMargin
-        renderButton(renderer: renderer, position: Vector2(moveButtonX, moveButtonY), textureId: "gear", callback: onMoveBuildingPressed)
+        renderButton(renderer: renderer, position: Vector2(moveButtonX, moveButtonY), textureId: "move", callback: onMoveBuildingPressed)
         
         // Delete button (below move button)
         let deleteButtonY = startY + spacing
@@ -272,12 +272,6 @@ final class HUD {
         // Button icon - try to use a recycle icon, fallback to "gear" if not available
         var textureId = "recycle" // Try recycle icon first
         var textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
-        
-        // If texture not found, fallback to "gear" icon
-        if textureRect.minX == 0 && textureRect.minY == 0 && textureRect.maxX == 0 && textureRect.maxY == 0 {
-            textureId = "gear"
-            textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
-        }
         
         renderer.queueSprite(SpriteInstance(
             position: position,

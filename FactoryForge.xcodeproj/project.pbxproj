@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
+		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
 		0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD42EFDD03C00576EC3 /* player.png */; };
 		0D6FDC1B2EFDE1B500576EC3 /* small_electric_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC092EFDE1B500576EC3 /* small_electric_pole.png */; };
 		0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE72EFDE1B500576EC3 /* copper_ore _2.png */; };
@@ -239,6 +240,7 @@
 
 /* Begin PBXFileReference section */
 		0D3A37192F044AC200941686 /* recycle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = recycle.png; sourceTree = "<group>"; };
+		0D3A371B2F047F7700941686 /* move.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = move.png; sourceTree = "<group>"; };
 		0D6FDBD42EFDD03C00576EC3 /* player.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player.png; sourceTree = "<group>"; };
 		0D6FDBD62EFDE1B500576EC3 /* accumulator.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = accumulator.png; sourceTree = "<group>"; };
 		0D6FDBD72EFDE1B500576EC3 /* advanced_circuit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = advanced_circuit.png; sourceTree = "<group>"; };
@@ -484,6 +486,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D3A371B2F047F7700941686 /* move.png */,
 				0D3A37192F044AC200941686 /* recycle.png */,
 				0DFF59A42F02C08F00A8699D /* bullet_down.png */,
 				0DFF59A52F02C08F00A8699D /* bullet_left.png */,
@@ -1145,6 +1148,7 @@
 				0DE229632F001B9F00BD619D /* transport_belt_north_013.png in Resources */,
 				0DE229642F001B9F00BD619D /* transport_belt_north_002.png in Resources */,
 				0DE229652F001B9F00BD619D /* transport_belt_north_005.png in Resources */,
+				0D3A371C2F047F7700941686 /* move.png in Resources */,
 				0DE229662F001B9F00BD619D /* transport_belt_north_015.png in Resources */,
 				0DE229672F001B9F00BD619D /* transport_belt_north_009.png in Resources */,
 				0DE229682F001B9F00BD619D /* transport_belt_north_001.png in Resources */,
