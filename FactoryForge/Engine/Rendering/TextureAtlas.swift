@@ -478,8 +478,6 @@ final class TextureAtlas {
             finalImage = processedImage
         } else {
             // Other sprites: scale to square targetSize
-            let finalWidth = min(targetSize, processedCGImage.width)
-            let finalHeight = min(targetSize, processedCGImage.height)
             
             if processedCGImage.width != targetSize || processedCGImage.height != targetSize {
                 // Scale to exactly targetSize

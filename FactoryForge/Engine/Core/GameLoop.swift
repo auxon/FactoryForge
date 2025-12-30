@@ -460,7 +460,21 @@ final class GameLoop {
         guard let sprite = world.get(SpriteComponent.self, for: entity) else { return false }
         
         // Get building definition to check placement validity
-        guard let buildingDef = buildingRegistry.getByTexture(sprite.textureId) else { return false }
+        // Handle directional belt textures (e.g., "transport_belt_north_001" -> "transport_belt")
+        var textureId = sprite.textureId
+        if textureId.contains("_belt_") {
+            // Extract base belt texture ID from directional texture
+            // e.g., "transport_belt_north_001" -> "transport_belt"
+            // e.g., "fast_transport_belt_north_001" -> "fast_transport_belt"
+            // e.g., "express_transport_belt_north_001" -> "express_transport_belt"
+            let parts = textureId.split(separator: "_")
+            // Find where "belt" appears, then take everything up to and including "belt"
+            if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                textureId = parts[0...beltIndex].joined(separator: "_")
+            }
+        }
+        
+        guard let buildingDef = buildingRegistry.getByTexture(textureId) else { return false }
         
         // If moving to the same position, allow it (no-op)
         if oldPosition.tilePosition == newPosition {

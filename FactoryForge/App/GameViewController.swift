@@ -775,7 +775,7 @@ class GameViewController: UIViewController {
         // Setup move building callback
         uiSystem?.hud.onMoveBuildingPressed = { [weak self] in
             print("GameViewController: Move button callback triggered")
-            guard let self = self, let gameLoop = self.gameLoop else {
+            guard let self = self, let _ = self.gameLoop else {
                 print("GameViewController: Move callback - self or gameLoop is nil")
                 return
             }

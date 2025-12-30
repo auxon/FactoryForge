@@ -663,8 +663,10 @@ final class InputManager: NSObject {
             let hasLab = gameLoop.world.has(LabComponent.self, for: entityAtTile)
             let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entityAtTile)
             let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entityAtTile)
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entityAtTile)
+            let hasInserter = gameLoop.world.has(InserterComponent.self, for: entityAtTile)
             
-            if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole {
+            if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter {
                 closestEntity = entityAtTile
             }
         }
@@ -802,6 +804,44 @@ final class InputManager: NSObject {
                 }
             }
             
+            // Check belts
+            let beltEntities = gameLoop.world.query(BeltComponent.self)
+            for entity in beltEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                }
+            }
+            
+            // Check inserters
+            let inserterEntities = gameLoop.world.query(InserterComponent.self)
+            for entity in inserterEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                }
+            }
+            
             // If we found candidates within bounds, use the closest one
             if !candidates.isEmpty {
                 candidates.sort { $0.1 < $1.1 }  // Sort by distance
@@ -819,6 +859,8 @@ final class InputManager: NSObject {
                     let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
                     let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
                     let hasPowerPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
+                    let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+                    let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
                     
                     // Also check if it's a boiler by sprite texture/size (2x3 = boiler)
                     var isBoiler = false
@@ -835,7 +877,7 @@ final class InputManager: NSObject {
                         }
                     }
                     
-                    guard hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPowerPole || isBoiler else { continue }
+                    guard hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPowerPole || hasBelt || hasInserter || isBoiler else { continue }
                     
                     if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
                         let distance = pos.worldPosition.distance(to: worldPos)
