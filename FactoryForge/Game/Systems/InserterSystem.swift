@@ -17,6 +17,9 @@ final class InserterSystem: System {
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
             guard let power = world.get(PowerConsumerComponent.self, for: entity), power.satisfaction > 0 else { return }
             
+            // Update inserter animation
+            updateInserterAnimation(entity: entity, deltaTime: deltaTime)
+            
             let speedMultiplier = power.satisfaction
             
             switch inserter.state {
@@ -187,6 +190,21 @@ final class InserterSystem: System {
         }
         
         return false
+    }
+    
+    // MARK: - Animation
+    
+    private func updateInserterAnimation(entity: Entity, deltaTime: Float) {
+        guard var sprite = world.get(SpriteComponent.self, for: entity),
+              var animation = sprite.animation else { return }
+        
+        // Update animation frame (always playing, looping)
+        if let currentFrame = animation.update(deltaTime: deltaTime) {
+            sprite.textureId = currentFrame
+        }
+        
+        sprite.animation = animation
+        world.add(sprite, to: entity)
     }
 }
 

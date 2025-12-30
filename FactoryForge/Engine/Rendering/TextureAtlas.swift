@@ -91,7 +91,7 @@ final class TextureAtlas {
             ("right_arrow", nil),
             ("solid_white", nil),
 
-            // Entities (load player sprite sheets first - they extract all frames)
+            // Entities (load sprite sheets first - they extract all frames)
             ("player", nil),
             ("player_left", nil),
             ("biter_left", nil),
@@ -204,6 +204,7 @@ final class TextureAtlas {
             ("inserter", nil),
             ("long_handed_inserter", nil),
             ("fast_inserter", nil),
+            ("inserters_sheet", nil),
             
             // Buildings - Storage
             ("wooden_chest", nil),
@@ -343,6 +344,31 @@ final class TextureAtlas {
             let frameSize = 256  // 1024 / 4 = 256
             let framesPerRow = 4
             let prefix = name == "player_left" ? "player_left" : "player"
+
+            for frameIndex in 0..<16 {
+                let row = frameIndex / framesPerRow
+                let col = frameIndex % framesPerRow
+                let frameX = col * frameSize
+                let frameY = row * frameSize
+                let frameRect = CGRect(x: frameX, y: frameY, width: frameSize, height: frameSize)
+
+                if let croppedCGImage = cgImage.cropping(to: frameRect) {
+                    let frameImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
+                    let frameName = "\(prefix)_\(frameIndex)"
+
+                    // Pack this frame into the atlas (skip border crop since it's already extracted)
+                    if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
+                    }
+                }
+            }
+
+            // All frames have been loaded into the atlas, return false to indicate this was handled separately
+            return false
+        } else if name == "inserters_sheet" && imageWidth == 1024 && imageHeight == 1024 {
+            // Load all 16 frames from 4x4 grid for inserters (256x256 frames each)
+            let frameSize = 256  // Each sprite is 256x256 pixels
+            let framesPerRow = 4
+            let prefix = "inserter"
 
             for frameIndex in 0..<16 {
                 let row = frameIndex / framesPerRow

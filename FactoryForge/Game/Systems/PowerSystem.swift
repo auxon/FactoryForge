@@ -220,7 +220,7 @@ final class PowerSystem: System {
         for consumer in network.consumers {
             if let consumerComp = world.get(PowerConsumerComponent.self, for: consumer) {
                 totalConsumption += consumerComp.consumption
-                print("PowerSystem: Consumer \(consumer.id) consuming \(consumerComp.consumption) kW, satisfaction: \(consumerComp.satisfaction)")
+                // print("PowerSystem: Consumer \(consumer.id) consuming \(consumerComp.consumption) kW, satisfaction: \(consumerComp.satisfaction)")
             }
         }
         

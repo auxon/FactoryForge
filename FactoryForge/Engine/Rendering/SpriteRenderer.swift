@@ -76,10 +76,14 @@ final class SpriteRenderer {
             // For non-centered sprites (buildings), offset by half size to align with tile origin
             let renderPos = sprite.centered ? worldPos : worldPos + Vector2(sprite.size.x / 2, sprite.size.y / 2)
 
+            // Only apply rotation to centered sprites (like player), not buildings
+            // Buildings use directional sprites or don't need rotation
+            let rotation = sprite.centered ? position.direction.angle : 0
+
             queuedSprites.append(SpriteInstance(
                 position: renderPos,
                 size: sprite.size,
-                rotation: position.direction.angle,
+                rotation: rotation,
                 textureRect: textureRect,
                 color: sprite.tint,
                 layer: sprite.layer

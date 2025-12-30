@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
 		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
+		0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371D2F0485C900941686 /* inserters_sheet.png */; };
 		0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD42EFDD03C00576EC3 /* player.png */; };
 		0D6FDC1B2EFDE1B500576EC3 /* small_electric_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC092EFDE1B500576EC3 /* small_electric_pole.png */; };
 		0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE72EFDE1B500576EC3 /* copper_ore _2.png */; };
@@ -241,6 +242,7 @@
 /* Begin PBXFileReference section */
 		0D3A37192F044AC200941686 /* recycle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = recycle.png; sourceTree = "<group>"; };
 		0D3A371B2F047F7700941686 /* move.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = move.png; sourceTree = "<group>"; };
+		0D3A371D2F0485C900941686 /* inserters_sheet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserters_sheet.png; sourceTree = "<group>"; };
 		0D6FDBD42EFDD03C00576EC3 /* player.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player.png; sourceTree = "<group>"; };
 		0D6FDBD62EFDE1B500576EC3 /* accumulator.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = accumulator.png; sourceTree = "<group>"; };
 		0D6FDBD72EFDE1B500576EC3 /* advanced_circuit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = advanced_circuit.png; sourceTree = "<group>"; };
@@ -486,6 +488,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D3A371D2F0485C900941686 /* inserters_sheet.png */,
 				0D3A371B2F047F7700941686 /* move.png */,
 				0D3A37192F044AC200941686 /* recycle.png */,
 				0DFF59A42F02C08F00A8699D /* bullet_down.png */,
@@ -1205,6 +1208,7 @@
 				0D6FDC482EFDE1B500576EC3 /* building_placeholder.png in Resources */,
 				0DFF59FC2F02CAD900A8699D /* transport_belt_west_007.png in Resources */,
 				0DFF59FD2F02CAD900A8699D /* transport_belt_west_014.png in Resources */,
+				0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */,
 				0DFF59FE2F02CAD900A8699D /* transport_belt_west_011.png in Resources */,
 				0DFF59FF2F02CAD900A8699D /* transport_belt_west_005.png in Resources */,
 				0DFF5A002F02CAD900A8699D /* transport_belt_west_006.png in Resources */,

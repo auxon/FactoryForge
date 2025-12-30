@@ -324,6 +324,21 @@ final class GameLoop {
             ), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             
+            // Set up inserter animation with sprite sheet frames
+            if var sprite = world.get(SpriteComponent.self, for: entity) {
+                // Create animation with all 16 frames from the sprite sheet
+                let inserterFrames = (0..<16).map { "inserter_\($0)" }
+                var inserterAnimation = SpriteAnimation(
+                    frames: inserterFrames,
+                    frameTime: 0.5 / 16.0,  // 0.5 seconds total for all frames
+                    isLooping: true
+                )
+                inserterAnimation.play()
+                sprite.animation = inserterAnimation
+                sprite.textureId = "inserter_0"  // Start with first frame
+                world.add(sprite, to: entity)
+            }
+            
         case .powerPole:
             world.add(PowerPoleComponent(
                 wireReach: buildingDef.wireReach,
