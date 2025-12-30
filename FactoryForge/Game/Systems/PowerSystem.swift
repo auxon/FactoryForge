@@ -248,7 +248,7 @@ final class PowerSystem: System {
         
         network.totalProduction = totalProduction
         
-        print("PowerSystem: Network \(network.id) - Production: \(totalProduction) kW, Consumption: \(totalConsumption) kW")
+        // print("PowerSystem: Network \(network.id) - Production: \(totalProduction) kW, Consumption: \(totalConsumption) kW")
         
         // Calculate satisfaction
         var availablePower = totalProduction

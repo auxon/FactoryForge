@@ -409,10 +409,37 @@ final class EnemyAISystem: System {
                 for candidate in nearbyTargets {
                     if world.has(EnemyComponent.self, for: candidate) { continue }
                     if world.has(SpawnerComponent.self, for: candidate) { continue }
+                    
+                    // Skip player entity (will check separately)
+                    if candidate == player?.playerEntity { continue }
 
-                    if world.has(HealthComponent.self, for: candidate) {
+                    // Only target buildings (entities with building components)
+                    let isBuilding = world.has(FurnaceComponent.self, for: candidate) ||
+                                    world.has(AssemblerComponent.self, for: candidate) ||
+                                    world.has(MinerComponent.self, for: candidate) ||
+                                    world.has(GeneratorComponent.self, for: candidate) ||
+                                    world.has(ChestComponent.self, for: candidate) ||
+                                    world.has(LabComponent.self, for: candidate) ||
+                                    world.has(TurretComponent.self, for: candidate) ||
+                                    world.has(PowerPoleComponent.self, for: candidate) ||
+                                    world.has(SolarPanelComponent.self, for: candidate) ||
+                                    world.has(AccumulatorComponent.self, for: candidate) ||
+                                    world.has(BeltComponent.self, for: candidate) ||
+                                    world.has(InserterComponent.self, for: candidate)
+
+                    if world.has(HealthComponent.self, for: candidate) && isBuilding {
                         foundTarget = candidate
                         break
+                    }
+                }
+                
+                // Also check for player
+                if foundTarget == nil, let player = player {
+                    if let playerPos = world.get(PositionComponent.self, for: player.playerEntity) {
+                        let distanceToPlayer = position.worldPosition.distance(to: playerPos.worldPosition)
+                        if distanceToPlayer <= 10.0 {
+                            foundTarget = player.playerEntity
+                        }
                     }
                 }
 
@@ -511,7 +538,7 @@ final class EnemyAISystem: System {
             //print("EnemyAISystem: No player reference")
         }
         
-        // Otherwise find nearest valid target
+        // Otherwise find nearest valid target (only buildings and player)
         let nearbyEntities = world.getEntitiesNear(position: position.worldPosition, radius: searchRadius)
         
         var closestTarget: Entity?
@@ -527,6 +554,25 @@ final class EnemyAISystem: System {
             
             // Must have health
             guard world.has(HealthComponent.self, for: candidate) else { continue }
+            
+            // Only target buildings (entities with building components) or player
+            // Check if it's a building by looking for building-specific components
+            let isBuilding = world.has(FurnaceComponent.self, for: candidate) ||
+                            world.has(AssemblerComponent.self, for: candidate) ||
+                            world.has(MinerComponent.self, for: candidate) ||
+                            world.has(GeneratorComponent.self, for: candidate) ||
+                            world.has(ChestComponent.self, for: candidate) ||
+                            world.has(LabComponent.self, for: candidate) ||
+                            world.has(TurretComponent.self, for: candidate) ||
+                            world.has(PowerPoleComponent.self, for: candidate) ||
+                            world.has(SolarPanelComponent.self, for: candidate) ||
+                            world.has(AccumulatorComponent.self, for: candidate) ||
+                            world.has(BeltComponent.self, for: candidate) ||
+                            world.has(InserterComponent.self, for: candidate)
+            
+            // Skip if it's not a building (we only want to attack buildings and player)
+            guard isBuilding else { continue }
+            
             guard let candidatePos = world.get(PositionComponent.self, for: candidate) else { continue }
             
             let distance = position.worldPosition.distance(to: candidatePos.worldPosition)

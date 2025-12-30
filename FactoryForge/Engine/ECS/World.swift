@@ -370,6 +370,27 @@ extension World {
             if let furnace = get(FurnaceComponent.self, for: entity) {
                 components["furnace"] = try? JSONEncoder().encode(furnace)
             }
+            if let powerPole = get(PowerPoleComponent.self, for: entity) {
+                components["powerPole"] = try? JSONEncoder().encode(powerPole)
+            }
+            if let generator = get(GeneratorComponent.self, for: entity) {
+                components["generator"] = try? JSONEncoder().encode(generator)
+            }
+            if let powerConsumer = get(PowerConsumerComponent.self, for: entity) {
+                components["powerConsumer"] = try? JSONEncoder().encode(powerConsumer)
+            }
+            if let chest = get(ChestComponent.self, for: entity) {
+                components["chest"] = try? JSONEncoder().encode(chest)
+            }
+            if let lab = get(LabComponent.self, for: entity) {
+                components["lab"] = try? JSONEncoder().encode(lab)
+            }
+            if let solarPanel = get(SolarPanelComponent.self, for: entity) {
+                components["solarPanel"] = try? JSONEncoder().encode(solarPanel)
+            }
+            if let accumulator = get(AccumulatorComponent.self, for: entity) {
+                components["accumulator"] = try? JSONEncoder().encode(accumulator)
+            }
             
             // Exclude player entity from world serialization (it's saved separately in PlayerState)
             // Player entities have CollisionComponent with layer .player
@@ -431,6 +452,34 @@ extension World {
             if let furnaceData = entityData.components["furnace"],
                let furnace = try? JSONDecoder().decode(FurnaceComponent.self, from: furnaceData) {
                 add(furnace, to: entity)
+            }
+            if let powerPoleData = entityData.components["powerPole"],
+               let powerPole = try? JSONDecoder().decode(PowerPoleComponent.self, from: powerPoleData) {
+                add(powerPole, to: entity)
+            }
+            if let generatorData = entityData.components["generator"],
+               let generator = try? JSONDecoder().decode(GeneratorComponent.self, from: generatorData) {
+                add(generator, to: entity)
+            }
+            if let powerConsumerData = entityData.components["powerConsumer"],
+               let powerConsumer = try? JSONDecoder().decode(PowerConsumerComponent.self, from: powerConsumerData) {
+                add(powerConsumer, to: entity)
+            }
+            if let chestData = entityData.components["chest"],
+               let chest = try? JSONDecoder().decode(ChestComponent.self, from: chestData) {
+                add(chest, to: entity)
+            }
+            if let labData = entityData.components["lab"],
+               let lab = try? JSONDecoder().decode(LabComponent.self, from: labData) {
+                add(lab, to: entity)
+            }
+            if let solarPanelData = entityData.components["solarPanel"],
+               let solarPanel = try? JSONDecoder().decode(SolarPanelComponent.self, from: solarPanelData) {
+                add(solarPanel, to: entity)
+            }
+            if let accumulatorData = entityData.components["accumulator"],
+               let accumulator = try? JSONDecoder().decode(AccumulatorComponent.self, from: accumulatorData) {
+                add(accumulator, to: entity)
             }
             if let collisionData = entityData.components["collision"],
                let collision = try? JSONDecoder().decode(CollisionComponent.self, from: collisionData) {
