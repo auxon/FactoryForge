@@ -67,10 +67,6 @@ final class TouchHandler {
                 Float(touch.location(in: view).x) * scale,
                 Float(touch.location(in: view).y) * scale
             )
-            let previousPosition = Vector2(
-                Float(touch.previousLocation(in: view).x) * scale,
-                Float(touch.previousLocation(in: view).y) * scale
-            )
             
             switch touch.phase {
             case .began:

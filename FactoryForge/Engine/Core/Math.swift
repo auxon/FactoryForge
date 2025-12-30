@@ -7,58 +7,6 @@ typealias Vector3 = SIMD3<Float>
 typealias Vector4 = SIMD4<Float>
 typealias Matrix4 = simd_float4x4
 
-// MARK: - SIMD Codable Extensions
-extension SIMD2: @retroactive Codable where Scalar: Codable {
-    public init(from decoder: Decoder) throws {
-        var container = try decoder.unkeyedContainer()
-        let x = try container.decode(Scalar.self)
-        let y = try container.decode(Scalar.self)
-        self.init(x, y)
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.unkeyedContainer()
-        try container.encode(self.x)
-        try container.encode(self.y)
-    }
-}
-
-extension SIMD3: @retroactive Codable where Scalar: Codable {
-    public init(from decoder: Decoder) throws {
-        var container = try decoder.unkeyedContainer()
-        let x = try container.decode(Scalar.self)
-        let y = try container.decode(Scalar.self)
-        let z = try container.decode(Scalar.self)
-        self.init(x, y, z)
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.unkeyedContainer()
-        try container.encode(self.x)
-        try container.encode(self.y)
-        try container.encode(self.z)
-    }
-}
-
-extension SIMD4: @retroactive Codable where Scalar: Codable {
-    public init(from decoder: Decoder) throws {
-        var container = try decoder.unkeyedContainer()
-        let x = try container.decode(Scalar.self)
-        let y = try container.decode(Scalar.self)
-        let z = try container.decode(Scalar.self)
-        let w = try container.decode(Scalar.self)
-        self.init(x, y, z, w)
-    }
-    
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.unkeyedContainer()
-        try container.encode(self.x)
-        try container.encode(self.y)
-        try container.encode(self.z)
-        try container.encode(self.w)
-    }
-}
-
 // MARK: - Vector2 Extensions
 extension Vector2 {
     static let zero = Vector2(0, 0)
