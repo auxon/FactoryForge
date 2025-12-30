@@ -741,6 +741,16 @@ class GameViewController: UIViewController {
                 print("GameViewController: Chest selected, opening Inventory UI")
                 // Open inventory UI for chest
                 gameLoop.uiSystem?.openChestInventory(for: entity)
+            } else {
+                // Fallback: check if it's a boiler by size/texture (for old saves that don't have GeneratorComponent)
+                if let sprite = world.get(SpriteComponent.self, for: entity) {
+                    // Boiler is 2x3 tiles
+                    if sprite.size.x == 2.0 && sprite.size.y == 3.0 {
+                        print("GameViewController: Boiler detected by size (2x3), opening Machine UI")
+                        // Open machine UI for boiler
+                        gameLoop.uiSystem?.openMachineUI(for: entity)
+                    }
+                }
             }
         }
     }

@@ -159,10 +159,13 @@ final class World {
     // MARK: - Spatial Queries
     
     /// Gets the entity at a tile position (checks exact match first, then checks if position is within any entity's bounds)
+    /// Prioritizes buildings over belts and inserters
     func getEntityAt(position: IntVector2) -> Entity? {
-        // First try exact match (works for 1x1 entities)
+        var allEntitiesAtPosition: [Entity] = []
+        
+        // First check exact match in spatial index
         if let entity = spatialIndex[position] {
-            return entity
+            allEntitiesAtPosition.append(entity)
         }
         
         // For multi-tile buildings, check all entities with PositionComponent and SpriteComponent
@@ -178,11 +181,66 @@ final class World {
             // Check if the tapped position is within this entity's bounds
             if position.x >= origin.x && position.x < origin.x + width &&
                position.y >= origin.y && position.y < origin.y + height {
+                // Only add if not already in the list (avoid duplicates)
+                if !allEntitiesAtPosition.contains(entity) {
+                    allEntitiesAtPosition.append(entity)
+                    // Debug: log multi-tile entity found
+                    let hasGen = has(GeneratorComponent.self, for: entity)
+                    if hasGen {
+                        print("World: Found generator entity \(entity) at position \(position), origin: \(origin), size: \(width)x\(height)")
+                    }
+                }
+            }
+        }
+        
+        // If no entities found, return nil
+        guard !allEntitiesAtPosition.isEmpty else { return nil }
+        
+        // If only one entity, return it
+        if allEntitiesAtPosition.count == 1 {
+            return allEntitiesAtPosition[0]
+        }
+        
+        // Multiple entities - prioritize buildings over belts/inserters/poles
+        // Priority order: Production buildings (furnaces, assemblers, miners, generators, chests, labs) > Power poles > Belts > Inserters > Others
+        
+        // First, try to find a production building (entity with building-specific components, excluding poles)
+        for entity in allEntitiesAtPosition {
+            if has(FurnaceComponent.self, for: entity) ||
+               has(AssemblerComponent.self, for: entity) ||
+               has(MinerComponent.self, for: entity) ||
+               has(GeneratorComponent.self, for: entity) ||
+               has(ChestComponent.self, for: entity) ||
+               has(LabComponent.self, for: entity) ||
+               has(SolarPanelComponent.self, for: entity) ||
+               has(AccumulatorComponent.self, for: entity) {
                 return entity
             }
         }
         
-        return nil
+        // Then check for power poles (lower priority than production buildings)
+        for entity in allEntitiesAtPosition {
+            if has(PowerPoleComponent.self, for: entity) {
+                return entity
+            }
+        }
+        
+        // If no building found, check for belts (lower priority than buildings)
+        for entity in allEntitiesAtPosition {
+            if has(BeltComponent.self, for: entity) {
+                return entity
+            }
+        }
+        
+        // If no belt found, check for inserters (lowest priority)
+        for entity in allEntitiesAtPosition {
+            if has(InserterComponent.self, for: entity) {
+                return entity
+            }
+        }
+        
+        // Fallback: return the first entity found
+        return allEntitiesAtPosition[0]
     }
     
     /// Checks if there's an entity at a position

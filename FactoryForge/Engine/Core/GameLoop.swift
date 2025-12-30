@@ -331,11 +331,15 @@ final class GameLoop {
             ), to: entity)
             
         case .generator:
+            // Boilers need powerProduction set, but steam engines produce power
+            // For now, set a default power output for generators
+            let powerOutput = buildingDef.powerProduction > 0 ? buildingDef.powerProduction : 1800.0  // Default 1.8 MW for boilers
             world.add(GeneratorComponent(
-                powerOutput: buildingDef.powerProduction,
+                powerOutput: powerOutput,
                 fuelCategory: buildingDef.fuelCategory ?? "chemical"
             ), to: entity)
             world.add(InventoryComponent(slots: 1, filter: nil), to: entity)
+            print("GameLoop: Added GeneratorComponent to entity \(entity) with powerOutput: \(powerOutput)")
             
         case .solarPanel:
             world.add(SolarPanelComponent(
