@@ -333,7 +333,7 @@ final class GameLoop {
                     frameTime: 0.5 / 16.0,  // 0.5 seconds total for all frames
                     isLooping: true
                 )
-                inserterAnimation.play()
+                inserterAnimation.pause()  // Start paused - will play when powered
                 sprite.animation = inserterAnimation
                 sprite.textureId = "inserter_0"  // Start with first frame
                 world.add(sprite, to: entity)

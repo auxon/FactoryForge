@@ -15,10 +15,16 @@ final class InserterSystem: System {
     func update(deltaTime: Float) {
         world.forEach(InserterComponent.self) { [self] entity, inserter in
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
-            guard let power = world.get(PowerConsumerComponent.self, for: entity), power.satisfaction > 0 else { return }
+            let power = world.get(PowerConsumerComponent.self, for: entity)
+            // Check if inserter is on a power network and has satisfaction > 0
+            // Consumers not on a network have networkId = nil and should be considered unpowered
+            let hasPower = power != nil && power!.networkId != nil && power!.satisfaction > 0
             
-            // Update inserter animation
-            updateInserterAnimation(entity: entity, deltaTime: deltaTime)
+            // Update inserter animation (pause if no power, play if powered)
+            updateInserterAnimation(entity: entity, deltaTime: deltaTime, hasPower: hasPower)
+            
+            // Only process inserter logic if powered
+            guard hasPower, let power = power else { return }
             
             let speedMultiplier = power.satisfaction
             
@@ -194,13 +200,25 @@ final class InserterSystem: System {
     
     // MARK: - Animation
     
-    private func updateInserterAnimation(entity: Entity, deltaTime: Float) {
+    private func updateInserterAnimation(entity: Entity, deltaTime: Float, hasPower: Bool) {
         guard var sprite = world.get(SpriteComponent.self, for: entity),
               var animation = sprite.animation else { return }
         
-        // Update animation frame (always playing, looping)
-        if let currentFrame = animation.update(deltaTime: deltaTime) {
-            sprite.textureId = currentFrame
+        // Pause animation if no power, play if powered
+        if hasPower {
+            if !animation.isPlaying {
+                animation.play()
+            }
+            // Update animation frame when powered
+            if let currentFrame = animation.update(deltaTime: deltaTime) {
+                sprite.textureId = currentFrame
+            }
+        } else {
+            // Pause animation when no power
+            if animation.isPlaying {
+                animation.pause()
+            }
+            // Keep current frame (don't update)
         }
         
         sprite.animation = animation
