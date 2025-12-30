@@ -327,9 +327,9 @@ final class HUD {
         // Get building texture
         let textureRect = renderer.textureAtlas.getTextureRect(for: buildingDef.textureId)
 
-        // For belts, render the path preview
-        if buildingId.contains("belt") && !inputManager.beltPathPreview.isEmpty {
-            for tilePos in inputManager.beltPathPreview {
+        // For belts/poles, render the path preview
+        if (buildingId.contains("belt") || buildingId.contains("pole")) && !inputManager.dragPathPreview.isEmpty {
+            for tilePos in inputManager.dragPathPreview {
                 let worldPos = Vector2(Float(tilePos.x) + 0.5, Float(tilePos.y) + 0.5)
                 
                 // Check if placement is valid

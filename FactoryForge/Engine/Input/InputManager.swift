@@ -38,10 +38,10 @@ final class InputManager: NSObject {
     // Building movement
     var entityToMove: Entity?  // Entity being moved (accessible for preview rendering)
     
-    // Belt placement (drag-based)
-    private var beltStartTile: IntVector2?  // Starting tile for belt placement
-    private var beltPlacedTiles: Set<IntVector2> = []  // Tiles where belts have been placed in current drag
-    var beltPathPreview: [IntVector2] = []  // Preview path for rendering
+    // Belt and pole placement (drag-based)
+    private var dragPlacementStartTile: IntVector2?  // Starting tile for drag placement
+    private var dragPlacedTiles: Set<IntVector2> = []  // Tiles where items have been placed in current drag
+    var dragPathPreview: [IntVector2] = []  // Preview path for rendering
     
     // Selection
     var selectedEntity: Entity?
@@ -409,12 +409,12 @@ final class InputManager: NSObject {
         case .placing:
             let tilePos = IntVector2(from: worldPos)
             
-            // Handle belt placement (tap to set start tile, then drag)
-            if let buildingId = selectedBuildingId, buildingId.contains("belt") {
-                // Just set the start tile, belts will be placed during drag
-                beltStartTile = tilePos
-                beltPlacedTiles = []
-                beltPathPreview = [tilePos]
+            // Handle belt/pole placement (tap to set start tile, then drag)
+            if let buildingId = selectedBuildingId, buildingId.contains("belt") || buildingId.contains("pole") {
+                // Just set the start tile, items will be placed during drag
+                dragPlacementStartTile = tilePos
+                dragPlacedTiles = []
+                dragPathPreview = [tilePos]
                 return
             }
             
@@ -559,12 +559,12 @@ final class InputManager: NSObject {
                 // Update build preview position
                 buildPreviewPosition = IntVector2(from: worldPos)
                 
-                // For belt placement, set start tile if not already set
-                if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") {
-                    if beltStartTile == nil {
-                        beltStartTile = IntVector2(from: worldPos)
-                        beltPlacedTiles = []
-                        beltPathPreview = [beltStartTile!]
+                // For belt/pole placement, set start tile if not already set
+                if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") || buildingId.contains("pole") {
+                    if dragPlacementStartTile == nil {
+                        dragPlacementStartTile = IntVector2(from: worldPos)
+                        dragPlacedTiles = []
+                        dragPathPreview = [dragPlacementStartTile!]
                     }
                 }
             }
@@ -593,9 +593,9 @@ final class InputManager: NSObject {
             if buildMode == .placing || buildMode == .moving {
                 buildPreviewPosition = IntVector2(from: worldPos)
                 
-                // Handle belt placement during drag
-                if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") {
-                    handleBeltDrag(at: worldPos, gameLoop: gameLoop, buildingId: buildingId)
+                // Handle belt/pole placement during drag
+                if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") || buildingId.contains("pole") {
+                    handleDragPlacement(at: worldPos, gameLoop: gameLoop, buildingId: buildingId)
                 }
             }
 
@@ -632,12 +632,12 @@ final class InputManager: NSObject {
 
             isDragging = false
             
-            // Exit build mode after belt placement drag ends
-            if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") {
+            // Exit build mode after belt/pole placement drag ends
+            if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") || buildingId.contains("pole") {
                 exitBuildMode()
             } else {
-                // Clear belt placement state on drag end (for other modes)
-                beltPlacedTiles = []
+                // Clear drag placement state on drag end (for other modes)
+                dragPlacedTiles = []
             }
             // Don't clear buildPreviewPosition - keep preview visible until build mode exits
             
@@ -1274,9 +1274,9 @@ final class InputManager: NSObject {
         buildMode = .none
         selectedBuildingId = nil
         buildPreviewPosition = nil
-        beltStartTile = nil
-        beltPlacedTiles = []
-        beltPathPreview = []
+        dragPlacementStartTile = nil
+        dragPlacedTiles = []
+        dragPathPreview = []
         entityToMove = nil
     }
     
@@ -1285,9 +1285,9 @@ final class InputManager: NSObject {
         entityToMove = entity
         selectedBuildingId = nil
         buildPreviewPosition = nil
-        beltStartTile = nil
-        beltPlacedTiles = []
-        beltPathPreview = []
+        dragPlacementStartTile = nil
+        dragPlacedTiles = []
+        dragPathPreview = []
     }
     
     // MARK: - Belt Placement
@@ -1309,12 +1309,12 @@ final class InputManager: NSObject {
         return canBeBeltSource(entity: entity, world: world)
     }
     
-    /// Handles belt placement during drag
-    private func handleBeltDrag(at worldPos: Vector2, gameLoop: GameLoop, buildingId: String) {
+    /// Handles belt/pole placement during drag
+    private func handleDragPlacement(at worldPos: Vector2, gameLoop: GameLoop, buildingId: String) {
         guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else { return }
         
         // Ensure we have a start tile
-        guard let startTile = beltStartTile else { return }
+        guard let startTile = dragPlacementStartTile else { return }
         
         let currentTile = IntVector2(from: worldPos)
         
@@ -1322,12 +1322,14 @@ final class InputManager: NSObject {
         let path = calculateBeltPath(from: startTile, to: currentTile)
         
         // Update preview
-        beltPathPreview = path
+        dragPathPreview = path
         
-        // Place belts along the path that haven't been placed yet
+        let isBelt = buildingId.contains("belt")
+        
+        // Place items along the path that haven't been placed yet
         for (index, pos) in path.enumerated() {
             // Skip if already placed
-            if beltPlacedTiles.contains(pos) {
+            if dragPlacedTiles.contains(pos) {
                 continue
             }
             
@@ -1340,50 +1342,55 @@ final class InputManager: NSObject {
                 continue
             }
             
-            // Determine direction based on next tile in path (for start tile) or previous tile
+            // Determine direction - only needed for belts, poles use .north
             let direction: Direction
-            if index == 0 && path.count > 1 {
-                // For the start tile, use direction to the next tile
-                let nextPos = path[index + 1]
-                let dx = nextPos.x - pos.x
-                let dy = nextPos.y - pos.y
-                
-                if dx > 0 {
-                    direction = .east
-                } else if dx < 0 {
-                    direction = .west
-                } else if dy > 0 {
-                    direction = .north
-                } else if dy < 0 {
-                    direction = .south
+            if isBelt {
+                if index == 0 && path.count > 1 {
+                    // For the start tile, use direction to the next tile
+                    let nextPos = path[index + 1]
+                    let dx = nextPos.x - pos.x
+                    let dy = nextPos.y - pos.y
+                    
+                    if dx > 0 {
+                        direction = .east
+                    } else if dx < 0 {
+                        direction = .west
+                    } else if dy > 0 {
+                        direction = .north
+                    } else if dy < 0 {
+                        direction = .south
+                    } else {
+                        direction = .north  // Default
+                    }
+                } else if index > 0 {
+                    // For subsequent tiles, use direction from previous tile
+                    let prevPos = path[index - 1]
+                    let dx = pos.x - prevPos.x
+                    let dy = pos.y - prevPos.y
+                    
+                    if dx > 0 {
+                        direction = .east
+                    } else if dx < 0 {
+                        direction = .west
+                    } else if dy > 0 {
+                        direction = .north
+                    } else if dy < 0 {
+                        direction = .south
+                    } else {
+                        direction = .north  // Default
+                    }
                 } else {
-                    direction = .north  // Default
-                }
-            } else if index > 0 {
-                // For subsequent tiles, use direction from previous tile
-                let prevPos = path[index - 1]
-                let dx = pos.x - prevPos.x
-                let dy = pos.y - prevPos.y
-                
-                if dx > 0 {
-                    direction = .east
-                } else if dx < 0 {
-                    direction = .west
-                } else if dy > 0 {
-                    direction = .north
-                } else if dy < 0 {
-                    direction = .south
-                } else {
-                    direction = .north  // Default
+                    direction = .north  // Default for single tile path
                 }
             } else {
-                direction = .north  // Default for single tile path
+                // Poles don't need direction
+                direction = .north
             }
             
-            // Place the belt
+            // Place the building
             if gameLoop.placeBuilding(buildingId, at: pos, direction: direction, offset: .zero) {
                 gameLoop.player.inventory.remove(items: buildingDef.cost)
-                beltPlacedTiles.insert(pos)
+                dragPlacedTiles.insert(pos)
             }
         }
     }
