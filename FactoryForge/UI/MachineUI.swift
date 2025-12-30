@@ -117,6 +117,14 @@ final class MachineUI: UIPanel_Base {
                 frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
                 index: 0
             ))
+        } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
+            // Generators (boilers): 1 centered fuel input slot
+            let slotX = frame.center.x
+            let slotY = frame.minY + 80 * UIScale + slotSize / 2
+            inputSlots.append(InventorySlot(
+                frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
+                index: 0
+            ))
         } else {
             // Default setup for other machines (assemblers, furnaces)
             let slotSpacing: Float = 5 * UIScale
@@ -185,6 +193,9 @@ final class MachineUI: UIPanel_Base {
             print("MachineUI: Found \(availableRecipes.count) smelting recipes for furnace")
         } else if gameLoop.world.has(MinerComponent.self, for: entity) {
             print("MachineUI: Machine is mining drill (no recipes needed)")
+            availableRecipes = []
+        } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
+            print("MachineUI: Machine is generator/boiler (no recipes needed)")
             availableRecipes = []
         } else {
             print("MachineUI: Machine type not recognized")
@@ -313,6 +324,18 @@ final class MachineUI: UIPanel_Base {
                 }
                 // Clear input slots (mining drills don't have inputs)
                 for slot in inputSlots {
+                    slot.item = nil
+                }
+            } else if world.has(GeneratorComponent.self, for: entity) {
+                // Generators (boilers): single fuel input slot
+                for (index, slot) in inputSlots.enumerated() {
+                    if index < inventory.slots.count {
+                        slot.item = inventory.slots[index]
+                        updateCountLabel(for: slot, label: inputCountLabels[index], item: slot.item)
+                    }
+                }
+                // Clear output slots (generators don't have outputs)
+                for slot in outputSlots {
                     slot.item = nil
                 }
             } else {
@@ -500,14 +523,27 @@ final class MachineUI: UIPanel_Base {
 
         if isInput {
             // Input slot - open inventory UI to let player choose what to add or replace
-            onOpenInventoryForMachine?(entity, slot.index)
+            // For generators, the slot index maps directly to inventory slot
+            let inventorySlotIndex: Int
+            if gameLoop.world.has(GeneratorComponent.self, for: entity) {
+                inventorySlotIndex = slot.index  // Generators: direct mapping
+            } else {
+                inventorySlotIndex = slot.index  // Other machines: also direct for input slots
+            }
+            onOpenInventoryForMachine?(entity, inventorySlotIndex)
             return
         } else {
             // Output slot - try to take item to player inventory
             guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { return }
 
             // Get the actual item from the inventory slot (not from slot.item which might be stale)
-            let outputSlotIndex = machineInventory.slots.count / 2 + slot.index
+            let outputSlotIndex: Int
+            if gameLoop.world.has(GeneratorComponent.self, for: entity) {
+                // Generators don't have output slots
+                return
+            } else {
+                outputSlotIndex = machineInventory.slots.count / 2 + slot.index
+            }
             guard outputSlotIndex < machineInventory.slots.count,
                   let item = machineInventory.slots[outputSlotIndex] else { return }
             

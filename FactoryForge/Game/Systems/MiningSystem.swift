@@ -13,6 +13,10 @@ final class MiningSystem: System {
     }
     
     func update(deltaTime: Float) {
+        // Collect all modifications to apply after iteration
+        var minerModifications: [(Entity, MinerComponent)] = []
+        var inventoryModifications: [(Entity, InventoryComponent)] = []
+        
         world.forEach(MinerComponent.self) { [self] entity, miner in
             guard miner.isActive else { return }
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
@@ -27,31 +31,49 @@ final class MiningSystem: System {
             
             // Find resource at miner position
             guard let resource = findResource(at: position.tilePosition) else {
-                miner.isActive = false
+                var updatedMiner = miner
+                updatedMiner.isActive = false
+                minerModifications.append((entity, updatedMiner))
                 return
             }
             
-            miner.resourceOutput = resource.type.outputItem
+            var updatedMiner = miner
+            updatedMiner.isActive = true  // Ensure it's active if resource found
+            updatedMiner.resourceOutput = resource.type.outputItem
             
             // Check if output inventory has space
-            guard inventory.canAccept(itemId: resource.type.outputItem) else { return }
+            guard inventory.canAccept(itemId: resource.type.outputItem) else { 
+                minerModifications.append((entity, updatedMiner))
+                return 
+            }
             
             // Progress mining
-            let miningTime = 1.0 / (miner.miningSpeed * resource.richness * speedMultiplier)
-            miner.progress += deltaTime / miningTime
+            let miningTime = 1.0 / (updatedMiner.miningSpeed * resource.richness * speedMultiplier)
+            updatedMiner.progress += deltaTime / miningTime
             
             // Complete mining
-            if miner.progress >= 1.0 {
-                miner.progress = 0
+            if updatedMiner.progress >= 1.0 {
+                updatedMiner.progress = 0
                 
                 // Extract from resource
                 let mined = chunkManager.mineResource(at: position.tilePosition)
                 if mined > 0 {
                     // Add to output inventory
                     inventory.add(itemId: resource.type.outputItem, count: 1)
-                    world.add(inventory, to: entity)
+                    inventoryModifications.append((entity, inventory))
                 }
             }
+            
+            // Save miner component (progress, isActive, etc. need to persist)
+            minerModifications.append((entity, updatedMiner))
+        }
+        
+        // Apply all modifications after iteration completes
+        for (entity, miner) in minerModifications {
+            world.add(miner, to: entity)
+        }
+        for (entity, inventory) in inventoryModifications {
+            world.add(inventory, to: entity)
         }
     }
     

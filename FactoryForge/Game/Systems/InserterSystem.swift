@@ -23,7 +23,11 @@ final class InserterSystem: System {
             case .idle:
                 // Check if we can pick something up
                 if inserter.heldItem == nil {
-                    inserter.state = .pickingUp
+                    // Check if there's something to pick up before starting rotation
+                    let sourcePos = position.tilePosition - inserter.direction.intVector
+                    if canPickUp(from: sourcePos) {
+                        inserter.state = .pickingUp
+                    }
                 }
                 
             case .pickingUp:
@@ -38,6 +42,10 @@ final class InserterSystem: System {
                     if let item = tryPickUp(inserter: inserter, position: position) {
                         inserter.heldItem = item
                         inserter.state = .rotating
+                    } else {
+                        // Nothing to pick up, return to idle
+                        inserter.armAngle = 0
+                        inserter.state = .idle
                     }
                 } else {
                     inserter.armAngle += angleDiff > 0 ? rotationSpeed : -rotationSpeed
@@ -62,6 +70,11 @@ final class InserterSystem: System {
                     if tryDropOff(inserter: inserter, position: position, item: item) {
                         inserter.heldItem = nil
                         inserter.state = .idle
+                        inserter.armAngle = 0
+                    } else {
+                        // Can't drop off, return to idle with item still held
+                        // (This shouldn't happen often, but prevents getting stuck)
+                        inserter.state = .idle
                     }
                 } else {
                     inserter.state = .idle
@@ -71,6 +84,29 @@ final class InserterSystem: System {
     }
     
     // MARK: - Pick Up Logic
+    
+    /// Checks if there's something to pick up from a position
+    private func canPickUp(from position: IntVector2) -> Bool {
+        // Check if there's an item on a belt (check both lanes)
+        if let beltEntity = beltSystem.getBeltAt(position: position),
+           let belt = world.get(BeltComponent.self, for: beltEntity) {
+            // Check if either lane has an item near the end (ready to be picked up)
+            for laneItems in [belt.leftLane, belt.rightLane] {
+                if let lastItem = laneItems.last, lastItem.progress >= 0.9 {
+                    return true
+                }
+            }
+        }
+        
+        // Check if there's an entity with inventory that has items
+        if let entity = world.getEntityAt(position: position),
+           let inventory = world.get(InventoryComponent.self, for: entity),
+           !inventory.isEmpty {
+            return true
+        }
+        
+        return false
+    }
     
     private func tryPickUp(inserter: InserterComponent, position: PositionComponent) -> ItemStack? {
         let sourcePos = position.tilePosition - inserter.direction.intVector

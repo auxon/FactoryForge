@@ -113,6 +113,16 @@ final class RecipeRegistry {
         ))
         
         register(Recipe(
+            id: "pipe",
+            name: "Pipe",
+            inputs: [ItemStack(itemId: "iron-plate", count: 1)],
+            outputs: [ItemStack(itemId: "pipe", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "b1"
+        ))
+        
+        register(Recipe(
             id: "electronic-circuit",
             name: "Electronic Circuit",
             inputs: [

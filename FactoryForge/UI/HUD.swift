@@ -233,34 +233,57 @@ final class HUD {
         guard let inputManager = inputManager,
               inputManager.buildMode == .placing,
               let buildingId = inputManager.selectedBuildingId,
-              let previewPos = inputManager.buildPreviewPosition,
               let gameLoop = gameLoop,
               let buildingDef = gameLoop.buildingRegistry.get(buildingId) else {
             return
         }
 
-        // Convert tile position to world position (center of tile)
-        let worldPos = Vector2(Float(previewPos.x) + 0.5, Float(previewPos.y) + 0.5)
-
-        // Check if placement is valid
-        let isValidPlacement = gameLoop.canPlaceBuilding(buildingId, at: previewPos, direction: inputManager.buildDirection)
-
-        // Choose color based on validity
-        let previewColor = isValidPlacement ?
-            Color(r: 0.2, g: 0.8, b: 0.2, a: 0.6) :  // Green for valid
-            Color(r: 0.8, g: 0.2, b: 0.2, a: 0.6)    // Red for invalid
-
         // Get building texture
         let textureRect = renderer.textureAtlas.getTextureRect(for: buildingDef.textureId)
 
-        // Render ghost preview
-        renderer.queueSprite(SpriteInstance(
-            position: worldPos,
-            size: Vector2(1.0, 1.0), // Standard tile size
-            textureRect: textureRect,
-            color: previewColor,
-            layer: .entity // Render above ground but below UI
-        ))
+        // For belts, render the path preview
+        if buildingId.contains("belt") && !inputManager.beltPathPreview.isEmpty {
+            for tilePos in inputManager.beltPathPreview {
+                let worldPos = Vector2(Float(tilePos.x) + 0.5, Float(tilePos.y) + 0.5)
+                
+                // Check if placement is valid
+                let isValidPlacement = gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: inputManager.buildDirection)
+                
+                // Choose color based on validity
+                let previewColor = isValidPlacement ?
+                    Color(r: 0.2, g: 0.8, b: 0.2, a: 0.6) :  // Green for valid
+                    Color(r: 0.8, g: 0.2, b: 0.2, a: 0.6)    // Red for invalid
+                
+                // Render ghost preview for this tile
+                renderer.queueSprite(SpriteInstance(
+                    position: worldPos,
+                    size: Vector2(1.0, 1.0), // Standard tile size
+                    textureRect: textureRect,
+                    color: previewColor,
+                    layer: .entity // Render above ground but below UI
+                ))
+            }
+        } else if let previewPos = inputManager.buildPreviewPosition {
+            // For non-belt buildings, render single preview
+            let worldPos = Vector2(Float(previewPos.x) + 0.5, Float(previewPos.y) + 0.5)
+
+            // Check if placement is valid
+            let isValidPlacement = gameLoop.canPlaceBuilding(buildingId, at: previewPos, direction: inputManager.buildDirection)
+
+            // Choose color based on validity
+            let previewColor = isValidPlacement ?
+                Color(r: 0.2, g: 0.8, b: 0.2, a: 0.6) :  // Green for valid
+                Color(r: 0.8, g: 0.2, b: 0.2, a: 0.6)    // Red for invalid
+
+            // Render ghost preview
+            renderer.queueSprite(SpriteInstance(
+                position: worldPos,
+                size: Vector2(1.0, 1.0), // Standard tile size
+                textureRect: textureRect,
+                color: previewColor,
+                layer: .entity // Render above ground but below UI
+            ))
+        }
     }
     
     private func renderMiningAnimations(renderer: MetalRenderer) {

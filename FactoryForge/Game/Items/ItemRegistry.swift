@@ -47,6 +47,7 @@ final class ItemRegistry {
         register(Item(id: "stone-brick", name: "Stone Brick", stackSize: 100, category: .intermediate, order: "d"))
         register(Item(id: "iron-gear-wheel", name: "Iron Gear Wheel", stackSize: 100, category: .intermediate, order: "e"))
         register(Item(id: "copper-cable", name: "Copper Cable", stackSize: 200, category: .intermediate, order: "f"))
+        register(Item(id: "pipe", name: "Pipe", stackSize: 100, category: .intermediate, order: "f1"))
         register(Item(id: "electronic-circuit", name: "Electronic Circuit", stackSize: 200, category: .intermediate, order: "g"))
         register(Item(id: "advanced-circuit", name: "Advanced Circuit", stackSize: 200, category: .intermediate, order: "h"))
         register(Item(id: "processing-unit", name: "Processing Unit", stackSize: 100, category: .intermediate, order: "i"))

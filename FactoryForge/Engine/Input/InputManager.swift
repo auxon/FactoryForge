@@ -35,6 +35,10 @@ final class InputManager: NSObject {
     var buildDirection: Direction = .north
     var buildPreviewPosition: IntVector2?
     
+    // Belt placement (entity-to-entity connection)
+    private var beltSourceEntity: Entity?  // First entity selected (source)
+    var beltPathPreview: [IntVector2] = []  // Preview path for rendering
+    
     // Selection
     var selectedEntity: Entity?
     
@@ -426,8 +430,15 @@ final class InputManager: NSObject {
             }
             
         case .placing:
-            // Check if we're tapping on an existing entity first (allow interaction even in build mode)
             let tilePos = IntVector2(from: worldPos)
+            
+            // Handle belt placement (entity-to-entity connection)
+            if let buildingId = selectedBuildingId, buildingId.contains("belt") {
+                handleBeltPlacementTap(at: tilePos, gameLoop: gameLoop, buildingId: buildingId)
+                return
+            }
+            
+            // For non-belt buildings, check if we're tapping on an existing entity
             if let entity = gameLoop.world.getEntityAt(position: tilePos) {
                 // Entity was tapped - select it and exit build mode
                 selectedEntity = entity
@@ -435,10 +446,8 @@ final class InputManager: NSObject {
                 exitBuildMode()
                 return
             }
-
-            // In build mode, don't allow manual mining - prioritize building placement
             
-                // Place building
+            // Place building (non-belt)
             if let buildingId = selectedBuildingId {
                 // Check if we can place the building and why it might fail
                 guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else {
@@ -528,10 +537,8 @@ final class InputManager: NSObject {
             dragStartPosition = screenPos
 
             // Check if touch started in UI area FIRST (for drag gestures)
-            if let uiSystem = gameLoop.uiSystem {
-                // Store the start position for drag gestures
-                isUIDragging = false
-            }
+            // Store the start position for drag gestures
+            isUIDragging = false
 
             // Check if touch started in joystick area FIRST
             if let joystick = joystick {
@@ -554,8 +561,13 @@ final class InputManager: NSObject {
             cameraStartPosition = renderer.camera.position
             
             if buildMode == .placing {
-                // Start belt drag placement
+                // Update build preview position
                 buildPreviewPosition = IntVector2(from: worldPos)
+                
+                // Update belt path preview if we're placing belts and have a source entity
+                if let buildingId = selectedBuildingId, buildingId.contains("belt"), beltSourceEntity != nil {
+                    updateBeltPathPreview(at: worldPos, gameLoop: gameLoop)
+                }
             }
             
         case .changed:
@@ -581,6 +593,11 @@ final class InputManager: NSObject {
             // Update build preview position for any build mode
             if buildMode == .placing {
                 buildPreviewPosition = IntVector2(from: worldPos)
+                
+                // Update belt path preview if we're placing belts and have a source entity
+                if let buildingId = selectedBuildingId, buildingId.contains("belt"), beltSourceEntity != nil {
+                    updateBeltPathPreview(at: worldPos, gameLoop: gameLoop)
+                }
             }
 
             // Handle joystick movement
@@ -600,14 +617,8 @@ final class InputManager: NSObject {
                 let delta = screenPos - panStartPosition
                 let worldDelta = delta / renderer.camera.zoom / 32.0
                 renderer.camera.target = cameraStartPosition - Vector2(worldDelta.x, -worldDelta.y)
-            } else if buildMode == .placing {
-                // For belts, continuously place as we drag
-                if let buildingId = selectedBuildingId,
-                   buildingId.contains("belt"),
-                   let pos = buildPreviewPosition {
-                    _ = gameLoop.placeBuilding(buildingId, at: pos, direction: buildDirection, offset: .zero)
-                }
             }
+            // Belt placement is now handled by tap-to-start, tap-to-end, not drag
             
         case .ended, .cancelled:
             // Reset UI drag state
@@ -1045,6 +1056,163 @@ final class InputManager: NSObject {
         buildMode = .none
         selectedBuildingId = nil
         buildPreviewPosition = nil
+        beltSourceEntity = nil
+        beltPathPreview = []
+    }
+    
+    // MARK: - Belt Placement
+    
+    /// Checks if an entity can be a belt source (has inventory/output)
+    private func canBeBeltSource(entity: Entity, world: World) -> Bool {
+        // Check for any component that indicates output capability
+        return world.has(InventoryComponent.self, for: entity) ||
+               world.has(FurnaceComponent.self, for: entity) ||
+               world.has(AssemblerComponent.self, for: entity) ||
+               world.has(MinerComponent.self, for: entity) ||
+               world.has(ChestComponent.self, for: entity) ||
+               world.has(BeltComponent.self, for: entity)  // Belts can connect to other belts
+    }
+    
+    /// Checks if an entity can be a belt destination (has inventory/input)
+    private func canBeBeltDestination(entity: Entity, world: World) -> Bool {
+        // Same check - most entities with inventory can both input and output
+        return canBeBeltSource(entity: entity, world: world)
+    }
+    
+    private func handleBeltPlacementTap(at tilePos: IntVector2, gameLoop: GameLoop, buildingId: String) {
+        guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else { return }
+        
+        // Find entity at this position
+        guard let targetEntity = gameLoop.world.getEntityAt(position: tilePos) else {
+            onTooltip?("Select a building or item to connect")
+            return
+        }
+        
+        if let sourceEntity = beltSourceEntity {
+            // Second tap - check if this is a valid destination
+            guard sourceEntity != targetEntity else {
+                onTooltip?("Cannot connect entity to itself")
+                return
+            }
+            
+            guard canBeBeltDestination(entity: targetEntity, world: gameLoop.world) else {
+                onTooltip?("Selected entity cannot receive items")
+                return
+            }
+            
+            // Check inventory for belt items
+            if !gameLoop.player.inventory.has(items: buildingDef.cost) {
+                let missingItems = buildingDef.cost.filter { !gameLoop.player.inventory.has(items: [$0]) }
+                if let firstMissing = missingItems.first {
+                    let itemName = gameLoop.itemRegistry.get(firstMissing.itemId)?.name ?? firstMissing.itemId
+                    onTooltip?("Need \(firstMissing.count) \(itemName)")
+                } else {
+                    onTooltip?("Missing required items")
+                }
+                return
+            }
+            
+            // Get positions of source and destination entities
+            guard let sourcePos = gameLoop.world.get(PositionComponent.self, for: sourceEntity),
+                  let destPos = gameLoop.world.get(PositionComponent.self, for: targetEntity) else {
+                onTooltip?("Invalid entity positions")
+                return
+            }
+            
+            // Calculate path and place belts
+            let path = calculateBeltPath(from: sourcePos.tilePosition, to: destPos.tilePosition)
+            var placedCount = 0
+            
+            for pos in path {
+                // Check if we can place here
+                if gameLoop.canPlaceBuilding(buildingId, at: pos, direction: buildDirection) {
+                    // Check if we still have items
+                    if gameLoop.player.inventory.has(items: buildingDef.cost) {
+                        if gameLoop.placeBuilding(buildingId, at: pos, direction: buildDirection, offset: .zero) {
+                            gameLoop.player.inventory.remove(items: buildingDef.cost)
+                            placedCount += 1
+                        }
+                    } else {
+                        // Out of items, stop placing
+                        break
+                    }
+                }
+            }
+            
+            if placedCount > 0 {
+                onBuildingPlaced?(buildingId, destPos.tilePosition, buildDirection)
+                onTooltip?("Placed \(placedCount) belt\(placedCount == 1 ? "" : "s")")
+            } else {
+                onTooltip?("Cannot place belts along path")
+            }
+            
+            // Reset for next placement
+            beltSourceEntity = nil
+            beltPathPreview = []
+        } else {
+            // First tap - select source entity
+            guard canBeBeltSource(entity: targetEntity, world: gameLoop.world) else {
+                onTooltip?("Selected entity cannot output items")
+                return
+            }
+            
+            beltSourceEntity = targetEntity
+            if let sourcePos = gameLoop.world.get(PositionComponent.self, for: targetEntity) {
+                beltPathPreview = [sourcePos.tilePosition]  // Start with source position
+            }
+            onTooltip?("Select destination building or item")
+        }
+    }
+    
+    /// Calculates a path of tiles between two points (Manhattan path)
+    private func calculateBeltPath(from start: IntVector2, to end: IntVector2) -> [IntVector2] {
+        var path: [IntVector2] = []
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        
+        // Simple Manhattan path: move horizontally first, then vertically
+        let stepX = dx > 0 ? 1 : (dx < 0 ? -1 : 0)
+        let stepY = dy > 0 ? 1 : (dy < 0 ? -1 : 0)
+        
+        var current = start
+        path.append(current)
+        
+        // Move horizontally
+        while current.x != end.x {
+            current = IntVector2(x: current.x + Int32(stepX), y: current.y)
+            path.append(current)
+        }
+        
+        // Move vertically
+        while current.y != end.y {
+            current = IntVector2(x: current.x, y: current.y + Int32(stepY))
+            path.append(current)
+        }
+        
+        return path
+    }
+    
+    /// Updates the belt path preview when hovering (called from pan handler)
+    func updateBeltPathPreview(at worldPos: Vector2, gameLoop: GameLoop) {
+        guard let sourceEntity = beltSourceEntity,
+              let sourcePos = gameLoop.world.get(PositionComponent.self, for: sourceEntity) else {
+            beltPathPreview = []
+            return
+        }
+        
+        let tilePos = IntVector2(from: worldPos)
+        
+        // Check if there's a valid destination entity at this position
+        if let destEntity = gameLoop.world.getEntityAt(position: tilePos),
+           destEntity != sourceEntity,
+           canBeBeltDestination(entity: destEntity, world: gameLoop.world),
+           let destPos = gameLoop.world.get(PositionComponent.self, for: destEntity) {
+            // Show preview path to valid destination
+            beltPathPreview = calculateBeltPath(from: sourcePos.tilePosition, to: destPos.tilePosition)
+        } else {
+            // No valid destination - clear preview
+            beltPathPreview = []
+        }
     }
     
     func rotateBuildDirection() {

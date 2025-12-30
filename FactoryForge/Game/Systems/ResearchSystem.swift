@@ -37,7 +37,7 @@ final class ResearchSystem: System {
         // Recipes available from the start
         let defaultRecipes = [
             "iron-plate", "copper-plate", "stone-brick", "steel-plate",
-            "iron-gear-wheel", "copper-cable", "electronic-circuit",
+            "iron-gear-wheel", "copper-cable", "pipe", "electronic-circuit",
             "transport-belt", "inserter", "wooden-chest", "iron-chest",
             "burner-mining-drill", "electric-mining-drill", "stone-furnace",
             "boiler", "steam-engine", "small-electric-pole",
@@ -219,6 +219,20 @@ final class ResearchSystem: System {
         researchProgress = state.progress
         completedTechnologies = Set(state.completed)
         unlockedRecipes = Set(state.unlockedRecipes)
+        
+        // Ensure default recipes are always unlocked (merge with loaded recipes)
+        // This ensures new default recipes (like "pipe") are available even in old saves
+        let defaultRecipes = [
+            "iron-plate", "copper-plate", "stone-brick", "steel-plate",
+            "iron-gear-wheel", "copper-cable", "pipe", "electronic-circuit",
+            "transport-belt", "inserter", "wooden-chest", "iron-chest",
+            "burner-mining-drill", "electric-mining-drill", "stone-furnace",
+            "boiler", "steam-engine", "small-electric-pole",
+            "firearm-magazine", "automation-science-pack", "lab", "radar"
+        ]
+        for recipe in defaultRecipes {
+            unlockedRecipes.insert(recipe)
+        }
         
         // Rebuild bonuses
         bonuses.removeAll()

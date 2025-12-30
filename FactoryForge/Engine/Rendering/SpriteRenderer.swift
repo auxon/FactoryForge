@@ -67,46 +67,13 @@ final class SpriteRenderer {
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
 
-            var textureId = sprite.textureId
-
-            // Belt animation system - animate transport belts
+            // Skip belt rendering here - belts are drawn as simple shapes instead of sprites
             let beltTypes = ["transport_belt", "fast_transport_belt", "express_transport_belt"]
-            if beltTypes.contains(textureId) {
-                // Get belt direction from BeltComponent
-                let direction: Direction
-                if let belt = world.get(BeltComponent.self, for: entity) {
-                    direction = belt.direction
-                } else {
-                    // Fallback to north if no belt component found
-                    direction = .north
-                }
-                
-                // Convert direction to string
-                let directionString: String
-                switch direction {
-                case .north: directionString = "north"
-                case .east: directionString = "east"
-                case .south: directionString = "south"
-                case .west: directionString = "west"
-                }
-                
-                // Calculate animation frame based on time
-                let currentTime = Date().timeIntervalSince1970
-                let fractionalTime = currentTime - floor(currentTime) // Get fractional seconds
-
-                // Animation parameters
-                let animationSpeed: Float = 8.0 // Speed multiplier
-                let speedMultiplier = animationSpeed / 8.0
-                let animationProgress = Float(fractionalTime) * speedMultiplier
-                let frameIndex = Int(animationProgress * 16.0) % 16
-
-                // Format frame number with leading zeros (001-016)
-                let frameString = String(format: "%03d", frameIndex + 1)
-                // Use transport_belt prefix for all belt types (as requested)
-                textureId = "transport_belt_\(directionString)_\(frameString)"
+            if beltTypes.contains(sprite.textureId) {
+                continue  // Skip belt sprites - they'll be drawn as shapes
             }
 
-            let textureRect = textureAtlas.getTextureRect(for: textureId)
+            let textureRect = textureAtlas.getTextureRect(for: sprite.textureId)
 
             // For centered sprites (like player), use position directly
             // For non-centered sprites (buildings), offset by half size to align with tile origin
@@ -122,6 +89,9 @@ final class SpriteRenderer {
             ))
         }
 
+        // Render belts as simple shapes (before items so items appear on top)
+        renderBelts(world: world, visibleRect: visibleRect, camera: camera)
+        
         // Add items on belts
         renderBeltItems(world: world, visibleRect: visibleRect)
 
@@ -181,6 +151,48 @@ final class SpriteRenderer {
         encoder.setFragmentSamplerState(textureAtlas.sampler, index: 0)
 
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+    }
+    
+    private func renderBelts(world: World, visibleRect: Rect, camera: Camera2D) {
+        // Use solid white texture and tint it with belt color
+        let solidRect = textureAtlas.getTextureRect(for: "solid_white")
+        
+        // Belt colors for different types
+        let beltColors: [String: Color] = [
+            "transport_belt": Color(r: 0.9, g: 0.85, b: 0.1, a: 1.0),      // Yellow
+            "fast_transport_belt": Color(r: 0.2, g: 0.5, b: 0.9, a: 1.0),  // Blue
+            "express_transport_belt": Color(r: 0.8, g: 0.2, b: 0.8, a: 1.0) // Purple
+        ]
+        
+        for entity in world.query(BeltComponent.self, SpriteComponent.self) {
+            guard let position = world.get(PositionComponent.self, for: entity),
+                  let belt = world.get(BeltComponent.self, for: entity),
+                  let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
+            
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+            
+            // Get belt color based on texture ID
+            let beltColor = beltColors[sprite.textureId] ?? Color(r: 0.9, g: 0.85, b: 0.1, a: 1.0)
+            
+            // Draw belt as a simple rectangle
+            // The belt should be oriented along its direction
+            let beltWidth: Float = 0.7  // Width of the belt (70% of tile)
+            let beltLength: Float = 1.0  // Full tile length
+            
+            // Create a rectangle oriented along the belt direction
+            let angle = belt.direction.angle
+            let beltSize = Vector2(beltWidth, beltLength)
+            
+            queuedSprites.append(SpriteInstance(
+                position: worldPos,
+                size: beltSize,
+                rotation: angle,
+                textureRect: solidRect,
+                color: beltColor,
+                layer: sprite.layer
+            ))
+        }
     }
     
     private func renderBeltItems(world: World, visibleRect: Rect) {
