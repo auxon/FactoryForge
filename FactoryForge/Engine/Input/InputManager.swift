@@ -356,7 +356,7 @@ final class InputManager: NSObject {
                 // Show tooltip for the closest entity
                 if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
                     onTooltip?(tooltipText)
-                    return // Don't check resources if we found an entity
+                    // Continue to entity selection - don't return early
                 }
             }
         }
@@ -401,50 +401,8 @@ final class InputManager: NSObject {
             }
             
             if !attacked {
-                // Try to select an entity at this position
-                let tilePos = IntVector2(from: worldPos)
-                if let entity = gameLoop.world.getEntityAt(position: tilePos) {
-                    selectedEntity = entity
-                    onEntitySelected?(entity)
-                } else {
-                    // No entity, check for resource to mine manually
-                    if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
-                        // Check if player can accept the item
-                        if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
-                            print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
-                            // Manual mining - mine 1 unit
-                            let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
-                            if mined > 0 {
-                                // Start mining animation
-                                let itemId = resource.type.outputItem
-                                gameLoop.uiSystem?.hud.startMiningAnimation(
-                                    itemId: itemId,
-                                    fromWorldPosition: worldPos,
-                                    renderer: gameLoop.renderer
-                                )
-                                
-                                // Add to player inventory (after a delay to match animation)
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
-                                    gameLoop?.player.inventory.add(itemId: itemId, count: mined)
-                                }
-                                
-                                print("Manually mined \(mined) \(itemId), \(resource.amount - mined) remaining")
-
-                                // Check if resource is now depleted
-                                if let updatedResource = gameLoop.chunkManager.getResource(at: tilePos) {
-                                    print("Resource now has \(updatedResource.amount) remaining")
-                                } else {
-                                    print("Resource depleted, tile should now be normal")
-                                }
-                            }
-                        } else {
-                            print("Inventory full, cannot mine")
-                        }
-                    } else {
-                        selectedEntity = nil
-                        onEntitySelected?(nil)
-                    }
-                }
+                // Try to select an entity at this position using the same logic as double tap
+                handleEntitySelection(at: screenPos, worldPos: worldPos, tilePos: tilePos, gameLoop: gameLoop)
             }
             
         case .placing:
@@ -693,6 +651,250 @@ final class InputManager: NSObject {
     }
 
 
+    private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop) {
+        // First, try to get the entity at the exact tile position (prioritizes buildings)
+        var closestEntity: Entity?
+        if let entityAtTile = gameLoop.world.getEntityAt(position: tilePos) {
+            // Check if this entity is interactable
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entityAtTile)
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entityAtTile)
+            let hasMiner = gameLoop.world.has(MinerComponent.self, for: entityAtTile)
+            let hasChest = gameLoop.world.has(ChestComponent.self, for: entityAtTile)
+            let hasLab = gameLoop.world.has(LabComponent.self, for: entityAtTile)
+            let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entityAtTile)
+            let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entityAtTile)
+            
+            if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole {
+                closestEntity = entityAtTile
+            }
+        }
+        
+        // If no entity found at exact position, search for interactable entities
+        if closestEntity == nil {
+            // First, try to find entities where the tap is within their bounds (for multi-tile buildings)
+            var candidates: [(Entity, Float)] = []
+            
+            // Query each type separately
+            let generatorEntities = gameLoop.world.query(GeneratorComponent.self)
+            for entity in generatorEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                }
+            }
+            
+            let furnaceEntities = gameLoop.world.query(FurnaceComponent.self)
+            for entity in furnaceEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                }
+            }
+            
+            let assemblerEntities = gameLoop.world.query(AssemblerComponent.self)
+            for entity in assemblerEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                }
+            }
+            
+            let minerEntities = gameLoop.world.query(MinerComponent.self)
+            for entity in minerEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                }
+            }
+            
+            let chestEntities = gameLoop.world.query(ChestComponent.self)
+            for entity in chestEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                }
+            }
+            
+            let labEntities = gameLoop.world.query(LabComponent.self)
+            for entity in labEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                }
+            }
+            
+            // Check power poles
+            let poleEntities = gameLoop.world.query(PowerPoleComponent.self)
+            for entity in poleEntities {
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                
+                let origin = pos.tilePosition
+                let width = Int32(sprite.size.x)
+                let height = Int32(sprite.size.y)
+                
+                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
+                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
+                
+                if isWithinBounds {
+                    let distance = pos.worldPosition.distance(to: worldPos)
+                    candidates.append((entity, distance))
+                }
+            }
+            
+            // If we found candidates within bounds, use the closest one
+            if !candidates.isEmpty {
+                candidates.sort { $0.1 < $1.1 }  // Sort by distance
+                closestEntity = candidates[0].0
+            } else {
+                // Fallback: search nearby entities by distance
+                let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 3.0)
+                var closestDistance = Float.greatestFiniteMagnitude
+                
+                for entity in nearbyEntities {
+                    let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+                    let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+                    let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+                    let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+                    let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
+                    let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
+                    let hasPowerPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
+                    
+                    // Also check if it's a boiler by sprite texture/size (2x3 = boiler)
+                    var isBoiler = false
+                    if let sprite = gameLoop.world.get(SpriteComponent.self, for: entity),
+                       let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                        // Boiler is 2x3 tiles
+                        if sprite.size.x == 2.0 && sprite.size.y == 3.0 {
+                            // Check if tap is within bounds
+                            let origin = pos.tilePosition
+                            if tilePos.x >= origin.x && tilePos.x < origin.x + 2 &&
+                               tilePos.y >= origin.y && tilePos.y < origin.y + 3 {
+                                isBoiler = true
+                            }
+                        }
+                    }
+                    
+                    guard hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPowerPole || isBoiler else { continue }
+                    
+                    if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                        let distance = pos.worldPosition.distance(to: worldPos)
+                        // Prioritize boilers found by size check
+                        let adjustedDistance = isBoiler ? distance * 0.1 : distance
+                        if adjustedDistance < closestDistance {
+                            closestDistance = adjustedDistance
+                            closestEntity = entity
+                        }
+                    }
+                }
+            }
+        }
+        
+        if let entity = closestEntity {
+            // Select the entity
+            selectedEntity = entity
+            onEntitySelected?(entity)
+        } else {
+            // No entity, check for resource to mine manually
+            if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
+                // Check if player can accept the item
+                if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
+                    print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
+                    // Manual mining - mine 1 unit
+                    let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
+                    if mined > 0 {
+                        // Start mining animation
+                        let itemId = resource.type.outputItem
+                        gameLoop.uiSystem?.hud.startMiningAnimation(
+                            itemId: itemId,
+                            fromWorldPosition: worldPos,
+                            renderer: gameLoop.renderer
+                        )
+                        
+                        // Add to player inventory (after a delay to match animation)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
+                            gameLoop?.player.inventory.add(itemId: itemId, count: mined)
+                        }
+                        
+                        print("Manually mined \(mined) \(itemId), \(resource.amount - mined) remaining")
+
+                        // Check if resource is now depleted
+                        if let updatedResource = gameLoop.chunkManager.getResource(at: tilePos) {
+                            print("Resource now has \(updatedResource.amount) remaining")
+                        } else {
+                            print("Resource depleted, tile should now be normal")
+                        }
+                    }
+                } else {
+                    print("Inventory full, cannot mine")
+                }
+            } else {
+                selectedEntity = nil
+                onEntitySelected?(nil)
+            }
+        }
+    }
+    
     private func handleNonCombatDoubleTap(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop) {
         // If we're in build mode, place the building instead of normal double-tap behavior
         if buildMode == .placing, let buildingId = selectedBuildingId {
@@ -737,299 +939,8 @@ final class InputManager: NSObject {
             return
         }
 
-        // Find the closest interactable entity near the tap position (use world position for better accuracy)
-        print("InputManager: Double-tap at tile (\(tilePos.x), \(tilePos.y)), worldPos: (\(worldPos.x), \(worldPos.y))")
-        
-        // First, try to get the entity at the exact tile position (prioritizes buildings)
-        var closestEntity: Entity?
-        if let entityAtTile = gameLoop.world.getEntityAt(position: tilePos) {
-            print("InputManager: getEntityAt returned entity \(entityAtTile) at tile \(tilePos)")
-            // Check if this entity is interactable
-            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entityAtTile)
-            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entityAtTile)
-            let hasMiner = gameLoop.world.has(MinerComponent.self, for: entityAtTile)
-            let hasChest = gameLoop.world.has(ChestComponent.self, for: entityAtTile)
-            let hasLab = gameLoop.world.has(LabComponent.self, for: entityAtTile)
-            let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entityAtTile)
-            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entityAtTile)
-            let hasInserter = gameLoop.world.has(InserterComponent.self, for: entityAtTile)
-            let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entityAtTile)
-            
-            print("InputManager: Entity \(entityAtTile) components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner), Chest: \(hasChest), Lab: \(hasLab), Generator: \(hasGenerator), Belt: \(hasBelt), Inserter: \(hasInserter), Pole: \(hasPole)")
-            
-            if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole {
-                closestEntity = entityAtTile
-                print("InputManager: Found interactable entity at exact tile position: \(entityAtTile)")
-            } else {
-                print("InputManager: Entity at tile is not interactable")
-            }
-        } else {
-            print("InputManager: getEntityAt returned nil for tile \(tilePos)")
-        }
-        
-        // If no entity found at exact position, search for interactable entities
-        if closestEntity == nil {
-            // First, try to find entities where the tap is within their bounds (for multi-tile buildings)
-            // Query all entities with interactable components and check bounds
-            var candidates: [(Entity, Float)] = []  // (entity, priority distance)
-            
-            // Check all generators, furnaces, assemblers, etc. to see if tap is within bounds
-            // Query each type separately (can't use protocol types in query)
-            let generatorEntities = gameLoop.world.query(GeneratorComponent.self)
-            print("InputManager: Found \(generatorEntities.count) entities with Generator component")
-            for entity in generatorEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { 
-                    print("InputManager: Generator entity \(entity) missing PositionComponent or SpriteComponent")
-                    continue 
-                }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                print("InputManager: Checking Generator entity \(entity) at origin \(origin), size \(width)x\(height), tap at \(tilePos)")
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                print("InputManager: Generator entity \(entity) - isWithinBounds: \(isWithinBounds)")
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                    print("InputManager: Found Generator entity \(entity) with tap within bounds, distance: \(distance), origin: \(origin), size: \(width)x\(height)")
-                } else {
-                    print("InputManager: Generator entity \(entity) tap NOT within bounds - tap: \(tilePos), origin: \(origin), size: \(width)x\(height)")
-                }
-            }
-            
-            let furnaceEntities = gameLoop.world.query(FurnaceComponent.self)
-            print("InputManager: Found \(furnaceEntities.count) entities with Furnace component")
-            for entity in furnaceEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                    print("InputManager: Found Furnace entity \(entity) with tap within bounds, distance: \(distance)")
-                }
-            }
-            
-            let assemblerEntities = gameLoop.world.query(AssemblerComponent.self)
-            print("InputManager: Found \(assemblerEntities.count) entities with Assembler component")
-            for entity in assemblerEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                    print("InputManager: Found Assembler entity \(entity) with tap within bounds, distance: \(distance)")
-                }
-            }
-            
-            let minerEntities = gameLoop.world.query(MinerComponent.self)
-            print("InputManager: Found \(minerEntities.count) entities with Miner component")
-            for entity in minerEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                    print("InputManager: Found Miner entity \(entity) with tap within bounds, distance: \(distance)")
-                }
-            }
-            
-            let chestEntities = gameLoop.world.query(ChestComponent.self)
-            print("InputManager: Found \(chestEntities.count) entities with Chest component")
-            for entity in chestEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                    print("InputManager: Found Chest entity \(entity) with tap within bounds, distance: \(distance)")
-                }
-            }
-            
-            let labEntities = gameLoop.world.query(LabComponent.self)
-            print("InputManager: Found \(labEntities.count) entities with Lab component")
-            for entity in labEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                    print("InputManager: Found Lab entity \(entity) with tap within bounds, distance: \(distance)")
-                }
-            }
-            
-            // Check power poles
-            let poleEntities = gameLoop.world.query(PowerPoleComponent.self)
-            print("InputManager: Found \(poleEntities.count) entities with PowerPole component")
-            for entity in poleEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                    print("InputManager: Found PowerPole entity \(entity) with tap within bounds, distance: \(distance)")
-                }
-            }
-            
-            // If we found candidates within bounds, use the closest one
-            if !candidates.isEmpty {
-                candidates.sort { $0.1 < $1.1 }  // Sort by distance
-                closestEntity = candidates[0].0
-                print("InputManager: Selected entity \(closestEntity!) from bounds check, distance: \(candidates[0].1)")
-            } else {
-                // Fallback: search nearby entities by distance, and also check by sprite texture/size for boilers
-                // This handles cases where boilers might not have GeneratorComponent (old saves)
-                let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 3.0)
-                print("InputManager: No entities within bounds, checking \(nearbyEntities.count) nearby entities")
-                var closestDistance = Float.greatestFiniteMagnitude
-                
-            for entity in nearbyEntities {
-                let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
-                let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
-                let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
-                let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
-                let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
-                let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
-                let hasPowerPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
-                
-                // Also check if it's a boiler by sprite texture/size (2x3 = boiler)
-                var isBoiler = false
-                if let sprite = gameLoop.world.get(SpriteComponent.self, for: entity),
-                   let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
-                    // Boiler is 2x3 tiles
-                    if sprite.size.x == 2.0 && sprite.size.y == 3.0 {
-                        // Check if tap is within bounds
-                        let origin = pos.tilePosition
-                        if tilePos.x >= origin.x && tilePos.x < origin.x + 2 &&
-                           tilePos.y >= origin.y && tilePos.y < origin.y + 3 {
-                            isBoiler = true
-                            print("InputManager: Found potential boiler entity \(entity) by size/texture check")
-                        }
-                    }
-                }
-                
-                guard hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPowerPole || isBoiler else { continue }
-                    
-                    if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
-                        let distance = pos.worldPosition.distance(to: worldPos)
-                        // Prioritize boilers found by size check
-                        let adjustedDistance = isBoiler ? distance * 0.1 : distance
-                        if adjustedDistance < closestDistance {
-                            closestDistance = adjustedDistance
-                            closestEntity = entity
-                            print("InputManager: Selected entity \(entity) (isBoiler: \(isBoiler)) with distance \(distance)")
-                        }
-                    }
-                }
-            }
-        }
-        
-        if let entity = closestEntity {
-            print("InputManager: Found closest interactable entity \(entity)")
-            // Check what type it is for logging
-            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
-            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
-            let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
-            let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
-            let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
-            let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
-            let hasPowerPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
-            print("InputManager: Entity components - Furnace: \(hasFurnace), Assembler: \(hasAssembler), Miner: \(hasMiner), Chest: \(hasChest), Lab: \(hasLab), Generator: \(hasGenerator), PowerPole: \(hasPowerPole)")
-
-            print("InputManager: Opening UI for entity")
-
-            // Exit build mode if we're in it
-            if buildMode != .none {
-                exitBuildMode()
-            }
-
-            // Select the entity and open appropriate UI
-            selectedEntity = entity
-            onEntitySelected?(entity)
-        } else {
-            print("InputManager: No interactable entity found near position")
-            // No entity, check for resource to mine
-            if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
-                // Check if player can accept the item
-                if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
-                    // Manual mining - mine 1 unit
-                    let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
-                    if mined > 0 {
-                        // Start mining animation
-                        let itemId = resource.type.outputItem
-                        gameLoop.uiSystem?.hud.startMiningAnimation(
-                            itemId: itemId,
-                            fromWorldPosition: worldPos,
-                            renderer: gameLoop.renderer
-                        )
-
-                        // Add to player inventory (after a delay to match animation)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
-                            gameLoop?.player.inventory.add(itemId: itemId, count: mined)
-                        }
-
-                        print("Manually mined \(mined) \(itemId)")
-                    }
-                } else {
-                    print("Inventory full, cannot mine")
-                    onTooltip?("Inventory Full")
-                }
-            }
-        }
+        // Use shared entity selection logic
+        handleEntitySelection(at: screenPos, worldPos: worldPos, tilePos: tilePos, gameLoop: gameLoop)
     }
 
     @objc private func handleRotation(_ recognizer: UIRotationGestureRecognizer) {

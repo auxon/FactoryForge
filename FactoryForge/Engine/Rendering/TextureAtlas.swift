@@ -85,6 +85,7 @@ final class TextureAtlas {
             ("menu", nil),
             ("new_game", nil),
             ("save_game", nil),
+            ("recycle", nil),
             ("disable_audio", nil),
             ("right_arrow", nil),
             ("solid_white", nil),
