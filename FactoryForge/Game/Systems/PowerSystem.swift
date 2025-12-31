@@ -35,13 +35,11 @@ final class PowerSystem: System {
     // MARK: - Network Building
     
     private func rebuildNetworks() {
-        print("PowerSystem: Rebuilding networks...")
         networks.removeAll()
         
         // Find all power poles
         var unvisited = Set<Entity>()
         let allPoles = world.query(PowerPoleComponent.self)
-        print("PowerSystem: Found \(allPoles.count) power poles in world")
         for entity in allPoles {
             unvisited.insert(entity)
         }
@@ -76,15 +74,11 @@ final class PowerSystem: System {
                 let supplyRadius = poleComp.supplyArea
                 let nearbyEntities = world.getEntitiesNear(position: polePos.worldPosition, radius: supplyRadius)
                 
-                print("PowerSystem: Pole \(pole.id) at \(polePos.worldPosition), supplyRadius: \(supplyRadius), found \(nearbyEntities.count) nearby entities")
-                
                 // Also check all generators and consumers in the world to see if they're within supply area
                 // This handles multi-tile buildings better by checking if any part of the building is within range
                 let allGenerators = world.query(GeneratorComponent.self)
                 let allConsumers = world.query(PowerConsumerComponent.self)
-                
-                print("PowerSystem: Found \(allGenerators.count) total generators, \(allConsumers.count) total consumers in world")
-                
+                 
                 for entity in allGenerators {
                     guard let entityPos = world.get(PositionComponent.self, for: entity),
                           let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
@@ -111,10 +105,7 @@ final class PowerSystem: System {
                     if isWithinRange {
                         if !network.generators.contains(entity) {
                             network.generators.append(entity)
-                            print("PowerSystem: Added generator entity \(entity.id) to network \(networkId) (center distance: \(centerDistance), min corner distance: \(minCornerDistance))")
                         }
-                    } else {
-                        print("PowerSystem: Generator \(entity.id) at center distance \(centerDistance), min corner distance \(minCornerDistance) from pole (supplyRadius: \(supplyRadius))")
                     }
                 }
                 
@@ -147,11 +138,8 @@ final class PowerSystem: System {
                                 network.consumers.append(entity)
                                 consumer.networkId = networkId
                                 world.add(consumer, to: entity)
-                                print("PowerSystem: Added consumer entity \(entity.id) (consumption: \(consumer.consumption) kW) to network \(networkId) (center distance: \(centerDistance), min corner distance: \(minCornerDistance))")
                             }
                         }
-                    } else {
-                        print("PowerSystem: Consumer \(entity.id) at center distance \(centerDistance), min corner distance \(minCornerDistance) from pole (supplyRadius: \(supplyRadius))")
                     }
                 }
                 
@@ -161,19 +149,16 @@ final class PowerSystem: System {
                     if world.has(GeneratorComponent.self, for: entity) {
                         if !network.generators.contains(entity) {
                             network.generators.append(entity)
-                            print("PowerSystem: Added generator entity \(entity.id) to network \(networkId) (from spatial query)")
                         }
                     }
                     if world.has(SolarPanelComponent.self, for: entity) {
                         if !network.generators.contains(entity) {
                             network.generators.append(entity)
-                            print("PowerSystem: Added solar panel entity \(entity.id) to network \(networkId)")
                         }
                     }
                     if world.has(AccumulatorComponent.self, for: entity) {
                         if !network.accumulators.contains(entity) {
                             network.accumulators.append(entity)
-                            print("PowerSystem: Added accumulator entity \(entity.id) to network \(networkId)")
                         }
                     }
                     
@@ -183,7 +168,6 @@ final class PowerSystem: System {
                             network.consumers.append(entity)
                             consumer.networkId = networkId
                             world.add(consumer, to: entity)
-                            print("PowerSystem: Added consumer entity \(entity.id) (consumption: \(consumer.consumption) kW) to network \(networkId) (from spatial query)")
                         }
                     }
                 }
@@ -220,7 +204,6 @@ final class PowerSystem: System {
         for consumer in network.consumers {
             if let consumerComp = world.get(PowerConsumerComponent.self, for: consumer) {
                 totalConsumption += consumerComp.consumption
-                // print("PowerSystem: Consumer \(consumer.id) consuming \(consumerComp.consumption) kW, satisfaction: \(consumerComp.satisfaction)")
             }
         }
         
@@ -236,9 +219,9 @@ final class PowerSystem: System {
             if let genComp = world.get(GeneratorComponent.self, for: generator) {
                 totalProduction += genComp.currentOutput
                 if genComp.currentOutput > 0 {
-                    print("PowerSystem: Generator \(generator.id) producing \(genComp.currentOutput) kW (fuel remaining: \(genComp.fuelRemaining))")
+                    // print("PowerSystem: Generator \(generator.id) producing \(genComp.currentOutput) kW (fuel remaining: \(genComp.fuelRemaining))")
                 } else {
-                    print("PowerSystem: Generator \(generator.id) producing 0 kW (fuel remaining: \(genComp.fuelRemaining))")
+                    // print("PowerSystem: Generator \(generator.id) producing 0 kW (fuel remaining: \(genComp.fuelRemaining))")
                 }
             }
             if let solarComp = world.get(SolarPanelComponent.self, for: generator) {
@@ -247,8 +230,6 @@ final class PowerSystem: System {
         }
         
         network.totalProduction = totalProduction
-        
-        // print("PowerSystem: Network \(network.id) - Production: \(totalProduction) kW, Consumption: \(totalConsumption) kW")
         
         // Calculate satisfaction
         var availablePower = totalProduction
@@ -298,16 +279,16 @@ final class PowerSystem: System {
             if var genComp = world.get(GeneratorComponent.self, for: generator),
                var inventory = world.get(InventoryComponent.self, for: generator) {
                 
-                print("PowerSystem: Updating generator \(generator.id), fuelRemaining: \(genComp.fuelRemaining), currentOutput: \(genComp.currentOutput), powerOutput: \(genComp.powerOutput)")
+                // print("PowerSystem: Updating generator \(generator.id), fuelRemaining: \(genComp.fuelRemaining), currentOutput: \(genComp.currentOutput), powerOutput: \(genComp.powerOutput)")
                 
                 // Consume fuel if needed
                 if genComp.fuelRemaining <= 0 {
-                    print("PowerSystem: Generator \(generator.id) needs fuel, attempting to consume...")
+                    // print("PowerSystem: Generator \(generator.id) needs fuel, attempting to consume...")
                     if consumeFuel(inventory: &inventory, generator: &genComp) {
                         world.add(inventory, to: generator)
-                        print("PowerSystem: Generator \(generator.id) consumed fuel, fuelRemaining now: \(genComp.fuelRemaining)")
+                        // print("PowerSystem: Generator \(generator.id) consumed fuel, fuelRemaining now: \(genComp.fuelRemaining)")
                     } else {
-                        print("PowerSystem: Generator \(generator.id) has no fuel available")
+                        // print("PowerSystem: Generator \(generator.id) has no fuel available")
                         genComp.currentOutput = 0
                         world.add(genComp, to: generator)
                         continue
@@ -326,19 +307,19 @@ final class PowerSystem: System {
                 if hasFuel && (hasConsumption || needsCharging) {
                     genComp.fuelRemaining -= deltaTime
                     genComp.currentOutput = genComp.powerOutput
-                    print("PowerSystem: Generator \(generator.id) burning fuel, output: \(genComp.currentOutput) kW, fuel remaining: \(genComp.fuelRemaining)")
+                    // print("PowerSystem: Generator \(generator.id) burning fuel, output: \(genComp.currentOutput) kW, fuel remaining: \(genComp.fuelRemaining)")
                 } else {
                     genComp.currentOutput = 0
                     if !hasFuel {
-                        print("PowerSystem: Generator \(generator.id) not burning - no fuel")
+                        // print("PowerSystem: Generator \(generator.id) not burning - no fuel")
                     } else if !hasConsumption && !needsCharging {
-                        print("PowerSystem: Generator \(generator.id) not burning - no demand (consumption: \(network.totalConsumption) kW)")
+                        // print("PowerSystem: Generator \(generator.id) not burning - no demand (consumption: \(network.totalConsumption) kW)")
                     }
                 }
                 
                 world.add(genComp, to: generator)
             } else {
-                print("PowerSystem: Generator \(generator.id) missing GeneratorComponent or InventoryComponent")
+                // print("PowerSystem: Generator \(generator.id) missing GeneratorComponent or InventoryComponent")
             }
             
             // Update solar panels (time-based output)

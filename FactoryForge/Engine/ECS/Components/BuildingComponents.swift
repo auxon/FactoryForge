@@ -181,6 +181,9 @@ struct InserterComponent: Component {
     /// Current state
     var state: InserterState
     
+    /// Entity we picked up from (to avoid dropping back to it)
+    var sourceEntity: Entity?
+    
     /// Target position for the arm
     var targetAngle: Float {
         switch state {
@@ -200,6 +203,7 @@ struct InserterComponent: Component {
         self.armAngle = 0
         self.heldItem = nil
         self.state = .idle
+        self.sourceEntity = nil
     }
 }
 

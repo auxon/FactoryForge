@@ -75,6 +75,7 @@ final class MiningSystem: System {
         for (entity, inventory) in inventoryModifications {
             world.add(inventory, to: entity)
         }
+        
     }
     
     private func findResource(at position: IntVector2) -> ResourceDeposit? {

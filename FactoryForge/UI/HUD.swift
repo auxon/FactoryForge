@@ -265,7 +265,7 @@ final class HUD {
         if isBelt {
             let rotateButtonY = startY + spacing * 2
             let rotateButtonX = screenSize.x - rightMargin
-            renderButton(renderer: renderer, position: Vector2(rotateButtonX, rotateButtonY), textureId: "gear", callback: onRotateBuildingPressed)
+            renderButton(renderer: renderer, position: Vector2(rotateButtonX, rotateButtonY), textureId: "rotate", callback: onRotateBuildingPressed)
         }
     }
     
