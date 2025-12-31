@@ -353,7 +353,10 @@ final class GameLoop {
                 powerOutput: powerOutput,
                 fuelCategory: buildingDef.fuelCategory ?? "chemical"
             ), to: entity)
-            world.add(InventoryComponent(slots: 1, filter: nil), to: entity)
+            // Boilers should only accept fuel items (coal, wood, solid-fuel)
+            world.add(InventoryComponent(slots: 1, filter: { itemId in
+                return itemId == "coal" || itemId == "wood" || itemId == "solid-fuel"
+            }), to: entity)
             print("GameLoop: Added GeneratorComponent to entity \(entity) with powerOutput: \(powerOutput)")
             
         case .solarPanel:

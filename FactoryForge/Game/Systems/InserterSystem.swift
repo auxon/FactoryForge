@@ -139,39 +139,70 @@ final class InserterSystem: System {
                 let rotationSpeed = inserter.speed * speedMultiplier * deltaTime * .pi * 2
                 let targetAngle: Float = 0
                 
-                // Normalize angle difference to [-pi, pi] range for shortest path
-                var angleDiff = targetAngle - inserter.armAngle
+                // Normalize armAngle to [0, 2*pi] first
+                var normalizedArmAngle = inserter.armAngle
+                while normalizedArmAngle < 0 {
+                    normalizedArmAngle += 2 * .pi
+                }
+                while normalizedArmAngle >= 2 * .pi {
+                    normalizedArmAngle -= 2 * .pi
+                }
                 
-                // Normalize to [-pi, pi]
-                if angleDiff > .pi {
+                // Calculate angle difference
+                var angleDiff = targetAngle - normalizedArmAngle
+                
+                // Normalize to [-pi, pi] for shortest path
+                // If the absolute difference is > π, take the shorter path by wrapping
+                while angleDiff > .pi {
                     angleDiff -= 2 * .pi
-                } else if angleDiff < -.pi {
+                }
+                while angleDiff < -.pi {
                     angleDiff += 2 * .pi
                 }
                 
-                print("InserterSystem: Inserter at \(position.tilePosition) in rotating state, armAngle=\(inserter.armAngle), targetAngle=\(targetAngle), angleDiff=\(angleDiff), rotationSpeed=\(rotationSpeed)")
+                print("InserterSystem: Inserter at \(position.tilePosition) in rotating state, armAngle=\(inserter.armAngle) (normalized: \(normalizedArmAngle)), targetAngle=\(targetAngle), angleDiff=\(angleDiff), rotationSpeed=\(rotationSpeed)")
                 
                 // Check if we're close enough to snap to target
-                if abs(angleDiff) <= rotationSpeed || abs(angleDiff) < 0.01 || abs(inserter.armAngle - targetAngle) < 0.01 {
+                // Also check if we're very close to 0 or 2π (which are the same)
+                let distanceToZero = min(abs(normalizedArmAngle), abs(normalizedArmAngle - 2 * .pi))
+                // Snap if: within one rotation step, or very close to target, or close to 0/2π
+                // Use a larger threshold to ensure we snap when close
+                if abs(angleDiff) <= rotationSpeed * 2 || abs(angleDiff) < 0.3 || distanceToZero < 0.3 {
                     inserter.armAngle = targetAngle
-                    print("InserterSystem: Inserter at \(position.tilePosition) arm reached target (0), transitioning to droppingOff")
+                    print("InserterSystem: Inserter at \(position.tilePosition) arm reached target (0), transitioning to droppingOff (angleDiff=\(angleDiff), distanceToZero=\(distanceToZero))")
                     inserter.state = .droppingOff
                 } else {
-                    // Calculate new angle
-                    let newAngle = inserter.armAngle + (angleDiff > 0 ? rotationSpeed : -rotationSpeed)
+                    // Calculate new angle using normalized value
+                    let newAngle = normalizedArmAngle + (angleDiff > 0 ? rotationSpeed : -rotationSpeed)
                     
-                    // If we've passed the target, snap to it
-                    if (angleDiff > 0 && newAngle > targetAngle) || (angleDiff < 0 && newAngle < targetAngle) {
+                    // Normalize new angle to [0, 2*pi]
+                    var finalAngle = newAngle
+                    while finalAngle < 0 {
+                        finalAngle += 2 * .pi
+                    }
+                    while finalAngle >= 2 * .pi {
+                        finalAngle -= 2 * .pi
+                    }
+                    
+                    inserter.armAngle = finalAngle
+                    
+                    // Check if we've passed the target by comparing the new angle difference
+                    let newNormalizedAngle = finalAngle
+                    var newAngleDiff = targetAngle - newNormalizedAngle
+                    if newAngleDiff > .pi {
+                        newAngleDiff -= 2 * .pi
+                    } else if newAngleDiff < -.pi {
+                        newAngleDiff += 2 * .pi
+                    }
+                    
+                    // If we've crossed the target (sign changed or we're very close), snap to it
+                    if abs(newAngleDiff) < 0.01 || 
+                       (angleDiff > 0 && newAngleDiff < 0) || 
+                       (angleDiff < 0 && newAngleDiff > 0) ||
+                       (abs(newNormalizedAngle) < 0.01) {
                         inserter.armAngle = targetAngle
                         inserter.state = .droppingOff
-                    } else {
-                        inserter.armAngle = newAngle
-                        // Normalize armAngle to [0, 2*pi] range only if we haven't reached target
-                        if inserter.armAngle < 0 {
-                            inserter.armAngle += 2 * .pi
-                        } else if inserter.armAngle >= 2 * .pi {
-                            inserter.armAngle -= 2 * .pi
-                        }
+                        print("InserterSystem: Inserter at \(position.tilePosition) arm passed target, snapping to 0 and transitioning to droppingOff")
                     }
                 }
                 
@@ -426,30 +457,84 @@ final class InserterSystem: System {
     }
     
     private func tryDropInInventory(at position: IntVector2, item: ItemStack, excludeEntity: Entity?) -> Bool {
-        // Check adjacent entities (for multi-tile buildings like furnaces)
-        let nearbyEntities = world.getEntitiesNear(position: Vector2(Float(position.x) + 0.5, Float(position.y) + 0.5), radius: 2.0)
+        // Check adjacent entities only (for multi-tile buildings like furnaces)
+        // Use small radius to find multi-tile buildings, but filter to adjacent only
+        let searchPos = Vector2(Float(position.x) + 0.5, Float(position.y) + 0.5)
+        let nearbyEntities = world.getEntitiesNear(position: searchPos, radius: 2.0)
+        print("InserterSystem: Searching for drop targets near \(searchPos) with radius 2.0")
+        print("InserterSystem: Inserter is at \(position), trying to drop \(item.itemId)")
+        
+        // Prioritize furnaces for ores, generators for fuel
+        let isFuel = item.itemId == "coal" || item.itemId == "wood" || item.itemId == "solid-fuel"
+        let isOre = item.itemId == "iron-ore" || item.itemId == "copper-ore" || item.itemId == "stone"
+
+        // Categorize targets by priority
+        var inserterConnectedTargets: [Entity] = []  // Entities with inserters (highest priority)
+        var preferredTargets: [Entity] = []            // Preferred by type (furnaces for ores, etc.)
+        var otherTargets: [Entity] = []                // Other valid targets
+        
+        // Filter to only adjacent entities and categorize them
         for entity in nearbyEntities {
             // Skip the source entity to avoid dropping back to where we picked up from
             if let excludeEntity = excludeEntity, entity.id == excludeEntity.id && entity.generation == excludeEntity.generation {
                 continue
             }
             
-            if let entityPos = world.get(PositionComponent.self, for: entity) {
-                let distance = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
-                
-                // Check if entity is adjacent (within 1 tile in any direction, including diagonals)
-                if distance <= 1 {
-                    if var inventory = world.get(InventoryComponent.self, for: entity) {
-                        // Check if inventory can accept the item
-                        if inventory.canAccept(itemId: item.itemId) {
-                            let remaining = inventory.add(item)
-                            print("InserterSystem: tryDropInInventory dropped item \(item.itemId) to entity \(entity) at \(entityPos.tilePosition), remaining=\(remaining)")
-                            world.add(inventory, to: entity)
-                            return remaining == 0
-                        }
-                    }
+            // Check if entity is adjacent (within 1 tile in any direction, including diagonals)
+            guard let entityPos = world.get(PositionComponent.self, for: entity) else { continue }
+            let distance = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
+            
+            // Only consider adjacent entities (distance <= 1)
+            guard distance <= 1 else { continue }
+            
+            // Check if entity has inventory that can accept the item
+            guard let inventory = world.get(InventoryComponent.self, for: entity) else { continue }
+            guard inventory.canAccept(itemId: item.itemId) else { continue }
+            
+            print("InserterSystem:     adjacent entity \(entity) at \(entityPos.tilePosition) can accept \(item.itemId)")
+            
+            let hasInserter = self.hasInserterAdjacent(to: entity)
+            
+            // Highest priority: entities with inserters adjacent (inserter-connected)
+            if hasInserter {
+                inserterConnectedTargets.append(entity)
+                print("InserterSystem:       -> inserter-connected target")
+            } else {
+                // For fuel, prefer furnaces, but allow generators (for boilers)
+                if isFuel && world.has(FurnaceComponent.self, for: entity) {
+                    preferredTargets.append(entity)
+                    print("InserterSystem:       -> preferred target (furnace for fuel)")
+                } else if isOre && world.has(FurnaceComponent.self, for: entity) {
+                    preferredTargets.append(entity)
+                    print("InserterSystem:       -> preferred target (furnace for ore)")
+                } else if world.has(GeneratorComponent.self, for: entity) {
+                    // Generators (boilers) can receive fuel but lower priority
+                    otherTargets.append(entity)
+                    print("InserterSystem:       -> other target (generator)")
+                } else {
+                    otherTargets.append(entity)
+                    print("InserterSystem:       -> other target")
                 }
             }
+        }
+        
+        // Debug: print all targets found
+        print("InserterSystem: tryDropInInventory at \(position) for item \(item.itemId) (isFuel: \(isFuel), isOre: \(isOre)):")
+        print("InserterSystem:   found \(nearbyEntities.count) nearby entities, \(inserterConnectedTargets.count) inserter-connected, \(preferredTargets.count) preferred, \(otherTargets.count) other")
+
+        // Try inserter-connected targets first (highest priority), then preferred, then others
+        let targetsToTry = !inserterConnectedTargets.isEmpty ? inserterConnectedTargets : (!preferredTargets.isEmpty ? preferredTargets : otherTargets)
+        for entity in targetsToTry {
+            guard let entityPos = world.get(PositionComponent.self, for: entity),
+                  var inventory = world.get(InventoryComponent.self, for: entity) else { continue }
+            
+            let itemCountBefore = inventory.count(of: item.itemId)
+            let remaining = inventory.add(item)
+            let itemCountAfter = inventory.count(of: item.itemId)
+            let hasBelt = hasInserterAdjacent(to: entity)
+            print("InserterSystem: tryDropInInventory dropped item \(item.itemId) to entity \(entity) at \(entityPos.tilePosition) (belt-connected: \(hasBelt)), count before=\(itemCountBefore), after=\(itemCountAfter), remaining=\(remaining)")
+            world.add(inventory, to: entity)
+            return remaining == 0
         }
         
         // Fallback: try getEntityAt (for single-tile entities)
@@ -470,9 +555,61 @@ final class InserterSystem: System {
         
         return false
     }
-    
+
+    // MARK: - Helpers
+
+    private func hasInserterAdjacent(to entity: Entity) -> Bool {
+        guard let entityPos = world.get(PositionComponent.self, for: entity) else { return false }
+
+        // For multi-tile buildings, check all tiles they occupy
+        var positionsToCheck: [IntVector2] = []
+
+        // Get building size from sprite component
+        if let sprite = world.get(SpriteComponent.self, for: entity) {
+            let width = Int(sprite.size.x)
+            let height = Int(sprite.size.y)
+            for x in 0..<width {
+                for y in 0..<height {
+                    positionsToCheck.append(IntVector2(x: entityPos.tilePosition.x + Int32(x), y: entityPos.tilePosition.y + Int32(y)))
+                }
+            }
+        } else {
+            // Single tile entity
+            positionsToCheck.append(entityPos.tilePosition)
+        }
+
+        print("InserterSystem: hasInserterAdjacent for entity at \(entityPos.tilePosition) (size: \(positionsToCheck.count) tiles)")
+
+        // Check all 8 adjacent positions for each tile the building occupies
+        let offsets = [
+            IntVector2(0, 1), IntVector2(1, 1), IntVector2(1, 0), IntVector2(1, -1),
+            IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
+        ]
+        for buildingPos in positionsToCheck {
+            print("InserterSystem:   checking building tile \(buildingPos)")
+            for offset in offsets {
+                let checkPos = buildingPos + offset
+                print("InserterSystem:     checking position \(checkPos) for inserter")
+                if let entityAtPos = world.getEntityAt(position: checkPos) {
+                    print("InserterSystem:       found entity \(entityAtPos) at \(checkPos)")
+                    if world.has(InserterComponent.self, for: entityAtPos) {
+                        print("InserterSystem:       entity has InserterComponent - INSERTER CONNECTED!")
+                        return true
+                    } else {
+                        print("InserterSystem:       entity does NOT have InserterComponent")
+                    }
+                } else {
+                    print("InserterSystem:       no entity at \(checkPos)")
+                }
+            }
+        }
+
+        print("InserterSystem:   no inserters found adjacent")
+        return false
+    }
+
     // MARK: - Animation
-    
+
     private func updateInserterAnimation(entity: Entity, deltaTime: Float, hasPower: Bool) {
         guard var sprite = world.get(SpriteComponent.self, for: entity),
               var animation = sprite.animation else { return }

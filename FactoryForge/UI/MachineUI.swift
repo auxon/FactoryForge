@@ -61,6 +61,10 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func setupCountLabels() {
+        // Remove existing labels from view before clearing arrays
+        let oldLabels = inputCountLabels + outputCountLabels
+        onRemoveLabels?(oldLabels)
+        
         // Clear existing labels
         inputCountLabels.removeAll()
         outputCountLabels.removeAll()
@@ -168,6 +172,13 @@ final class MachineUI: UIPanel_Base {
         // Remove all count labels from the view
         let allLabels = inputCountLabels + outputCountLabels
         onRemoveLabels?(allLabels)
+        
+        // Clear label text to ensure they're properly reset
+        for label in allLabels {
+            label.text = ""
+            label.isHidden = true
+        }
+        
         super.close()
     }
     

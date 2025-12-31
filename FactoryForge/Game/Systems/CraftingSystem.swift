@@ -81,7 +81,7 @@ final class CraftingSystem: System {
                 }
             }
             
-            // Auto-select recipe based on input
+            // Auto-select recipe based on input (only look for actual smeltable ores, not fuel)
             if furnace.recipe == nil {
                 furnace.recipe = autoSelectSmeltingRecipe(inventory: inventory)
             }
@@ -99,12 +99,26 @@ final class CraftingSystem: System {
                     furnace.recipe = nil  // Reset to auto-select next
                 }
             } else {
+                // Only start recipe if we have ALL required inputs (not just fuel)
                 if canStartRecipe(recipe: recipe, inventory: inventory) {
+                    let oreCountBefore = inventory.count(of: recipe.inputs.first?.itemId ?? "")
+                    print("CraftingSystem: Furnace at entity \(entity) can start recipe \(recipe.id), has \(oreCountBefore) \(recipe.inputs.first?.itemId ?? "unknown")")
                     for input in recipe.inputs {
+                        let countBefore = inventory.count(of: input.itemId)
                         inventory.remove(itemId: input.itemId, count: input.count)
+                        let countAfter = inventory.count(of: input.itemId)
+                        print("CraftingSystem: Furnace consumed \(input.count) \(input.itemId), count before=\(countBefore), after=\(countAfter)")
                     }
+                    let oreCountAfter = inventory.count(of: recipe.inputs.first?.itemId ?? "")
+                    print("CraftingSystem: Furnace at entity \(entity) started smelting \(recipe.inputs.first?.itemId ?? "unknown"), ore count before=\(oreCountBefore), after=\(oreCountAfter)")
                     furnace.smeltingProgress = 0.001
                     world.add(inventory, to: entity)
+                } else {
+                    // Log why we can't start
+                    let missingInputs = recipe.inputs.filter { inventory.count(of: $0.itemId) < $0.count }
+                    if !missingInputs.isEmpty {
+                        print("CraftingSystem: Furnace at entity \(entity) cannot start recipe \(recipe.id), missing: \(missingInputs.map { "\($0.count) \($0.itemId)" }.joined(separator: ", "))")
+                    }
                 }
             }
         }
@@ -167,14 +181,26 @@ final class CraftingSystem: System {
     }
     
     private func autoSelectSmeltingRecipe(inventory: InventoryComponent) -> Recipe? {
-        // Check what's in the input slot
+        // Check what's in the input slot (only look for actual smeltable ores, not fuel)
         let smeltableItems = ["iron-ore", "copper-ore", "stone", "iron-plate"]
         
         for itemId in smeltableItems {
             if inventory.has(itemId: itemId) {
                 // Find the smelting recipe for this item
-                return recipeRegistry.recipes(in: .smelting).first { recipe in
+                if let recipe = recipeRegistry.recipes(in: .smelting).first(where: { recipe in
                     recipe.inputs.first?.itemId == itemId
+                }) {
+                    // Verify we have ALL required inputs for this recipe (not just one)
+                    let hasAllInputs = recipe.inputs.allSatisfy { input in
+                        inventory.count(of: input.itemId) >= input.count
+                    }
+                    if hasAllInputs {
+                        print("CraftingSystem: autoSelectSmeltingRecipe selected recipe \(recipe.id) for item \(itemId), has all inputs")
+                        return recipe
+                    } else {
+                        let missing = recipe.inputs.filter { inventory.count(of: $0.itemId) < $0.count }
+                        print("CraftingSystem: autoSelectSmeltingRecipe found recipe \(recipe.id) for item \(itemId), but missing inputs: \(missing.map { "\($0.count) \($0.itemId)" }.joined(separator: ", "))")
+                    }
                 }
             }
         }
