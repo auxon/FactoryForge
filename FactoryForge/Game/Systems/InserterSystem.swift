@@ -464,14 +464,12 @@ final class InserterSystem: System {
         print("InserterSystem: Searching for drop targets near \(searchPos) with radius 2.0")
         print("InserterSystem: Inserter is at \(position), trying to drop \(item.itemId)")
         
-        // Prioritize furnaces for ores, generators for fuel
+        // Check item types for debugging
         let isFuel = item.itemId == "coal" || item.itemId == "wood" || item.itemId == "solid-fuel"
         let isOre = item.itemId == "iron-ore" || item.itemId == "copper-ore" || item.itemId == "stone"
 
-        // Categorize targets by priority
-        var inserterConnectedTargets: [Entity] = []  // Entities with inserters (highest priority)
-        var preferredTargets: [Entity] = []            // Preferred by type (furnaces for ores, etc.)
-        var otherTargets: [Entity] = []                // Other valid targets
+        // Only consider directly connected targets (via inserter adjacency)
+        var inserterConnectedTargets: [Entity] = []
         
         // Filter to only adjacent entities and categorize them
         for entity in nearbyEntities {
@@ -482,10 +480,35 @@ final class InserterSystem: System {
             
             // Check if entity is adjacent (within 1 tile in any direction, including diagonals)
             guard let entityPos = world.get(PositionComponent.self, for: entity) else { continue }
-            let distance = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
-            
-            // Only consider adjacent entities (distance <= 1)
-            guard distance <= 1 else { continue }
+
+            // For multi-tile buildings, check if inserter is adjacent to any tile occupied by the building
+            var isAdjacent = false
+            if let sprite = world.get(SpriteComponent.self, for: entity) {
+                // Building occupies multiple tiles based on sprite size
+                let buildingWidth = Int(ceil(sprite.size.x))
+                let buildingHeight = Int(ceil(sprite.size.y))
+
+                // Check if inserter is adjacent to any tile of the building
+                for dy in 0..<buildingHeight {
+                    for dx in 0..<buildingWidth {
+                        let buildingTileX = entityPos.tilePosition.x + Int32(dx)
+                        let buildingTileY = entityPos.tilePosition.y + Int32(dy)
+                        let distance = abs(buildingTileX - position.x) + abs(buildingTileY - position.y)
+                        if distance <= 1 {
+                            isAdjacent = true
+                            break
+                        }
+                    }
+                    if isAdjacent { break }
+                }
+            } else {
+                // Single-tile entity - use simple distance check
+                let distance = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
+                isAdjacent = distance <= 1
+            }
+
+            // Only consider adjacent entities
+            guard isAdjacent else { continue }
             
             // Check if entity has inventory that can accept the item
             guard let inventory = world.get(InventoryComponent.self, for: entity) else { continue }
@@ -494,36 +517,20 @@ final class InserterSystem: System {
             print("InserterSystem:     adjacent entity \(entity) at \(entityPos.tilePosition) can accept \(item.itemId)")
             
             let hasInserter = self.hasInserterAdjacent(to: entity)
-            
-            // Highest priority: entities with inserters adjacent (inserter-connected)
+
+            // Only consider entities with inserters adjacent (direct connections only)
             if hasInserter {
                 inserterConnectedTargets.append(entity)
                 print("InserterSystem:       -> inserter-connected target")
-            } else {
-                // For fuel, prefer furnaces, but allow generators (for boilers)
-                if isFuel && world.has(FurnaceComponent.self, for: entity) {
-                    preferredTargets.append(entity)
-                    print("InserterSystem:       -> preferred target (furnace for fuel)")
-                } else if isOre && world.has(FurnaceComponent.self, for: entity) {
-                    preferredTargets.append(entity)
-                    print("InserterSystem:       -> preferred target (furnace for ore)")
-                } else if world.has(GeneratorComponent.self, for: entity) {
-                    // Generators (boilers) can receive fuel but lower priority
-                    otherTargets.append(entity)
-                    print("InserterSystem:       -> other target (generator)")
-                } else {
-                    otherTargets.append(entity)
-                    print("InserterSystem:       -> other target")
-                }
             }
         }
         
         // Debug: print all targets found
         print("InserterSystem: tryDropInInventory at \(position) for item \(item.itemId) (isFuel: \(isFuel), isOre: \(isOre)):")
-        print("InserterSystem:   found \(nearbyEntities.count) nearby entities, \(inserterConnectedTargets.count) inserter-connected, \(preferredTargets.count) preferred, \(otherTargets.count) other")
+        print("InserterSystem:   found \(nearbyEntities.count) nearby entities, \(inserterConnectedTargets.count) inserter-connected")
 
-        // Try inserter-connected targets first (highest priority), then preferred, then others
-        let targetsToTry = !inserterConnectedTargets.isEmpty ? inserterConnectedTargets : (!preferredTargets.isEmpty ? preferredTargets : otherTargets)
+        // Only try inserter-connected targets (direct connections only)
+        let targetsToTry = inserterConnectedTargets
         for entity in targetsToTry {
             guard let entityPos = world.get(PositionComponent.self, for: entity),
                   var inventory = world.get(InventoryComponent.self, for: entity) else { continue }
@@ -537,14 +544,42 @@ final class InserterSystem: System {
             return remaining == 0
         }
         
-        // Fallback: try getEntityAt (for single-tile entities)
+        // Fallback: try getEntityAt (for single-tile entities at this position)
         guard let entity = world.getEntityAt(position: position) else { return false }
         // Skip the source entity
         if let excludeEntity = excludeEntity, entity.id == excludeEntity.id && entity.generation == excludeEntity.generation {
             return false
         }
+
+        // Check adjacency for the fallback entity
+        guard let entityPos = world.get(PositionComponent.self, for: entity) else { return false }
+        var isAdjacent = false
+        if let sprite = world.get(SpriteComponent.self, for: entity) {
+            // Building occupies multiple tiles based on sprite size
+            let buildingWidth = Int(ceil(sprite.size.x))
+            let buildingHeight = Int(ceil(sprite.size.y))
+
+            // Check if position is within the building's occupied tiles
+            for dy in 0..<buildingHeight {
+                for dx in 0..<buildingWidth {
+                    let buildingTileX = entityPos.tilePosition.x + Int32(dx)
+                    let buildingTileY = entityPos.tilePosition.y + Int32(dy)
+                    if buildingTileX == position.x && buildingTileY == position.y {
+                        isAdjacent = true
+                        break
+                    }
+                }
+                if isAdjacent { break }
+            }
+        } else {
+            // Single-tile entity - check exact position match
+            isAdjacent = entityPos.tilePosition.x == position.x && entityPos.tilePosition.y == position.y
+        }
+
+        guard isAdjacent else { return false }
+
         guard var inventory = world.get(InventoryComponent.self, for: entity) else { return false }
-        
+
         // Check if inventory can accept the item
         if inventory.canAccept(itemId: item.itemId) {
             let remaining = inventory.add(item)

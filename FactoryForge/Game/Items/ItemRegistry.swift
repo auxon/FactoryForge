@@ -108,13 +108,34 @@ final class ItemRegistry {
     static let sciencePackFilter: (String) -> Bool = { id in
         return id.contains("science-pack")
     }
-    
+
+    static let allowedSciencePacks: [String] = [
+        "automation-science-pack",
+        "logistic-science-pack",
+        "military-science-pack",
+        "chemical-science-pack",
+        "production-science-pack",
+        "utility-science-pack",
+        "space-science-pack"
+    ]
+
     static let ammoFilter: (String) -> Bool = { id in
         return id.contains("magazine") || id == "grenade"
     }
+
+    static let allowedAmmo: [String] = [
+        "firearm-magazine",
+        "piercing-rounds-magazine",
+        "uranium-rounds-magazine",
+        "grenade"
+    ]
     
     static let fuelFilter: (String) -> Bool = { id in
         return ["coal", "wood", "solid-fuel", "rocket-fuel", "nuclear-fuel"].contains(id)
     }
+
+    static let allowedFuel: [String] = [
+        "coal", "wood", "solid-fuel", "rocket-fuel", "nuclear-fuel"
+    ]
 }
 

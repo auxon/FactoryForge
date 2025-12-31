@@ -207,7 +207,7 @@ final class SpriteRenderer {
             // Render items on left lane
             for item in belt.leftLane {
                 let itemPos = basePos + Vector2(-0.25, item.progress - 0.5).rotated(by: belt.direction.angle)
-                let textureRect = textureAtlas.getTextureRect(for: item.itemId)
+                let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
 
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,
@@ -222,7 +222,7 @@ final class SpriteRenderer {
             // Render items on right lane
             for item in belt.rightLane {
                 let itemPos = basePos + Vector2(0.25, item.progress - 0.5).rotated(by: belt.direction.angle)
-                let textureRect = textureAtlas.getTextureRect(for: item.itemId)
+                let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
 
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,

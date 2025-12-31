@@ -374,6 +374,12 @@ final class InventoryUI: UIPanel_Base {
                     }
                     gameLoop.player.inventory = playerInv
 
+                    // Check if machine can accept this item
+                    if !machineInventory.canAccept(itemId: slotItem.itemId) {
+                        // Machine cannot accept this item - don't transfer
+                        return
+                    }
+
                     // Add to machine inventory
                     let itemToAdd = ItemStack(itemId: slotItem.itemId, count: itemsToTransfer)
                     let remaining = machineInventory.add(itemToAdd)

@@ -8,18 +8,31 @@ struct InventoryComponent: Component {
     /// Items in each slot
     var slots: [ItemStack?]
 
-    /// Optional item filter (only allows specific items)
-    var filter: ((String) -> Bool)?
+    /// Optional list of allowed item IDs (nil means all items allowed)
+    var allowedItems: [String]?
     
     init(slots: Int, filter: ((String) -> Bool)? = nil) {
         self.slotCount = slots
         self.slots = Array(repeating: nil, count: slots)
-        self.filter = filter
+        // For backward compatibility, convert known filters to allowed items
+        // Note: This is deprecated - all callers should use allowedItems directly
+        if filter != nil {
+            // Assume this is for generators/fuel-based machines
+            self.allowedItems = ["coal", "wood", "solid-fuel"]
+        } else {
+            self.allowedItems = nil
+        }
+    }
+
+    init(slots: Int, allowedItems: [String]? = nil) {
+        self.slotCount = slots
+        self.slots = Array(repeating: nil, count: slots)
+        self.allowedItems = allowedItems
     }
     
     /// Checks if the inventory can accept an item
     func canAccept(itemId: String) -> Bool {
-        if let filter = filter, !filter(itemId) {
+        if let allowedItems = allowedItems, !allowedItems.contains(itemId) {
             return false
         }
         return findSlotFor(itemId: itemId) != nil
@@ -48,7 +61,7 @@ struct InventoryComponent: Component {
     /// - Returns: Number of items that couldn't be added
     @discardableResult
     mutating func add(_ stack: ItemStack) -> Int {
-        if let filter = filter, !filter(stack.itemId) {
+        if let allowedItems = allowedItems, !allowedItems.contains(stack.itemId) {
             return stack.count
         }
         
@@ -216,19 +229,21 @@ extension InventoryComponent {
     enum CodingKeys: String, CodingKey {
         case slotCount
         case slots
+        case allowedItems
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         slotCount = try container.decode(Int.self, forKey: .slotCount)
         slots = try container.decode([ItemStack?].self, forKey: .slots)
-        filter = nil
+        allowedItems = try container.decodeIfPresent([String].self, forKey: .allowedItems)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(slotCount, forKey: .slotCount)
         try container.encode(slots, forKey: .slots)
+        try container.encodeIfPresent(allowedItems, forKey: .allowedItems)
     }
 }
 

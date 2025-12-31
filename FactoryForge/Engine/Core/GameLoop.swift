@@ -291,7 +291,7 @@ final class GameLoop {
                 miningSpeed: buildingDef.miningSpeed,
                 resourceOutput: buildingDef.resourceOutput
             ), to: entity)
-            world.add(InventoryComponent(slots: 1, filter: nil), to: entity)
+            world.add(InventoryComponent(slots: 1, allowedItems: nil), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             
         case .furnace:
@@ -299,14 +299,14 @@ final class GameLoop {
                 smeltingSpeed: buildingDef.craftingSpeed
             ), to: entity)
             // Furnace needs slots for: input ore, fuel, and output
-            world.add(InventoryComponent(slots: 4, filter: nil), to: entity)
+            world.add(InventoryComponent(slots: 4, allowedItems: nil), to: entity)
             
         case .assembler:
             world.add(AssemblerComponent(
                 craftingSpeed: buildingDef.craftingSpeed,
                 craftingCategory: buildingDef.craftingCategory
             ), to: entity)
-            world.add(InventoryComponent(slots: 8, filter: nil), to: entity)
+            world.add(InventoryComponent(slots: 8, allowedItems: nil), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             
         case .belt:
@@ -354,9 +354,7 @@ final class GameLoop {
                 fuelCategory: buildingDef.fuelCategory ?? "chemical"
             ), to: entity)
             // Boilers should only accept fuel items (coal, wood, solid-fuel)
-            world.add(InventoryComponent(slots: 1, filter: { itemId in
-                return itemId == "coal" || itemId == "wood" || itemId == "solid-fuel"
-            }), to: entity)
+            world.add(InventoryComponent(slots: 1, allowedItems: ItemRegistry.allowedFuel), to: entity)
             print("GameLoop: Added GeneratorComponent to entity \(entity) with powerOutput: \(powerOutput)")
             
         case .solarPanel:
@@ -374,7 +372,7 @@ final class GameLoop {
             world.add(LabComponent(
                 researchSpeed: buildingDef.researchSpeed
             ), to: entity)
-            world.add(InventoryComponent(slots: 6, filter: ItemRegistry.sciencePackFilter), to: entity)
+            world.add(InventoryComponent(slots: 6, allowedItems: ItemRegistry.allowedSciencePacks), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             
         case .turret:
@@ -383,14 +381,14 @@ final class GameLoop {
                 damage: buildingDef.turretDamage,
                 fireRate: buildingDef.turretFireRate
             ), to: entity)
-            world.add(InventoryComponent(slots: 1, filter: ItemRegistry.ammoFilter), to: entity)
+            world.add(InventoryComponent(slots: 1, allowedItems: ItemRegistry.allowedAmmo), to: entity)
             
         case .wall:
             world.add(WallComponent(), to: entity)
             
         case .chest:
             world.add(ChestComponent(), to: entity)
-            world.add(InventoryComponent(slots: buildingDef.inventorySlots, filter: nil), to: entity)
+            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
             
         case .pipe:
             world.add(PipeComponent(direction: direction), to: entity)
