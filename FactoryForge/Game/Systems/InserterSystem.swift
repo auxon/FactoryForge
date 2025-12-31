@@ -6,10 +6,12 @@ final class InserterSystem: System {
     
     private let world: World
     private let beltSystem: BeltSystem
-    
-    init(world: World, beltSystem: BeltSystem) {
+    private let itemRegistry: ItemRegistry
+
+    init(world: World, beltSystem: BeltSystem, itemRegistry: ItemRegistry) {
         self.world = world
         self.beltSystem = beltSystem
+        self.itemRegistry = itemRegistry
     }
     
     func update(deltaTime: Float) {
@@ -364,7 +366,8 @@ final class InserterSystem: System {
         // Try left lane first, then right
         for lane in [BeltLane.left, BeltLane.right] {
             if let beltItem = beltSystem.takeItem(at: position, lane: lane) {
-                return ItemStack(itemId: beltItem.itemId, count: 1)
+                let maxStack = itemRegistry.get(beltItem.itemId)?.stackSize ?? 100
+                return ItemStack(itemId: beltItem.itemId, count: 1, maxStack: maxStack)
             }
         }
         return nil

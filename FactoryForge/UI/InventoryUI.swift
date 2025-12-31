@@ -381,7 +381,7 @@ final class InventoryUI: UIPanel_Base {
                     }
 
                     // Add to machine inventory
-                    let itemToAdd = ItemStack(itemId: slotItem.itemId, count: itemsToTransfer)
+                    let itemToAdd = ItemStack(itemId: slotItem.itemId, count: itemsToTransfer, maxStack: slotItem.maxStack)
                     let remaining = machineInventory.add(itemToAdd)
                     gameLoop.world.add(machineInventory, to: machineEntity)
 
