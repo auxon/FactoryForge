@@ -44,7 +44,22 @@ final class InputManager: NSObject {
     var dragPathPreview: [IntVector2] = []  // Preview path for rendering
     
     // Selection
-    var selectedEntity: Entity?
+    var selectedEntity: Entity? {
+        didSet {
+            // Validate that the selected entity is still alive
+            validateSelectedEntity()
+        }
+    }
+
+    /// Validates that the currently selected entity is still alive
+    private func validateSelectedEntity() {
+        if let entity = selectedEntity, let gameLoop = gameLoop {
+            if !gameLoop.world.isAlive(entity) {
+                print("InputManager: Selected entity \(entity) is no longer alive, clearing selection")
+                selectedEntity = nil
+            }
+        }
+    }
     
     // Callbacks
     var onTap: ((Vector2) -> Void)?
@@ -52,6 +67,20 @@ final class InputManager: NSObject {
     var onBuildingPlaced: ((String, IntVector2, Direction) -> Void)?
     var onEntitySelected: ((Entity?) -> Void)?
     var onTooltip: ((String) -> Void)? // Called when something is tapped to show tooltip
+    var onInserterTypeSelection: ((String, IntVector2, Direction, Vector2) -> Void)? // Called when placing inserter to choose type
+
+    /// Places an inserter with the specified type
+    func placeInserter(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2, type: InserterType) {
+        guard let gameLoop = gameLoop else { return }
+
+        // Try to place the inserter with the specified type
+        if gameLoop.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: type) {
+            onBuildingPlaced?(buildingId, position, direction)
+            exitBuildMode()
+        } else {
+            onTooltip?("Failed to place inserter")
+        }
+    }
     
     init(view: UIView, gameLoop: GameLoop?, renderer: MetalRenderer? = nil) {
         self.view = view
@@ -252,6 +281,19 @@ final class InputManager: NSObject {
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
                 let tapOffset = worldPos - tileCenter - spriteSize / 2
 
+                // Special handling for inserters - ask for type selection
+                if buildingId == "inserter" || buildingId == "long-handed-inserter" || buildingId == "fast-inserter" {
+                    // Check placement validity first
+                    if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
+                        onTooltip?("Cannot place inserter here")
+                        return
+                    }
+
+                    // Call the inserter type selection callback
+                    onInserterTypeSelection?(buildingId, tilePos, buildDirection, tapOffset)
+                    return
+                }
+
                 // Check placement validity
                 if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
                     onTooltip?("Cannot place building here")
@@ -326,6 +368,9 @@ final class InputManager: NSObject {
             print("InputManager: No game loop available")
             return
         }
+
+        // Validate current selection before processing
+        validateSelectedEntity()
 
         // Check for entities/resources BEFORE UI system check, so tooltips always work
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
@@ -667,7 +712,7 @@ final class InputManager: NSObject {
     }
 
 
-    private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop) {
+    private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop, isDoubleTap: Bool = false) {
         // First, try to get the entity at the exact tile position (prioritizes buildings)
         var closestEntity: Entity?
         if let entityAtTile = gameLoop.world.getEntityAt(position: tilePos) {
@@ -909,7 +954,29 @@ final class InputManager: NSObject {
         }
         
         if let entity = closestEntity {
-            // Select the entity
+            // Debug: log what entity was selected
+            let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+            print("InputManager: Selected entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt)")
+
+            // Special handling for double-tapped inserters
+            if isDoubleTap && gameLoop.world.has(InserterComponent.self, for: entity) {
+                // Show inserter type dialog for existing inserter
+                if let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                   let inserter = gameLoop.world.get(InserterComponent.self, for: entity) {
+                    // Show the inserter type dialog for modifying existing inserter
+                    gameLoop.uiSystem?.showInserterTypeDialogForExisting(
+                        entity: entity,
+                        currentType: inserter.type,
+                        position: pos.tilePosition,
+                        direction: inserter.direction,
+                        offset: pos.offset
+                    )
+                    return
+                }
+            }
+
+            // Select the entity (normal behavior)
             selectedEntity = entity
             onEntitySelected?(entity)
         } else {
@@ -997,8 +1064,11 @@ final class InputManager: NSObject {
             return
         }
 
+        // Validate current selection before processing
+        validateSelectedEntity()
+
         // Use shared entity selection logic
-        handleEntitySelection(at: screenPos, worldPos: worldPos, tilePos: tilePos, gameLoop: gameLoop)
+        handleEntitySelection(at: screenPos, worldPos: worldPos, tilePos: tilePos, gameLoop: gameLoop, isDoubleTap: true)
     }
 
     @objc private func handleRotation(_ recognizer: UIRotationGestureRecognizer) {

@@ -804,10 +804,15 @@ class GameViewController: UIViewController {
                 print("GameViewController: Delete callback - no selected entity")
                 return
             }
-            
+
+            // Debug: check what type of entity is selected
+            let isInserter = gameLoop.world.has(InserterComponent.self, for: selectedEntity)
+            let isBelt = gameLoop.world.has(BeltComponent.self, for: selectedEntity)
+            print("GameViewController: Selected entity \(selectedEntity) - Inserter: \(isInserter), Belt: \(isBelt)")
+
             // Close machine UI if open
             self.uiSystem?.closeAllPanels()
-            
+
             print("GameViewController: Deleting entity \(selectedEntity)")
             // Delete the building
             if gameLoop.removeBuilding(entity: selectedEntity) {

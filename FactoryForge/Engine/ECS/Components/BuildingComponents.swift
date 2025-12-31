@@ -163,12 +163,15 @@ enum BeltLane: Codable {
 
 /// Component for inserters
 struct InserterComponent: Component {
+    /// Type of inserter (input or output)
+    var type: InserterType
+
     /// Rotation speed in degrees per second
     var speed: Float
-    
+
     /// Number of items to pick up at once
     var stackSize: Int
-    
+
     /// Direction (from which side it picks up)
     var direction: Direction
     
@@ -196,7 +199,8 @@ struct InserterComponent: Component {
         }
     }
     
-    init(speed: Float = 2.0, stackSize: Int = 1, direction: Direction = .north) {
+    init(type: InserterType = .input, speed: Float = 2.0, stackSize: Int = 1, direction: Direction = .north) {
+        self.type = type
         self.speed = speed
         self.stackSize = stackSize
         self.direction = direction
@@ -205,6 +209,11 @@ struct InserterComponent: Component {
         self.state = .idle
         self.sourceEntity = nil
     }
+}
+
+enum InserterType: Codable {
+    case input  // Picks up from sources, drops to machines
+    case output // Picks up from machine outputs, drops to destinations
 }
 
 enum InserterState: Codable {

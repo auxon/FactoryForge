@@ -18,6 +18,7 @@ final class UISystem {
     private var researchUI: ResearchUI
     private var machineUI: MachineUI
     private var loadingMenu: LoadingMenu
+    private var inserterTypeDialog: InserterTypeDialog?
     
     // Current state
     private(set) var activePanel: UIPanel?
@@ -39,7 +40,8 @@ final class UISystem {
         buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
         researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
-        
+        inserterTypeDialog = InserterTypeDialog(screenSize: screenSize)
+
         setupCallbacks()
     }
     
@@ -84,6 +86,26 @@ final class UISystem {
     }
     
     private func setupCallbacks() {
+        // Input manager callbacks
+        inputManager?.onInserterTypeSelection = { [weak self] buildingId, position, direction, offset in
+            self?.showInserterTypeDialog(buildingId: buildingId, position: position, direction: direction, offset: offset)
+        }
+
+        // Inserter type dialog callbacks
+        inserterTypeDialog?.onInputSelected = { [weak self] buildingId, position, direction, offset in
+            self?.inputManager?.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: .input)
+            self?.closeInserterTypeDialog()
+        }
+
+        inserterTypeDialog?.onOutputSelected = { [weak self] buildingId, position, direction, offset in
+            self?.inputManager?.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: .output)
+            self?.closeInserterTypeDialog()
+        }
+
+        inserterTypeDialog?.onCancel = { [weak self] in
+            self?.closeInserterTypeDialog()
+        }
+
         // HUD button callbacks
         hud.onInventoryPressed = { [weak self] in
             // Close machine UI if open when clicking any HUD button
@@ -170,10 +192,58 @@ final class UISystem {
                 researchUI.update(deltaTime: deltaTime)
             case .machine:
                 machineUI.update(deltaTime: deltaTime)
+            case .inserterType:
+                inserterTypeDialog?.update(deltaTime: deltaTime)
             }
         }
     }
-    
+
+    private func showInserterTypeDialog(buildingId: String, position: IntVector2, direction: Direction, offset: Vector2) {
+        guard let dialog = inserterTypeDialog else { return }
+        dialog.setBuildingInfo(buildingId: buildingId, position: position, direction: direction, offset: offset)
+
+        // Set up callbacks for new inserter placement
+        dialog.onInputSelected = { [weak self] buildingId, position, direction, offset in
+            self?.inputManager?.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: .input)
+            self?.closeInserterTypeDialog()
+        }
+        dialog.onOutputSelected = { [weak self] buildingId, position, direction, offset in
+            self?.inputManager?.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: .output)
+            self?.closeInserterTypeDialog()
+        }
+        dialog.onInserterTypeChanged = nil // Clear existing callback
+        dialog.onCancel = { [weak self] in
+            self?.closeInserterTypeDialog()
+        }
+
+        activePanel = .inserterType
+        isAnyPanelOpen = true
+    }
+
+    func showInserterTypeDialogForExisting(entity: Entity, currentType: InserterType, position: IntVector2, direction: Direction, offset: Vector2) {
+        guard let dialog = inserterTypeDialog else { return }
+        dialog.setExistingInserterInfo(entity: entity, currentType: currentType, position: position, direction: direction, offset: offset)
+
+        // Set up callbacks for existing inserter modification
+        dialog.onInserterTypeChanged = { [weak self] entity, newType in
+            self?.gameLoop?.changeInserterType(entity: entity, newType: newType)
+            self?.closeInserterTypeDialog()
+        }
+        dialog.onInputSelected = nil // Clear new placement callbacks
+        dialog.onOutputSelected = nil
+        dialog.onCancel = { [weak self] in
+            self?.closeInserterTypeDialog()
+        }
+
+        activePanel = .inserterType
+        isAnyPanelOpen = true
+    }
+
+    private func closeInserterTypeDialog() {
+        activePanel = nil
+        isAnyPanelOpen = false
+    }
+
     // MARK: - Rendering
     
     func render(renderer: MetalRenderer) {
@@ -201,6 +271,8 @@ final class UISystem {
                 researchUI.render(renderer: renderer)
             case .machine:
                 machineUI.render(renderer: renderer)
+            case .inserterType:
+                inserterTypeDialog?.render(renderer: renderer)
             }
         }
     }
@@ -238,6 +310,8 @@ final class UISystem {
             researchUI.open()
         case .machine:
             machineUI.open()
+        case .inserterType:
+            inserterTypeDialog?.open()
         }
     }
     
@@ -256,6 +330,8 @@ final class UISystem {
                 researchUI.close()
             case .machine:
                 machineUI.close()
+            case .inserterType:
+                inserterTypeDialog?.close()
             }
         }
 
@@ -309,6 +385,8 @@ final class UISystem {
                 if researchUI.handleTap(at: screenPos) { return true }
             case .machine:
                 if machineUI.handleTap(at: screenPos) { return true }
+            case .inserterType:
+                if inserterTypeDialog?.handleTap(at: screenPos) ?? false { return true }
             }
 
             // If we reach here, the panel's handleTap returned false,
@@ -350,6 +428,8 @@ final class UISystem {
                 return researchUI.getTooltip(at: screenPos)
             case .machine:
                 return nil // MachineUI doesn't need tooltips yet
+            case .inserterType:
+                return nil // InserterTypeDialog doesn't need tooltips
             }
         }
 
@@ -381,6 +461,151 @@ enum UIPanel {
     case build
     case research
     case machine
+    case inserterType
+}
+
+/// Dialog for selecting inserter type (Input or Output)
+final class InserterTypeDialog {
+    // Callbacks
+    var onInputSelected: ((String, IntVector2, Direction, Vector2) -> Void)?
+    var onOutputSelected: ((String, IntVector2, Direction, Vector2) -> Void)?
+    var onInserterTypeChanged: ((Entity, InserterType) -> Void)?
+    var onCancel: (() -> Void)?
+
+    // Building info
+    private var buildingId: String = ""
+    private var position: IntVector2 = .zero
+    private var direction: Direction = .north
+    private var offset: Vector2 = .zero
+
+    // For modifying existing inserters
+    private var existingEntity: Entity?
+    private var currentType: InserterType = .input
+
+    // UI Elements
+    private var inputButton: UIButton
+    private var outputButton: UIButton
+    private var cancelButton: UIButton
+
+    init(screenSize: Vector2) {
+        let buttonWidth: Float = 200 * UIScale
+        let buttonHeight: Float = 50 * UIScale
+        let spacing: Float = 20 * UIScale
+
+        // Center the buttons vertically and horizontally
+        let totalHeight = buttonHeight * 3 + spacing * 2
+        let startY = (screenSize.y - totalHeight) / 2
+        let buttonX = (screenSize.x - buttonWidth) / 2
+
+        // Input button (top)
+        inputButton = UIButton(frame: Rect(
+            center: Vector2(buttonX + buttonWidth/2, startY + buttonHeight/2),
+            size: Vector2(buttonWidth, buttonHeight)
+        ))
+        inputButton.label = "Input Inserter"
+
+        // Output button (middle)
+        outputButton = UIButton(frame: Rect(
+            center: Vector2(buttonX + buttonWidth/2, startY + buttonHeight/2 + buttonHeight + spacing),
+            size: Vector2(buttonWidth, buttonHeight)
+        ))
+        outputButton.label = "Output Inserter"
+
+        // Cancel button (bottom)
+        cancelButton = UIButton(frame: Rect(
+            center: Vector2(buttonX + buttonWidth/2, startY + buttonHeight/2 + (buttonHeight + spacing) * 2),
+            size: Vector2(buttonWidth, buttonHeight)
+        ))
+        cancelButton.label = "Cancel"
+
+        // Set up callbacks after all properties are initialized
+        inputButton.onTap = { [weak self] in
+            guard let self = self else { return }
+            if let existingEntity = self.existingEntity {
+                // Modifying existing inserter
+                self.onInserterTypeChanged?(existingEntity, .input)
+            } else {
+                // Placing new inserter
+                self.onInputSelected?(self.buildingId, self.position, self.direction, self.offset)
+            }
+        }
+
+        outputButton.onTap = { [weak self] in
+            guard let self = self else { return }
+            if let existingEntity = self.existingEntity {
+                // Modifying existing inserter
+                self.onInserterTypeChanged?(existingEntity, .output)
+            } else {
+                // Placing new inserter
+                self.onOutputSelected?(self.buildingId, self.position, self.direction, self.offset)
+            }
+        }
+
+        cancelButton.onTap = { [weak self] in
+            self?.onCancel?()
+        }
+    }
+
+    func setBuildingInfo(buildingId: String, position: IntVector2, direction: Direction, offset: Vector2) {
+        self.buildingId = buildingId
+        self.position = position
+        self.direction = direction
+        self.offset = offset
+        self.existingEntity = nil  // Clear any existing entity reference
+    }
+
+    func setExistingInserterInfo(entity: Entity, currentType: InserterType, position: IntVector2, direction: Direction, offset: Vector2) {
+        self.existingEntity = entity
+        self.currentType = currentType
+        self.buildingId = "inserter"
+        self.position = position
+        self.direction = direction
+        self.offset = offset
+    }
+
+    func handleTap(at position: Vector2) -> Bool {
+        return inputButton.handleTap(at: position) ||
+               outputButton.handleTap(at: position) ||
+               cancelButton.handleTap(at: position)
+    }
+
+    func update(deltaTime: Float) {
+        inputButton.update(deltaTime: deltaTime)
+        outputButton.update(deltaTime: deltaTime)
+        cancelButton.update(deltaTime: deltaTime)
+    }
+
+    func open() {
+        // Dialog is always "open" when created
+    }
+
+    func close() {
+        // Dialog is modal, closing is handled by callbacks
+    }
+
+    func render(renderer: MetalRenderer) {
+        // Render background
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        let bgRect = Rect(
+            center: Vector2(renderer.screenSize.x / 2, renderer.screenSize.y / 2),
+            size: Vector2(400 * UIScale, 300 * UIScale)
+        )
+        renderer.queueSprite(SpriteInstance(
+            position: bgRect.center,
+            size: bgRect.size,
+            textureRect: solidRect,
+            color: Color(r: 0.1, g: 0.1, b: 0.15, a: 0.9),
+            layer: .ui
+        ))
+
+        // Render title
+        // Note: Text rendering would need to be implemented separately
+
+        // Render buttons
+        inputButton.render(renderer: renderer)
+        outputButton.render(renderer: renderer)
+        cancelButton.render(renderer: renderer)
+    }
 }
 
 protocol UIElement {
@@ -394,11 +619,12 @@ protocol UIElement {
 class UIButton: UIElement {
     var frame: Rect
     var textureId: String
+    var label: String = ""
     var isEnabled: Bool = true
     var isPressed: Bool = false
     var onTap: (() -> Void)?
-    
-    init(frame: Rect, textureId: String) {
+
+    init(frame: Rect, textureId: String = "solid_white") {
         self.frame = frame
         self.textureId = textureId
     }
@@ -408,11 +634,25 @@ class UIButton: UIElement {
         onTap?()
         return true
     }
+
+    func update(deltaTime: Float) {
+        // Handle button animations or state changes if needed
+    }
     
     func render(renderer: MetalRenderer) {
-        let color = isEnabled ? (isPressed ? Color(r: 0.8, g: 0.8, b: 0.8, a: 1) : .white) : Color(r: 0.5, g: 0.5, b: 0.5, a: 1)
+        var color = isEnabled ? (isPressed ? Color(r: 0.8, g: 0.8, b: 0.8, a: 1) : .white) : Color(r: 0.5, g: 0.5, b: 0.5, a: 1)
+
+        // Use different colors based on label
+        if label == "Input Inserter" {
+            color = Color(r: 0.2, g: 0.6, b: 1.0, a: 1) // Blue
+        } else if label == "Output Inserter" {
+            color = Color(r: 0.2, g: 1.0, b: 0.2, a: 1) // Green
+        } else if label == "Cancel" {
+            color = Color(r: 1.0, g: 0.2, b: 0.2, a: 1) // Red
+        }
+
         let textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
-        
+
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size,
@@ -522,4 +762,5 @@ class CloseButton: UIElement {
         }
     }
 }
+
 

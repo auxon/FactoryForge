@@ -61,35 +61,51 @@ final class InserterSystem: System {
                     inserter.state = .droppingOff
                     break
                 }
-                
-                // Check if we can pick something up from any adjacent tile
+
+                // Check if we can pick something up based on inserter type
                 if inserter.heldItem == nil {
-                    // Check all 4 adjacent directions AND diagonals (8 directions total)
-                    let offsets = [
-                        IntVector2(0, 1),    // North
-                        IntVector2(1, 1),     // Northeast
-                        IntVector2(1, 0),     // East
-                        IntVector2(1, -1),   // Southeast
-                        IntVector2(0, -1),   // South
-                        IntVector2(-1, -1),  // Southwest
-                        IntVector2(-1, 0),    // West
-                        IntVector2(-1, 1)     // Northwest
-                    ]
-                    
-                    print("InserterSystem: Inserter at \(position.tilePosition) in idle state, checking 8 directions for items")
-                    for offset in offsets {
-                        let sourcePos = position.tilePosition + offset
-                        print("InserterSystem: Checking position \(sourcePos)")
-                        if canPickUp(from: sourcePos) {
-                            print("InserterSystem: Inserter at \(position.tilePosition) can pick up from \(sourcePos), transitioning to pickingUp")
-                            inserter.state = .pickingUp
-                            break
+                    switch inserter.type {
+                    case .input:
+                        // Input inserters pick up from sources (belts, miners)
+                        // Check all 8 adjacent directions
+                        let offsets = [
+                            IntVector2(0, 1), IntVector2(1, 1), IntVector2(1, 0), IntVector2(1, -1),
+                            IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
+                        ]
+
+                        print("InserterSystem: Input inserter at \(position.tilePosition) checking for pickup sources")
+                        for offset in offsets {
+                            let sourcePos = position.tilePosition + offset
+                            print("InserterSystem: Checking position \(sourcePos)")
+                            if canPickUp(from: sourcePos) {
+                                print("InserterSystem: Inserter at \(position.tilePosition) can pick up from \(sourcePos), transitioning to pickingUp")
+                                inserter.state = .pickingUp
+                                break
+                            }
+                        }
+
+                    case .output:
+                        // Output inserters pick up from machine outputs (furnaces, assemblers)
+                        // Check adjacent machines for output items
+                        let offsets = [
+                            IntVector2(0, 1), IntVector2(1, 1), IntVector2(1, 0), IntVector2(1, -1),
+                            IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
+                        ]
+
+                        print("InserterSystem: Output inserter at \(position.tilePosition) checking for machine outputs")
+                        for offset in offsets {
+                            let checkPos = position.tilePosition + offset
+                            if canPickUpFromMachineOutput(at: checkPos) {
+                                print("InserterSystem: Output inserter at \(position.tilePosition) can pick up from machine at \(checkPos), transitioning to pickingUp")
+                                inserter.state = .pickingUp
+                                break
+                            }
                         }
                     }
                 } else {
                     print("InserterSystem: Inserter at \(position.tilePosition) in idle state but already holding item")
                 }
-                
+
             case .pickingUp:
                 // Rotate arm towards source (.pi radians = 180 degrees)
                 let rotationSpeed = inserter.speed * speedMultiplier * deltaTime * .pi * 2
@@ -275,8 +291,16 @@ final class InserterSystem: System {
                 if distance <= 1 {
                     let hasMiner = world.has(MinerComponent.self, for: entity)
                     let hasFurnace = world.has(FurnaceComponent.self, for: entity)
-                    
-                    // Check for inventory on any building (miner, furnace, etc.)
+
+                    // Don't pick up from entities that have inserters adjacent (drop-off targets)
+                    // But allow pickup from miners, which are always valid sources
+                    let hasInserterAdjacent = self.hasInserterAdjacent(to: entity)
+                    if hasInserterAdjacent && !world.has(MinerComponent.self, for: entity) {
+                        print("InserterSystem: canPickUp from \(position): skipping entity \(entity) at \(entityPos.tilePosition) (has inserter adjacent - drop-off target)")
+                        continue
+                    }
+
+                    // Check for inventory on buildings that are pickup sources (miners, etc.)
                     if let inventory = world.get(InventoryComponent.self, for: entity) {
                         let itemCount = inventory.slots.compactMap { $0 }.reduce(0) { $0 + $1.count }
                         print("InserterSystem: canPickUp from \(position): adjacent entity \(entity) at \(entityPos.tilePosition), hasMiner=\(hasMiner), hasFurnace=\(hasFurnace), has inventory with \(itemCount) items, isEmpty=\(inventory.isEmpty)")
@@ -295,28 +319,40 @@ final class InserterSystem: System {
                 let origin = entityPos.tilePosition
                 let width = Int32(sprite.size.x)
                 let height = Int32(sprite.size.y)
-                
+
                 // Check if the pickup position is within this entity's bounds
                 if position.x >= origin.x && position.x < origin.x + width &&
                    position.y >= origin.y && position.y < origin.y + height {
-                    if let inventory = world.get(InventoryComponent.self, for: entity),
-                       !inventory.isEmpty {
-                        return true
+                    // Don't pick up from drop-off targets, but allow miners
+                    let hasInserterAdjacent = self.hasInserterAdjacent(to: entity)
+                    let isMiner = world.has(MinerComponent.self, for: entity)
+                    if !hasInserterAdjacent || isMiner {
+                        if let inventory = world.get(InventoryComponent.self, for: entity),
+                           !inventory.isEmpty {
+                            return true
+                        }
                     }
                 }
             }
         }
-        
+
         // Fallback: try getEntityAt (for single-tile entities)
         if let entity = world.getEntityAt(position: position) {
-            if let inventory = world.get(InventoryComponent.self, for: entity) {
-                let itemCount = inventory.slots.compactMap { $0 }.reduce(0) { $0 + $1.count }
-                print("InserterSystem: canPickUp from \(position): getEntityAt found entity \(entity) with inventory (\(itemCount) items), isEmpty=\(inventory.isEmpty)")
-                if !inventory.isEmpty {
-                    return true
+            // Don't pick up from drop-off targets, but allow miners
+            let hasInserterAdjacent = self.hasInserterAdjacent(to: entity)
+            let isMiner = world.has(MinerComponent.self, for: entity)
+            if !hasInserterAdjacent || isMiner {
+                if let inventory = world.get(InventoryComponent.self, for: entity) {
+                    let itemCount = inventory.slots.compactMap { $0 }.reduce(0) { $0 + $1.count }
+                    print("InserterSystem: canPickUp from \(position): getEntityAt found entity \(entity) with inventory (\(itemCount) items), isEmpty=\(inventory.isEmpty)")
+                    if !inventory.isEmpty {
+                        return true
+                    }
+                } else {
+                    print("InserterSystem: canPickUp from \(position): getEntityAt found entity \(entity) but no InventoryComponent")
                 }
             } else {
-                print("InserterSystem: canPickUp from \(position): getEntityAt found entity \(entity) but no InventoryComponent")
+                print("InserterSystem: canPickUp from \(position): getEntityAt found entity \(entity) but it's a drop-off target")
             }
         } else {
             print("InserterSystem: canPickUp from \(position): getEntityAt found no entity")
@@ -594,6 +630,43 @@ final class InserterSystem: System {
         return false
     }
 
+    /// Checks if there's something to pick up from machine output at a position
+    private func canPickUpFromMachineOutput(at position: IntVector2) -> Bool {
+        // Check if there's an entity with inventory that has output items
+        // For multi-tile buildings, check ALL nearby entities for adjacency
+        let nearbyEntities = world.getEntitiesNear(position: Vector2(Float(position.x) + 0.5, Float(position.y) + 0.5), radius: 2.0)
+        print("InserterSystem: canPickUpFromMachineOutput at \(position): checking \(nearbyEntities.count) nearby entities")
+
+        // First, try to find any machine with output items that's adjacent
+        for entity in nearbyEntities {
+            if let entityPos = world.get(PositionComponent.self, for: entity) {
+                let distance = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
+
+                // Check if entity is adjacent (within 1 tile in any direction, including diagonals)
+                if distance <= 1 {
+                    let hasFurnace = world.has(FurnaceComponent.self, for: entity)
+                    let hasAssembler = world.has(AssemblerComponent.self, for: entity)
+
+                    // Check for inventory on machines (furnaces, assemblers)
+                    if let inventory = world.get(InventoryComponent.self, for: entity) {
+                        // For machines, check output slots (second half of inventory)
+                        let outputStartIndex = inventory.slots.count / 2
+                        let hasOutputItems = (outputStartIndex..<inventory.slots.count).contains { index in
+                            inventory.slots[index] != nil
+                        }
+
+                        print("InserterSystem: canPickUpFromMachineOutput at \(position): adjacent machine \(entity) at \(entityPos.tilePosition), hasFurnace=\(hasFurnace), hasAssembler=\(hasAssembler), hasOutputItems=\(hasOutputItems)")
+                        if hasOutputItems {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+
+        return false
+    }
+
     // MARK: - Helpers
 
     private func hasInserterAdjacent(to entity: Entity) -> Bool {
@@ -627,6 +700,13 @@ final class InserterSystem: System {
             print("InserterSystem:   checking building tile \(buildingPos)")
             for offset in offsets {
                 let checkPos = buildingPos + offset
+
+                // Skip positions that are within the building's own bounds
+                if positionsToCheck.contains(checkPos) {
+                    print("InserterSystem:     skipping position \(checkPos) (within building bounds)")
+                    continue
+                }
+
                 print("InserterSystem:     checking position \(checkPos) for inserter")
                 if let entityAtPos = world.getEntityAt(position: checkPos) {
                     print("InserterSystem:       found entity \(entityAtPos) at \(checkPos)")

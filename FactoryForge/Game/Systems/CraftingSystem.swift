@@ -66,18 +66,20 @@ final class CraftingSystem: System {
             var hasFuel = true
 
             if isBurnerFurnace {
-                // Burner furnace - needs fuel
-                if furnace.fuelRemaining <= 0 {
-                    // Try to consume fuel (modify in place, don't call world.add here)
-                    if !consumeFuel(inventory: &inventory, furnace: &furnace) {
-                        hasFuel = false  // No fuel available, but continue if recipe in progress
-                    } else {
-                        // Save inventory after fuel consumption (outside consumeFuel to avoid exclusivity violation)
+                // Burner furnace - only consume fuel when there's an active recipe
+                hasFuel = furnace.fuelRemaining > 0
+
+                // If we have an active recipe but no fuel, try to consume fuel
+                if furnace.smeltingProgress > 0 && !hasFuel {
+                    if consumeFuel(inventory: &inventory, furnace: &furnace) {
+                        hasFuel = true
+                        // Save inventory after fuel consumption
                         world.add(inventory, to: entity)
                     }
                 }
 
-                if hasFuel {
+                // Decrement fuel only when actively processing
+                if hasFuel && furnace.smeltingProgress > 0 {
                     furnace.fuelRemaining -= deltaTime
                 }
                 // furnace component is saved automatically by forEach

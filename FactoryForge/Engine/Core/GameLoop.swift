@@ -173,6 +173,52 @@ final class GameLoop {
     
     // MARK: - Game Actions
     
+    /// Places an inserter with the specified type
+    func changeInserterType(entity: Entity, newType: InserterType) {
+        guard world.has(InserterComponent.self, for: entity) else { return }
+
+        // Update the inserter component with the new type
+        if var inserter = world.get(InserterComponent.self, for: entity) {
+            inserter.type = newType
+            world.remove(InserterComponent.self, from: entity)
+            world.add(inserter, to: entity)
+        }
+    }
+
+    func placeInserter(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2 = .zero, type: InserterType) -> Bool {
+        guard let buildingDef = buildingRegistry.get(buildingId) else {
+            return false
+        }
+        guard canPlaceBuilding(buildingDef, at: position) else { return false }
+
+        // Check if player has required items
+        guard player.inventory.has(items: buildingDef.cost) else { return false }
+
+        // Remove items from player inventory
+        player.inventory.remove(items: buildingDef.cost)
+
+        // Create the inserter entity
+        let entity = world.spawn()
+
+        // Add position component with offset to center at tap location
+        world.add(PositionComponent(tilePosition: position, direction: direction, offset: offset), to: entity)
+
+        // Add inserter-specific components with the specified type
+        addInserterComponents(entity: entity, buildingDef: buildingDef, type: type)
+
+        // Update chunk's entity list
+        if let chunk = chunkManager.getChunk(at: position) {
+            chunk.addEntity(entity, at: position)
+        }
+
+        // Trigger power network rebuild if needed
+        if buildingDef.powerConsumption > 0 {
+            powerSystem.markNetworksDirty()
+        }
+
+        return true
+    }
+
     func placeBuilding(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2 = .zero) -> Bool {
         guard let buildingDef = buildingRegistry.get(buildingId) else {
             return false
@@ -317,12 +363,7 @@ final class GameLoop {
             beltSystem.registerBelt(entity: entity, at: position, direction: direction)
             
         case .inserter:
-            world.add(InserterComponent(
-                speed: buildingDef.inserterSpeed,
-                stackSize: buildingDef.inserterStackSize,
-                direction: direction
-            ), to: entity)
-            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            addInserterComponents(entity: entity, buildingDef: buildingDef, type: .input) // Default to input for regular placement
             
             // Set up inserter animation with sprite sheet frames
             if var sprite = world.get(SpriteComponent.self, for: entity) {
@@ -400,7 +441,32 @@ final class GameLoop {
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
         }
     }
-    
+
+    private func addInserterComponents(entity: Entity, buildingDef: BuildingDefinition, type: InserterType) {
+        world.add(InserterComponent(
+            type: type,
+            speed: buildingDef.inserterSpeed,
+            stackSize: buildingDef.inserterStackSize,
+            direction: .north // Direction will be set by position component
+        ), to: entity)
+        world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+
+        // Set up inserter animation with sprite sheet frames
+        if var sprite = world.get(SpriteComponent.self, for: entity) {
+            // Create animation with all 16 frames from the sprite sheet
+            let inserterFrames = (0..<16).map { "inserter_\($0)" }
+            var inserterAnimation = SpriteAnimation(
+                frames: inserterFrames,
+                frameTime: 0.5 / 16.0,  // 0.5 seconds total for all frames
+                isLooping: true
+            )
+            inserterAnimation.pause()  // Start paused - will play when powered
+            sprite.animation = inserterAnimation
+            sprite.textureId = "inserter_0"  // Start with first frame
+            world.add(sprite, to: entity)
+        }
+    }
+
     func removeBuilding(at position: IntVector2) -> Bool {
         guard let entity = world.getEntityAt(position: position) else { return false }
         
@@ -468,6 +534,18 @@ final class GameLoop {
     
     func removeBuilding(entity: Entity) -> Bool {
         guard let position = world.get(PositionComponent.self, for: entity) else { return false }
+        print("GameLoop: removeBuilding(entity: \(entity)) - entity position: \(position.tilePosition)")
+
+        // Check what entity is actually at this position
+        if let entityAtPos = world.getEntityAt(position: position.tilePosition) {
+            let isInserter = world.has(InserterComponent.self, for: entityAtPos)
+            let isBelt = world.has(BeltComponent.self, for: entityAtPos)
+            print("GameLoop: Entity at position \(position.tilePosition): \(entityAtPos) - Inserter: \(isInserter), Belt: \(isBelt)")
+            print("GameLoop: Selected entity: \(entity), Entity at pos: \(entityAtPos), Same: \(entity == entityAtPos)")
+        } else {
+            print("GameLoop: No entity found at position \(position.tilePosition)")
+        }
+
         return removeBuilding(at: position.tilePosition)
     }
     

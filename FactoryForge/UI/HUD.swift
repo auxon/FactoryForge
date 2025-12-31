@@ -29,7 +29,22 @@ final class HUD {
     var onRotateBuildingPressed: (() -> Void)? // Called when rotate button is pressed (for belts)
     
     // Selected building
-    var selectedEntity: Entity?
+    var selectedEntity: Entity? {
+        didSet {
+            // Validate that the selected entity is still alive
+            validateSelectedEntity()
+        }
+    }
+
+    /// Validates that the currently selected entity is still alive
+    private func validateSelectedEntity() {
+        if let entity = selectedEntity, let gameLoop = gameLoop {
+            if !gameLoop.world.isAlive(entity) {
+                print("HUD: Selected entity \(entity) is no longer alive, clearing selection")
+                selectedEntity = nil
+            }
+        }
+    }
     
     // Mining animations
     private struct MiningAnimation {
@@ -238,6 +253,9 @@ final class HUD {
     }
     
     private func renderBuildingActionButtons(renderer: MetalRenderer) {
+        // Validate selection before rendering
+        validateSelectedEntity()
+
         // Only render if a building is selected
         guard let selectedEntity = selectedEntity else { return }
         
