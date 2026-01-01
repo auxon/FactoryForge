@@ -534,18 +534,18 @@ final class InputManager: NSObject {
             // Stay in remove mode for continuous removal
 
         case .selecting:
-            // Select entity at position
-            let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 1.5)
+            // Select entity at exact tile position only
+            let tilePos = IntVector2(from: worldPos)
             var selected: Entity?
-
-            for entity in nearbyEntities {
-                if gameLoop.world.has(FurnaceComponent.self, for: entity) ||
-                   gameLoop.world.has(AssemblerComponent.self, for: entity) ||
-                   gameLoop.world.has(MinerComponent.self, for: entity) ||
-                   gameLoop.world.has(ChestComponent.self, for: entity) ||
-                   gameLoop.world.has(LabComponent.self, for: entity) {
-                    selected = entity
-                    break
+            
+            if let entityAtTile = gameLoop.world.getEntityAt(position: tilePos) {
+                // Check if this entity is interactable
+                if gameLoop.world.has(FurnaceComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(AssemblerComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(MinerComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(ChestComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(LabComponent.self, for: entityAtTile) {
+                    selected = entityAtTile
                 }
             }
 
@@ -721,7 +721,7 @@ final class InputManager: NSObject {
 
 
     private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop, isDoubleTap: Bool = false) {
-        // First, try to get the entity at the exact tile position (prioritizes buildings)
+        // Only select entities at the exact tile position - no fallback to nearby entities
         var closestEntity: Entity?
         if let entityAtTile = gameLoop.world.getEntityAt(position: tilePos) {
             // Check if this entity is interactable
@@ -740,226 +740,8 @@ final class InputManager: NSObject {
             }
         }
         
-        // If no entity found at exact position, search for interactable entities
-        if closestEntity == nil {
-            // First, try to find entities where the tap is within their bounds (for multi-tile buildings)
-            var candidates: [(Entity, Float)] = []
-            
-            // Query each type separately
-            let generatorEntities = gameLoop.world.query(GeneratorComponent.self)
-            for entity in generatorEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                }
-            }
-            
-            let furnaceEntities = gameLoop.world.query(FurnaceComponent.self)
-            for entity in furnaceEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                }
-            }
-            
-            let assemblerEntities = gameLoop.world.query(AssemblerComponent.self)
-            for entity in assemblerEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                }
-            }
-            
-            let minerEntities = gameLoop.world.query(MinerComponent.self)
-            for entity in minerEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                }
-            }
-            
-            let chestEntities = gameLoop.world.query(ChestComponent.self)
-            for entity in chestEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                }
-            }
-            
-            let labEntities = gameLoop.world.query(LabComponent.self)
-            for entity in labEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                }
-            }
-            
-            // Check power poles
-            let poleEntities = gameLoop.world.query(PowerPoleComponent.self)
-            for entity in poleEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                }
-            }
-            
-            // Check belts
-            let beltEntities = gameLoop.world.query(BeltComponent.self)
-            for entity in beltEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                }
-            }
-            
-            // Check inserters
-            let inserterEntities = gameLoop.world.query(InserterComponent.self)
-            for entity in inserterEntities {
-                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                      let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
-                
-                let origin = pos.tilePosition
-                let width = Int32(sprite.size.x)
-                let height = Int32(sprite.size.y)
-                
-                let isWithinBounds = tilePos.x >= origin.x && tilePos.x < origin.x + width &&
-                                    tilePos.y >= origin.y && tilePos.y < origin.y + height
-                
-                if isWithinBounds {
-                    let distance = pos.worldPosition.distance(to: worldPos)
-                    candidates.append((entity, distance))
-                }
-            }
-            
-            // If we found candidates within bounds, use the closest one
-            if !candidates.isEmpty {
-                candidates.sort { $0.1 < $1.1 }  // Sort by distance
-                closestEntity = candidates[0].0
-            } else {
-                // Fallback: search nearby entities by distance
-                let nearbyEntities = gameLoop.world.getEntitiesNear(position: worldPos, radius: 3.0)
-                var closestDistance = Float.greatestFiniteMagnitude
-                
-                for entity in nearbyEntities {
-                    let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
-                    let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
-                    let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
-                    let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
-                    let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
-                    let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
-                    let hasPowerPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
-                    let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
-                    let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
-                    
-                    // Also check if it's a boiler by sprite texture/size (2x3 = boiler)
-                    var isBoiler = false
-                    if let sprite = gameLoop.world.get(SpriteComponent.self, for: entity),
-                       let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
-                        // Boiler is 2x3 tiles
-                        if sprite.size.x == 2.0 && sprite.size.y == 3.0 {
-                            // Check if tap is within bounds
-                            let origin = pos.tilePosition
-                            if tilePos.x >= origin.x && tilePos.x < origin.x + 2 &&
-                               tilePos.y >= origin.y && tilePos.y < origin.y + 3 {
-                                isBoiler = true
-                            }
-                        }
-                    }
-                    
-                    guard hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPowerPole || hasBelt || hasInserter || isBoiler else { continue }
-                    
-                    if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
-                        let distance = pos.worldPosition.distance(to: worldPos)
-                        // Prioritize boilers found by size check
-                        let adjustedDistance = isBoiler ? distance * 0.1 : distance
-                        if adjustedDistance < closestDistance {
-                            closestDistance = adjustedDistance
-                            closestEntity = entity
-                        }
-                    }
-                }
-            }
-        }
+        // Removed: fallback logic that searches for multi-tile buildings or nearby entities
+        // Now only entities at the exact tile position can be selected
         
         if let entity = closestEntity {
             // Debug: log what entity was selected

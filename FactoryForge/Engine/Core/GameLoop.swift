@@ -470,7 +470,8 @@ final class GameLoop {
         )
         
         // Create animation with all 16 frames from the sprite sheet
-        let inserterFrames = (0..<16).map { "inserters_sheet_\($0)" }
+        // Frames are named "inserter_0" through "inserter_15" (extracted from inserters_sheet)
+        let inserterFrames = (0..<16).map { "inserter_\($0)" }
         var inserterAnimation = SpriteAnimation(
             frames: inserterFrames,
             frameTime: 0.5 / 16.0,  // 0.5 seconds total for all frames
