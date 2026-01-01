@@ -167,37 +167,54 @@ final class World {
 
         // First check exact match in spatial index
         if let entity = spatialIndex[position] {
-            // print("World: Found in spatial index: \(entity)")
             allEntitiesAtPosition.append(entity)
         } else {
             // print("World: No entity in spatial index at \(position)")
         }
 
-        // For multi-tile buildings, check all entities with PositionComponent and SpriteComponent
-        // to see if the tapped position is within their bounds
-        for entity in query(PositionComponent.self, SpriteComponent.self) {
-            guard let pos = get(PositionComponent.self, for: entity),
-                  let sprite = get(SpriteComponent.self, for: entity) else { continue }
+        // Check all entities with PositionComponent to find all entities at this position
+        // This includes both single-tile entities (exact match) and multi-tile buildings (bounds check)
+        let allEntitiesWithPosition = query(PositionComponent.self)
+        // print("World: Querying \(allEntitiesWithPosition.count) entities with PositionComponent for position \(position)")
+        
+        for entity in allEntitiesWithPosition {
+            guard let pos = get(PositionComponent.self, for: entity) else { continue }
 
             let origin = pos.tilePosition
-            let width = Int32(sprite.size.x)
-            let height = Int32(sprite.size.y)
+            
+            // For single-tile entities (size 1x1), check exact position match
+            // For multi-tile buildings, check if position is within bounds
+            let sprite = get(SpriteComponent.self, for: entity)
+            let width = sprite != nil ? Int32(sprite!.size.x) : 1
+            let height = sprite != nil ? Int32(sprite!.size.y) : 1
+            
+            let hasInserter = has(InserterComponent.self, for: entity)
+            let hasBelt = has(BeltComponent.self, for: entity)
 
-            // Check if the tapped position is within this entity's bounds
-            if position.x >= origin.x && position.x < origin.x + width &&
-               position.y >= origin.y && position.y < origin.y + height {
-                _ = has(InserterComponent.self, for: entity)
-                _ = has(BeltComponent.self, for: entity)
-                // print("World: Entity \(entity) bounds check passed - origin: \(origin), size: \(width)x\(height)")
+            // Check if the tapped position matches exactly (for single-tile) or is within bounds (for multi-tile)
+            let isExactMatch = (width == 1 && height == 1) && position.x == origin.x && position.y == origin.y
+            let isWithinBounds = position.x >= origin.x && position.x < origin.x + width &&
+                                 position.y >= origin.y && position.y < origin.y + height
 
+            // Debug: Log entities being checked (especially inserters and belts)
+            if hasInserter || hasBelt || (origin.x == position.x && origin.y == position.y) {
+                // print("World: Checking entity \(entity) at \(origin) (size: \(width)x\(height)) - Inserter: \(hasInserter), Belt: \(hasBelt), isExactMatch: \(isExactMatch), isWithinBounds: \(isWithinBounds)")
+            }
+
+            if isExactMatch || isWithinBounds {
                 // Only add if not already in the list (avoid duplicates)
                 if !allEntitiesAtPosition.contains(entity) {
                     allEntitiesAtPosition.append(entity)
+                    if hasInserter || hasBelt {
+                        // print("World: Added entity \(entity) to list - Inserter: \(hasInserter), Belt: \(hasBelt)")
+                    }
+                } else {
+                    if hasInserter || hasBelt {
+                        // print("World: Entity \(entity) already in list (duplicate)")
+                    }
                 }
             }
         }
-
-        // print("World: getEntityAt(\(position)) - found \(allEntitiesAtPosition.count) entities total")
         
         // If no entities found, return nil
         guard !allEntitiesAtPosition.isEmpty else { return nil }
@@ -213,7 +230,7 @@ final class World {
 
         // Multiple entities - prioritize buildings over belts/inserters/poles
         // print("World: getEntityAt(\(position)) - found \(allEntitiesAtPosition.count) entities")
-        // Priority order: Production buildings (furnaces, assemblers, miners, generators, chests, labs) > Power poles > Inserters > Belts > Others
+        // Priority order: Production buildings > Inserters > Power poles > Belts > Others
 
         // First, try to find a production building (entity with building-specific components, excluding poles)
         for entity in allEntitiesAtPosition {
@@ -229,17 +246,17 @@ final class World {
             }
         }
 
-        // Then check for power poles (lower priority than production buildings)
+        // Then check for inserters (highest priority among infrastructure that can share tiles)
         for entity in allEntitiesAtPosition {
-            if has(PowerPoleComponent.self, for: entity) {
+            if has(InserterComponent.self, for: entity) {
+                // print("World: getEntityAt(\(position)) - returning inserter \(entity)")
                 return entity
             }
         }
 
-        // Then check for inserters (higher priority than belts since they're more specific/precise)
+        // Then check for power poles (lower priority than inserters)
         for entity in allEntitiesAtPosition {
-            if has(InserterComponent.self, for: entity) {
-                // print("World: getEntityAt(\(position)) - returning inserter \(entity)")
+            if has(PowerPoleComponent.self, for: entity) {
                 return entity
             }
         }

@@ -859,6 +859,21 @@ class GameViewController: UIViewController {
                 print("GameViewController: Failed to rotate belt")
             }
         }
+        
+        uiSystem?.hud.onOpenMachinePressed = { [weak self] in
+            guard let self = self else {
+                print("GameViewController: Open callback - self is nil")
+                return
+            }
+            guard let selectedEntity = self.uiSystem?.hud.selectedEntity else {
+                print("GameViewController: Open callback - no selected entity")
+                return
+            }
+            
+            print("GameViewController: Open button pressed for entity \(selectedEntity)")
+            // Open the machine UI for the selected entity
+            self.uiSystem?.openMachineUI(for: selectedEntity)
+        }
     }
     
     private func setupNotifications() {

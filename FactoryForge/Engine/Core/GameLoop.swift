@@ -202,8 +202,10 @@ final class GameLoop {
             return false
         }
 
-        // Remove items from player inventory
-        player.inventory.remove(items: buildingDef.cost)
+        // Remove items from player inventory (must reassign since InventoryComponent is a struct)
+        var playerInventory = player.inventory
+        playerInventory.remove(items: buildingDef.cost)
+        player.inventory = playerInventory
 
         // Create the inserter entity
         let entity = world.spawn()
@@ -211,9 +213,17 @@ final class GameLoop {
 
         // Add position component with offset to center at tap location
         world.add(PositionComponent(tilePosition: position, direction: direction, offset: offset), to: entity)
+        print("GameLoop: Added PositionComponent to inserter entity \(entity) at tilePosition: \(position)")
 
         // Add inserter-specific components with the specified type
         addInserterComponents(entity: entity, buildingDef: buildingDef, type: type)
+        
+        // Verify the position was set correctly
+        if let pos = world.get(PositionComponent.self, for: entity) {
+            print("GameLoop: Verified inserter entity \(entity) position: \(pos.tilePosition)")
+        } else {
+            print("GameLoop: ERROR - Inserter entity \(entity) has no PositionComponent after placement!")
+        }
 
         // Update chunk's entity list
         if let chunk = chunkManager.getChunk(at: position) {
@@ -237,9 +247,11 @@ final class GameLoop {
 
         // Check if player has required items
         guard player.inventory.has(items: buildingDef.cost) else { return false }
-        
-        // Remove items from player inventory
-        player.inventory.remove(items: buildingDef.cost)
+
+        // Remove items from player inventory (must reassign since InventoryComponent is a struct)
+        var playerInventory = player.inventory
+        playerInventory.remove(items: buildingDef.cost)
+        player.inventory = playerInventory
         
         // Create the building entity
         let entity = world.spawn()
@@ -314,6 +326,17 @@ final class GameLoop {
                         // For belts, allow placement on top of buildings too (for belt networks)
                         if building.type == .belt {
                             continue
+                        }
+                        
+                        // Allow inserters and poles to be placed on belts
+                        if building.type == .inserter || building.type == .powerPole {
+                            if world.has(BeltComponent.self, for: entity) {
+                                continue  // Allow inserter/pole on belt
+                            }
+                            // Also allow inserter/pole on another inserter/pole (for flexibility)
+                            if world.has(InserterComponent.self, for: entity) || world.has(PowerPoleComponent.self, for: entity) {
+                                continue
+                            }
                         }
                     }
 

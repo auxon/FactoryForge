@@ -27,6 +27,7 @@ final class HUD {
     var onMoveBuildingPressed: (() -> Void)? // Called when move button is pressed
     var onDeleteBuildingPressed: (() -> Void)? // Called when delete button is pressed
     var onRotateBuildingPressed: (() -> Void)? // Called when rotate button is pressed (for belts)
+    var onOpenMachinePressed: (() -> Void)? // Called when open button is pressed
     
     // Selected building
     var selectedEntity: Entity? {
@@ -252,6 +253,16 @@ final class HUD {
         renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "menu", callback: onMenuPressed)
     }
     
+    private func hasMachineUI(for entity: Entity) -> Bool {
+        guard let world = gameLoop?.world else { return false }
+        // Check if entity has components that indicate it should have a machine UI
+        return world.has(InventoryComponent.self, for: entity) ||
+               world.has(FurnaceComponent.self, for: entity) ||
+               world.has(AssemblerComponent.self, for: entity) ||
+               world.has(MinerComponent.self, for: entity) ||
+               world.has(GeneratorComponent.self, for: entity)
+    }
+    
     private func renderBuildingActionButtons(renderer: MetalRenderer) {
         // Validate selection before rendering
         validateSelectedEntity()
@@ -261,6 +272,7 @@ final class HUD {
         
         // Check if selected entity is a belt
         let isBelt = gameLoop?.world.has(BeltComponent.self, for: selectedEntity) ?? false
+        let hasMachine = hasMachineUI(for: selectedEntity)
         
         // Position buttons on the right side for thumb accessibility
         // Place them vertically stacked, starting from about 1/3 down the screen
@@ -279,11 +291,22 @@ final class HUD {
         // Use a red tint for delete button
         renderDeleteButton(renderer: renderer, position: Vector2(deleteButtonX, deleteButtonY))
         
+        // Calculate next button Y position (below delete, or below rotate if it exists)
+        var nextButtonY = startY + spacing * 2
+        
         // Rotate button (below delete button, only for belts)
         if isBelt {
-            let rotateButtonY = startY + spacing * 2
+            let rotateButtonY = nextButtonY
             let rotateButtonX = screenSize.x - rightMargin
             renderButton(renderer: renderer, position: Vector2(rotateButtonX, rotateButtonY), textureId: "rotate", callback: onRotateBuildingPressed)
+            nextButtonY += spacing
+        }
+        
+        // Open button (below delete/rotate, only for entities with machine UI)
+        if hasMachine {
+            let openButtonY = nextButtonY
+            let openButtonX = screenSize.x - rightMargin
+            renderButton(renderer: renderer, position: Vector2(openButtonX, openButtonY), textureId: "gear", callback: onOpenMachinePressed)
         }
     }
     
@@ -553,13 +576,27 @@ final class HUD {
             }
             
             // Rotate button (only for belts)
+            var nextButtonY = startY + spacing * 2
             if let selectedEntity = selectedEntity,
                gameLoop?.world.has(BeltComponent.self, for: selectedEntity) ?? false {
                 let rotateButtonX = screenSize.x - rightMargin
-                let rotateButtonY = startY + spacing * 2
+                let rotateButtonY = nextButtonY
                 if checkButtonTap(at: position, buttonPos: Vector2(rotateButtonX, rotateButtonY)) {
                     print("HUD: Rotate button tapped")
                     onRotateBuildingPressed?()
+                    return true
+                }
+                nextButtonY += spacing
+            }
+            
+            // Open button (only for entities with machine UI)
+            if let selectedEntity = selectedEntity,
+               hasMachineUI(for: selectedEntity) {
+                let openButtonX = screenSize.x - rightMargin
+                let openButtonY = nextButtonY
+                if checkButtonTap(at: position, buttonPos: Vector2(openButtonX, openButtonY)) {
+                    print("HUD: Open button tapped")
+                    onOpenMachinePressed?()
                     return true
                 }
             }

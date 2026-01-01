@@ -722,6 +722,7 @@ final class InputManager: NSObject {
 
     private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop, isDoubleTap: Bool = false) {
         // Only select entities at the exact tile position - no fallback to nearby entities
+        // getEntityAt already prioritizes inserters over belts, so we can trust its result
         var closestEntity: Entity?
         if let entityAtTile = gameLoop.world.getEntityAt(position: tilePos) {
             // Check if this entity is interactable
@@ -735,7 +736,10 @@ final class InputManager: NSObject {
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entityAtTile)
             let hasInserter = gameLoop.world.has(InserterComponent.self, for: entityAtTile)
             
-            if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter {
+            // Prioritize inserters explicitly (getEntityAt should already do this, but be explicit)
+            if hasInserter {
+                closestEntity = entityAtTile
+            } else if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt {
                 closestEntity = entityAtTile
             }
         }
@@ -1249,9 +1253,8 @@ final class InputManager: NSObject {
                 direction = .north
             }
             
-            // Place the building
+            // Place the building (placeBuilding already removes items from inventory)
             if gameLoop.placeBuilding(buildingId, at: pos, direction: direction, offset: .zero) {
-                gameLoop.player.inventory.remove(items: buildingDef.cost)
                 dragPlacedTiles.insert(pos)
             }
         }

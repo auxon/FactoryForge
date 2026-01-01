@@ -220,7 +220,7 @@ final class InserterSystem: System {
                        (abs(newNormalizedAngle) < 0.01) {
                         inserter.armAngle = targetAngle
                         inserter.state = .droppingOff
-                        print("InserterSystem: Inserter at \(position.tilePosition) arm passed target, snapping to 0 and transitioning to droppingOff")
+                        // print("InserterSystem: Inserter at \(position.tilePosition) arm passed target, snapping to 0 and transitioning to droppingOff")
                     }
                 }
                 
@@ -707,17 +707,17 @@ final class InserterSystem: System {
                     continue
                 }
 
-                print("InserterSystem:     checking position \(checkPos) for inserter")
+                // print("InserterSystem:     checking position \(checkPos) for inserter")
                 if let entityAtPos = world.getEntityAt(position: checkPos) {
-                    print("InserterSystem:       found entity \(entityAtPos) at \(checkPos)")
+                    // print("InserterSystem:       found entity \(entityAtPos) at \(checkPos)")
                     if world.has(InserterComponent.self, for: entityAtPos) {
-                        print("InserterSystem:       entity has InserterComponent - INSERTER CONNECTED!")
+                        // print("InserterSystem:       entity has InserterComponent - INSERTER CONNECTED!")
                         return true
                     } else {
-                        print("InserterSystem:       entity does NOT have InserterComponent")
+                        // print("InserterSystem:       entity does NOT have InserterComponent")
                     }
                 } else {
-                    print("InserterSystem:       no entity at \(checkPos)")
+                    // print("InserterSystem:       no entity at \(checkPos)")
                 }
             }
         }
