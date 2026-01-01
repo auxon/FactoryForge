@@ -71,13 +71,19 @@ final class InputManager: NSObject {
 
     /// Places an inserter with the specified type
     func placeInserter(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2, type: InserterType) {
-        guard let gameLoop = gameLoop else { return }
+        print("InputManager: placeInserter called - buildingId: \(buildingId), position: \(position), direction: \(direction), type: \(type)")
+        guard let gameLoop = gameLoop else {
+            print("InputManager: placeInserter failed - no gameLoop")
+            return
+        }
 
         // Try to place the inserter with the specified type
         if gameLoop.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: type) {
+            print("InputManager: placeInserter succeeded")
             onBuildingPlaced?(buildingId, position, direction)
             exitBuildMode()
         } else {
+            print("InputManager: placeInserter failed - placement returned false")
             onTooltip?("Failed to place inserter")
         }
     }
@@ -283,14 +289,16 @@ final class InputManager: NSObject {
 
                 // Special handling for inserters - ask for type selection
                 if buildingId == "inserter" || buildingId == "long-handed-inserter" || buildingId == "fast-inserter" {
+                    // Use rounded tile position for placement (rounds to nearest tile)
+                    let roundedTilePos = IntVector2.rounded(from: worldPos)
                     // Check placement validity first
-                    if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
+                    if !gameLoop.canPlaceBuilding(buildingId, at: roundedTilePos, direction: buildDirection) {
                         onTooltip?("Cannot place inserter here")
                         return
                     }
 
-                    // Call the inserter type selection callback
-                    onInserterTypeSelection?(buildingId, tilePos, buildDirection, tapOffset)
+                    // Call the inserter type selection callback with rounded position
+                    onInserterTypeSelection?(buildingId, roundedTilePos, buildDirection, tapOffset)
                     return
                 }
 
@@ -1341,6 +1349,7 @@ final class InputManager: NSObject {
     }
     
     func exitBuildMode() {
+        print("InputManager: exitBuildMode called - clearing build mode state")
         buildMode = .none
         selectedBuildingId = nil
         buildPreviewPosition = nil
@@ -1348,6 +1357,7 @@ final class InputManager: NSObject {
         dragPlacedTiles = []
         dragPathPreview = []
         entityToMove = nil
+        print("InputManager: exitBuildMode completed - buildMode: \(buildMode), selectedBuildingId: \(selectedBuildingId ?? "nil")")
     }
     
     func enterMoveMode(entity: Entity) {

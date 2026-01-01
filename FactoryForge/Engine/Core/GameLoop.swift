@@ -186,19 +186,28 @@ final class GameLoop {
     }
 
     func placeInserter(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2 = .zero, type: InserterType) -> Bool {
+        print("GameLoop: placeInserter called - buildingId: \(buildingId), position: \(position), type: \(type)")
         guard let buildingDef = buildingRegistry.get(buildingId) else {
+            print("GameLoop: placeInserter failed - buildingDef not found for: \(buildingId)")
             return false
         }
-        guard canPlaceBuilding(buildingDef, at: position) else { return false }
+        guard canPlaceBuilding(buildingDef, at: position) else {
+            print("GameLoop: placeInserter failed - cannot place building at: \(position)")
+            return false
+        }
 
         // Check if player has required items
-        guard player.inventory.has(items: buildingDef.cost) else { return false }
+        guard player.inventory.has(items: buildingDef.cost) else {
+            print("GameLoop: placeInserter failed - player doesn't have required items: \(buildingDef.cost)")
+            return false
+        }
 
         // Remove items from player inventory
         player.inventory.remove(items: buildingDef.cost)
 
         // Create the inserter entity
         let entity = world.spawn()
+        print("GameLoop: Created inserter entity: \(entity)")
 
         // Add position component with offset to center at tap location
         world.add(PositionComponent(tilePosition: position, direction: direction, offset: offset), to: entity)
@@ -216,6 +225,7 @@ final class GameLoop {
             powerSystem.markNetworksDirty()
         }
 
+        print("GameLoop: placeInserter succeeded - entity: \(entity)")
         return true
     }
 
@@ -451,20 +461,29 @@ final class GameLoop {
         ), to: entity)
         world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
 
-        // Set up inserter animation with sprite sheet frames
-        if var sprite = world.get(SpriteComponent.self, for: entity) {
-            // Create animation with all 16 frames from the sprite sheet
-            let inserterFrames = (0..<16).map { "inserter_\($0)" }
-            var inserterAnimation = SpriteAnimation(
-                frames: inserterFrames,
-                frameTime: 0.5 / 16.0,  // 0.5 seconds total for all frames
-                isLooping: true
-            )
-            inserterAnimation.pause()  // Start paused - will play when powered
-            sprite.animation = inserterAnimation
-            sprite.textureId = "inserter_0"  // Start with first frame
-            world.add(sprite, to: entity)
-        }
+        // Add sprite component first (like other buildings)
+        var sprite = SpriteComponent(
+            textureId: "inserter",  // Start with first frame
+            size: Vector2(Float(buildingDef.width), Float(buildingDef.height)),
+            layer: .building,
+            centered: true
+        )
+        
+        // Create animation with all 16 frames from the sprite sheet
+        let inserterFrames = (0..<16).map { "inserters_sheet_\($0)" }
+        var inserterAnimation = SpriteAnimation(
+            frames: inserterFrames,
+            frameTime: 0.5 / 16.0,  // 0.5 seconds total for all frames
+            isLooping: true
+        )
+        inserterAnimation.pause()  // Start paused - will play when powered
+        sprite.animation = inserterAnimation
+        
+        // Add sprite component with animation
+        world.add(sprite, to: entity)
+        
+        // Add health component (like other buildings)
+        world.add(HealthComponent(maxHealth: buildingDef.maxHealth), to: entity)
     }
 
     func removeBuilding(at position: IntVector2) -> Bool {

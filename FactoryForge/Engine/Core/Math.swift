@@ -74,6 +74,11 @@ struct IntVector2: Hashable, Codable {
         self.y = Int32(floorf(vector.y))
     }
     
+    /// Creates an IntVector2 by rounding to the nearest tile (useful for placement)
+    static func rounded(from vector: Vector2) -> IntVector2 {
+        return IntVector2(x: Int32(roundf(vector.x)), y: Int32(roundf(vector.y)))
+    }
+    
     var toVector2: Vector2 {
         return Vector2(Float(x), Float(y))
     }

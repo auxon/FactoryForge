@@ -117,17 +117,20 @@ final class UISystem {
 
         // Inserter type dialog callbacks
         inserterTypeDialog?.onInputSelected = { [weak self] buildingId, position, direction, offset in
+            // Place inserter first, then close dialog to ensure placement completes
             self?.inputManager?.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: .input)
             self?.closeInserterTypeDialog()
         }
 
         inserterTypeDialog?.onOutputSelected = { [weak self] buildingId, position, direction, offset in
+            // Place inserter first, then close dialog to ensure placement completes
             self?.inputManager?.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: .output)
             self?.closeInserterTypeDialog()
         }
 
         inserterTypeDialog?.onCancel = { [weak self] in
             self?.closeInserterTypeDialog()
+            self?.inputManager?.exitBuildMode() // Exit build mode when canceling
         }
 
 
@@ -229,16 +232,21 @@ final class UISystem {
 
         // Set up callbacks for new inserter placement
         dialog.onInputSelected = { [weak self] buildingId, position, direction, offset in
+            print("InserterTypeDialog: Input selected - buildingId: \(buildingId), position: \(position), direction: \(direction)")
+            // Place inserter first, then close dialog to ensure placement completes
             self?.inputManager?.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: .input)
             self?.closeInserterTypeDialog()
         }
         dialog.onOutputSelected = { [weak self] buildingId, position, direction, offset in
+            print("InserterTypeDialog: Output selected - buildingId: \(buildingId), position: \(position), direction: \(direction)")
+            // Place inserter first, then close dialog to ensure placement completes
             self?.inputManager?.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: .output)
             self?.closeInserterTypeDialog()
         }
         dialog.onInserterTypeChanged = nil // Clear existing callback
         dialog.onCancel = { [weak self] in
             self?.closeInserterTypeDialog()
+            self?.inputManager?.exitBuildMode() // Exit build mode when canceling
         }
 
         // Show the dialog
@@ -558,22 +566,28 @@ final class InserterTypeDialog {
         // Set up callbacks after all properties are initialized
         inputButton.onTap = { [weak self] in
             guard let self = self else { return }
+            print("InserterTypeDialog: Input button tapped - existingEntity: \(self.existingEntity != nil ? "exists" : "nil"), buildingId: \(self.buildingId), position: \(self.position)")
             if let existingEntity = self.existingEntity {
                 // Modifying existing inserter
+                print("InserterTypeDialog: Calling onInserterTypeChanged for existing entity")
                 self.onInserterTypeChanged?(existingEntity, .input)
             } else {
                 // Placing new inserter
+                print("InserterTypeDialog: Calling onInputSelected for new inserter")
                 self.onInputSelected?(self.buildingId, self.position, self.direction, self.offset)
             }
         }
 
         outputButton.onTap = { [weak self] in
             guard let self = self else { return }
+            print("InserterTypeDialog: Output button tapped - existingEntity: \(self.existingEntity != nil ? "exists" : "nil"), buildingId: \(self.buildingId), position: \(self.position)")
             if let existingEntity = self.existingEntity {
                 // Modifying existing inserter
+                print("InserterTypeDialog: Calling onInserterTypeChanged for existing entity")
                 self.onInserterTypeChanged?(existingEntity, .output)
             } else {
                 // Placing new inserter
+                print("InserterTypeDialog: Calling onOutputSelected for new inserter")
                 self.onOutputSelected?(self.buildingId, self.position, self.direction, self.offset)
             }
         }

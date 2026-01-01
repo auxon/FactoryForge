@@ -45,7 +45,7 @@ final class InserterSystem: System {
             
             // Only process inserter logic if powered
             guard hasPower, let power = power else {
-                print("InserterSystem: Inserter at \(position.tilePosition) skipped - no power")
+                // print("InserterSystem: Inserter at \(position.tilePosition) skipped - no power")
                 return
             }
             
