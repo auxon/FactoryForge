@@ -60,12 +60,6 @@ final class UISystem {
         let outputWidth = targetButtonHeight * outputAspectRatio
         let cancelWidth = targetButtonHeight * cancelAspectRatio
 
-        // Find the maximum width for background sizing
-        let maxButtonWidth = max(inputWidth, outputWidth, cancelWidth)
-
-        print("UI System: Texture sizes - Input: \(inputSize.width)x\(inputSize.height) (aspect: \(String(format: "%.2f", inputAspectRatio))), Output: \(outputSize.width)x\(outputSize.height) (aspect: \(String(format: "%.2f", outputAspectRatio))), Cancel: \(cancelSize.width)x\(cancelSize.height) (aspect: \(String(format: "%.2f", cancelAspectRatio)))")
-        print("UI System: Button dimensions (with UIScale=\(UIScale)) - Input: \(Int(inputWidth))x\(Int(targetButtonHeight)), Output: \(Int(outputWidth))x\(Int(targetButtonHeight)), Cancel: \(Int(cancelWidth))x\(Int(targetButtonHeight)), Max width: \(Int(maxButtonWidth))")
-
         inserterTypeDialog = InserterTypeDialog(screenSize: screenSize, inputWidth: inputWidth, outputWidth: outputWidth, cancelWidth: cancelWidth, buttonHeight: targetButtonHeight)
 
         setupCallbacks()
@@ -529,9 +523,6 @@ final class InserterTypeDialog {
     private var cancelButton: UIButton
 
     init(screenSize: Vector2, inputWidth: Float = 200, outputWidth: Float = 200, cancelWidth: Float = 200, buttonHeight: Float = 50) {
-        print("InserterTypeDialog: init() called, ID: \(id), screenSize: (\(screenSize.x), \(screenSize.y))")
-        print("InserterTypeDialog: Using widths - Input: \(inputWidth), Output: \(outputWidth), Cancel: \(cancelWidth), Height: \(buttonHeight)")
-
         let spacing: Float = 20 * UIScale  // Scaled spacing like LoadingMenu
 
         // Center the buttons vertically and horizontally
@@ -541,15 +532,12 @@ final class InserterTypeDialog {
         let startY = (screenSize.y - totalHeight) / 2
         let buttonX = (screenSize.x - maxWidth) / 2
 
-        print("InserterTypeDialog: totalHeight=\(totalHeight), startY=\(startY), buttonX=\(buttonX), maxWidth=\(maxWidth)")
-
         // Input button (top) - center each button in the available width
         let inputX = buttonX + maxWidth/2
         inputButton = UIButton(frame: Rect(
             center: Vector2(inputX, startY + buttonHeight/2),
             size: Vector2(inputWidth, buttonHeight)
         ), textureId: "inserter_input_button")
-        print("InserterTypeDialog: Input button - size: \(inputWidth)x\(buttonHeight), aspect: \(String(format: "%.2f", inputWidth/buttonHeight))")
 
         // Output button (middle)
         let outputX = buttonX + maxWidth/2
@@ -557,7 +545,6 @@ final class InserterTypeDialog {
             center: Vector2(outputX, startY + buttonHeight/2 + buttonHeight + spacing),
             size: Vector2(outputWidth, buttonHeight)
         ), textureId: "inserter_output_button")
-        print("InserterTypeDialog: Output button - size: \(outputWidth)x\(buttonHeight), aspect: \(String(format: "%.2f", outputWidth/buttonHeight))")
 
         // Cancel button (bottom)
         let cancelX = buttonX + maxWidth/2
@@ -565,7 +552,6 @@ final class InserterTypeDialog {
             center: Vector2(cancelX, startY + buttonHeight/2 + (buttonHeight + spacing) * 2),
             size: Vector2(cancelWidth, buttonHeight)
         ), textureId: "inserter_cancel_button")
-        print("InserterTypeDialog: Cancel button - size: \(cancelWidth)x\(buttonHeight), aspect: \(String(format: "%.2f", cancelWidth/buttonHeight))")
 
         // Buttons now use textures with built-in text - no additional setup needed
 
@@ -629,12 +615,10 @@ final class InserterTypeDialog {
 
 
     func open() {
-        print("InserterTypeDialog: open() called (ID: \(id))")
         // Buttons now use textures with built-in text
     }
 
     func close() {
-        print("InserterTypeDialog: close() called")
         // Text labels will stop being rendered when dialog is not active
     }
 
@@ -649,8 +633,6 @@ final class InserterTypeDialog {
         let padding: Float = 100 * UIScale  // Very generous padding to prevent clipping
         let bgWidth = maxButtonWidth + padding * 2  // Add padding on both sides
         let bgHeight = totalButtonHeight + padding * 2  // Add padding on top and bottom
-        
-        print("InserterTypeDialog: Background size - width: \(bgWidth), height: \(bgHeight), maxButtonWidth: \(maxButtonWidth), totalButtonHeight: \(totalButtonHeight)")
 
         let bgRect = Rect(
             center: Vector2(renderer.screenSize.x / 2, renderer.screenSize.y / 2),
@@ -708,13 +690,6 @@ class UIButton: UIElement {
         let color = isEnabled ? (isPressed ? Color(r: 0.8, g: 0.8, b: 0.8, a: 1) : .white) : Color(r: 0.5, g: 0.5, b: 0.5, a: 1)
 
         let textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
-        
-        // Debug: Verify frame size matches expected aspect ratio
-        if textureId.contains("inserter") {
-            let frameAspect = frame.size.x / frame.size.y
-            let textureAspect = (textureRect.maxX - textureRect.minX) / (textureRect.maxY - textureRect.minY)
-            print("UIButton render: \(textureId) - frame: \(frame.size.x)x\(frame.size.y) (aspect: \(String(format: "%.2f", frameAspect))), textureRect aspect: \(String(format: "%.2f", textureAspect))")
-        }
 
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
