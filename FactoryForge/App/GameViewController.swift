@@ -253,6 +253,10 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
+        // Inserter type dialog now uses Metal rendering - no view setup needed
+        let dialog = uiSystem?.getInserterTypeDialog()
+        print("GameViewController: Inserter dialog exists: \(dialog != nil), ID: \(dialog?.debugId ?? -1)")
+
         // Set up crafting menu label callbacks
         print("GameViewController: Setting up CraftingMenu callbacks in setupUISystem")
         let craftingMenu = uiSystem?.getCraftingMenu()
@@ -440,6 +444,8 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
+        // Inserter type dialog uses Metal rendering - no view setup needed
+
         // Re-set up crafting menu label callbacks (UI system was recreated)
         uiSystem?.getCraftingMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             print("GameViewController: onAddLabels callback called with \(labels.count) labels")
@@ -570,7 +576,9 @@ class GameViewController: UIViewController {
         uiSystem?.getResearchUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
         }
-        
+
+        // Inserter type dialog uses Metal rendering - no view setup needed
+
         // Re-set up crafting menu label callbacks
         print("GameViewController: Setting up CraftingMenu callbacks in loadGame")
         uiSystem?.getCraftingMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in

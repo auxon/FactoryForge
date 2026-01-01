@@ -7,6 +7,7 @@ final class TextureAtlas {
     private let device: MTLDevice
     private var textures: [String: MTLTexture] = [:]
     private var textureRects: [String: Rect] = [:]
+    private var textureSizes: [String: (width: Int, height: Int)] = [:]
     
     // Main atlas texture
     private(set) var atlasTexture: MTLTexture?
@@ -206,6 +207,9 @@ final class TextureAtlas {
             ("long_handed_inserter", nil),
             ("fast_inserter", nil),
             ("inserters_sheet", nil),
+            ("inserter_input_button", nil),
+            ("inserter_output_button", nil),
+            ("inserter_cancel_button", nil),
             
             // Buildings - Storage
             ("wooden_chest", nil),
@@ -330,7 +334,7 @@ final class TextureAtlas {
         }
         
         // UI button names (define once at function start)
-        let uiButtonNames = ["new_game", "save_game", "load_game", "delete_game"]
+        let uiButtonNames = ["new_game", "save_game", "load_game", "delete_game", "inserter_input_button", "inserter_output_button", "inserter_cancel_button"]
         
         // Get actual image size
         let imageWidth = cgImage.width
@@ -574,6 +578,7 @@ final class TextureAtlas {
             height: Float(copyHeight) / Float(atlasSize)
         )
         textureRects[name] = uvRect
+        textureSizes[name] = (width: copyWidth, height: copyHeight)
 
         // Debug UV coordinates for UI textures and bullets
         if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder", "bullet", "bullet_up", "bullet_down", "bullet_left", "bullet_right"].contains(name) {
@@ -776,6 +781,10 @@ final class TextureAtlas {
             print("Warning: Texture '\(name)' not found in atlas, using default rect")
             return Rect(x: 0, y: 0, width: 1, height: 1)
         }
+    }
+
+    func getTextureSize(for name: String) -> (width: Int, height: Int)? {
+        return textureSizes[name]
     }
     
     // MARK: - Procedural Texture Generators
