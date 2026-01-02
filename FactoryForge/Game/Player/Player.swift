@@ -117,13 +117,13 @@ final class Player {
     
     private func giveStartingItems() {
         inventory.add(itemId: "iron-plate", count: 40)  // Enough to build both burner miner and stone furnace
-        inventory.add(itemId: "burner-mining-drill", count: 1)
+        inventory.add(itemId: "burner-mining-drill", count: 2)
         inventory.add(itemId: "stone-furnace", count: 2)
         inventory.add(itemId: "firearm-magazine", count: 10)  // Starting ammo for self-defense
-        inventory.add(itemId: "transport-belt", count: 10)  // Starting belts
-        inventory.add(itemId: "inserter", count: 2)  // Starting inserters
+        inventory.add(itemId: "transport-belt", count: 20)  // Starting belts
+        inventory.add(itemId: "inserter", count: 4)  // Starting inserters
         inventory.add(itemId: "boiler", count: 1)  // Boiler for testing
-        inventory.add(itemId: "small-electric-pole", count: 10)  // Small electric pole for testing
+        inventory.add(itemId: "small-electric-pole", count: 20)  // Small electric pole for testing
     }
     
     // MARK: - Update
