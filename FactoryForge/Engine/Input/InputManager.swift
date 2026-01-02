@@ -720,9 +720,62 @@ final class InputManager: NSObject {
     }
 
 
+    private func selectEntity(_ entity: Entity, gameLoop: GameLoop, isDoubleTap: Bool) {
+        // Debug: log what entity was selected
+        let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
+        let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+        print("InputManager: Selected entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt)")
+
+        // Special handling for double-tapped inserters
+        if isDoubleTap && gameLoop.world.has(InserterComponent.self, for: entity) {
+            // Show inserter type dialog for existing inserter
+            if let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+               let inserter = gameLoop.world.get(InserterComponent.self, for: entity) {
+                // Show the inserter type dialog for modifying existing inserter
+                gameLoop.uiSystem?.showInserterTypeDialogForExisting(
+                    entity: entity,
+                    currentType: inserter.type,
+                    position: pos.tilePosition,
+                    direction: inserter.direction,
+                    offset: pos.offset
+                )
+                return
+            }
+        }
+
+        // Select the entity (normal behavior)
+        selectedEntity = entity
+        onEntitySelected?(entity)
+    }
+    
     private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop, isDoubleTap: Bool = false) {
-        // Only select entities at the exact tile position - no fallback to nearby entities
-        // getEntityAt already prioritizes inserters over belts, so we can trust its result
+        // Get all entities at this position
+        let allEntities = gameLoop.world.getAllEntitiesAt(position: tilePos)
+        
+        // Filter to only interactable entities
+        let interactableEntities = allEntities.filter { entity in
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+            let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+            let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+            let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
+            let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
+            let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+            let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
+            
+            return hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter
+        }
+        
+        // If multiple interactable entities, show selection dialog
+        if interactableEntities.count > 1 {
+            gameLoop.uiSystem?.showEntitySelectionDialog(entities: interactableEntities) { [weak self] selectedEntity in
+                self?.selectEntity(selectedEntity, gameLoop: gameLoop, isDoubleTap: isDoubleTap)
+            }
+            return
+        }
+        
+        // Single entity (or none) - use existing logic
         var closestEntity: Entity?
         if let entityAtTile = gameLoop.world.getEntityAt(position: tilePos) {
             // Check if this entity is interactable
@@ -744,35 +797,8 @@ final class InputManager: NSObject {
             }
         }
         
-        // Removed: fallback logic that searches for multi-tile buildings or nearby entities
-        // Now only entities at the exact tile position can be selected
-        
         if let entity = closestEntity {
-            // Debug: log what entity was selected
-            let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
-            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
-            print("InputManager: Selected entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt)")
-
-            // Special handling for double-tapped inserters
-            if isDoubleTap && gameLoop.world.has(InserterComponent.self, for: entity) {
-                // Show inserter type dialog for existing inserter
-                if let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                   let inserter = gameLoop.world.get(InserterComponent.self, for: entity) {
-                    // Show the inserter type dialog for modifying existing inserter
-                    gameLoop.uiSystem?.showInserterTypeDialogForExisting(
-                        entity: entity,
-                        currentType: inserter.type,
-                        position: pos.tilePosition,
-                        direction: inserter.direction,
-                        offset: pos.offset
-                    )
-                    return
-                }
-            }
-
-            // Select the entity (normal behavior)
-            selectedEntity = entity
-            onEntitySelected?(entity)
+            selectEntity(entity, gameLoop: gameLoop, isDoubleTap: isDoubleTap)
         } else {
             // No entity found via getEntityAt, but check explicitly for inserters at this position
             // (inserters might be on top of ore/resources, and we want to prioritize inserter selection over mining)

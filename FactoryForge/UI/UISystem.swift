@@ -19,6 +19,7 @@ final class UISystem {
     private var machineUI: MachineUI
     private var loadingMenu: LoadingMenu
     private var inserterTypeDialog: InserterTypeDialog?
+    private var entitySelectionDialog: EntitySelectionDialog?
     
     // Current state
     private(set) var activePanel: UIPanel?
@@ -61,6 +62,9 @@ final class UISystem {
         let cancelWidth = targetButtonHeight * cancelAspectRatio
 
         inserterTypeDialog = InserterTypeDialog(screenSize: screenSize, inputWidth: inputWidth, outputWidth: outputWidth, cancelWidth: cancelWidth, buttonHeight: targetButtonHeight)
+        
+        // Initialize entity selection dialog
+        entitySelectionDialog = EntitySelectionDialog(screenSize: screenSize, gameLoop: gameLoop, renderer: renderer)
 
         setupCallbacks()
     }
@@ -76,6 +80,10 @@ final class UISystem {
         buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
         researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
+        
+        // Reinitialize entity selection dialog with gameLoop
+        entitySelectionDialog = EntitySelectionDialog(screenSize: screenSize, gameLoop: gameLoop, renderer: renderer)
+        
         setupCallbacks()
     }
 
@@ -222,6 +230,8 @@ final class UISystem {
                 machineUI.update(deltaTime: deltaTime)
             case .inserterType:
                 inserterTypeDialog?.update(deltaTime: deltaTime)
+            case .entitySelection:
+                entitySelectionDialog?.update(deltaTime: deltaTime)
             }
         }
     }
@@ -281,6 +291,30 @@ final class UISystem {
         activePanel = nil
         isAnyPanelOpen = false
     }
+    
+    func showEntitySelectionDialog(entities: [Entity], onSelected: @escaping (Entity) -> Void) {
+        guard let dialog = entitySelectionDialog else { return }
+        dialog.setEntities(entities)
+        
+        dialog.onEntitySelected = { [weak self] entity in
+            onSelected(entity)
+            self?.closeEntitySelectionDialog()
+        }
+        
+        dialog.onCancel = { [weak self] in
+            self?.closeEntitySelectionDialog()
+        }
+        
+        dialog.open()
+        activePanel = .entitySelection
+        isAnyPanelOpen = true
+    }
+    
+    private func closeEntitySelectionDialog() {
+        entitySelectionDialog?.close()
+        activePanel = nil
+        isAnyPanelOpen = false
+    }
 
     // MARK: - Rendering
     
@@ -311,6 +345,8 @@ final class UISystem {
                 machineUI.render(renderer: renderer)
             case .inserterType:
                 inserterTypeDialog?.render(renderer: renderer)
+            case .entitySelection:
+                entitySelectionDialog?.render(renderer: renderer)
             }
         }
     }
@@ -348,8 +384,10 @@ final class UISystem {
             researchUI.open()
         case .machine:
             machineUI.open()
-        case .inserterType:
-            inserterTypeDialog?.open()
+            case .inserterType:
+                inserterTypeDialog?.open()
+            case .entitySelection:
+                entitySelectionDialog?.open()
         }
     }
     
@@ -370,6 +408,8 @@ final class UISystem {
                 machineUI.close()
             case .inserterType:
                 inserterTypeDialog?.close()
+            case .entitySelection:
+                entitySelectionDialog?.close()
             }
         }
 
@@ -425,6 +465,8 @@ final class UISystem {
                 if machineUI.handleTap(at: screenPos) { return true }
             case .inserterType:
                 if inserterTypeDialog?.handleTap(at: screenPos) ?? false { return true }
+            case .entitySelection:
+                if entitySelectionDialog?.handleTap(at: screenPos) ?? false { return true }
             }
 
             // If we reach here, the panel's handleTap returned false,
@@ -468,6 +510,8 @@ final class UISystem {
                 return nil // MachineUI doesn't need tooltips yet
             case .inserterType:
                 return nil // InserterTypeDialog doesn't need tooltips
+            case .entitySelection:
+                return nil // EntitySelectionDialog doesn't need tooltips
             }
         }
 
@@ -500,6 +544,7 @@ enum UIPanel {
     case research
     case machine
     case inserterType
+    case entitySelection
 }
 
 /// Dialog for selecting inserter type (Input or Output)
@@ -666,6 +711,211 @@ final class InserterTypeDialog {
         // Render buttons (now with built-in text textures)
         inputButton.render(renderer: renderer)
         outputButton.render(renderer: renderer)
+        cancelButton.render(renderer: renderer)
+    }
+}
+
+// MARK: - Entity Selection Dialog
+
+class EntitySelectionDialog {
+    private weak var gameLoop: GameLoop?
+    private weak var renderer: MetalRenderer?
+    private var screenSize: Vector2
+    
+    private var entities: [Entity] = []
+    private var entityButtons: [UIButton] = []
+    private var cancelButton: UIButton
+    
+    var onEntitySelected: ((Entity) -> Void)?
+    var onCancel: (() -> Void)?
+    
+    var isOpen: Bool = false
+    
+    init(screenSize: Vector2, gameLoop: GameLoop?, renderer: MetalRenderer?) {
+        self.screenSize = screenSize
+        self.gameLoop = gameLoop
+        self.renderer = renderer
+        
+        // Create cancel button
+        let cancelWidth: Float = 200 * UIScale
+        let cancelHeight: Float = 60 * UIScale
+        let cancelX = screenSize.x / 2
+        let cancelY = screenSize.y - 100 * UIScale
+        
+        cancelButton = UIButton(
+            frame: Rect(
+                center: Vector2(cancelX, cancelY),
+                size: Vector2(cancelWidth, cancelHeight)
+            ),
+            textureId: "solid_white"
+        )
+        
+        cancelButton.onTap = { [weak self] in
+            self?.onCancel?()
+        }
+    }
+    
+    func setEntities(_ entities: [Entity]) {
+        self.entities = entities
+        entityButtons.removeAll()
+        
+        guard let gameLoop = gameLoop else { return }
+        
+        let iconSize: Float = 80 * UIScale
+        let spacing: Float = 20 * UIScale
+        let padding: Float = 40 * UIScale
+        
+        // Calculate grid layout
+        let cols = min(3, entities.count)  // Max 3 columns
+        let rows = (entities.count + cols - 1) / cols  // Ceiling division
+        
+        let totalWidth = Float(cols) * iconSize + Float(cols - 1) * spacing + padding * 2
+        let totalHeight = Float(rows) * iconSize + Float(rows - 1) * spacing + padding * 2 + 100  // Extra space for cancel button
+        
+        let startX = (screenSize.x - totalWidth) / 2 + padding
+        let startY = (screenSize.y - totalHeight) / 2 + padding
+        
+        // Create buttons for each entity
+        for (index, entity) in entities.enumerated() {
+            let row = index / cols
+            let col = index % cols
+            
+            let x = startX + Float(col) * (iconSize + spacing) + iconSize / 2
+            let y = startY + Float(row) * (iconSize + spacing) + iconSize / 2
+            
+            let button = UIButton(
+                frame: Rect(
+                    center: Vector2(x, y),
+                    size: Vector2(iconSize, iconSize)
+                ),
+                textureId: getEntityTextureId(entity: entity, gameLoop: gameLoop)
+            )
+            
+            let capturedEntity = entity
+            button.onTap = { [weak self] in
+                self?.onEntitySelected?(capturedEntity)
+            }
+            
+            entityButtons.append(button)
+        }
+    }
+    
+    private func getEntityTextureId(entity: Entity, gameLoop: GameLoop) -> String {
+        // Get sprite texture ID, but handle directional textures (like belts)
+        if let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) {
+            var textureId = sprite.textureId
+            
+            // Handle belt directional textures (e.g., "transport_belt_north_001" -> "transport_belt")
+            if textureId.contains("_belt_") {
+                let parts = textureId.split(separator: "_")
+                if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                    textureId = parts[0...beltIndex].joined(separator: "_")
+                }
+            }
+            
+            return textureId
+        }
+        
+        return "solid_white"
+    }
+    
+    private func getEntityName(entity: Entity, gameLoop: GameLoop) -> String {
+        // Try to get name from sprite texture
+        if let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) {
+            // Check for player
+            if sprite.textureId == "player" {
+                return "Player"
+            }
+            
+            // Handle belt directional textures
+            var textureId = sprite.textureId
+            if textureId.contains("_belt_") {
+                let parts = textureId.split(separator: "_")
+                if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                    textureId = parts[0...beltIndex].joined(separator: "_")
+                }
+            }
+            
+            // Try to find building by texture
+            if let building = gameLoop.buildingRegistry.getByTexture(textureId) {
+                return building.name
+            }
+            
+            // Fallback to texture ID
+            return textureId.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+        
+        return "Entity"
+    }
+    
+    func open() {
+        isOpen = true
+    }
+    
+    func close() {
+        isOpen = false
+    }
+    
+    func handleTap(at position: Vector2) -> Bool {
+        guard isOpen else { return false }
+        
+        // Check entity buttons
+        for button in entityButtons {
+            if button.handleTap(at: position) {
+                return true
+            }
+        }
+        
+        // Check cancel button
+        if cancelButton.handleTap(at: position) {
+            return true
+        }
+        
+        // Tap outside dialog - close it
+        return true
+    }
+    
+    func update(deltaTime: Float) {
+        for button in entityButtons {
+            button.update(deltaTime: deltaTime)
+        }
+        cancelButton.update(deltaTime: deltaTime)
+    }
+    
+    func render(renderer: MetalRenderer) {
+        guard isOpen else { return }
+        
+        // Render background
+        let iconSize: Float = 80 * UIScale
+        let spacing: Float = 20 * UIScale
+        let padding: Float = 40 * UIScale
+        
+        let cols = min(3, entities.count)
+        let rows = (entities.count + cols - 1) / cols
+        
+        let totalWidth = Float(cols) * iconSize + Float(cols - 1) * spacing + padding * 2
+        let totalHeight = Float(rows) * iconSize + Float(rows - 1) * spacing + padding * 2 + 100
+        
+        let bgRect = Rect(
+            center: Vector2(screenSize.x / 2, screenSize.y / 2),
+            size: Vector2(totalWidth, totalHeight)
+        )
+        
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        renderer.queueSprite(SpriteInstance(
+            position: bgRect.center,
+            size: bgRect.size,
+            textureRect: solidRect,
+            color: Color(r: 0.1, g: 0.1, b: 0.15, a: 0.95),
+            layer: .ui
+        ))
+        
+        // Render entity buttons
+        for button in entityButtons {
+            button.render(renderer: renderer)
+        }
+        
+        // Render cancel button
         cancelButton.render(renderer: renderer)
     }
 }

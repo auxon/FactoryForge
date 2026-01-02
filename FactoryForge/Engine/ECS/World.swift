@@ -158,24 +158,18 @@ final class World {
     
     // MARK: - Spatial Queries
     
-    /// Gets the entity at a tile position (checks exact match first, then checks if position is within any entity's bounds)
-    /// Prioritizes buildings over belts and inserters
-    func getEntityAt(position: IntVector2) -> Entity? {
+    /// Gets all entities at a tile position (doesn't prioritize, returns all matching entities)
+    func getAllEntitiesAt(position: IntVector2) -> [Entity] {
         var allEntitiesAtPosition: [Entity] = []
-
-        // print("World: getEntityAt(\(position)) - checking entities...")
 
         // First check exact match in spatial index
         if let entity = spatialIndex[position] {
             allEntitiesAtPosition.append(entity)
-        } else {
-            // print("World: No entity in spatial index at \(position)")
         }
 
         // Check all entities with PositionComponent to find all entities at this position
         // This includes both single-tile entities (exact match) and multi-tile buildings (bounds check)
         let allEntitiesWithPosition = query(PositionComponent.self)
-        // print("World: Querying \(allEntitiesWithPosition.count) entities with PositionComponent for position \(position)")
         
         for entity in allEntitiesWithPosition {
             guard let pos = get(PositionComponent.self, for: entity) else { continue }
@@ -187,34 +181,27 @@ final class World {
             let sprite = get(SpriteComponent.self, for: entity)
             let width = sprite != nil ? Int32(sprite!.size.x) : 1
             let height = sprite != nil ? Int32(sprite!.size.y) : 1
-            
-            let hasInserter = has(InserterComponent.self, for: entity)
-            let hasBelt = has(BeltComponent.self, for: entity)
 
             // Check if the tapped position matches exactly (for single-tile) or is within bounds (for multi-tile)
             let isExactMatch = (width == 1 && height == 1) && position.x == origin.x && position.y == origin.y
             let isWithinBounds = position.x >= origin.x && position.x < origin.x + width &&
                                  position.y >= origin.y && position.y < origin.y + height
 
-            // Debug: Log entities being checked (especially inserters and belts)
-            if hasInserter || hasBelt || (origin.x == position.x && origin.y == position.y) {
-                // print("World: Checking entity \(entity) at \(origin) (size: \(width)x\(height)) - Inserter: \(hasInserter), Belt: \(hasBelt), isExactMatch: \(isExactMatch), isWithinBounds: \(isWithinBounds)")
-            }
-
             if isExactMatch || isWithinBounds {
                 // Only add if not already in the list (avoid duplicates)
                 if !allEntitiesAtPosition.contains(entity) {
                     allEntitiesAtPosition.append(entity)
-                    if hasInserter || hasBelt {
-                        // print("World: Added entity \(entity) to list - Inserter: \(hasInserter), Belt: \(hasBelt)")
-                    }
-                } else {
-                    if hasInserter || hasBelt {
-                        // print("World: Entity \(entity) already in list (duplicate)")
-                    }
                 }
             }
         }
+        
+        return allEntitiesAtPosition
+    }
+    
+    /// Gets the entity at a tile position (checks exact match first, then checks if position is within any entity's bounds)
+    /// Prioritizes buildings over belts and inserters
+    func getEntityAt(position: IntVector2) -> Entity? {
+        let allEntitiesAtPosition = getAllEntitiesAt(position: position)
         
         // If no entities found, return nil
         guard !allEntitiesAtPosition.isEmpty else { return nil }
