@@ -168,13 +168,13 @@ final class World {
         if let entity = spatialIndex[position] {
             allEntitiesAtPosition.append(entity)
             checkedEntities.insert(entity)
-            print("World: getAllEntitiesAt - found entity \(entity) in spatial index at \(position)")
+            // print("World: getAllEntitiesAt - found entity \(entity) in spatial index at \(position)")
         }
 
         // Check all entities with PositionComponent to find all entities at this position
         // This includes both single-tile entities (exact match) and multi-tile buildings (bounds check)
         let allEntitiesWithPosition = query(PositionComponent.self)
-        print("World: getAllEntitiesAt - checking \(allEntitiesWithPosition.count) entities with PositionComponent")
+        // print("World: getAllEntitiesAt - checking \(allEntitiesWithPosition.count) entities with PositionComponent")
         
         for entity in allEntitiesWithPosition {
             guard !checkedEntities.contains(entity) else { continue }  // Skip already checked entities
@@ -199,17 +199,17 @@ final class World {
 
             // Debug log entities at the target position
             if hasInserter || hasBelt || hasFurnace || isExactMatch || isWithinBounds {
-                print("World: getAllEntitiesAt - checking entity \(entity) at \(origin) (size \(width)x\(height)) - Inserter: \(hasInserter), Belt: \(hasBelt), Furnace: \(hasFurnace), isExactMatch: \(isExactMatch), isWithinBounds: \(isWithinBounds)")
+                // print("World: getAllEntitiesAt - checking entity \(entity) at \(origin) (size \(width)x\(height)) - Inserter: \(hasInserter), Belt: \(hasBelt), Furnace: \(hasFurnace), isExactMatch: \(isExactMatch), isWithinBounds: \(isWithinBounds)")
             }
 
             if isExactMatch || isWithinBounds {
                 allEntitiesAtPosition.append(entity)
                 checkedEntities.insert(entity)
-                print("World: getAllEntitiesAt - added entity \(entity) at \(origin) to result list")
+                // print("World: getAllEntitiesAt - added entity \(entity) at \(origin) to result list")
             }
         }
         
-        print("World: getAllEntitiesAt - returning \(allEntitiesAtPosition.count) entities")
+        // print("World: getAllEntitiesAt - returning \(allEntitiesAtPosition.count) entities")
         return allEntitiesAtPosition
     }
     
