@@ -435,28 +435,33 @@ final class HUD {
             return
         }
         
+        // Ensure rectangle has valid size
+        guard selectionRect.width > 0 && selectionRect.height > 0 else {
+            return
+        }
+        
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         let borderColor = Color(r: 0.2, g: 0.6, b: 1.0, a: 0.8)  // Blue selection color
-        let fillColor = Color(r: 0.2, g: 0.6, b: 1.0, a: 0.1)  // Semi-transparent fill
-        let borderThickness: Float = 0.1  // Thin border in world units
+        let fillColor = Color(r: 0.2, g: 0.6, b: 1.0, a: 0.2)  // Semi-transparent fill
+        let borderThickness: Float = 0.15  // Border thickness in world units (thicker for visibility)
         
-        // Render semi-transparent fill
+        // Render semi-transparent fill (use .entity layer since this is world-space)
         renderer.queueSprite(SpriteInstance(
             position: selectionRect.center,
             size: selectionRect.size,
             textureRect: solidRect,
             color: fillColor,
-            layer: .ui
+            layer: .entity  // Use .entity layer for world-space rendering
         ))
         
-        // Render border (four edges)
+        // Render border (four edges) - use .entity layer for world-space
         // Top edge
         renderer.queueSprite(SpriteInstance(
             position: Vector2(selectionRect.center.x, selectionRect.maxY - borderThickness / 2),
             size: Vector2(selectionRect.width, borderThickness),
             textureRect: solidRect,
             color: borderColor,
-            layer: .ui
+            layer: .entity
         ))
         // Bottom edge
         renderer.queueSprite(SpriteInstance(
@@ -464,7 +469,7 @@ final class HUD {
             size: Vector2(selectionRect.width, borderThickness),
             textureRect: solidRect,
             color: borderColor,
-            layer: .ui
+            layer: .entity
         ))
         // Left edge
         renderer.queueSprite(SpriteInstance(
@@ -472,7 +477,7 @@ final class HUD {
             size: Vector2(borderThickness, selectionRect.height),
             textureRect: solidRect,
             color: borderColor,
-            layer: .ui
+            layer: .entity
         ))
         // Right edge
         renderer.queueSprite(SpriteInstance(
@@ -480,7 +485,7 @@ final class HUD {
             size: Vector2(borderThickness, selectionRect.height),
             textureRect: solidRect,
             color: borderColor,
-            layer: .ui
+            layer: .entity
         ))
     }
     
