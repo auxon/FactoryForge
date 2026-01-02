@@ -91,6 +91,7 @@ final class TextureAtlas {
             ("move", nil),
             ("disable_audio", nil),
             ("right_arrow", nil),
+            ("cancel_button", nil),
             ("solid_white", nil),
 
             // Entities (load sprite sheets first - they extract all frames)

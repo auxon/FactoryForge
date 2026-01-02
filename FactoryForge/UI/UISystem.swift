@@ -736,18 +736,21 @@ class EntitySelectionDialog {
         self.gameLoop = gameLoop
         self.renderer = renderer
         
-        // Create cancel button
-        let cancelWidth: Float = 200 * UIScale
-        let cancelHeight: Float = 60 * UIScale
+        // Create cancel button with proper texture and aspect ratio (same as InserterTypeDialog)
+        let cancelSize = renderer?.textureAtlas.getTextureSize(for: "cancel_button") ?? (width: 810, height: 345)
+        let cancelAspectRatio = Float(cancelSize.width) / Float(cancelSize.height)
+        let targetButtonHeight: Float = 50 * UIScale
+        let cancelWidth = targetButtonHeight * cancelAspectRatio
+        
         let cancelX = screenSize.x / 2
         let cancelY = screenSize.y - 100 * UIScale
         
         cancelButton = UIButton(
             frame: Rect(
                 center: Vector2(cancelX, cancelY),
-                size: Vector2(cancelWidth, cancelHeight)
+                size: Vector2(cancelWidth, targetButtonHeight)
             ),
-            textureId: "solid_white"
+            textureId: "inserter_cancel_button"
         )
         
         cancelButton.onTap = { [weak self] in
