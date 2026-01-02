@@ -6,13 +6,13 @@ final class ChunkManager {
     private var chunks: [ChunkCoord: Chunk] = [:]
     
     /// World generation seed
-    let seed: UInt64
+    private(set) var seed: UInt64
     
     /// World generator
-    private let worldGenerator: WorldGenerator
+    private var worldGenerator: WorldGenerator
     
     /// Biome generator
-    private let biomeGenerator: BiomeGenerator
+    private var biomeGenerator: BiomeGenerator
     
     /// Load radius in chunks
     let loadRadius: Int = 3
@@ -28,6 +28,15 @@ final class ChunkManager {
         print("ChunkManager: Initialized with seed: \(seed)")
         self.worldGenerator = WorldGenerator(seed: seed)
         self.biomeGenerator = BiomeGenerator(seed: seed)
+    }
+    
+    /// Updates the seed and recreates generators (used when loading a save with a different seed)
+    func updateSeed(_ newSeed: UInt64) {
+        guard newSeed != seed else { return }
+        self.seed = newSeed
+        print("ChunkManager: Updated seed to: \(newSeed)")
+        self.worldGenerator = WorldGenerator(seed: newSeed)
+        self.biomeGenerator = BiomeGenerator(seed: newSeed)
     }
     
     // MARK: - Chunk Loading
@@ -139,6 +148,26 @@ final class ChunkManager {
         chunks.removeAll()
         loadedChunks.removeAll()
         print("ChunkManager: Cleared all loaded chunks")
+    }
+    
+    /// Force loads chunks around a specific position (used when loading a save)
+    /// This ensures chunks are loaded from disk before they can be regenerated
+    func forceLoadChunksAround(position: Vector2) {
+        let playerChunk = Chunk.worldToChunk(IntVector2(from: position))
+        
+        // Load chunks in a larger radius to ensure all nearby chunks are loaded
+        let loadRadius = self.loadRadius + 2  // Load extra chunks to be safe
+        
+        for dy in -loadRadius...loadRadius {
+            for dx in -loadRadius...loadRadius {
+                let coord = ChunkCoord(x: playerChunk.x + Int32(dx), y: playerChunk.y + Int32(dy))
+                
+                // Only load if not already loaded
+                if !loadedChunks.contains(coord) {
+                    loadChunk(at: coord)
+                }
+            }
+        }
     }
     
     // MARK: - Rendering

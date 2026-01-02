@@ -61,6 +61,12 @@ final class SaveSystem {
     // MARK: - Load
     
     func load(saveData: GameSave, into gameLoop: GameLoop) {
+        // Update ChunkManager seed if it differs from the save file
+        // This ensures chunks are generated/loaded with the correct seed
+        if saveData.seed != gameLoop.chunkManager.seed {
+            gameLoop.chunkManager.updateSeed(saveData.seed)
+        }
+        
         // Clear all loaded chunks so they will be loaded fresh from disk
         // This prevents regenerating chunks that should be loaded from saved state
         gameLoop.chunkManager.clearLoadedChunks()
@@ -77,6 +83,38 @@ final class SaveSystem {
         
         // Load player state (position, inventory, health)
         gameLoop.player.loadState(saveData.playerData)
+        
+        // IMPORTANT: Force load chunks around player position immediately after loading entities
+        // This ensures saved chunks are loaded from disk before any updates can regenerate them
+        // Use forceLoadChunksAround to ensure we load from disk, not regenerate
+        gameLoop.chunkManager.forceLoadChunksAround(position: gameLoop.player.position)
+        
+        // Also ensure chunks around all entity positions are loaded
+        // Collect entity positions and load chunks for each
+        var chunksNeeded: Set<ChunkCoord> = []
+        for entity in gameLoop.world.entities {
+            if let position = gameLoop.world.get(PositionComponent.self, for: entity) {
+                let chunkCoord = Chunk.worldToChunk(position.tilePosition)
+                // Add surrounding chunks too
+                for dy in -1...1 {
+                    for dx in -1...1 {
+                        chunksNeeded.insert(ChunkCoord(x: chunkCoord.x + Int32(dx), y: chunkCoord.y + Int32(dy)))
+                    }
+                }
+            }
+        }
+        
+        // Load any missing chunks
+        for coord in chunksNeeded {
+            if gameLoop.chunkManager.getChunkByCoord(coord) == nil {
+                // Force load by calling update with a position in that chunk
+                let worldPos = Vector2(
+                    x: Float(coord.x * Int32(Chunk.size)) + Float(Chunk.size / 2),
+                    y: Float(coord.y * Int32(Chunk.size)) + Float(Chunk.size / 2)
+                )
+                gameLoop.chunkManager.forceLoadChunksAround(position: worldPos)
+            }
+        }
         
         // Load research state
         gameLoop.researchSystem.loadState(saveData.researchData)
