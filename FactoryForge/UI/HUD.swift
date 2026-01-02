@@ -431,6 +431,7 @@ final class HUD {
     
     private func renderSelectionRectangle(renderer: MetalRenderer) {
         guard let inputManager = inputManager,
+              inputManager.buildMode == .none,  // Only render selection rectangle when not in build mode
               let selectionRect = inputManager.selectionRect else {
             return
         }

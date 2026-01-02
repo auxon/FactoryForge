@@ -710,8 +710,8 @@ final class InputManager: NSObject {
 
             isDragging = false
             
-            // Handle selection rectangle end
-            if isSelecting, let rect = selectionRect {
+            // Handle selection rectangle end (only when not in build mode)
+            if buildMode == .none && isSelecting, let rect = selectionRect {
                 isSelecting = false
                 selectionStartScreenPos = nil
                 
@@ -752,6 +752,13 @@ final class InputManager: NSObject {
                     }
                 } else if let entity = interactableEntities.first {
                     selectEntity(entity, gameLoop: gameLoop, isDoubleTap: false)
+                }
+            } else {
+                // Clear selection state if we were selecting but are now in build mode
+                if isSelecting {
+                    isSelecting = false
+                    selectionStartScreenPos = nil
+                    selectionRect = nil
                 }
             }
             
@@ -1332,6 +1339,10 @@ final class InputManager: NSObject {
         buildMode = .placing
         selectedBuildingId = buildingId
         selectedEntity = nil
+        // Clear selection rectangle state when entering build mode
+        isSelecting = false
+        selectionStartScreenPos = nil
+        selectionRect = nil
     }
     
     func enterRemoveMode() {
@@ -1349,6 +1360,10 @@ final class InputManager: NSObject {
         dragPlacedTiles = []
         dragPathPreview = []
         entityToMove = nil
+        // Clear selection rectangle state when exiting build mode
+        isSelecting = false
+        selectionStartScreenPos = nil
+        selectionRect = nil
         print("InputManager: exitBuildMode completed - buildMode: \(buildMode), selectedBuildingId: \(selectedBuildingId ?? "nil")")
     }
     
@@ -1360,6 +1375,10 @@ final class InputManager: NSObject {
         dragPlacementStartTile = nil
         dragPlacedTiles = []
         dragPathPreview = []
+        // Clear selection rectangle state when entering move mode
+        isSelecting = false
+        selectionStartScreenPos = nil
+        selectionRect = nil
     }
     
     // MARK: - Belt Placement
