@@ -16,11 +16,15 @@ struct MinerComponent: Component {
     /// Whether the miner is currently active
     var isActive: Bool
     
+    /// Fuel remaining (for burner miners)
+    var fuelRemaining: Float
+    
     init(miningSpeed: Float = 0.5, resourceOutput: String? = nil) {
         self.miningSpeed = miningSpeed
         self.resourceOutput = resourceOutput
         self.progress = 0
         self.isActive = true
+        self.fuelRemaining = 0
     }
 }
 

@@ -422,7 +422,10 @@ final class GameLoop {
                 resourceOutput: buildingDef.resourceOutput
             ), to: entity)
             world.add(InventoryComponent(slots: 1, allowedItems: nil), to: entity)
-            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            // Only add power consumer for electric miners (burner miners use fuel)
+            if buildingDef.powerConsumption > 0 {
+                world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            }
             
         case .furnace:
             world.add(FurnaceComponent(

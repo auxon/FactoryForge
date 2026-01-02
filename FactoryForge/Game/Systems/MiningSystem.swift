@@ -18,26 +18,72 @@ final class MiningSystem: System {
         var inventoryModifications: [(Entity, InventoryComponent)] = []
         
         world.forEach(MinerComponent.self) { [self] entity, miner in
-            guard miner.isActive else { return }
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
             guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
             
-            // Check power for electric miners
-            var speedMultiplier: Float = 1.0
-            if let power = world.get(PowerConsumerComponent.self, for: entity) {
-                speedMultiplier = power.satisfaction
-                if speedMultiplier <= 0 { return }
+            var updatedMiner = miner
+            
+            // Handle fuel consumption for burner miners
+            let isBurnerMiner = world.get(PowerConsumerComponent.self, for: entity) == nil
+            var hasFuel = true
+            
+            if isBurnerMiner {
+                // Burner miner - check current fuel status
+                hasFuel = updatedMiner.fuelRemaining > 0
+                
+                // If we're active but no fuel, try to consume fuel
+                if updatedMiner.isActive && !hasFuel {
+                    if consumeFuel(inventory: &inventory, miner: &updatedMiner) {
+                        hasFuel = true
+                        inventoryModifications.append((entity, inventory))
+                    } else {
+                        // No fuel available, deactivate miner
+                        updatedMiner.isActive = false
+                        minerModifications.append((entity, updatedMiner))
+                        return
+                    }
+                }
+                
+                // Decrement fuel only when actively mining
+                // 25% slower fuel consumption: multiply deltaTime by 0.75
+                if hasFuel && updatedMiner.isActive {
+                    updatedMiner.fuelRemaining -= deltaTime * 0.75
+                    // If fuel runs out, deactivate
+                    if updatedMiner.fuelRemaining <= 0 {
+                        updatedMiner.fuelRemaining = 0
+                        updatedMiner.isActive = false
+                    }
+                }
+                
+                // Only process if we have fuel
+                if !hasFuel {
+                    updatedMiner.isActive = false
+                    minerModifications.append((entity, updatedMiner))
+                    return
+                }
+            } else {
+                // Electric miner - check power
+                if let power = world.get(PowerConsumerComponent.self, for: entity) {
+                    if power.satisfaction <= 0 {
+                        updatedMiner.isActive = false
+                        minerModifications.append((entity, updatedMiner))
+                        return
+                    }
+                }
+            }
+            
+            guard updatedMiner.isActive else {
+                minerModifications.append((entity, updatedMiner))
+                return
             }
             
             // Find resource at miner position
             guard let resource = findResource(at: position.tilePosition) else {
-                var updatedMiner = miner
                 updatedMiner.isActive = false
                 minerModifications.append((entity, updatedMiner))
                 return
             }
             
-            var updatedMiner = miner
             updatedMiner.isActive = true  // Ensure it's active if resource found
             updatedMiner.resourceOutput = resource.type.outputItem
             
@@ -45,6 +91,12 @@ final class MiningSystem: System {
             guard inventory.canAccept(itemId: resource.type.outputItem) else { 
                 minerModifications.append((entity, updatedMiner))
                 return 
+            }
+            
+            // Calculate speed multiplier (power satisfaction for electric miners, 1.0 for burner miners)
+            var speedMultiplier: Float = 1.0
+            if let power = world.get(PowerConsumerComponent.self, for: entity) {
+                speedMultiplier = power.satisfaction
             }
             
             // Progress mining
@@ -76,6 +128,24 @@ final class MiningSystem: System {
             world.add(inventory, to: entity)
         }
         
+    }
+    
+    private func consumeFuel(inventory: inout InventoryComponent, miner: inout MinerComponent) -> Bool {
+        let fuels: [(String, Float)] = [
+            ("coal", 4.0),
+            ("wood", 2.0),
+            ("solid-fuel", 12.0)
+        ]
+        
+        for (fuelId, fuelValue) in fuels {
+            if inventory.has(itemId: fuelId) {
+                inventory.remove(itemId: fuelId, count: 1)
+                miner.fuelRemaining = fuelValue
+                return true
+            }
+        }
+        
+        return false
     }
     
     private func findResource(at position: IntVector2) -> ResourceDeposit? {
