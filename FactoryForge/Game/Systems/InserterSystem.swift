@@ -30,7 +30,7 @@ final class InserterSystem: System {
         
         world.forEach(InserterComponent.self) { [self] entity, inserter in
             guard let position = world.get(PositionComponent.self, for: entity) else {
-                print("InserterSystem: Inserter \(entity) has no PositionComponent")
+                // print("InserterSystem: Inserter \(entity) has no PositionComponent")
                 return
             }
             let power = world.get(PowerConsumerComponent.self, for: entity)
@@ -55,13 +55,13 @@ final class InserterSystem: System {
             
             let speedMultiplier = power.satisfaction
             
-            print("InserterSystem: Inserter at \(position.tilePosition) state=\(inserter.state), heldItem=\(inserter.heldItem != nil ? "\(inserter.heldItem!.itemId) x\(inserter.heldItem!.count)" : "nil")")
+            // print("InserterSystem: Inserter at \(position.tilePosition) state=\(inserter.state), heldItem=\(inserter.heldItem != nil ? "\(inserter.heldItem!.itemId) x\(inserter.heldItem!.count)" : "nil")")
             
             switch inserter.state {
             case .idle:
                 // If holding an item, try to drop it off first
                 if inserter.heldItem != nil {
-                    print("InserterSystem: Inserter at \(position.tilePosition) in idle state but holding item \(inserter.heldItem!.itemId), transitioning to droppingOff")
+                    // print("InserterSystem: Inserter at \(position.tilePosition) in idle state but holding item \(inserter.heldItem!.itemId), transitioning to droppingOff")
                     inserter.state = .droppingOff
                     break
                 }
@@ -77,19 +77,19 @@ final class InserterSystem: System {
                             IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
                         ]
 
-                        print("InserterSystem: Input inserter at \(position.tilePosition) checking for pickup sources")
+                        // print("InserterSystem: Input inserter at \(position.tilePosition) checking for pickup sources")
                         var foundSource = false
                         for offset in offsets {
                             let sourcePos = position.tilePosition + offset
                             if canPickUp(from: sourcePos) {
-                                print("InserterSystem: Input inserter at \(position.tilePosition) can pick up from \(sourcePos), transitioning to pickingUp")
+                                // print("InserterSystem: Input inserter at \(position.tilePosition) can pick up from \(sourcePos), transitioning to pickingUp")
                                 inserter.state = .pickingUp
                                 foundSource = true
                                 break
                             }
                         }
                         if !foundSource {
-                            print("InserterSystem: Input inserter at \(position.tilePosition) found no pickup sources in adjacent positions")
+                            // print("InserterSystem: Input inserter at \(position.tilePosition) found no pickup sources in adjacent positions")
                         }
 
                     case .output:
@@ -100,19 +100,19 @@ final class InserterSystem: System {
                             IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
                         ]
 
-                        print("InserterSystem: Output inserter at \(position.tilePosition) checking for machine outputs")
+                        // print("InserterSystem: Output inserter at \(position.tilePosition) checking for machine outputs")
                         var foundOutput = false
                         for offset in offsets {
                             let checkPos = position.tilePosition + offset
                             if canPickUpFromMachineOutput(at: checkPos) {
-                                print("InserterSystem: Output inserter at \(position.tilePosition) can pick up from machine at \(checkPos), transitioning to pickingUp")
+                                // print("InserterSystem: Output inserter at \(position.tilePosition) can pick up from machine at \(checkPos), transitioning to pickingUp")
                                 inserter.state = .pickingUp
                                 foundOutput = true
                                 break
                             }
                         }
                         if !foundOutput {
-                            print("InserterSystem: Output inserter at \(position.tilePosition) found no machine outputs in adjacent positions")
+                            // print("InserterSystem: Output inserter at \(position.tilePosition) found no machine outputs in adjacent positions")
                         }
                     }
                 } else {
@@ -240,15 +240,15 @@ final class InserterSystem: System {
             case .droppingOff:
                 // Try to drop item
                 if let item = inserter.heldItem {
-                    print("InserterSystem: Inserter at \(position.tilePosition) trying to drop off \(item.itemId)")
+                    // print("InserterSystem: Inserter at \(position.tilePosition) trying to drop off \(item.itemId)")
                     if tryDropOff(inserter: inserter, position: position, item: item) {
-                        print("InserterSystem: Inserter at \(position.tilePosition) successfully dropped off item")
+                        // print("InserterSystem: Inserter at \(position.tilePosition) successfully dropped off item")
                         inserter.heldItem = nil
                         inserter.sourceEntity = nil  // Clear source entity after dropping off
                         inserter.state = .idle
                         inserter.armAngle = 0
                     } else {
-                        print("InserterSystem: Inserter at \(position.tilePosition) failed to drop off, returning to idle with item still held")
+                        // print("InserterSystem: Inserter at \(position.tilePosition) failed to drop off, returning to idle with item still held")
                         // Can't drop off, return to idle with item still held
                         // (This shouldn't happen often, but prevents getting stuck)
                         inserter.state = .idle
@@ -272,17 +272,17 @@ final class InserterSystem: System {
             let rightLaneItems = belt.rightLane.count
             let leftLaneProgress = belt.leftLane.last?.progress ?? 0
             let rightLaneProgress = belt.rightLane.last?.progress ?? 0
-            print("InserterSystem: canPickUp from \(position): belt found, leftLane=\(leftLaneItems) items (last progress=\(leftLaneProgress)), rightLane=\(rightLaneItems) items (last progress=\(rightLaneProgress))")
+            // print("InserterSystem: canPickUp from \(position): belt found, leftLane=\(leftLaneItems) items (last progress=\(leftLaneProgress)), rightLane=\(rightLaneItems) items (last progress=\(rightLaneProgress))")
             
             for (laneIndex, laneItems) in [belt.leftLane, belt.rightLane].enumerated() {
                 if let lastItem = laneItems.last, lastItem.progress >= 0.9 {
-                    print("InserterSystem: canPickUp from \(position): found belt item in lane \(laneIndex == 0 ? "left" : "right") with progress \(lastItem.progress)")
+                    // print("InserterSystem: canPickUp from \(position): found belt item in lane \(laneIndex == 0 ? "left" : "right") with progress \(lastItem.progress)")
                     return true
                 }
             }
-            print("InserterSystem: canPickUp from \(position): belt has items but none are ready (progress < 0.9)")
+            // print("InserterSystem: canPickUp from \(position): belt has items but none are ready (progress < 0.9)")
         } else {
-            print("InserterSystem: canPickUp from \(position): no belt found at this position")
+            // print("InserterSystem: canPickUp from \(position): no belt found at this position")
         }
         
         // Check if there's an entity with inventory that has items
@@ -482,7 +482,7 @@ final class InserterSystem: System {
             IntVector2(-1, 1)     // Northwest
         ]
         
-        print("InserterSystem: tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), excluding source entity: \(inserter.sourceEntity != nil)")
+        // print("InserterSystem: tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), excluding source entity: \(inserter.sourceEntity != nil)")
         for offset in offsets {
             let targetPos = position.tilePosition + offset
             
@@ -574,20 +574,20 @@ final class InserterSystem: System {
             // If the inserter is adjacent to the entity, it can drop items into it
             // (The inserter itself is adjacent, so this is a valid drop-off target)
             inserterConnectedTargets.append(entity)
-            print("InserterSystem:       -> adjacent target (inserter can drop here)")
+            // print("InserterSystem:       -> adjacent target (inserter can drop here)")
         }
         
         // Debug: print all targets found
-        print("InserterSystem: tryDropInInventory at \(position) for item \(item.itemId) (isFuel: \(isFuel), isOre: \(isOre)):")
-        print("InserterSystem:   found \(nearbyEntities.count) nearby entities, \(inserterConnectedTargets.count) valid drop targets")
+        // print("InserterSystem: tryDropInInventory at \(position) for item \(item.itemId) (isFuel: \(isFuel), isOre: \(isOre)):")
+        // print("InserterSystem:   found \(nearbyEntities.count) nearby entities, \(inserterConnectedTargets.count) valid drop targets")
         if inserterConnectedTargets.isEmpty {
-            print("InserterSystem:   WARNING - No valid drop targets found! Nearby entities:")
+            // print("InserterSystem:   WARNING - No valid drop targets found! Nearby entities:")
             for entity in nearbyEntities.prefix(5) {
                 if let entityPos = world.get(PositionComponent.self, for: entity) {
                     let hasInventory = world.has(InventoryComponent.self, for: entity)
                     let inventory = world.get(InventoryComponent.self, for: entity)
                     let canAccept = inventory?.canAccept(itemId: item.itemId) ?? false
-                    print("InserterSystem:     - Entity \(entity) at \(entityPos.tilePosition), hasInventory=\(hasInventory), canAccept=\(canAccept)")
+                    // print("InserterSystem:     - Entity \(entity) at \(entityPos.tilePosition), hasInventory=\(hasInventory), canAccept=\(canAccept)")
                 }
             }
         }
@@ -602,7 +602,7 @@ final class InserterSystem: System {
             let remaining = inventory.add(item)
             let itemCountAfter = inventory.count(of: item.itemId)
             let hasBelt = hasInserterAdjacent(to: entity)
-            print("InserterSystem: tryDropInInventory dropped item \(item.itemId) to entity \(entity) at \(entityPos.tilePosition) (belt-connected: \(hasBelt)), count before=\(itemCountBefore), after=\(itemCountAfter), remaining=\(remaining)")
+            // print("InserterSystem: tryDropInInventory dropped item \(item.itemId) to entity \(entity) at \(entityPos.tilePosition) (belt-connected: \(hasBelt)), count before=\(itemCountBefore), after=\(itemCountAfter), remaining=\(remaining)")
             world.add(inventory, to: entity)
             return remaining == 0
         }
@@ -646,7 +646,7 @@ final class InserterSystem: System {
         // Check if inventory can accept the item
         if inventory.canAccept(itemId: item.itemId) {
             let remaining = inventory.add(item)
-            print("InserterSystem: tryDropInInventory dropped item \(item.itemId) to entity \(entity) at position \(position), remaining=\(remaining)")
+            // print("InserterSystem: tryDropInInventory dropped item \(item.itemId) to entity \(entity) at position \(position), remaining=\(remaining)")
             world.add(inventory, to: entity)
             return remaining == 0
         }
@@ -659,7 +659,7 @@ final class InserterSystem: System {
         // Check if there's an entity with inventory that has output items
         // For multi-tile buildings, check ALL nearby entities for adjacency
         let nearbyEntities = world.getEntitiesNear(position: Vector2(Float(position.x) + 0.5, Float(position.y) + 0.5), radius: 2.0)
-        print("InserterSystem: canPickUpFromMachineOutput at \(position): checking \(nearbyEntities.count) nearby entities")
+        // print("InserterSystem: canPickUpFromMachineOutput at \(position): checking \(nearbyEntities.count) nearby entities")
 
         // First, try to find any machine with output items that's adjacent
         for entity in nearbyEntities {
@@ -679,7 +679,7 @@ final class InserterSystem: System {
                             inventory.slots[index] != nil
                         }
 
-                        print("InserterSystem: canPickUpFromMachineOutput at \(position): adjacent machine \(entity) at \(entityPos.tilePosition), hasFurnace=\(hasFurnace), hasAssembler=\(hasAssembler), hasOutputItems=\(hasOutputItems)")
+                        // print("InserterSystem: canPickUpFromMachineOutput at \(position): adjacent machine \(entity) at \(entityPos.tilePosition), hasFurnace=\(hasFurnace), hasAssembler=\(hasAssembler), hasOutputItems=\(hasOutputItems)")
                         if hasOutputItems {
                             return true
                         }
@@ -713,7 +713,7 @@ final class InserterSystem: System {
             positionsToCheck.append(entityPos.tilePosition)
         }
 
-        print("InserterSystem: hasInserterAdjacent for entity at \(entityPos.tilePosition) (size: \(positionsToCheck.count) tiles)")
+        // print("InserterSystem: hasInserterAdjacent for entity at \(entityPos.tilePosition) (size: \(positionsToCheck.count) tiles)")
 
         // Check all 8 adjacent positions for each tile the building occupies
         let offsets = [
@@ -721,13 +721,13 @@ final class InserterSystem: System {
             IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
         ]
         for buildingPos in positionsToCheck {
-            print("InserterSystem:   checking building tile \(buildingPos)")
+            // print("InserterSystem:   checking building tile \(buildingPos)")
             for offset in offsets {
                 let checkPos = buildingPos + offset
 
                 // Skip positions that are within the building's own bounds
                 if positionsToCheck.contains(checkPos) {
-                    print("InserterSystem:     skipping position \(checkPos) (within building bounds)")
+                    // print("InserterSystem:     skipping position \(checkPos) (within building bounds)")
                     continue
                 }
 
@@ -746,7 +746,7 @@ final class InserterSystem: System {
             }
         }
 
-        print("InserterSystem:   no inserters found adjacent")
+        // print("InserterSystem:   no inserters found adjacent")
         return false
     }
 
