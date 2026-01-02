@@ -337,6 +337,28 @@ final class GameLoop {
                             if world.has(InserterComponent.self, for: entity) || world.has(PowerPoleComponent.self, for: entity) {
                                 continue
                             }
+                            
+                            // For inserters and poles, allow placement adjacent to buildings
+                            // Check if the inserter/pole is actually within the building's occupied tiles
+                            // or just adjacent (which is allowed)
+                            if let entityPos = world.get(PositionComponent.self, for: entity),
+                               let sprite = world.get(SpriteComponent.self, for: entity) {
+                                let buildingWidth = Int(ceil(sprite.size.x))
+                                let buildingHeight = Int(ceil(sprite.size.y))
+                                let buildingOrigin = entityPos.tilePosition
+                                
+                                // Check if checkPos is actually within the building's bounds
+                                let isWithinBuildingBounds = checkPos.x >= buildingOrigin.x && 
+                                                             checkPos.x < buildingOrigin.x + Int32(buildingWidth) &&
+                                                             checkPos.y >= buildingOrigin.y && 
+                                                             checkPos.y < buildingOrigin.y + Int32(buildingHeight)
+                                
+                                // If the inserter/pole position is NOT within the building's bounds,
+                                // it means it's adjacent, which is allowed
+                                if !isWithinBuildingBounds {
+                                    continue  // Allow placement adjacent to building
+                                }
+                            }
                         }
                     }
 
