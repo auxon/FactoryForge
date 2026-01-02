@@ -348,9 +348,24 @@ final class GameLoop {
                             continue
                         }
                         
-                        // For inserters and poles, allow placement adjacent to buildings
-                        // Check if we're actually overlapping the building or just adjacent
-                        // Use the exact same bounds check logic as getEntityAt to ensure consistency
+                        // For inserters and poles, allow placement on top of buildings
+                        // Check if the entity is a building (has building components like furnace, assembler, etc.)
+                        let isBuilding = world.has(FurnaceComponent.self, for: entity) ||
+                                        world.has(AssemblerComponent.self, for: entity) ||
+                                        world.has(MinerComponent.self, for: entity) ||
+                                        world.has(GeneratorComponent.self, for: entity) ||
+                                        world.has(ChestComponent.self, for: entity) ||
+                                        world.has(LabComponent.self, for: entity) ||
+                                        world.has(SolarPanelComponent.self, for: entity) ||
+                                        world.has(AccumulatorComponent.self, for: entity)
+                        
+                        if isBuilding {
+                            // Allow inserters/poles to be placed on top of buildings
+                            print("GameLoop: Allowing inserter/pole placement on top of building at \(checkPos)")
+                            continue
+                        }
+                        
+                        // For other entities, check if we're adjacent or overlapping
                         if let entityPos = world.get(PositionComponent.self, for: entity),
                            let sprite = world.get(SpriteComponent.self, for: entity) {
                             let origin = entityPos.tilePosition
@@ -358,24 +373,18 @@ final class GameLoop {
                             let width = Int32(ceil(sprite.size.x))
                             let height = Int32(ceil(sprite.size.y))
                             
-                            // Check if checkPos is actually within the building's bounds
+                            // Check if checkPos is actually within the entity's bounds
                             // This matches the exact logic in World.getEntityAt
-                            let isWithinBuildingBounds = checkPos.x >= origin.x && 
-                                                         checkPos.x < origin.x + width &&
-                                                         checkPos.y >= origin.y && 
-                                                         checkPos.y < origin.y + height
+                            let isWithinBounds = checkPos.x >= origin.x && 
+                                                 checkPos.x < origin.x + width &&
+                                                 checkPos.y >= origin.y && 
+                                                 checkPos.y < origin.y + height
                             
-                            // If the inserter/pole position is NOT within the building's bounds,
-                            // it means it's adjacent, which is allowed for inserters/poles
-                            if !isWithinBuildingBounds {
-                                print("GameLoop: Allowing inserter/pole placement adjacent to building at \(checkPos), building at \(origin) size \(width)x\(height)")
-                                continue  // Allow placement adjacent to building
-                            } else {
-                                print("GameLoop: Blocking inserter/pole placement - overlapping building at \(checkPos), building at \(origin) size \(width)x\(height)")
-                            }
+                            // Allow placement if adjacent or overlapping for inserters/poles
+                            print("GameLoop: Allowing inserter/pole placement (adjacent or overlapping) at \(checkPos), entity at \(origin) size \(width)x\(height)")
+                            continue
                         } else {
-                            // If entity doesn't have position/sprite, it's not a standard building
-                            // For inserters/poles, allow placement next to non-building entities
+                            // If entity doesn't have position/sprite, allow placement
                             // (This handles edge cases where entities might not have all components)
                             print("GameLoop: Entity at \(checkPos) doesn't have position/sprite components, allowing inserter/pole placement")
                             continue
