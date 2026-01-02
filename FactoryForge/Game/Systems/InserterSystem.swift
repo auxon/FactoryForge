@@ -291,19 +291,6 @@ final class InserterSystem: System {
         let nearbyEntities = world.getEntitiesNear(position: Vector2(Float(position.x) + 0.5, Float(position.y) + 0.5), radius: 2.0)
         // print("InserterSystem: canPickUp from \(position): checking \(nearbyEntities.count) nearby entities")
         
-        // Log all nearby entities for debugging
-        for entity in nearbyEntities {
-            if let entityPos = world.get(PositionComponent.self, for: entity) {
-                _ = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
-                _ = world.has(MinerComponent.self, for: entity)
-                _ = world.has(FurnaceComponent.self, for: entity)
-                _ = world.has(InventoryComponent.self, for: entity)
-                let inventory = world.get(InventoryComponent.self, for: entity)
-                _ = inventory?.slots.compactMap { $0 }.reduce(0) { $0 + $1.count } ?? 0
-                // print("InserterSystem: canPickUp from \(position): nearby entity \(entity) at \(entityPos.tilePosition), distance=\(distance), hasMiner=\(hasMiner), hasFurnace=\(hasFurnace), hasInventory=\(hasInventory), itemCount=\(itemCount)")
-            }
-        }
-        
         // First, try to find any miner or building with inventory that's adjacent (within 1 tile)
         for entity in nearbyEntities {
             if let entityPos = world.get(PositionComponent.self, for: entity) {
