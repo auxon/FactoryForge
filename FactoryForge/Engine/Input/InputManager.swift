@@ -774,7 +774,41 @@ final class InputManager: NSObject {
             selectedEntity = entity
             onEntitySelected?(entity)
         } else {
-            // No entity, check for resource to mine manually
+            // No entity found via getEntityAt, but check explicitly for inserters at this position
+            // (inserters might be on top of ore/resources, and we want to prioritize inserter selection over mining)
+            let allEntitiesAtPosition = gameLoop.world.query(PositionComponent.self).filter { entity in
+                guard let pos = gameLoop.world.get(PositionComponent.self, for: entity) else { return false }
+                return pos.tilePosition.x == tilePos.x && pos.tilePosition.y == tilePos.y
+            }
+            
+            // Check if any of these entities are inserters
+            for entity in allEntitiesAtPosition {
+                if gameLoop.world.has(InserterComponent.self, for: entity) {
+                    print("InputManager: Found inserter at \(tilePos) that wasn't returned by getEntityAt, prioritizing inserter over mining")
+                    
+                    // Handle inserter selection (same as above)
+                    if isDoubleTap {
+                        if let pos = gameLoop.world.get(PositionComponent.self, for: entity),
+                           let inserter = gameLoop.world.get(InserterComponent.self, for: entity) {
+                            gameLoop.uiSystem?.showInserterTypeDialogForExisting(
+                                entity: entity,
+                                currentType: inserter.type,
+                                position: pos.tilePosition,
+                                direction: inserter.direction,
+                                offset: pos.offset
+                            )
+                            return
+                        }
+                    }
+                    
+                    // Select the inserter (normal behavior)
+                    selectedEntity = entity
+                    onEntitySelected?(entity)
+                    return
+                }
+            }
+            
+            // No inserter found, check for resource to mine manually
             if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                 // Check if player can accept the item
                 if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
