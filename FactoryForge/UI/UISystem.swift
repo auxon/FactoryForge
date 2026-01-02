@@ -761,6 +761,14 @@ class EntitySelectionDialog {
         
         guard let gameLoop = gameLoop else { return }
         
+        print("EntitySelectionDialog: setEntities called with \(entities.count) entities")
+        for entity in entities {
+            let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            print("EntitySelectionDialog: Entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt), Furnace: \(hasFurnace)")
+        }
+        
         let iconSize: Float = 80 * UIScale
         let spacing: Float = 20 * UIScale
         let padding: Float = 40 * UIScale

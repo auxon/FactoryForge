@@ -256,11 +256,13 @@ final class HUD {
     private func hasMachineUI(for entity: Entity) -> Bool {
         guard let world = gameLoop?.world else { return false }
         // Check if entity has components that indicate it should have a machine UI
+        // Inserters also show an Open button (to open inserter type dialog)
         return world.has(InventoryComponent.self, for: entity) ||
                world.has(FurnaceComponent.self, for: entity) ||
                world.has(AssemblerComponent.self, for: entity) ||
                world.has(MinerComponent.self, for: entity) ||
-               world.has(GeneratorComponent.self, for: entity)
+               world.has(GeneratorComponent.self, for: entity) ||
+               world.has(InserterComponent.self, for: entity)
     }
     
     private func renderBuildingActionButtons(renderer: MetalRenderer) {

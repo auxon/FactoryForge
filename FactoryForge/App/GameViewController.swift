@@ -870,8 +870,27 @@ class GameViewController: UIViewController {
                 return
             }
             
+            guard let gameLoop = self.gameLoop else { return }
+            
             print("GameViewController: Open button pressed for entity \(selectedEntity)")
-            // Open the machine UI for the selected entity
+            
+            // Check if it's an inserter - if so, open inserter type dialog
+            if gameLoop.world.has(InserterComponent.self, for: selectedEntity) {
+                if let pos = gameLoop.world.get(PositionComponent.self, for: selectedEntity),
+                   let inserter = gameLoop.world.get(InserterComponent.self, for: selectedEntity) {
+                    print("GameViewController: Opening inserter type dialog for inserter")
+                    self.uiSystem?.showInserterTypeDialogForExisting(
+                        entity: selectedEntity,
+                        currentType: inserter.type,
+                        position: pos.tilePosition,
+                        direction: inserter.direction,
+                        offset: pos.offset
+                    )
+                    return
+                }
+            }
+            
+            // Otherwise, open the machine UI for the selected entity
             self.uiSystem?.openMachineUI(for: selectedEntity)
         }
     }

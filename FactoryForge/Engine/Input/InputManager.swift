@@ -752,6 +752,14 @@ final class InputManager: NSObject {
         // Get all entities at this position
         let allEntities = gameLoop.world.getAllEntitiesAt(position: tilePos)
         
+        print("InputManager: getAllEntitiesAt returned \(allEntities.count) entities at \(tilePos)")
+        for entity in allEntities {
+            let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            print("InputManager: Entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt), Furnace: \(hasFurnace)")
+        }
+        
         // Filter to only interactable entities
         let interactableEntities = allEntities.filter { entity in
             let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
@@ -764,11 +772,18 @@ final class InputManager: NSObject {
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
             let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
             
-            return hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter
+            let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter
+            if isInteractable {
+                print("InputManager: Entity \(entity) is interactable - Inserter: \(hasInserter), Belt: \(hasBelt), Building: \(hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator)")
+            }
+            return isInteractable
         }
+        
+        print("InputManager: Filtered to \(interactableEntities.count) interactable entities")
         
         // If multiple interactable entities, show selection dialog
         if interactableEntities.count > 1 {
+            print("InputManager: Showing entity selection dialog with \(interactableEntities.count) entities")
             gameLoop.uiSystem?.showEntitySelectionDialog(entities: interactableEntities) { [weak self] selectedEntity in
                 self?.selectEntity(selectedEntity, gameLoop: gameLoop, isDoubleTap: isDoubleTap)
             }

@@ -159,42 +159,70 @@ final class World {
     // MARK: - Spatial Queries
     
     /// Gets all entities at a tile position (doesn't prioritize, returns all matching entities)
+    /// Also checks adjacent tiles to include entities that might be at tile edges
     func getAllEntitiesAt(position: IntVector2) -> [Entity] {
         var allEntitiesAtPosition: [Entity] = []
+        var checkedEntities: Set<Entity> = []
 
-        // First check exact match in spatial index
-        if let entity = spatialIndex[position] {
-            allEntitiesAtPosition.append(entity)
+        // Check the target tile and all 8 adjacent tiles (3x3 grid)
+        // This ensures we find entities that might be at tile edges or slightly offset
+        for dy in -1...1 {
+            for dx in -1...1 {
+                let checkPos = IntVector2(x: position.x + Int32(dx), y: position.y + Int32(dy))
+                
+                // Check spatial index for this tile
+                if let entity = spatialIndex[checkPos] {
+                    if !checkedEntities.contains(entity) {
+                        allEntitiesAtPosition.append(entity)
+                        checkedEntities.insert(entity)
+                        print("World: getAllEntitiesAt - found entity \(entity) in spatial index at \(checkPos)")
+                    }
+                }
+            }
         }
 
-        // Check all entities with PositionComponent to find all entities at this position
+        // Check all entities with PositionComponent to find all entities at or near this position
         // This includes both single-tile entities (exact match) and multi-tile buildings (bounds check)
         let allEntitiesWithPosition = query(PositionComponent.self)
+        print("World: getAllEntitiesAt - checking \(allEntitiesWithPosition.count) entities with PositionComponent")
         
         for entity in allEntitiesWithPosition {
+            guard !checkedEntities.contains(entity) else { continue }  // Skip already checked entities
             guard let pos = get(PositionComponent.self, for: entity) else { continue }
 
             let origin = pos.tilePosition
             
-            // For single-tile entities (size 1x1), check exact position match
-            // For multi-tile buildings, check if position is within bounds
+            // For single-tile entities (size 1x1), check if they're at the target position or adjacent
+            // For multi-tile buildings, check if the target position is within bounds
             let sprite = get(SpriteComponent.self, for: entity)
-            let width = sprite != nil ? Int32(sprite!.size.x) : 1
-            let height = sprite != nil ? Int32(sprite!.size.y) : 1
+            let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
+            let height = sprite != nil ? Int32(ceil(sprite!.size.y)) : 1
+            
+            let hasInserter = has(InserterComponent.self, for: entity)
+            let hasBelt = has(BeltComponent.self, for: entity)
+            let hasFurnace = has(FurnaceComponent.self, for: entity)
 
-            // Check if the tapped position matches exactly (for single-tile) or is within bounds (for multi-tile)
-            let isExactMatch = (width == 1 && height == 1) && position.x == origin.x && position.y == origin.y
+            // Check if the tapped position is within the entity's bounds (for multi-tile buildings)
             let isWithinBounds = position.x >= origin.x && position.x < origin.x + width &&
                                  position.y >= origin.y && position.y < origin.y + height
+            
+            // For single-tile entities, also check if they're at the target position
+            // (even if they were in the spatial index, we might have missed them if they're on an adjacent tile)
+            let isExactMatch = (width == 1 && height == 1) && position.x == origin.x && position.y == origin.y
+
+            // Debug log entities near the target position
+            if hasInserter || hasBelt || hasFurnace || (abs(origin.x - position.x) <= 1 && abs(origin.y - position.y) <= 1) {
+                print("World: getAllEntitiesAt - checking entity \(entity) at \(origin) (size \(width)x\(height)) - Inserter: \(hasInserter), Belt: \(hasBelt), Furnace: \(hasFurnace), isExactMatch: \(isExactMatch), isWithinBounds: \(isWithinBounds)")
+            }
 
             if isExactMatch || isWithinBounds {
-                // Only add if not already in the list (avoid duplicates)
-                if !allEntitiesAtPosition.contains(entity) {
-                    allEntitiesAtPosition.append(entity)
-                }
+                allEntitiesAtPosition.append(entity)
+                checkedEntities.insert(entity)
+                print("World: getAllEntitiesAt - added entity \(entity) at \(origin) to result list")
             }
         }
         
+        print("World: getAllEntitiesAt - returning \(allEntitiesAtPosition.count) entities")
         return allEntitiesAtPosition
     }
     

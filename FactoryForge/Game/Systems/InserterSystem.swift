@@ -41,7 +41,7 @@ final class InserterSystem: System {
             // Print debug for all inserters (but limit frequency to avoid spam)
             // Only print if inserter has held item, is dropping off, or is in pickingUp state
             if inserter.heldItem != nil || inserter.state == .droppingOff || inserter.state == .pickingUp {
-                print("InserterSystem: Processing inserter \(entity) at \(position.tilePosition), hasPower=\(hasPower), state=\(inserter.state), type=\(inserter.type), heldItem=\(inserter.heldItem != nil ? "\(inserter.heldItem!.itemId) x\(inserter.heldItem!.count)" : "nil")")
+                // print("InserterSystem: Processing inserter \(entity) at \(position.tilePosition), hasPower=\(hasPower), state=\(inserter.state), type=\(inserter.type), heldItem=\(inserter.heldItem != nil ? "\(inserter.heldItem!.itemId) x\(inserter.heldItem!.count)" : "nil")")
             }
             
             // Update inserter animation (pause if no power, play if powered)
