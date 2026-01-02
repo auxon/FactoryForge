@@ -690,10 +690,8 @@ final class InputManager: NSObject {
                     size: Vector2(maxX - minX, maxY - minY)
                 )
             } else if buildMode != .none {
-                // Pan camera only in build mode
-                let delta = screenPos - panStartPosition
-                let worldDelta = delta / renderer.camera.zoom / 32.0
-                renderer.camera.target = cameraStartPosition - Vector2(worldDelta.x, -worldDelta.y)
+                // Don't pan camera in build mode - building placement handles its own preview
+                // (Camera panning disabled to allow belt/pole drag placement)
             }
             // Belt placement is now handled by tap-to-start, tap-to-end, not drag
             
