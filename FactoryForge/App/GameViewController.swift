@@ -731,8 +731,23 @@ class GameViewController: UIViewController {
             guard let self = self else { return }
             guard let gameLoop = self.gameLoop else { return }
             
-            // Update HUD with selected entity
+            // Update HUD with selected entity first (before any UI operations)
+            print("GameViewController: onEntitySelected called with entity: \(entity?.id ?? 0)")
             self.uiSystem?.hud.selectedEntity = entity
+            
+            // Verify the entity was set correctly in HUD
+            if let entity = entity {
+                if let hudEntity = self.uiSystem?.hud.selectedEntity {
+                    if hudEntity.id != entity.id || hudEntity.generation != entity.generation {
+                        print("GameViewController: ERROR - Failed to set HUD selectedEntity correctly!")
+                        print("GameViewController: Expected \(entity), but got \(hudEntity)")
+                        // Force set it again
+                        self.uiSystem?.hud.selectedEntity = entity
+                    } else {
+                        print("GameViewController: HUD selectedEntity set correctly to \(entity)")
+                    }
+                }
+            }
             
             // If no entity selected, clear selection
             guard let entity = entity else { return }
@@ -808,22 +823,40 @@ class GameViewController: UIViewController {
                 print("GameViewController: Delete callback - self or gameLoop is nil")
                 return
             }
-            guard let selectedEntity = self.uiSystem?.hud.selectedEntity else {
-                print("GameViewController: Delete callback - no selected entity")
+            
+            // Get selected entity from HUD and validate it's still the same as InputManager
+            guard let hudSelectedEntity = self.uiSystem?.hud.selectedEntity else {
+                print("GameViewController: Delete callback - no selected entity in HUD")
                 return
+            }
+            
+            // Validate entity is still alive
+            guard gameLoop.world.isAlive(hudSelectedEntity) else {
+                print("GameViewController: Delete callback - selected entity is no longer alive")
+                self.uiSystem?.hud.selectedEntity = nil
+                self.inputManager?.selectedEntity = nil
+                return
+            }
+            
+            // Verify InputManager also has the same entity selected (safety check)
+            if let inputManagerEntity = self.inputManager?.selectedEntity {
+                if inputManagerEntity.id != hudSelectedEntity.id || inputManagerEntity.generation != hudSelectedEntity.generation {
+                    print("GameViewController: WARNING - HUD and InputManager have different entities selected!")
+                    print("GameViewController: HUD entity: \(hudSelectedEntity), InputManager entity: \(inputManagerEntity)")
+                    // Use HUD's entity since that's what the user sees selected
+                }
             }
 
             // Debug: check what type of entity is selected
-            let isInserter = gameLoop.world.has(InserterComponent.self, for: selectedEntity)
-            let isBelt = gameLoop.world.has(BeltComponent.self, for: selectedEntity)
-            print("GameViewController: Selected entity \(selectedEntity) - Inserter: \(isInserter), Belt: \(isBelt)")
+            let isInserter = gameLoop.world.has(InserterComponent.self, for: hudSelectedEntity)
+            let isBelt = gameLoop.world.has(BeltComponent.self, for: hudSelectedEntity)
+            print("GameViewController: Deleting entity \(hudSelectedEntity) - Inserter: \(isInserter), Belt: \(isBelt)")
 
             // Close machine UI if open
             self.uiSystem?.closeAllPanels()
 
-            print("GameViewController: Deleting entity \(selectedEntity)")
-            // Delete the building
-            if gameLoop.removeBuilding(entity: selectedEntity) {
+            // Delete the building - use the entity from HUD
+            if gameLoop.removeBuilding(entity: hudSelectedEntity) {
                 // Clear selection
                 self.uiSystem?.hud.selectedEntity = nil
                 self.inputManager?.selectedEntity = nil

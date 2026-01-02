@@ -627,20 +627,105 @@ final class GameLoop {
     }
     
     func removeBuilding(entity: Entity) -> Bool {
-        guard let position = world.get(PositionComponent.self, for: entity) else { return false }
-        print("GameLoop: removeBuilding(entity: \(entity)) - entity position: \(position.tilePosition)")
+        // Validate entity is still alive
+        guard world.isAlive(entity) else {
+            print("GameLoop: removeBuilding(entity: \(entity)) - entity is not alive")
+            return false
+        }
+        
+        guard let position = world.get(PositionComponent.self, for: entity) else {
+            print("GameLoop: removeBuilding(entity: \(entity)) - entity has no position")
+            return false
+        }
+        
+        let tilePosition = position.tilePosition
+        print("GameLoop: removeBuilding(entity: \(entity)) - deleting entity directly, position: \(tilePosition)")
 
-        // Check what entity is actually at this position
-        if let entityAtPos = world.getEntityAt(position: position.tilePosition) {
-            let isInserter = world.has(InserterComponent.self, for: entityAtPos)
-            let isBelt = world.has(BeltComponent.self, for: entityAtPos)
-            print("GameLoop: Entity at position \(position.tilePosition): \(entityAtPos) - Inserter: \(isInserter), Belt: \(isBelt)")
-            print("GameLoop: Selected entity: \(entity), Entity at pos: \(entityAtPos), Same: \(entity == entityAtPos)")
-        } else {
-            print("GameLoop: No entity found at position \(position.tilePosition)")
+        // Return items from entity's inventory to player
+        if let inventory = world.get(InventoryComponent.self, for: entity) {
+            for stack in inventory.getAll() {
+                player.inventory.add(stack)
+            }
         }
 
-        return removeBuilding(at: position.tilePosition)
+        // Recycle building into recipe ingredients
+        if let sprite = world.get(SpriteComponent.self, for: entity) {
+            var textureId = sprite.textureId
+            var buildingDef: BuildingDefinition?
+            
+            // Handle inserter texture IDs
+            if world.has(InserterComponent.self, for: entity),
+               let inserter = world.get(InserterComponent.self, for: entity) {
+                if abs(inserter.speed - 0.83) < 0.01 {
+                    buildingDef = buildingRegistry.get("inserter")
+                } else if abs(inserter.speed - 1.2) < 0.01 {
+                    buildingDef = buildingRegistry.get("long-handed-inserter")
+                } else if abs(inserter.speed - 2.31) < 0.01 {
+                    buildingDef = buildingRegistry.get("fast-inserter")
+                }
+            } else if textureId.contains("_belt_") {
+                // Extract base belt texture ID
+                let parts = textureId.split(separator: "_")
+                if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                    textureId = parts[0...beltIndex].joined(separator: "_")
+                }
+                buildingDef = buildingRegistry.getByTexture(textureId)
+            } else {
+                buildingDef = buildingRegistry.getByTexture(textureId)
+            }
+            
+            // Recycle building into recipe ingredients
+            if let buildingDef = buildingDef {
+                // Find the item that corresponds to this building
+                var itemId: String? = nil
+                for item in itemRegistry.all {
+                    if item.placedAs == buildingDef.id {
+                        itemId = item.id
+                        break
+                    }
+                }
+                
+                // Try to find a recipe that produces this item
+                var recycledItems: [ItemStack] = []
+                if let itemId = itemId {
+                    let recipes = recipeRegistry.recipes(producing: itemId)
+                    if let recipe = recipes.first {
+                        // Return the recipe inputs (recycled ingredients)
+                        recycledItems = recipe.inputs
+                        print("GameLoop: Recycling \(buildingDef.name) into recipe ingredients: \(recycledItems)")
+                    }
+                }
+                
+                // If no recipe found, fall back to building cost
+                if recycledItems.isEmpty {
+                    recycledItems = buildingDef.cost
+                    print("GameLoop: No recipe found for \(buildingDef.name), returning building cost: \(recycledItems)")
+                }
+                
+                // Add recycled items to player inventory
+                for stack in recycledItems {
+                    player.inventory.add(stack)
+                }
+            }
+        }
+
+        // Remove from belt system if needed
+        if world.has(BeltComponent.self, for: entity) {
+            beltSystem.unregisterBelt(at: tilePosition)
+        }
+
+        // Remove from chunk
+        if let chunk = chunkManager.getChunk(at: tilePosition) {
+            chunk.removeEntity(entity)
+        }
+
+        // Despawn the entity directly (not by position lookup, which could find a different entity)
+        world.despawn(entity)
+
+        // Trigger power network rebuild
+        powerSystem.markNetworksDirty()
+
+        return true
     }
     
     func moveBuilding(entity: Entity, to newPosition: IntVector2) -> Bool {

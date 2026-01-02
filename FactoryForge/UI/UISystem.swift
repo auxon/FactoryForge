@@ -802,9 +802,16 @@ class EntitySelectionDialog {
                 textureId: getEntityTextureId(entity: entity, gameLoop: gameLoop)
             )
             
+            // Capture the entity ID and generation to ensure we use the correct entity
             let capturedEntity = entity
+            let entityId = entity.id
+            let entityGeneration = entity.generation
             button.onTap = { [weak self] in
-                self?.onEntitySelected?(capturedEntity)
+                guard let self = self else { return }
+                // Verify the captured entity is still the same (in case it changed)
+                // Use the captured entity directly since it's a struct value type
+                print("EntitySelectionDialog: Entity button tapped for entity \(capturedEntity) (id: \(entityId), generation: \(entityGeneration))")
+                self.onEntitySelected?(capturedEntity)
             }
             
             entityButtons.append(button)

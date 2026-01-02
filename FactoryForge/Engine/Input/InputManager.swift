@@ -821,8 +821,21 @@ final class InputManager: NSObject {
         }
 
         // Select the entity (normal behavior)
+        // First set InputManager's selectedEntity, then notify via callback (which updates HUD)
+        // This ensures both are in sync
         selectedEntity = entity
+        print("InputManager: Setting selectedEntity to \(entity) and calling onEntitySelected callback")
         onEntitySelected?(entity)
+        
+        // Double-check that HUD got the same entity (safety check)
+        if let hudEntity = gameLoop.uiSystem?.hud.selectedEntity {
+            if hudEntity.id != entity.id || hudEntity.generation != entity.generation {
+                print("InputManager: WARNING - HUD selectedEntity doesn't match InputManager after callback!")
+                print("InputManager: Expected \(entity), but HUD has \(hudEntity)")
+                // Force update HUD to match InputManager
+                gameLoop.uiSystem?.hud.selectedEntity = entity
+            }
+        }
     }
     
     private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop, isDoubleTap: Bool = false) {
