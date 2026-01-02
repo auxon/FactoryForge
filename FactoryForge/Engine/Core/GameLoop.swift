@@ -275,12 +275,12 @@ final class GameLoop {
         return true
     }
     
-    func canPlaceBuilding(_ buildingId: String, at position: IntVector2, direction: Direction) -> Bool {
+    func canPlaceBuilding(_ buildingId: String, at position: IntVector2, direction: Direction, ignoringEntity: Entity? = nil) -> Bool {
         guard let buildingDef = buildingRegistry.get(buildingId) else { return false }
-        return canPlaceBuilding(buildingDef, at: position)
+        return canPlaceBuilding(buildingDef, at: position, ignoringEntity: ignoringEntity)
     }
 
-    private func canPlaceBuilding(_ building: BuildingDefinition, at position: IntVector2) -> Bool {
+    private func canPlaceBuilding(_ building: BuildingDefinition, at position: IntVector2, ignoringEntity: Entity? = nil) -> Bool {
 
         // Debug: Check where the player is
         for entity in world.query(PositionComponent.self) {
@@ -306,59 +306,79 @@ final class GameLoop {
                 // Check if there's already a building here
                 if world.hasEntityAt(position: checkPos) {
                     // Get the entity and check what it is
-                    if let entity = world.getEntityAt(position: checkPos) {
+                    guard let entity = world.getEntityAt(position: checkPos) else {
+                        // hasEntityAt returned true but getEntityAt returned nil - this shouldn't happen
+                        // but allow placement to be safe
+                        print("GameLoop: WARNING - hasEntityAt returned true but getEntityAt returned nil at \(checkPos)")
+                        continue
+                    }
+                    
+                    // If this is the entity we're ignoring (e.g., when moving a building), skip it
+                    if let ignoringEntity = ignoringEntity, entity == ignoringEntity {
+                        continue
+                    }
 
-                        // Check if the entity has a collision component
-                        if let collision = world.get(CollisionComponent.self, for: entity) {
-                            if collision.layer == .player {
-                                // Allow placement - ignore player
-                                continue
-                            }
-                        } else {
-                            print("GameLoop: Entity has no collision component")
+                    // Check if the entity has a collision component
+                    if let collision = world.get(CollisionComponent.self, for: entity) {
+                        if collision.layer == .player {
+                            // Allow placement - ignore player
+                            continue
                         }
+                    } else {
+                        print("GameLoop: Entity has no collision component")
+                    }
 
-                        // Check if it's a building or machine
-                        let hasBuildingComponents = world.has(PositionComponent.self, for: entity) &&
-                                                   world.has(SpriteComponent.self, for: entity)
-                        print("GameLoop: Entity appears to be a building/machine: \(hasBuildingComponents)")
+                    // Check if it's a building or machine
+                    let hasBuildingComponents = world.has(PositionComponent.self, for: entity) &&
+                                               world.has(SpriteComponent.self, for: entity)
+                    print("GameLoop: Entity appears to be a building/machine: \(hasBuildingComponents)")
 
-                        // For belts, allow placement on top of buildings too (for belt networks)
-                        if building.type == .belt {
+                    // For belts, allow placement on top of buildings too (for belt networks)
+                    if building.type == .belt {
+                        continue
+                    }
+                    
+                    // Allow inserters and poles to be placed on belts
+                    if building.type == .inserter || building.type == .powerPole {
+                        if world.has(BeltComponent.self, for: entity) {
+                            continue  // Allow inserter/pole on belt
+                        }
+                        // Also allow inserter/pole on another inserter/pole (for flexibility)
+                        if world.has(InserterComponent.self, for: entity) || world.has(PowerPoleComponent.self, for: entity) {
                             continue
                         }
                         
-                        // Allow inserters and poles to be placed on belts
-                        if building.type == .inserter || building.type == .powerPole {
-                            if world.has(BeltComponent.self, for: entity) {
-                                continue  // Allow inserter/pole on belt
-                            }
-                            // Also allow inserter/pole on another inserter/pole (for flexibility)
-                            if world.has(InserterComponent.self, for: entity) || world.has(PowerPoleComponent.self, for: entity) {
-                                continue
-                            }
+                        // For inserters and poles, allow placement adjacent to buildings
+                        // Check if we're actually overlapping the building or just adjacent
+                        // Use the exact same bounds check logic as getEntityAt to ensure consistency
+                        if let entityPos = world.get(PositionComponent.self, for: entity),
+                           let sprite = world.get(SpriteComponent.self, for: entity) {
+                            let origin = entityPos.tilePosition
+                            // Use exact same calculation as getEntityAt
+                            let width = Int32(ceil(sprite.size.x))
+                            let height = Int32(ceil(sprite.size.y))
                             
-                            // For inserters and poles, allow placement adjacent to buildings
-                            // Check if the inserter/pole is actually within the building's occupied tiles
-                            // or just adjacent (which is allowed)
-                            if let entityPos = world.get(PositionComponent.self, for: entity),
-                               let sprite = world.get(SpriteComponent.self, for: entity) {
-                                let buildingWidth = Int(ceil(sprite.size.x))
-                                let buildingHeight = Int(ceil(sprite.size.y))
-                                let buildingOrigin = entityPos.tilePosition
-                                
-                                // Check if checkPos is actually within the building's bounds
-                                let isWithinBuildingBounds = checkPos.x >= buildingOrigin.x && 
-                                                             checkPos.x < buildingOrigin.x + Int32(buildingWidth) &&
-                                                             checkPos.y >= buildingOrigin.y && 
-                                                             checkPos.y < buildingOrigin.y + Int32(buildingHeight)
-                                
-                                // If the inserter/pole position is NOT within the building's bounds,
-                                // it means it's adjacent, which is allowed
-                                if !isWithinBuildingBounds {
-                                    continue  // Allow placement adjacent to building
-                                }
+                            // Check if checkPos is actually within the building's bounds
+                            // This matches the exact logic in World.getEntityAt
+                            let isWithinBuildingBounds = checkPos.x >= origin.x && 
+                                                         checkPos.x < origin.x + width &&
+                                                         checkPos.y >= origin.y && 
+                                                         checkPos.y < origin.y + height
+                            
+                            // If the inserter/pole position is NOT within the building's bounds,
+                            // it means it's adjacent, which is allowed for inserters/poles
+                            if !isWithinBuildingBounds {
+                                print("GameLoop: Allowing inserter/pole placement adjacent to building at \(checkPos), building at \(origin) size \(width)x\(height)")
+                                continue  // Allow placement adjacent to building
+                            } else {
+                                print("GameLoop: Blocking inserter/pole placement - overlapping building at \(checkPos), building at \(origin) size \(width)x\(height)")
                             }
+                        } else {
+                            // If entity doesn't have position/sprite, it's not a standard building
+                            // For inserters/poles, allow placement next to non-building entities
+                            // (This handles edge cases where entities might not have all components)
+                            print("GameLoop: Entity at \(checkPos) doesn't have position/sprite components, allowing inserter/pole placement")
+                            continue
                         }
                     }
 
@@ -640,14 +660,12 @@ final class GameLoop {
             return true
         }
         
-        // Check if new position is valid (but allow the entity being moved to be at that position)
-        // We need to temporarily remove the entity from the spatial index to check placement
-        let oldEntityAtNewPos = world.getEntityAt(position: newPosition)
-        let isMovingToOwnPosition = oldEntityAtNewPos == entity
-        
-        // If there's a different entity at the new position, check if we can place there
-        if !isMovingToOwnPosition {
-            guard canPlaceBuilding(buildingDef, at: newPosition) else { return false }
+        // Check if new position is valid
+        // Pass the entity being moved as ignoringEntity so it doesn't block its own move
+        // This handles the case where a multi-tile building's old position overlaps its new position
+        guard canPlaceBuilding(buildingDef, at: newPosition, ignoringEntity: entity) else {
+            print("GameLoop: moveBuilding - cannot place building at \(newPosition)")
+            return false
         }
         
         // Get old position
