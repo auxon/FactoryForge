@@ -66,7 +66,7 @@ final class CraftingSystem: System {
             var hasFuel = true
 
             if isBurnerFurnace {
-                // Burner furnace - only consume fuel when there's an active recipe
+                // Burner furnace - check current fuel status
                 hasFuel = furnace.fuelRemaining > 0
 
                 // If we have an active recipe but no fuel, try to consume fuel
@@ -108,9 +108,20 @@ final class CraftingSystem: System {
                     furnace.smeltingProgress = 0
                     furnace.recipe = nil  // Reset to auto-select next
                 }
-            } else if hasFuel {
+            } else {
+                // Try to start a new recipe
+                // For burner furnaces, try to consume fuel if we don't have any
+                if isBurnerFurnace && !hasFuel {
+                    if consumeFuel(inventory: &inventory, furnace: &furnace) {
+                        hasFuel = true
+                        // Save inventory after fuel consumption
+                        world.add(inventory, to: entity)
+                    }
+                }
+                
                 // Only start new recipes if we have fuel/power
-                let canStart = canStartRecipe(recipe: recipe, inventory: inventory)
+                if hasFuel {
+                    let canStart = canStartRecipe(recipe: recipe, inventory: inventory)
 
                     if canStart {
                         let oreCountBefore = inventory.count(of: recipe.inputs.first?.itemId ?? "")
@@ -238,5 +249,6 @@ final class CraftingSystem: System {
         }
         
         return false
+    }
 }
 

@@ -808,7 +808,68 @@ final class InputManager: NSObject {
                 }
             }
             
-            // No inserter found, check for resource to mine manually
+            // No entity found at exact position, check if tap is within any entity's sprite bounds
+            let allEntities = gameLoop.world.query(PositionComponent.self, SpriteComponent.self)
+            var entitiesInBounds: [(Entity, Float)] = [] // (entity, sprite area - smaller is more specific)
+            
+            for entity in allEntities {
+                // Check if this entity is interactable
+                let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+                let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+                let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+                let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+                let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
+                let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
+                let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
+                let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+                let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
+                
+                if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter {
+                    guard let entityPos = gameLoop.world.get(PositionComponent.self, for: entity),
+                          let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
+                    
+                    // Calculate sprite bounds
+                    // Sprite position is tilePosition + offset (in world coordinates)
+                    let spriteOrigin = entityPos.tilePosition.toVector2 + entityPos.offset
+                    let spriteSize = sprite.size
+                    let spriteBounds = (min: spriteOrigin, max: spriteOrigin + spriteSize)
+                    
+                    // Check if tap position is within sprite bounds
+                    if worldPos.x >= spriteBounds.min.x && worldPos.x < spriteBounds.max.x &&
+                       worldPos.y >= spriteBounds.min.y && worldPos.y < spriteBounds.max.y {
+                        // Entity's sprite contains the tap position
+                        let spriteArea = spriteSize.x * spriteSize.y
+                        entitiesInBounds.append((entity, spriteArea))
+                    }
+                }
+            }
+            
+            // If multiple entities contain the tap, prefer the smallest sprite (most specific)
+            if let nearest = entitiesInBounds.min(by: { $0.1 < $1.1 })?.0 {
+                print("InputManager: No entity at exact position, selected entity \(nearest) whose sprite bounds contain tap position")
+                
+                // Handle inserter selection for double-tap
+                if isDoubleTap && gameLoop.world.has(InserterComponent.self, for: nearest) {
+                    if let pos = gameLoop.world.get(PositionComponent.self, for: nearest),
+                       let inserter = gameLoop.world.get(InserterComponent.self, for: nearest) {
+                        gameLoop.uiSystem?.showInserterTypeDialogForExisting(
+                            entity: nearest,
+                            currentType: inserter.type,
+                            position: pos.tilePosition,
+                            direction: inserter.direction,
+                            offset: pos.offset
+                        )
+                        return
+                    }
+                }
+                
+                // Select the nearest entity
+                selectedEntity = nearest
+                onEntitySelected?(nearest)
+                return
+            }
+            
+            // No entity found at all, check for resource to mine manually
             if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                 // Check if player can accept the item
                 if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
