@@ -124,6 +124,9 @@ final class Player {
         inventory.add(itemId: "inserter", count: 4)  // Starting inserters
         inventory.add(itemId: "boiler", count: 1)  // Boiler for testing
         inventory.add(itemId: "small-electric-pole", count: 20)  // Small electric pole for testing
+        inventory.add(itemId: "automation-science-pack", count: 10)  // Automation science pack for testing
+        inventory.add(itemId: "lab", count: 1)  // Lab for testing
+        inventory.add(itemId: "assembling-machine-1", count: 1)  // Assembling machine 1 for testing
     }
     
     // MARK: - Update

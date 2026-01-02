@@ -52,6 +52,9 @@ final class ResearchSystem: System {
     func update(deltaTime: Float) {
         guard currentResearch != nil else { return }
         
+        // Collect updates to apply after iteration
+        var pendingUpdates: [(Entity, LabComponent, InventoryComponent)] = []
+        
         // Process labs
         world.forEach(LabComponent.self) { [self] entity, lab in
             guard lab.isResearching else { return }
@@ -65,7 +68,16 @@ final class ResearchSystem: System {
             }
             
             // Try to consume science packs
-            consumeSciencePacks(lab: &lab, inventory: &inventory, entity: entity, speedMultiplier: speedMultiplier, deltaTime: deltaTime)
+            var mutableLab = lab
+            if let updated = consumeSciencePacks(lab: &mutableLab, inventory: &inventory, entity: entity, speedMultiplier: speedMultiplier, deltaTime: deltaTime) {
+                pendingUpdates.append((entity, updated.0, updated.1))
+            }
+        }
+        
+        // Apply updates after iteration completes
+        for (entity, lab, inventory) in pendingUpdates {
+            world.add(lab, to: entity)
+            world.add(inventory, to: entity)
         }
         
         // Check if research is complete
@@ -74,8 +86,10 @@ final class ResearchSystem: System {
         }
     }
     
-    private func consumeSciencePacks(lab: inout LabComponent, inventory: inout InventoryComponent, entity: Entity, speedMultiplier: Float, deltaTime: Float) {
-        guard let tech = currentResearch else { return }
+    private func consumeSciencePacks(lab: inout LabComponent, inventory: inout InventoryComponent, entity: Entity, speedMultiplier: Float, deltaTime: Float) -> (LabComponent, InventoryComponent)? {
+        guard let tech = currentResearch else { return nil }
+        
+        var inventoryUpdated = false
         
         // Try to consume each required science pack type
         for cost in tech.cost {
@@ -85,12 +99,14 @@ final class ResearchSystem: System {
                 if inventory.has(itemId: cost.packId) {
                     inventory.remove(itemId: cost.packId, count: 1)
                     researchProgress[cost.packId, default: 0] += 1
-                    world.add(inventory, to: entity)
-                    
+                    inventoryUpdated = true
                     lab.isResearching = true
                 }
             }
         }
+        
+        // Return updated components if changes were made
+        return inventoryUpdated ? (lab, inventory) : nil
     }
     
     private func isResearchComplete(_ tech: Technology) -> Bool {
@@ -119,11 +135,19 @@ final class ResearchSystem: System {
         currentResearch = nil
         researchProgress.removeAll()
         
+        // Collect lab updates to apply after iteration
+        var pendingLabUpdates: [(Entity, LabComponent)] = []
+        
         // Notify labs to stop
         world.forEach(LabComponent.self) { entity, lab in
             var updatedLab = lab
             updatedLab.isResearching = false
-            world.add(updatedLab, to: entity)
+            pendingLabUpdates.append((entity, updatedLab))
+        }
+        
+        // Apply updates after iteration completes
+        for (entity, lab) in pendingLabUpdates {
+            world.add(lab, to: entity)
         }
         
         onResearchCompleted?(tech)
@@ -138,11 +162,19 @@ final class ResearchSystem: System {
         currentResearch = tech
         researchProgress.removeAll()
         
+        // Collect lab updates to apply after iteration
+        var pendingLabUpdates: [(Entity, LabComponent)] = []
+        
         // Activate labs
         world.forEach(LabComponent.self) { entity, lab in
             var updatedLab = lab
             updatedLab.isResearching = true
-            world.add(updatedLab, to: entity)
+            pendingLabUpdates.append((entity, updatedLab))
+        }
+        
+        // Apply updates after iteration completes
+        for (entity, lab) in pendingLabUpdates {
+            world.add(lab, to: entity)
         }
         
         return true
@@ -152,10 +184,18 @@ final class ResearchSystem: System {
         currentResearch = nil
         researchProgress.removeAll()
         
+        // Collect lab updates to apply after iteration
+        var pendingLabUpdates: [(Entity, LabComponent)] = []
+        
         world.forEach(LabComponent.self) { entity, lab in
             var updatedLab = lab
             updatedLab.isResearching = false
-            world.add(updatedLab, to: entity)
+            pendingLabUpdates.append((entity, updatedLab))
+        }
+        
+        // Apply updates after iteration completes
+        for (entity, lab) in pendingLabUpdates {
+            world.add(lab, to: entity)
         }
     }
     
