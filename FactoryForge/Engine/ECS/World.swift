@@ -159,29 +159,19 @@ final class World {
     // MARK: - Spatial Queries
     
     /// Gets all entities at a tile position (doesn't prioritize, returns all matching entities)
-    /// Also checks adjacent tiles to include entities that might be at tile edges
+    /// Includes entities at the exact position and multi-tile entities that overlap the position
     func getAllEntitiesAt(position: IntVector2) -> [Entity] {
         var allEntitiesAtPosition: [Entity] = []
         var checkedEntities: Set<Entity> = []
 
-        // Check the target tile and all 8 adjacent tiles (3x3 grid)
-        // This ensures we find entities that might be at tile edges or slightly offset
-        for dy in -1...1 {
-            for dx in -1...1 {
-                let checkPos = IntVector2(x: position.x + Int32(dx), y: position.y + Int32(dy))
-                
-                // Check spatial index for this tile
-                if let entity = spatialIndex[checkPos] {
-                    if !checkedEntities.contains(entity) {
-                        allEntitiesAtPosition.append(entity)
-                        checkedEntities.insert(entity)
-                        print("World: getAllEntitiesAt - found entity \(entity) in spatial index at \(checkPos)")
-                    }
-                }
-            }
+        // Check spatial index for the exact tile position
+        if let entity = spatialIndex[position] {
+            allEntitiesAtPosition.append(entity)
+            checkedEntities.insert(entity)
+            print("World: getAllEntitiesAt - found entity \(entity) in spatial index at \(position)")
         }
 
-        // Check all entities with PositionComponent to find all entities at or near this position
+        // Check all entities with PositionComponent to find all entities at this position
         // This includes both single-tile entities (exact match) and multi-tile buildings (bounds check)
         let allEntitiesWithPosition = query(PositionComponent.self)
         print("World: getAllEntitiesAt - checking \(allEntitiesWithPosition.count) entities with PositionComponent")
@@ -192,7 +182,7 @@ final class World {
 
             let origin = pos.tilePosition
             
-            // For single-tile entities (size 1x1), check if they're at the target position or adjacent
+            // For single-tile entities (size 1x1), check exact position match
             // For multi-tile buildings, check if the target position is within bounds
             let sprite = get(SpriteComponent.self, for: entity)
             let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
@@ -202,16 +192,13 @@ final class World {
             let hasBelt = has(BeltComponent.self, for: entity)
             let hasFurnace = has(FurnaceComponent.self, for: entity)
 
-            // Check if the tapped position is within the entity's bounds (for multi-tile buildings)
+            // Check if the tapped position matches exactly (for single-tile) or is within bounds (for multi-tile)
+            let isExactMatch = (width == 1 && height == 1) && position.x == origin.x && position.y == origin.y
             let isWithinBounds = position.x >= origin.x && position.x < origin.x + width &&
                                  position.y >= origin.y && position.y < origin.y + height
-            
-            // For single-tile entities, also check if they're at the target position
-            // (even if they were in the spatial index, we might have missed them if they're on an adjacent tile)
-            let isExactMatch = (width == 1 && height == 1) && position.x == origin.x && position.y == origin.y
 
-            // Debug log entities near the target position
-            if hasInserter || hasBelt || hasFurnace || (abs(origin.x - position.x) <= 1 && abs(origin.y - position.y) <= 1) {
+            // Debug log entities at the target position
+            if hasInserter || hasBelt || hasFurnace || isExactMatch || isWithinBounds {
                 print("World: getAllEntitiesAt - checking entity \(entity) at \(origin) (size \(width)x\(height)) - Inserter: \(hasInserter), Belt: \(hasBelt), Furnace: \(hasFurnace), isExactMatch: \(isExactMatch), isWithinBounds: \(isWithinBounds)")
             }
 
@@ -293,7 +280,7 @@ final class World {
         return getEntityAt(position: position) != nil
     }
     
-    /// Gets entities within a rectangular area
+    /// Gets entities within a rectangular area (world coordinates)
     func getEntitiesIn(rect: Rect) -> [Entity] {
         var result: [Entity] = []
         
@@ -311,6 +298,55 @@ final class World {
         }
         
         return result
+    }
+    
+    /// Gets all entities within a rectangular tile area (tile coordinates)
+    /// Includes entities that overlap the rectangle (multi-tile entities)
+    func getAllEntitiesInRect(minX: Int32, maxX: Int32, minY: Int32, maxY: Int32) -> [Entity] {
+        var allEntities: [Entity] = []
+        var checkedEntities: Set<Entity> = []
+        
+        // Check spatial index for all tiles in the rectangle
+        for y in minY...maxY {
+            for x in minX...maxX {
+                if let entity = spatialIndex[IntVector2(x: x, y: y)] {
+                    if !checkedEntities.contains(entity) {
+                        allEntities.append(entity)
+                        checkedEntities.insert(entity)
+                    }
+                }
+            }
+        }
+        
+        // Also check all entities with PositionComponent to find multi-tile entities that overlap
+        let allEntitiesWithPosition = query(PositionComponent.self)
+        
+        for entity in allEntitiesWithPosition {
+            guard !checkedEntities.contains(entity) else { continue }
+            guard let pos = get(PositionComponent.self, for: entity) else { continue }
+            
+            let origin = pos.tilePosition
+            let sprite = get(SpriteComponent.self, for: entity)
+            let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
+            let height = sprite != nil ? Int32(ceil(sprite!.size.y)) : 1
+            
+            // Check if entity's bounds intersect with the selection rectangle
+            let entityMinX = origin.x
+            let entityMaxX = origin.x + width - 1
+            let entityMinY = origin.y
+            let entityMaxY = origin.y + height - 1
+            
+            // Check for intersection
+            let intersects = !(entityMaxX < minX || entityMinX > maxX ||
+                               entityMaxY < minY || entityMinY > maxY)
+            
+            if intersects {
+                allEntities.append(entity)
+                checkedEntities.insert(entity)
+            }
+        }
+        
+        return allEntities
     }
     
     /// Gets entities within a radius of a point

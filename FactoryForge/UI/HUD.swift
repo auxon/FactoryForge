@@ -241,6 +241,9 @@ final class HUD {
         // Render build preview if in build mode
         renderBuildPreview(renderer: renderer)
         
+        // Render selection rectangle if active
+        renderSelectionRectangle(renderer: renderer)
+        
         // Render move and delete buttons if a building is selected
         renderBuildingActionButtons(renderer: renderer)
     }
@@ -424,6 +427,61 @@ final class HUD {
                 layer: .entity // Render above ground but below UI
             ))
         }
+    }
+    
+    private func renderSelectionRectangle(renderer: MetalRenderer) {
+        guard let inputManager = inputManager,
+              let selectionRect = inputManager.selectionRect else {
+            return
+        }
+        
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        let borderColor = Color(r: 0.2, g: 0.6, b: 1.0, a: 0.8)  // Blue selection color
+        let fillColor = Color(r: 0.2, g: 0.6, b: 1.0, a: 0.1)  // Semi-transparent fill
+        let borderThickness: Float = 0.1  // Thin border in world units
+        
+        // Render semi-transparent fill
+        renderer.queueSprite(SpriteInstance(
+            position: selectionRect.center,
+            size: selectionRect.size,
+            textureRect: solidRect,
+            color: fillColor,
+            layer: .ui
+        ))
+        
+        // Render border (four edges)
+        // Top edge
+        renderer.queueSprite(SpriteInstance(
+            position: Vector2(selectionRect.center.x, selectionRect.maxY - borderThickness / 2),
+            size: Vector2(selectionRect.width, borderThickness),
+            textureRect: solidRect,
+            color: borderColor,
+            layer: .ui
+        ))
+        // Bottom edge
+        renderer.queueSprite(SpriteInstance(
+            position: Vector2(selectionRect.center.x, selectionRect.minY + borderThickness / 2),
+            size: Vector2(selectionRect.width, borderThickness),
+            textureRect: solidRect,
+            color: borderColor,
+            layer: .ui
+        ))
+        // Left edge
+        renderer.queueSprite(SpriteInstance(
+            position: Vector2(selectionRect.minX + borderThickness / 2, selectionRect.center.y),
+            size: Vector2(borderThickness, selectionRect.height),
+            textureRect: solidRect,
+            color: borderColor,
+            layer: .ui
+        ))
+        // Right edge
+        renderer.queueSprite(SpriteInstance(
+            position: Vector2(selectionRect.maxX - borderThickness / 2, selectionRect.center.y),
+            size: Vector2(borderThickness, selectionRect.height),
+            textureRect: solidRect,
+            color: borderColor,
+            layer: .ui
+        ))
     }
     
     private func renderMiningAnimations(renderer: MetalRenderer) {

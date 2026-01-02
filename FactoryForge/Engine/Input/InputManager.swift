@@ -43,6 +43,11 @@ final class InputManager: NSObject {
     private var dragPlacedTiles: Set<IntVector2> = []  // Tiles where items have been placed in current drag
     var dragPathPreview: [IntVector2] = []  // Preview path for rendering
     
+    // Selection rectangle
+    var selectionRect: Rect?  // Selection rectangle in world coordinates (for rendering)
+    private var selectionStartScreenPos: Vector2?  // Start position of selection rectangle in screen coordinates
+    private var isSelecting = false  // Whether we're currently selecting with rectangle
+    
     // Selection
     var selectedEntity: Entity? {
         didSet {
@@ -603,10 +608,16 @@ final class InputManager: NSObject {
             }
 
             
-            // Not a joystick touch, proceed with camera pan
-            isDragging = true
-            panStartPosition = screenPos
-            cameraStartPosition = renderer.camera.position
+            // Not a joystick touch, start selection rectangle (instead of camera pan)
+            if buildMode == .none {
+                isSelecting = true
+                selectionStartScreenPos = screenPos
+                selectionRect = nil
+            } else {
+                isDragging = true
+                panStartPosition = screenPos
+                cameraStartPosition = renderer.camera.position
+            }
             
             if buildMode == .placing || buildMode == .moving {
                 // Update build preview position
@@ -659,13 +670,27 @@ final class InputManager: NSObject {
                 if buildMode != .none {
                     exitBuildMode()
                 }
-                // Prevent camera pan when joystick is active
+                // Prevent selection when joystick is active
                 return
             }
 
-            // Always allow camera panning (even in build mode)
-            if buildMode == .none {
-                // Pan camera
+            // Update selection rectangle (instead of camera panning)
+            if buildMode == .none && isSelecting, let startPos = selectionStartScreenPos {
+                let startWorldPos = renderer.screenToWorld(startPos)
+                let endWorldPos = renderer.screenToWorld(screenPos)
+                
+                // Create rectangle from start to current position
+                let minX = min(startWorldPos.x, endWorldPos.x)
+                let maxX = max(startWorldPos.x, endWorldPos.x)
+                let minY = min(startWorldPos.y, endWorldPos.y)
+                let maxY = max(startWorldPos.y, endWorldPos.y)
+                
+                selectionRect = Rect(
+                    origin: Vector2(minX, minY),
+                    size: Vector2(maxX - minX, maxY - minY)
+                )
+            } else if buildMode != .none {
+                // Pan camera only in build mode
                 let delta = screenPos - panStartPosition
                 let worldDelta = delta / renderer.camera.zoom / 32.0
                 renderer.camera.target = cameraStartPosition - Vector2(worldDelta.x, -worldDelta.y)
@@ -684,6 +709,51 @@ final class InputManager: NSObject {
             }
 
             isDragging = false
+            
+            // Handle selection rectangle end
+            if isSelecting, let rect = selectionRect {
+                isSelecting = false
+                selectionStartScreenPos = nil
+                
+                // Convert world rect to tile bounds
+                let minTileX = Int32(floor(rect.minX))
+                let maxTileX = Int32(ceil(rect.maxX))
+                let minTileY = Int32(floor(rect.minY))
+                let maxTileY = Int32(ceil(rect.maxY))
+                
+                // Get all entities within the rectangle
+                let selectedEntities = gameLoop.world.getAllEntitiesInRect(
+                    minX: minTileX, maxX: maxTileX,
+                    minY: minTileY, maxY: maxTileY
+                )
+                
+                // Filter to only interactable entities
+                let interactableEntities = selectedEntities.filter { entity in
+                    let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+                    let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+                    let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+                    let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+                    let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
+                    let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
+                    let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
+                    let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+                    let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
+                    
+                    return hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter
+                }
+                
+                // Clear selection rectangle
+                selectionRect = nil
+                
+                // Show entity selection dialog if multiple entities, otherwise select directly
+                if interactableEntities.count > 1 {
+                    gameLoop.uiSystem?.showEntitySelectionDialog(entities: interactableEntities) { [weak self] selectedEntity in
+                        self?.selectEntity(selectedEntity, gameLoop: gameLoop, isDoubleTap: false)
+                    }
+                } else if let entity = interactableEntities.first {
+                    selectEntity(entity, gameLoop: gameLoop, isDoubleTap: false)
+                }
+            }
             
             // Exit build mode after belt/pole placement drag ends
             if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") || buildingId.contains("pole") {
