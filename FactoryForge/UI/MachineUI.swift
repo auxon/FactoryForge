@@ -20,7 +20,7 @@ final class MachineUI: UIPanel_Base {
     var onOpenInventoryForMachine: ((Entity, Int) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
-        let panelWidth: Float = 400 * UIScale
+        let panelWidth: Float = 600 * UIScale
         let panelHeight: Float = 350 * UIScale
         let panelFrame = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
@@ -212,9 +212,15 @@ final class MachineUI: UIPanel_Base {
         
         let buttonSize: Float = 40 * UIScale
         let buttonSpacing: Float = 5 * UIScale
-        let buttonsPerRow = 5
+        let buttonsPerRow = 8  // Increased from 5 to fit more buttons with wider panel
         let startX = frame.center.x - Float(buttonsPerRow) * (buttonSize + buttonSpacing) / 2
-        let startY = frame.minY + 250 * UIScale
+        // Position recipe buttons immediately below the progress bar (status bar area)
+        // Progress bar is at frame.center.y - 30 * UIScale, height is 20 * UIScale
+        // So progress bar bottom is at frame.center.y - 20 * UIScale
+        // Start buttons with a small spacing below the progress bar
+        let progressBarBottom = frame.center.y - 20 * UIScale
+        let spacingBelowProgressBar: Float = 10 * UIScale
+        let startY = progressBarBottom + spacingBelowProgressBar + buttonSize / 2
         
         print("MachineUI: Found \(availableRecipes.count) available recipes")
         for (index, recipe) in availableRecipes.enumerated() {
