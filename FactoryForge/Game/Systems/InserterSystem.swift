@@ -270,10 +270,13 @@ final class InserterSystem: System {
                         inserter.state = .idle
                         inserter.armAngle = 0
                     } else {
-                        // print("InserterSystem: Inserter at \(position.tilePosition) failed to drop off, returning to idle with item still held")
-                        // Can't drop off, return to idle with item still held
-                        // (This shouldn't happen often, but prevents getting stuck)
+                        // print("InserterSystem: Inserter at \(position.tilePosition) failed to drop off")
+                        // Can't drop off (output is full) - drop the item on the ground to prevent getting stuck
+                        // This allows the inserter to continue picking up items from the input
+                        inserter.heldItem = nil
+                        inserter.sourceEntity = nil
                         inserter.state = .idle
+                        inserter.armAngle = 0
                     }
                 } else {
                     inserter.state = .idle
