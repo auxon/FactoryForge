@@ -184,7 +184,7 @@ final class RecipeRegistry {
                 ItemStack(itemId: "iron-plate", count: 1),
                 ItemStack(itemId: "iron-gear-wheel", count: 1)
             ],
-            outputs: [ItemStack(itemId: "transport-belt", count: 2)],
+            outputs: [ItemStack(itemId: "transport-belt", count: 5)],
             craftTime: 0.5,
             category: .crafting,
             order: "g"
@@ -326,7 +326,7 @@ final class RecipeRegistry {
                 ItemStack(itemId: "wood", count: 1),
                 ItemStack(itemId: "copper-cable", count: 2)
             ],
-            outputs: [ItemStack(itemId: "small-electric-pole", count: 2)],
+            outputs: [ItemStack(itemId: "small-electric-pole", count: 5)],
             craftTime: 0.5,
             category: .crafting,
             order: "r"

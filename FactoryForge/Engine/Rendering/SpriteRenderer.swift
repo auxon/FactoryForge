@@ -160,7 +160,7 @@ final class SpriteRenderer {
         
         // Belt colors for different types
         let beltColors: [String: Color] = [
-            "transport_belt": Color(r: 0.9, g: 0.85, b: 0.1, a: 1.0),      // Yellow
+            "transport_belt": Color(r: 0.5, g: 0.5, b: 0.5, a: 1.0),      // Grey
             "fast_transport_belt": Color(r: 0.2, g: 0.5, b: 0.9, a: 1.0),  // Blue
             "express_transport_belt": Color(r: 0.8, g: 0.2, b: 0.8, a: 1.0) // Purple
         ]
@@ -174,7 +174,7 @@ final class SpriteRenderer {
             guard visibleRect.contains(worldPos) else { continue }
             
             // Get belt color based on texture ID
-            let beltColor = beltColors[sprite.textureId] ?? Color(r: 0.9, g: 0.85, b: 0.1, a: 1.0)
+            let beltColor = beltColors[sprite.textureId] ?? Color(r: 0.5, g: 0.5, b: 0.5, a: 1.0)
             
             // Draw belt as a simple rectangle
             // The belt should be oriented along its direction
