@@ -988,7 +988,7 @@ class GameViewController: UIViewController {
                 return
             }
             
-            guard let gameLoop = self.gameLoop else { return }
+            guard let _ = self.gameLoop else { return }
             
             print("GameViewController: Open button pressed for entity \(selectedEntity)")
             

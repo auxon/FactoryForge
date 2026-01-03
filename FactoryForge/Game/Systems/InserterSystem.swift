@@ -126,7 +126,19 @@ final class InserterSystem: System {
                                 let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
                                 if distance <= 1 {
                                     // Check if we can pick up from this configured target
-                                    if canPickUpFromEntity(inputTarget) || canPickUpFromMachineOutput(at: targetPos.tilePosition) {
+                                    // Check inventory first, then machine output slots
+                                    var canPick = false
+                                    if let inventory = world.get(InventoryComponent.self, for: inputTarget) {
+                                        canPick = !inventory.isEmpty
+                                    }
+                                    if !canPick {
+                                        // Check machine output slots (second half of inventory)
+                                        if let inventory = world.get(InventoryComponent.self, for: inputTarget) {
+                                            let outputStartIndex = inventory.slots.count / 2
+                                            canPick = (outputStartIndex..<inventory.slots.count).contains { inventory.slots[$0] != nil }
+                                        }
+                                    }
+                                    if canPick {
                                         inserter.state = .pickingUp
                                     }
                                 }
@@ -271,12 +283,10 @@ final class InserterSystem: System {
                         inserter.armAngle = 0
                     } else {
                         // print("InserterSystem: Inserter at \(position.tilePosition) failed to drop off")
-                        // Can't drop off (output is full) - drop the item on the ground to prevent getting stuck
-                        // This allows the inserter to continue picking up items from the input
-                        inserter.heldItem = nil
-                        inserter.sourceEntity = nil
-                        inserter.state = .idle
-                        inserter.armAngle = 0
+                        // Can't drop off (output is full) - keep holding the item and wait
+                        // Don't clear heldItem - this allows the inserter to retry when space becomes available
+                        // The inserter will stay in .droppingOff state and retry next frame
+                        // Don't reset armAngle - keep it at 0 (facing output) while waiting
                     }
                 } else {
                     inserter.state = .idle
@@ -442,6 +452,8 @@ final class InserterSystem: System {
     private func tryPickUp(inserter: inout InserterComponent, position: PositionComponent) -> ItemStack? {
         var item: ItemStack? = nil
         
+        print("InserterSystem: tryPickUp called for inserter at \(position.tilePosition), inputTarget=\(inserter.inputTarget?.id ?? 0), inputPosition=\(inserter.inputPosition != nil ? "(\(inserter.inputPosition!.x), \(inserter.inputPosition!.y))" : "nil")")
+        
         // Check configured input connection first
         if let inputTarget = inserter.inputTarget {
             // Validate target is still alive and adjacent
@@ -449,20 +461,39 @@ final class InserterSystem: System {
                 if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
                     let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
                     if distance <= 1 {
-                        // Try to pick from this configured target
-                        var sourceEntity: Entity? = inputTarget
-                        if let pickedItem = tryPickFromInventory(at: targetPos.tilePosition, stackSize: inserter.stackSize, sourceEntity: &sourceEntity) {
-                            inserter.sourceEntity = sourceEntity
-                            return pickedItem
+                        print("InserterSystem: inputTarget is adjacent (distance=\(distance)), checking inventory")
+                        // Directly access the configured target entity's inventory
+                        if var inventory = world.get(InventoryComponent.self, for: inputTarget) {
+                            let itemCount = inventory.slots.compactMap { $0 }.reduce(0) { $0 + $1.count }
+                            print("InserterSystem: inputTarget has inventory with \(itemCount) items")
+                            if let item = inventory.takeOne() {
+                                print("InserterSystem: Successfully picked up \(item.itemId) from inputTarget")
+                                inserter.sourceEntity = inputTarget
+                                world.add(inventory, to: inputTarget)
+                                return item
+                            } else {
+                                print("InserterSystem: inputTarget inventory is empty")
+                            }
+                        } else {
+                            print("InserterSystem: inputTarget has no InventoryComponent")
                         }
-                        // Also try machine output
+                        // Also try machine output (for machines with separate output slots)
                         if let pickedItem = tryPickFromMachineOutput(entity: inputTarget, stackSize: inserter.stackSize) {
+                            print("InserterSystem: Successfully picked up from machine output")
                             inserter.sourceEntity = inputTarget
                             return pickedItem
                         }
+                    } else {
+                        print("InserterSystem: inputTarget too far away (distance=\(distance))")
                     }
+                } else {
+                    print("InserterSystem: inputTarget has no PositionComponent")
                 }
+            } else {
+                print("InserterSystem: inputTarget entity is not alive")
             }
+        } else {
+            print("InserterSystem: No inputTarget configured")
         }
         
         // Check configured input position (for belts)
@@ -606,6 +637,8 @@ final class InserterSystem: System {
     private func tryDropOff(inserter: InserterComponent, position: PositionComponent, item: ItemStack) -> Bool {
         var success = false
         
+        print("InserterSystem: tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), outputTarget=\(inserter.outputTarget?.id ?? 0), outputPosition=\(inserter.outputPosition != nil ? "(\(inserter.outputPosition!.x), \(inserter.outputPosition!.y))" : "nil")")
+        
         // Check configured output connection first
         if let outputTarget = inserter.outputTarget {
             // Connection should already be validated, but check one more time
@@ -614,22 +647,52 @@ final class InserterSystem: System {
                     // Validate adjacency one more time
                     let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
                     if distance <= 1 {
-                        // Try to drop to this configured target
-                        if tryDropInInventory(at: targetPos.tilePosition, item: item, excludeEntity: inserter.sourceEntity, targetEntity: outputTarget) {
-                            success = true
+                        // Check if outputTarget is a belt - if so, drop on the belt, not in inventory
+                        let hasBelt = world.has(BeltComponent.self, for: outputTarget)
+                        let hasInventory = world.has(InventoryComponent.self, for: outputTarget)
+                        print("InserterSystem: outputTarget entity check - hasBelt=\(hasBelt), hasInventory=\(hasInventory)")
+                        
+                        if hasBelt {
+                            print("InserterSystem: outputTarget is a belt entity, dropping directly to belt")
+                            if tryDropOnBeltEntity(entity: outputTarget, item: item) {
+                                print("InserterSystem: Successfully dropped to outputTarget belt entity")
+                                success = true
+                            } else {
+                                print("InserterSystem: Failed to drop to outputTarget belt entity")
+                            }
+                        } else if hasInventory {
+                            // Try to drop to this configured target (for entities with inventory)
+                            print("InserterSystem: outputTarget has inventory, using tryDropInInventory")
+                            if tryDropInInventory(at: targetPos.tilePosition, item: item, excludeEntity: inserter.sourceEntity, targetEntity: outputTarget) {
+                                print("InserterSystem: Successfully dropped to outputTarget entity")
+                                success = true
+                            } else {
+                                print("InserterSystem: Failed to drop to outputTarget entity")
+                            }
+                        } else {
+                            print("InserterSystem: outputTarget has neither BeltComponent nor InventoryComponent")
                         }
+                    } else {
+                        print("InserterSystem: outputTarget too far away (distance=\(distance))")
                     }
+                } else {
+                    print("InserterSystem: outputTarget has no PositionComponent")
                 }
+            } else {
+                print("InserterSystem: outputTarget entity is not alive")
             }
         }
         
         // Check configured output position (for belts)
         // Check the exact position first, then all 8 adjacent positions including diagonals
         if !success, let outputPos = inserter.outputPosition {
+            print("InserterSystem: Trying to drop on belt at configured position \(outputPos)")
             // First try the exact configured position
             if tryDropOnBelt(at: outputPos, item: item, inserterPosition: position.tilePosition) {
+                print("InserterSystem: Successfully dropped on belt at exact position")
                 success = true
             } else {
+                print("InserterSystem: Failed to drop at exact position, checking adjacent positions")
                 // If not found at exact position, check all 8 adjacent positions (including diagonals)
                 let adjacentOffsets: [IntVector2] = [
                     IntVector2(0, 1),   // North
@@ -648,25 +711,55 @@ final class InserterSystem: System {
                     let distanceFromInserter = abs(adjacentPos.x - position.tilePosition.x) + abs(adjacentPos.y - position.tilePosition.y)
                     if distanceFromInserter <= 1 {
                         if tryDropOnBelt(at: adjacentPos, item: item, inserterPosition: position.tilePosition) {
+                            print("InserterSystem: Successfully dropped on belt at adjacent position \(adjacentPos)")
                             success = true
                             break
                         }
                     }
                 }
+                if !success {
+                    print("InserterSystem: Failed to drop on belt at any position")
+                }
             }
+        } else if !success {
+            print("InserterSystem: No outputTarget or outputPosition configured")
         }
         
         // Only use configured output connections - no auto-detection
         // If no configured connection or connection failed, return false
+        print("InserterSystem: tryDropOff returning \(success)")
         return success
     }
     
+    /// Drops an item directly on a belt entity (when we have the entity reference)
+    private func tryDropOnBeltEntity(entity: Entity, item: ItemStack) -> Bool {
+        guard world.has(BeltComponent.self, for: entity),
+              var belt = world.get(BeltComponent.self, for: entity) else {
+            print("InserterSystem: tryDropOnBeltEntity - entity does not have BeltComponent")
+            return false
+        }
+        
+        // Check which lane has space
+        for lane in [BeltLane.left, BeltLane.right] {
+            if belt.addItem(item.itemId, lane: lane, position: 0) {
+                world.add(belt, to: entity)
+                print("InserterSystem: Successfully dropped \(item.itemId) on belt entity \(entity.id) via direct access")
+                return true
+            }
+        }
+        
+        print("InserterSystem: tryDropOnBeltEntity - belt entity \(entity.id) has no space in either lane")
+        return false
+    }
+    
+    /// Drops an item on a belt at a specific position (searches for the belt)
     private func tryDropOnBelt(at position: IntVector2, item: ItemStack, inserterPosition: IntVector2) -> Bool {
         // First try BeltSystem's addItem (fast lookup)
         // Check which lane has space
         for lane in [BeltLane.left, BeltLane.right] {
             if beltSystem.hasSpace(at: position, lane: lane) {
                 if beltSystem.addItem(item.itemId, at: position, lane: lane) {
+                    print("InserterSystem: Successfully dropped \(item.itemId) on belt at \(position) via beltSystem")
                     return true
                 }
             }
@@ -681,9 +774,28 @@ final class InserterSystem: System {
             for lane in [BeltLane.left, BeltLane.right] {
                 if belt.addItem(item.itemId, lane: lane, position: 0) {
                     world.add(belt, to: beltEntity)
+                    print("InserterSystem: Successfully dropped \(item.itemId) on belt at \(position) via world entity")
                     return true
                 }
             }
+            print("InserterSystem: Belt found at \(position) but no space in either lane")
+        } else {
+            // Also check all entities at this position (might be multiple if belt is under a building)
+            let entitiesAtPos = world.getAllEntitiesAt(position: position)
+            for beltEntity in entitiesAtPos {
+                if world.has(BeltComponent.self, for: beltEntity),
+                   var belt = world.get(BeltComponent.self, for: beltEntity) {
+                    // Check which lane has space
+                    for lane in [BeltLane.left, BeltLane.right] {
+                        if belt.addItem(item.itemId, lane: lane, position: 0) {
+                            world.add(belt, to: beltEntity)
+                            print("InserterSystem: Successfully dropped \(item.itemId) on belt at \(position) via getAllEntitiesAt")
+                            return true
+                        }
+                    }
+                }
+            }
+            print("InserterSystem: No belt found at \(position) (checked getEntityAt and getAllEntitiesAt)")
         }
         
         return false
