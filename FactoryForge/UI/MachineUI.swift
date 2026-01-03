@@ -492,11 +492,17 @@ final class MachineUI: UIPanel_Base {
     override func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
         guard isOpen, let entity = currentEntity, let gameLoop = gameLoop else { return false }
 
+        // If drag starts anywhere within the panel, consume it to prevent game world interactions
+        let dragStartedInPanel = frame.contains(startPos)
+        
         // Check if drag started from an input slot
         for (index, slot) in inputSlots.enumerated() {
             if slot.frame.contains(startPos) {
                 // Started dragging from input slot - clear it
-                guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { return false }
+                guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { 
+                    // Still consume the drag even if inventory check fails
+                    return dragStartedInPanel
+                }
 
                 let inputSlotIndex = index
                 if inputSlotIndex < machineInventory.slots.count,
@@ -524,11 +530,13 @@ final class MachineUI: UIPanel_Base {
         for slot in outputSlots {
             if slot.frame.contains(startPos) {
                 // For now, don't allow dragging from output slots
-                return false
+                // But still consume the drag to prevent game world interactions
+                return true
             }
         }
 
-        return false
+        // If drag started in panel but not on a specific slot, still consume it
+        return dragStartedInPanel
     }
     
     private func handleSlotTap(slot: InventorySlot, isInput: Bool) {

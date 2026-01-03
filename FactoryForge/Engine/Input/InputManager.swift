@@ -591,6 +591,21 @@ final class InputManager: NSObject {
             // Store the start position for drag gestures
             isUIDragging = false
 
+            // Check if touch started within an open UI panel FIRST
+            if let uiSystem = gameLoop.uiSystem {
+                // Check if any panel is open that should consume drags
+                if uiSystem.isAnyPanelOpen {
+                    // Check if the drag starts within a panel that handles drags
+                    // Try to handle drag immediately if it starts in a UI element
+                    // This prevents game world interactions when dragging within UI panels
+                    if uiSystem.handleDrag(from: screenPos, to: screenPos) {
+                        isUIDragging = true
+                        // Don't return here - let the gesture continue so .changed and .ended events fire
+                        // But isUIDragging flag will prevent game world interactions in .changed state
+                    }
+                }
+            }
+
             // Check if touch started in joystick area FIRST
             if let joystick = joystick {
                 let activationRadius = joystick.baseRadius * 1.5
