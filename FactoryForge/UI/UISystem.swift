@@ -202,6 +202,26 @@ final class UISystem {
             self?.closeEntitySelectionDialog()
         }
         
+        dialog.onEntityDoubleTapped = { [weak self] entity in
+            guard let self = self, let gameLoop = self.gameLoop else { return }
+            let world = gameLoop.world
+            
+            // Check if it's an inserter
+            if world.has(InserterComponent.self, for: entity) {
+                print("UISystem: Double-tapped inserter in selection dialog, opening connection dialog")
+                self.closeEntitySelectionDialog()
+                self.showInserterConnectionDialog(entity: entity)
+            } else if world.has(FurnaceComponent.self, for: entity) ||
+                      world.has(AssemblerComponent.self, for: entity) ||
+                      world.has(MinerComponent.self, for: entity) ||
+                      world.has(GeneratorComponent.self, for: entity) {
+                // It's a machine - open machine UI
+                print("UISystem: Double-tapped machine in selection dialog, opening machine UI")
+                self.closeEntitySelectionDialog()
+                self.openMachineUI(for: entity)
+            }
+        }
+        
         dialog.onCancel = { [weak self] in
             self?.closeEntitySelectionDialog()
         }
@@ -380,6 +400,23 @@ final class UISystem {
         openPanel(.inventory)
     }
     
+    func isPanelOpen(_ panel: UIPanel) -> Bool {
+        return activePanel == panel
+    }
+    
+    func handleDoubleTap(at screenPos: Vector2) -> Bool {
+        // Check active panel
+        if let panel = activePanel {
+            switch panel {
+            case .entitySelection:
+                return entitySelectionDialog?.handleDoubleTap(at: screenPos) ?? false
+            default:
+                return false
+            }
+        }
+        return false
+    }
+    
     func updateScreenSize(_ newSize: Vector2) {
         hud.updateScreenSize(newSize)
         // TODO: Update other UI panels if they need screen size updates
@@ -513,8 +550,13 @@ class EntitySelectionDialog {
     
     var onEntitySelected: ((Entity) -> Void)?
     var onCancel: (() -> Void)?
+    var onEntityDoubleTapped: ((Entity) -> Void)?
     
     var isOpen: Bool = false
+    
+    // Double-tap tracking
+    private var lastTapTime: [Entity: TimeInterval] = [:]
+    private let doubleTapInterval: TimeInterval = 0.3  // 300ms for double-tap detection
     
     init(screenSize: Vector2, gameLoop: GameLoop?, renderer: MetalRenderer?) {
         self.screenSize = screenSize
@@ -596,7 +638,27 @@ class EntitySelectionDialog {
                 // Verify the captured entity is still the same (in case it changed)
                 // Use the captured entity directly since it's a struct value type
                 print("EntitySelectionDialog: Entity button tapped for entity \(capturedEntity) (id: \(entityId), generation: \(entityGeneration))")
-                self.onEntitySelected?(capturedEntity)
+                
+                // Check for double-tap
+                let currentTime = Date().timeIntervalSince1970
+                if let lastTime = self.lastTapTime[capturedEntity],
+                   currentTime - lastTime < self.doubleTapInterval {
+                    // Double-tap detected
+                    print("EntitySelectionDialog: Double-tap detected for entity \(capturedEntity)")
+                    self.lastTapTime.removeValue(forKey: capturedEntity)
+                    self.onEntityDoubleTapped?(capturedEntity)
+                } else {
+                    // Single tap
+                    self.lastTapTime[capturedEntity] = currentTime
+                    
+                    // Clear the tap time after the double-tap window expires
+                    DispatchQueue.main.asyncAfter(deadline: .now() + self.doubleTapInterval) {
+                        if self.lastTapTime[capturedEntity] == currentTime {
+                            self.lastTapTime.removeValue(forKey: capturedEntity)
+                            self.onEntitySelected?(capturedEntity)
+                        }
+                    }
+                }
             }
             
             entityButtons.append(button)
@@ -676,6 +738,26 @@ class EntitySelectionDialog {
         
         // Tap outside dialog - close it
         return true
+    }
+    
+    func handleDoubleTap(at position: Vector2) -> Bool {
+        guard isOpen else { return false }
+        
+        // Check entity buttons for double tap
+        for (index, button) in entityButtons.enumerated() {
+            if button.frame.contains(position) {
+                // Directly trigger double-tap callback for this entity
+                if index < entities.count {
+                    let entity = entities[index]
+                    print("EntitySelectionDialog: Double-tap detected on button for entity \(entity)")
+                    onEntityDoubleTapped?(entity)
+                    return true
+                }
+            }
+        }
+        
+        // Double tap outside dialog - ignore it (don't close dialog)
+        return false
     }
     
     func update(deltaTime: Float) {
