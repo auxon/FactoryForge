@@ -148,48 +148,64 @@ final class InputManager: NSObject {
         let screenPos = screenPosition(from: recognizer)
         print("InputManager: Double tap screen position: \(screenPos)")
 
-        // Check for UI tooltips first (before UI system consumes the tap)
-        let uiSystem = gameLoop?.uiSystem ?? renderer?.uiSystem
-        if let uiSystem = uiSystem {
-            if let tooltip = uiSystem.getTooltip(at: screenPos) {
-                // Show tooltip for UI element
-                onTooltip?(tooltip)
-            }
-
-            // Check if a UI panel is open that should consume the tap
-            // If entitySelection dialog is open, let it handle double taps specially
-            if uiSystem.isPanelOpen(.entitySelection) {
-                print("InputManager: Double tap - entitySelection dialog is open, checking if dialog handles it")
-                // Check if the dialog handles the double tap (e.g., on a button)
-                if uiSystem.handleDoubleTap(at: screenPos) {
-                    print("InputManager: Double tap handled by entitySelection dialog")
-                    return
-                }
-                // If tap wasn't on a button, don't process game world interaction
-                print("InputManager: Double tap not on dialog button, skipping game world interaction")
-                return
-            }
-            
-            // For HUD buttons and other UI, double taps should work the same as single taps
-            // Check if UI system handles the tap (e.g., HUD buttons)
-            if uiSystem.handleTap(at: screenPos) {
-                print("InputManager: Double tap handled by UI system (HUD or panel)")
-                return
-            }
-        }
-
         // If no game loop exists, we're done (loading menu should have handled it)
         guard let gameLoop = gameLoop else {
             print("InputManager: Double tap - no game loop available")
+            // Still check UI system if game loop doesn't exist
+            let uiSystem = renderer?.uiSystem
+            if let uiSystem = uiSystem, uiSystem.handleTap(at: screenPos) {
+                print("InputManager: Double tap handled by UI system (no game loop)")
+                return
+            }
             return
         }
 
-        // Check for entities/resources BEFORE UI system check, so tooltips always work
+        // Get world position for game world checks
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
         print("InputManager: Double tap - world position: \(worldPos), tile position: (\(tilePos.x), \(tilePos.y))")
 
-        // Update build preview position for tap placement
+        // If we're in placing mode, prioritize game world placement over UI interaction
+        // This allows double-tap to place items/buildings even if the tap position overlaps with UI
+        if buildMode == .placing {
+            print("InputManager: Double tap in placing mode, prioritizing game world placement")
+            // Update build preview position for tap placement
+            buildPreviewPosition = tilePos
+            // Continue to placement logic below
+        } else {
+            // Not in placing mode - check UI first
+            let uiSystem = gameLoop.uiSystem ?? renderer?.uiSystem
+            if let uiSystem = uiSystem {
+                if let tooltip = uiSystem.getTooltip(at: screenPos) {
+                    // Show tooltip for UI element
+                    onTooltip?(tooltip)
+                }
+
+                // Check if a UI panel is open that should consume the tap
+                // If entitySelection dialog is open, let it handle double taps specially
+                if uiSystem.isPanelOpen(.entitySelection) {
+                    print("InputManager: Double tap - entitySelection dialog is open, checking if dialog handles it")
+                    // Check if the dialog handles the double tap (e.g., on a button)
+                    if uiSystem.handleDoubleTap(at: screenPos) {
+                        print("InputManager: Double tap handled by entitySelection dialog")
+                        return
+                    }
+                    // If tap wasn't on a button, don't process game world interaction
+                    print("InputManager: Double tap not on dialog button, skipping game world interaction")
+                    return
+                }
+                
+                // For HUD buttons and other UI, double taps should work the same as single taps
+                // Check if UI system handles the tap (e.g., HUD buttons)
+                // Only check this if not in placing mode (we already handled placing mode above)
+                if uiSystem.handleTap(at: screenPos) {
+                    print("InputManager: Double tap handled by UI system (HUD or panel)")
+                    return
+                }
+            }
+        }
+
+        // Update build preview position for tap placement (if not already set above)
         if buildMode == .placing {
             buildPreviewPosition = tilePos
         }
