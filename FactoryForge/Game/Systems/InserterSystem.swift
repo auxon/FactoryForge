@@ -288,9 +288,53 @@ final class InserterSystem: System {
     // MARK: - Pick Up Logic
     
     /// Checks if there's something to pick up from a position
+    /// For belts, checks the exact position and all 8 adjacent positions (including diagonals)
     private func canPickUp(from position: IntVector2) -> Bool {
         // Check if there's an item on a belt (check both lanes)
-        if let beltEntity = beltSystem.getBeltAt(position: position),
+        // First try the exact position
+        var beltEntity = beltSystem.getBeltAt(position: position)
+        
+        // Fallback: if not found, check world entities at this position
+        if beltEntity == nil {
+            if let entityAtPos = world.getEntityAt(position: position),
+               world.has(BeltComponent.self, for: entityAtPos) {
+                beltEntity = entityAtPos
+                print("InserterSystem: canPickUp from \(position): belt not in beltGraph, but found via world.getEntityAt")
+            }
+        }
+        
+        // If no belt found at exact position, check all 8 adjacent positions (including diagonals)
+        if beltEntity == nil {
+            let adjacentOffsets: [IntVector2] = [
+                IntVector2(0, 1),   // North
+                IntVector2(1, 1),   // Northeast
+                IntVector2(1, 0),   // East
+                IntVector2(1, -1),  // Southeast
+                IntVector2(0, -1),  // South
+                IntVector2(-1, -1), // Southwest
+                IntVector2(-1, 0),  // West
+                IntVector2(-1, 1)   // Northwest
+            ]
+            
+            for offset in adjacentOffsets {
+                let adjacentPos = position + offset
+                beltEntity = beltSystem.getBeltAt(position: adjacentPos)
+                
+                if beltEntity == nil {
+                    if let entityAtPos = world.getEntityAt(position: adjacentPos),
+                       world.has(BeltComponent.self, for: entityAtPos) {
+                        beltEntity = entityAtPos
+                        print("InserterSystem: canPickUp from \(position): belt found at adjacent position \(adjacentPos)")
+                        break
+                    }
+                } else {
+                    print("InserterSystem: canPickUp from \(position): belt found at adjacent position \(adjacentPos) via beltGraph")
+                    break
+                }
+            }
+        }
+        
+        if let beltEntity = beltEntity,
            let belt = world.get(BeltComponent.self, for: beltEntity) {
             // Check if either lane has an item near the end (ready to be picked up)
             let leftLaneItems = belt.leftLane.count
@@ -307,7 +351,7 @@ final class InserterSystem: System {
             }
             print("InserterSystem: canPickUp from \(position): belt has items but none are ready (progress < 0.9)")
         } else {
-            print("InserterSystem: canPickUp from \(position): no belt found at this position")
+            print("InserterSystem: canPickUp from \(position): no belt found at this position or adjacent positions")
         }
         
         // Check if there's an entity with inventory that has items
@@ -422,10 +466,40 @@ final class InserterSystem: System {
         }
         
         // Check configured input position (for belts)
+        // Check the exact position first, then all 8 adjacent positions including diagonals
         if item == nil, let inputPos = inserter.inputPosition {
+            // First try the exact configured position
             if let pickedItem = tryPickFromBelt(at: inputPos, stackSize: inserter.stackSize) {
                 inserter.sourceEntity = nil  // Belts don't have entities to track
                 return pickedItem
+            }
+            
+            // If not found at exact position, check all 8 adjacent positions (including diagonals)
+            let adjacentOffsets: [IntVector2] = [
+                IntVector2(0, 1),   // North
+                IntVector2(1, 1),   // Northeast
+                IntVector2(1, 0),   // East
+                IntVector2(1, -1),  // Southeast
+                IntVector2(0, -1),  // South
+                IntVector2(-1, -1), // Southwest
+                IntVector2(-1, 0),  // West
+                IntVector2(-1, 1)   // Northwest
+            ]
+            
+            for offset in adjacentOffsets {
+                let adjacentPos = inputPos + offset
+                // Validate that this adjacent position is within 1 tile of the inserter (including diagonals)
+                // This ensures we only check positions that the inserter can actually reach
+                let distanceFromInserter = abs(adjacentPos.x - position.tilePosition.x) + abs(adjacentPos.y - position.tilePosition.y)
+                if distanceFromInserter <= 1 {
+                    if let pickedItem = tryPickFromBelt(at: adjacentPos, stackSize: inserter.stackSize) {
+                        // Found a belt at an adjacent position, use it
+                        inserter.sourceEntity = nil  // Belts don't have entities to track
+                        // Update inputPosition to the actual belt position so we remember it
+                        inserter.inputPosition = adjacentPos
+                        return pickedItem
+                    }
+                }
             }
         }
         
@@ -435,6 +509,7 @@ final class InserterSystem: System {
     }
     
     private func tryPickFromBelt(at position: IntVector2, stackSize: Int) -> ItemStack? {
+        // First try BeltSystem's takeItem (fast lookup)
         // Try left lane first, then right
         for lane in [BeltLane.left, BeltLane.right] {
             if let beltItem = beltSystem.takeItem(at: position, lane: lane) {
@@ -442,6 +517,22 @@ final class InserterSystem: System {
                 return ItemStack(itemId: beltItem.itemId, count: 1, maxStack: maxStack)
             }
         }
+        
+        // Fallback: if BeltSystem didn't find it, check world entities at this position
+        // This handles cases where belts aren't registered in beltGraph (e.g., after loading saved games)
+        if let beltEntity = world.getEntityAt(position: position),
+           world.has(BeltComponent.self, for: beltEntity),
+           var belt = world.get(BeltComponent.self, for: beltEntity) {
+            // Try to take from belt directly
+            for lane in [BeltLane.left, BeltLane.right] {
+                if let beltItem = belt.takeItem(from: lane) {
+                    world.add(belt, to: beltEntity)
+                    let maxStack = itemRegistry.get(beltItem.itemId)?.stackSize ?? 100
+                    return ItemStack(itemId: beltItem.itemId, count: 1, maxStack: maxStack)
+                }
+            }
+        }
+        
         return nil
     }
     
@@ -520,18 +611,48 @@ final class InserterSystem: System {
             // Connection should already be validated, but check one more time
             if world.isAlive(outputTarget) {
                 if let targetPos = world.get(PositionComponent.self, for: outputTarget) {
-                    // Try to drop to this configured target
-                    if tryDropInInventory(at: targetPos.tilePosition, item: item, excludeEntity: inserter.sourceEntity) {
-                        success = true
+                    // Validate adjacency one more time
+                    let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
+                    if distance <= 1 {
+                        // Try to drop to this configured target
+                        if tryDropInInventory(at: targetPos.tilePosition, item: item, excludeEntity: inserter.sourceEntity, targetEntity: outputTarget) {
+                            success = true
+                        }
                     }
                 }
             }
         }
         
         // Check configured output position (for belts)
+        // Check the exact position first, then all 8 adjacent positions including diagonals
         if !success, let outputPos = inserter.outputPosition {
-            if tryDropOnBelt(at: outputPos, item: item) {
+            // First try the exact configured position
+            if tryDropOnBelt(at: outputPos, item: item, inserterPosition: position.tilePosition) {
                 success = true
+            } else {
+                // If not found at exact position, check all 8 adjacent positions (including diagonals)
+                let adjacentOffsets: [IntVector2] = [
+                    IntVector2(0, 1),   // North
+                    IntVector2(1, 1),   // Northeast
+                    IntVector2(1, 0),   // East
+                    IntVector2(1, -1),  // Southeast
+                    IntVector2(0, -1),  // South
+                    IntVector2(-1, -1), // Southwest
+                    IntVector2(-1, 0),  // West
+                    IntVector2(-1, 1)   // Northwest
+                ]
+                
+                for offset in adjacentOffsets {
+                    let adjacentPos = outputPos + offset
+                    // Validate that this adjacent position is within 1 tile of the inserter (including diagonals)
+                    let distanceFromInserter = abs(adjacentPos.x - position.tilePosition.x) + abs(adjacentPos.y - position.tilePosition.y)
+                    if distanceFromInserter <= 1 {
+                        if tryDropOnBelt(at: adjacentPos, item: item, inserterPosition: position.tilePosition) {
+                            success = true
+                            break
+                        }
+                    }
+                }
             }
         }
         
@@ -540,131 +661,64 @@ final class InserterSystem: System {
         return success
     }
     
-    private func tryDropOnBelt(at position: IntVector2, item: ItemStack) -> Bool {
+    private func tryDropOnBelt(at position: IntVector2, item: ItemStack, inserterPosition: IntVector2) -> Bool {
+        // First try BeltSystem's addItem (fast lookup)
         // Check which lane has space
         for lane in [BeltLane.left, BeltLane.right] {
             if beltSystem.hasSpace(at: position, lane: lane) {
-                return beltSystem.addItem(item.itemId, at: position, lane: lane)
+                if beltSystem.addItem(item.itemId, at: position, lane: lane) {
+                    return true
+                }
             }
         }
+        
+        // Fallback: if BeltSystem didn't find it, check world entities at this position
+        // This handles cases where belts aren't registered in beltGraph (e.g., after loading saved games)
+        if let beltEntity = world.getEntityAt(position: position),
+           world.has(BeltComponent.self, for: beltEntity),
+           var belt = world.get(BeltComponent.self, for: beltEntity) {
+            // Check which lane has space
+            for lane in [BeltLane.left, BeltLane.right] {
+                if belt.addItem(item.itemId, lane: lane, position: 0) {
+                    world.add(belt, to: beltEntity)
+                    return true
+                }
+            }
+        }
+        
         return false
     }
     
-    private func tryDropInInventory(at position: IntVector2, item: ItemStack, excludeEntity: Entity?) -> Bool {
-        // Check adjacent entities only (for multi-tile buildings like furnaces)
-        // Use small radius to find multi-tile buildings, but filter to adjacent only
-        let searchPos = Vector2(Float(position.x) + 0.5, Float(position.y) + 0.5)
-        let nearbyEntities = world.getEntitiesNear(position: searchPos, radius: 2.0)
-        // print("InserterSystem: Searching for drop targets near \(searchPos) with radius 2.0")
-        // print("InserterSystem: Inserter is at \(position), trying to drop \(item.itemId)")
+    private func tryDropInInventory(at position: IntVector2, item: ItemStack, excludeEntity: Entity?, targetEntity: Entity) -> Bool {
+        // Only drop to the specific configured target entity
+        // This ensures inserters only output to the entity selected via inserterConnectionDialog
         
-        // Check item types for debugging
-        let isFuel = item.itemId == "coal" || item.itemId == "wood" || item.itemId == "solid-fuel"
-        let isOre = item.itemId == "iron-ore" || item.itemId == "copper-ore" || item.itemId == "stone"
-
-        // Only consider directly connected targets (via inserter adjacency)
-        var inserterConnectedTargets: [Entity] = []
-        
-        // Filter to only adjacent entities and categorize them
-        for entity in nearbyEntities {
-            // Skip the source entity to avoid dropping back to where we picked up from
-            if let excludeEntity = excludeEntity, entity.id == excludeEntity.id && entity.generation == excludeEntity.generation {
-                continue
-            }
-            
-            // Check if entity is adjacent (within 1 tile in any direction, including diagonals)
-            guard let entityPos = world.get(PositionComponent.self, for: entity) else { continue }
-
-            // For multi-tile buildings, check if inserter is adjacent to any tile occupied by the building
-            var isAdjacent = false
-            if let sprite = world.get(SpriteComponent.self, for: entity) {
-                // Building occupies multiple tiles based on sprite size
-                let buildingWidth = Int(ceil(sprite.size.x))
-                let buildingHeight = Int(ceil(sprite.size.y))
-
-                // Check if inserter is adjacent to any tile of the building
-                for dy in 0..<buildingHeight {
-                    for dx in 0..<buildingWidth {
-                        let buildingTileX = entityPos.tilePosition.x + Int32(dx)
-                        let buildingTileY = entityPos.tilePosition.y + Int32(dy)
-                        let distance = abs(buildingTileX - position.x) + abs(buildingTileY - position.y)
-                        if distance <= 1 {
-                            isAdjacent = true
-                            break
-                        }
-                    }
-                    if isAdjacent { break }
-                }
-            } else {
-                // Single-tile entity - use simple distance check
-                let distance = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
-                isAdjacent = distance <= 1
-            }
-
-            // Only consider adjacent entities
-            guard isAdjacent else { continue }
-            
-            // Check if entity has inventory that can accept the item
-            guard let inventory = world.get(InventoryComponent.self, for: entity) else { continue }
-            guard inventory.canAccept(itemId: item.itemId) else { continue }
-            
-            // If the inserter is adjacent to the entity, it can drop items into it
-            // (The inserter itself is adjacent, so this is a valid drop-off target)
-            inserterConnectedTargets.append(entity)
-            // print("InserterSystem:       -> adjacent target (inserter can drop here)")
-        }
-        
-        // Debug: print all targets found
-        // print("InserterSystem: tryDropInInventory at \(position) for item \(item.itemId) (isFuel: \(isFuel), isOre: \(isOre)):")
-        // print("InserterSystem:   found \(nearbyEntities.count) nearby entities, \(inserterConnectedTargets.count) valid drop targets")
-        if inserterConnectedTargets.isEmpty {
-            // print("InserterSystem:   WARNING - No valid drop targets found! Nearby entities:")
-            for entity in nearbyEntities.prefix(5) {
-                if let entityPos = world.get(PositionComponent.self, for: entity) {
-                    let hasInventory = world.has(InventoryComponent.self, for: entity)
-                    let inventory = world.get(InventoryComponent.self, for: entity)
-                    let canAccept = inventory?.canAccept(itemId: item.itemId) ?? false
-                    // print("InserterSystem:     - Entity \(entity) at \(entityPos.tilePosition), hasInventory=\(hasInventory), canAccept=\(canAccept)")
-                }
-            }
-        }
-
-        // Only try inserter-connected targets (direct connections only)
-        let targetsToTry = inserterConnectedTargets
-        for entity in targetsToTry {
-            guard let entityPos = world.get(PositionComponent.self, for: entity),
-                  var inventory = world.get(InventoryComponent.self, for: entity) else { continue }
-            
-            let itemCountBefore = inventory.count(of: item.itemId)
-            let remaining = inventory.add(item)
-            let itemCountAfter = inventory.count(of: item.itemId)
-            let hasBelt = hasInserterAdjacent(to: entity)
-            // print("InserterSystem: tryDropInInventory dropped item \(item.itemId) to entity \(entity) at \(entityPos.tilePosition) (belt-connected: \(hasBelt)), count before=\(itemCountBefore), after=\(itemCountAfter), remaining=\(remaining)")
-            world.add(inventory, to: entity)
-            return remaining == 0
-        }
-        
-        // Fallback: try getEntityAt (for single-tile entities at this position)
-        guard let entity = world.getEntityAt(position: position) else { return false }
-        // Skip the source entity
-        if let excludeEntity = excludeEntity, entity.id == excludeEntity.id && entity.generation == excludeEntity.generation {
+        // Skip if this is the source entity (don't drop back to where we picked up from)
+        if let excludeEntity = excludeEntity, targetEntity.id == excludeEntity.id && targetEntity.generation == excludeEntity.generation {
             return false
         }
-
-        // Check adjacency for the fallback entity
-        guard let entityPos = world.get(PositionComponent.self, for: entity) else { return false }
+        
+        // Validate the target entity is still alive
+        guard world.isAlive(targetEntity) else { return false }
+        
+        // Get the target entity's position
+        guard let targetPos = world.get(PositionComponent.self, for: targetEntity) else { return false }
+        
+        // Check if the target entity is adjacent to the position we're checking
+        // For multi-tile buildings, check if the position is within or adjacent to the building
         var isAdjacent = false
-        if let sprite = world.get(SpriteComponent.self, for: entity) {
+        if let sprite = world.get(SpriteComponent.self, for: targetEntity) {
             // Building occupies multiple tiles based on sprite size
             let buildingWidth = Int(ceil(sprite.size.x))
             let buildingHeight = Int(ceil(sprite.size.y))
 
-            // Check if position is within the building's occupied tiles
+            // Check if position is within or adjacent to any tile of the building
             for dy in 0..<buildingHeight {
                 for dx in 0..<buildingWidth {
-                    let buildingTileX = entityPos.tilePosition.x + Int32(dx)
-                    let buildingTileY = entityPos.tilePosition.y + Int32(dy)
-                    if buildingTileX == position.x && buildingTileY == position.y {
+                    let buildingTileX = targetPos.tilePosition.x + Int32(dx)
+                    let buildingTileY = targetPos.tilePosition.y + Int32(dy)
+                    let distance = abs(buildingTileX - position.x) + abs(buildingTileY - position.y)
+                    if distance <= 1 {
                         isAdjacent = true
                         break
                     }
@@ -672,23 +726,21 @@ final class InserterSystem: System {
                 if isAdjacent { break }
             }
         } else {
-            // Single-tile entity - check exact position match
-            isAdjacent = entityPos.tilePosition.x == position.x && entityPos.tilePosition.y == position.y
-        }
-
-        guard isAdjacent else { return false }
-
-        guard var inventory = world.get(InventoryComponent.self, for: entity) else { return false }
-
-        // Check if inventory can accept the item
-        if inventory.canAccept(itemId: item.itemId) {
-            let remaining = inventory.add(item)
-            // print("InserterSystem: tryDropInInventory dropped item \(item.itemId) to entity \(entity) at position \(position), remaining=\(remaining)")
-            world.add(inventory, to: entity)
-            return remaining == 0
+            // Single-tile entity - check if position is adjacent (within 1 tile including diagonals)
+            let distance = abs(targetPos.tilePosition.x - position.x) + abs(targetPos.tilePosition.y - position.y)
+            isAdjacent = distance <= 1
         }
         
-        return false
+        guard isAdjacent else { return false }
+        
+        // Check if entity has inventory that can accept the item
+        guard var inventory = world.get(InventoryComponent.self, for: targetEntity) else { return false }
+        guard inventory.canAccept(itemId: item.itemId) else { return false }
+        
+        // Drop the item
+        let remaining = inventory.add(item)
+        world.add(inventory, to: targetEntity)
+        return remaining == 0
     }
 
     /// Checks if there's something to pick up from machine output at a position

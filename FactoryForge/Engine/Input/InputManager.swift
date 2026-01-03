@@ -288,10 +288,14 @@ final class InputManager: NSObject {
                     return
                 }
                 
-                // Calculate offset to center the building at the tap location
+                // Calculate offset to place the building at the tap location
+                // For centered sprites (belts, inserters), offset is relative to tile center
+                // For non-centered sprites (buildings), account for half sprite size offset
                 let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
-                let tapOffset = worldPos - tileCenter - spriteSize / 2
+                let isBelt = buildingId.contains("belt")
+                let isInserter = buildingId.contains("inserter")
+                let tapOffset = (isBelt || isInserter) ? (worldPos - tileCenter) : (worldPos - tileCenter - spriteSize / 2)
 
                 // Check placement validity
                 if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
@@ -500,11 +504,14 @@ final class InputManager: NSObject {
                     return
                 }
                 
-                // Calculate offset to center the building at the tap location
-                // Account for sprite rendering offset: buildings are offset by half their size
+                // Calculate offset to place the building at the tap location
+                // For centered sprites (belts, inserters), offset is relative to tile center
+                // For non-centered sprites (buildings), account for half sprite size offset
                 let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
-                let tapOffset = worldPos - tileCenter - spriteSize / 2
+                let isBelt = buildingId.contains("belt")
+                let isInserter = buildingId.contains("inserter")
+                let tapOffset = (isBelt || isInserter) ? (worldPos - tileCenter) : (worldPos - tileCenter - spriteSize / 2)
 
                 // Check placement validity
                 if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
@@ -622,7 +629,7 @@ final class InputManager: NSObject {
 
             
             // Not a joystick touch, start selection rectangle (instead of camera pan)
-            if buildMode == .none {
+            if buildMode == .none || buildMode == .connectingInserter {
                 isSelecting = true
                 selectionStartScreenPos = screenPos
                 selectionRect = nil
@@ -647,6 +654,21 @@ final class InputManager: NSObject {
             }
             
         case .changed:
+            // Prioritize belt/pole drag placement when in placing mode
+            // This needs to run before UI drag checks to prevent interference
+            if buildMode == .placing, let buildingId = selectedBuildingId, 
+               (buildingId.contains("belt") || buildingId.contains("pole")) {
+                // Handle belt/pole placement during drag
+                buildPreviewPosition = IntVector2(from: worldPos)
+                handleDragPlacement(at: worldPos, gameLoop: gameLoop, buildingId: buildingId)
+                return  // Belt placement consumes the gesture
+            }
+            
+            // Update build preview position for other build modes
+            if buildMode == .placing || buildMode == .moving {
+                buildPreviewPosition = IntVector2(from: worldPos)
+            }
+            
             // Check if a UI panel is open - if so, don't process game world interactions
             if let uiSystem = gameLoop.uiSystem, uiSystem.isAnyPanelOpen {
                 // Check for UI drag gesture
@@ -694,16 +716,6 @@ final class InputManager: NSObject {
                 return
             }
 
-            // Update build preview position for any build mode
-            if buildMode == .placing || buildMode == .moving {
-                buildPreviewPosition = IntVector2(from: worldPos)
-                
-                // Handle belt/pole placement during drag
-                if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") || buildingId.contains("pole") {
-                    handleDragPlacement(at: worldPos, gameLoop: gameLoop, buildingId: buildingId)
-                }
-            }
-
             // Handle joystick movement
             if isJoystickActive {
                 joystick?.handleTouchMoved(at: screenPos, touchId: 0)
@@ -717,7 +729,7 @@ final class InputManager: NSObject {
 
             // Update selection rectangle (instead of camera panning)
             // Don't update selection rectangle if a UI panel is open
-            if buildMode == .none && isSelecting && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let startPos = selectionStartScreenPos {
+            if (buildMode == .none || buildMode == .connectingInserter) && isSelecting && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let startPos = selectionStartScreenPos {
                 let startWorldPos = renderer.screenToWorld(startPos)
                 let endWorldPos = renderer.screenToWorld(screenPos)
                 
@@ -731,7 +743,7 @@ final class InputManager: NSObject {
                     origin: Vector2(minX, minY),
                     size: Vector2(maxX - minX, maxY - minY)
                 )
-            } else if buildMode != .none {
+            } else if buildMode != .none && buildMode != .connectingInserter {
                 // Don't pan camera in build mode - building placement handles its own preview
                 // (Camera panning disabled to allow belt/pole drag placement)
             }
@@ -752,7 +764,7 @@ final class InputManager: NSObject {
             
             // Handle selection rectangle end (only when not in build mode and no UI panel is open)
             // Don't process selection rectangle end if a UI panel is already open
-            if buildMode == .none && isSelecting && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let rect = selectionRect {
+            if (buildMode == .none || buildMode == .connectingInserter) && isSelecting && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let rect = selectionRect {
                 isSelecting = false
                 selectionStartScreenPos = nil
                 
@@ -786,13 +798,75 @@ final class InputManager: NSObject {
                 // Clear selection rectangle
                 selectionRect = nil
                 
-                // Show entity selection dialog if multiple entities, otherwise select directly
-                if interactableEntities.count > 1 {
-                    gameLoop.uiSystem?.showEntitySelectionDialog(entities: interactableEntities) { [weak self] selectedEntity in
-                        self?.selectEntity(selectedEntity, gameLoop: gameLoop, isDoubleTap: false)
+                // Handle inserter connection mode
+                if buildMode == .connectingInserter {
+                    // Filter entities to only those adjacent to the inserter
+                    guard let inserterEntity = inserterToConfigure,
+                          let inserterPos = gameLoop.world.get(PositionComponent.self, for: inserterEntity) else {
+                        return
                     }
-                } else if let entity = interactableEntities.first {
-                    selectEntity(entity, gameLoop: gameLoop, isDoubleTap: false)
+                    
+                    let adjacentEntities = interactableEntities.filter { entity in
+                        if let entityPos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                            // For multi-tile buildings, check if any tile is adjacent
+                            if let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) {
+                                let width = Int(ceil(sprite.size.x))
+                                let height = Int(ceil(sprite.size.y))
+                                for dy in 0..<height {
+                                    for dx in 0..<width {
+                                        let tileX = entityPos.tilePosition.x + Int32(dx)
+                                        let tileY = entityPos.tilePosition.y + Int32(dy)
+                                        let distance = abs(tileX - inserterPos.tilePosition.x) + abs(tileY - inserterPos.tilePosition.y)
+                                        if distance <= 1 {
+                                            return true
+                                        }
+                                    }
+                                }
+                                return false
+                            } else {
+                                let distance = abs(entityPos.tilePosition.x - inserterPos.tilePosition.x) + abs(entityPos.tilePosition.y - inserterPos.tilePosition.y)
+                                return distance <= 1
+                            }
+                        }
+                        return false
+                    }
+                    
+                    // Also check for belts at positions within the rectangle
+                    var beltPositions: [IntVector2] = []
+                    for x in minTileX...maxTileX {
+                        for y in minTileY...maxTileY {
+                            let pos = IntVector2(x: x, y: y)
+                            let distance = abs(pos.x - inserterPos.tilePosition.x) + abs(pos.y - inserterPos.tilePosition.y)
+                            if distance <= 1 {
+                                let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: pos)
+                                if entitiesAtPos.contains(where: { gameLoop.world.has(BeltComponent.self, for: $0) }) {
+                                    beltPositions.append(pos)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Show entity selection dialog if multiple entities or belt positions
+                    if adjacentEntities.count + beltPositions.count > 1 {
+                        // Create a combined list - we'll handle belt positions specially
+                        gameLoop.uiSystem?.showEntitySelectionDialog(entities: adjacentEntities) { [weak self] selectedEntity in
+                            self?.handleInserterConnectionEntitySelected(entity: selectedEntity, gameLoop: gameLoop)
+                        }
+                    } else if let entity = adjacentEntities.first {
+                        handleInserterConnectionEntitySelected(entity: entity, gameLoop: gameLoop)
+                    } else if let beltPos = beltPositions.first {
+                        handleInserterConnectionPositionSelected(position: beltPos, gameLoop: gameLoop)
+                    }
+                } else {
+                    // Normal entity selection
+                    // Show entity selection dialog if multiple entities, otherwise select directly
+                    if interactableEntities.count > 1 {
+                        gameLoop.uiSystem?.showEntitySelectionDialog(entities: interactableEntities) { [weak self] selectedEntity in
+                            self?.selectEntity(selectedEntity, gameLoop: gameLoop, isDoubleTap: false)
+                        }
+                    } else if let entity = interactableEntities.first {
+                        selectEntity(entity, gameLoop: gameLoop, isDoubleTap: false)
+                    }
                 }
             } else {
                 // Clear selection state if we were selecting but are now in build mode
@@ -1386,7 +1460,7 @@ final class InputManager: NSObject {
         buildMode = .connectingInserter
         inserterToConfigure = inserter
         isConnectingInput = isInput
-        onTooltip?(isInput ? "Tap an entity or belt to set input connection" : "Tap an entity or belt to set output connection")
+        onTooltip?(isInput ? "Tap or drag to select entity/belt for input connection" : "Tap or drag to select entity/belt for output connection")
     }
     
     private func handleInserterConnectionSelection(at tilePos: IntVector2, gameLoop: GameLoop) {
@@ -1407,59 +1481,83 @@ final class InputManager: NSObject {
             return
         }
         
-        // Try to find entity at position
-        if let targetEntity = gameLoop.world.getEntityAt(position: tilePos) {
-            // Check if it's a valid target (belt, miner, machine, etc.)
-            let hasBelt = gameLoop.world.has(BeltComponent.self, for: targetEntity)
-            let hasMiner = gameLoop.world.has(MinerComponent.self, for: targetEntity)
-            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: targetEntity)
-            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: targetEntity)
-            let hasChest = gameLoop.world.has(ChestComponent.self, for: targetEntity)
-            
-            if hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest {
-                if isConnectingInput {
-                    if gameLoop.setInserterConnection(entity: inserterEntity, inputTarget: targetEntity, inputPosition: nil) {
-                        onTooltip?("Input connection set")
-                        exitBuildMode()
-                    } else {
-                        onTooltip?("Failed to set input connection")
-                    }
-                } else {
-                    if gameLoop.setInserterConnection(entity: inserterEntity, outputTarget: targetEntity, outputPosition: nil) {
-                        onTooltip?("Output connection set")
-                        exitBuildMode()
-                    } else {
-                        onTooltip?("Failed to set output connection")
-                    }
-                }
-                return
-            }
+        // Get all entities at this position (may be multiple if belts are under buildings)
+        let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
+        
+        // Filter to valid targets (belts, miners, machines, etc.)
+        let validEntities = entitiesAtPos.filter { entity in
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+            let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+            let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+            return hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest
         }
         
-        // No entity, check if there's a belt at this position
-        let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
-        let hasBelt = entitiesAtPos.contains { gameLoop.world.has(BeltComponent.self, for: $0) }
-        
-        if hasBelt {
-            if isConnectingInput {
-                if gameLoop.setInserterConnection(entity: inserterEntity, inputTarget: nil, inputPosition: tilePos) {
-                    onTooltip?("Input connection set")
-                    exitBuildMode()
-                } else {
-                    onTooltip?("Failed to set input connection")
-                }
-            } else {
-                if gameLoop.setInserterConnection(entity: inserterEntity, outputTarget: nil, outputPosition: tilePos) {
-                    onTooltip?("Output connection set")
-                    exitBuildMode()
-                } else {
-                    onTooltip?("Failed to set output connection")
-                }
+        // If multiple entities, show selection dialog
+        if validEntities.count > 1 {
+            gameLoop.uiSystem?.showEntitySelectionDialog(entities: validEntities) { [weak self] selectedEntity in
+                self?.handleInserterConnectionEntitySelected(entity: selectedEntity, gameLoop: gameLoop)
             }
+        } else if let targetEntity = validEntities.first {
+            // Single entity, connect directly
+            handleInserterConnectionEntitySelected(entity: targetEntity, gameLoop: gameLoop)
+        } else {
+            // Check if there's a belt at this position (might not be in validEntities if it's hidden under a building)
+            let hasBelt = entitiesAtPos.contains { gameLoop.world.has(BeltComponent.self, for: $0) }
+            
+            if hasBelt {
+                handleInserterConnectionPositionSelected(position: tilePos, gameLoop: gameLoop)
+            } else {
+                onTooltip?("No valid target at this position")
+            }
+        }
+    }
+    
+    private func handleInserterConnectionEntitySelected(entity: Entity, gameLoop: GameLoop) {
+        guard let inserterEntity = inserterToConfigure else {
+            exitBuildMode()
             return
         }
         
-        onTooltip?("No valid target at this position")
+        if isConnectingInput {
+            if gameLoop.setInserterConnection(entity: inserterEntity, inputTarget: entity, inputPosition: nil) {
+                onTooltip?("Input connection set")
+                exitBuildMode()
+            } else {
+                onTooltip?("Failed to set input connection")
+            }
+        } else {
+            if gameLoop.setInserterConnection(entity: inserterEntity, outputTarget: entity, outputPosition: nil) {
+                onTooltip?("Output connection set")
+                exitBuildMode()
+            } else {
+                onTooltip?("Failed to set output connection")
+            }
+        }
+    }
+    
+    private func handleInserterConnectionPositionSelected(position: IntVector2, gameLoop: GameLoop) {
+        guard let inserterEntity = inserterToConfigure else {
+            exitBuildMode()
+            return
+        }
+        
+        if isConnectingInput {
+            if gameLoop.setInserterConnection(entity: inserterEntity, inputTarget: nil, inputPosition: position) {
+                onTooltip?("Input connection set")
+                exitBuildMode()
+            } else {
+                onTooltip?("Failed to set input connection")
+            }
+        } else {
+            if gameLoop.setInserterConnection(entity: inserterEntity, outputTarget: nil, outputPosition: position) {
+                onTooltip?("Output connection set")
+                exitBuildMode()
+            } else {
+                onTooltip?("Failed to set output connection")
+            }
+        }
     }
     
     func enterMoveMode(entity: Entity) {

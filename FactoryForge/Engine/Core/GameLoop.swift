@@ -390,13 +390,15 @@ final class GameLoop {
     private func addBuildingComponents(entity: Entity, buildingDef: BuildingDefinition, position: IntVector2, direction: Direction) {
         // Add render component - belts should appear under buildings
         let renderLayer: RenderLayer = (buildingDef.type == .belt) ? .groundDecoration : .building
-        // Belts should be centered on the tile where they're placed
+        // Belts and inserters should be centered on the tile where they're placed
+        // This ensures they appear exactly where the user taps
         let isBelt = buildingDef.type == .belt
+        let isInserter = buildingDef.type == .inserter
         world.add(SpriteComponent(
             textureId: buildingDef.textureId,
             size: Vector2(Float(buildingDef.width), Float(buildingDef.height)),
             layer: renderLayer,
-            centered: isBelt
+            centered: isBelt || isInserter
         ), to: entity)
         
         // Add health component
