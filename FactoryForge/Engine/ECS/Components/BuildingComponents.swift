@@ -191,6 +191,18 @@ struct InserterComponent: Component {
     /// Entity we picked up from (to avoid dropping back to it)
     var sourceEntity: Entity?
     
+    /// Configured input target entity (belt, miner, machine output)
+    var inputTarget: Entity?
+    
+    /// Configured output target entity (belt, machine input)
+    var outputTarget: Entity?
+    
+    /// Configured input position (for belts when no entity at that position)
+    var inputPosition: IntVector2?
+    
+    /// Configured output position (for belts)
+    var outputPosition: IntVector2?
+    
     /// Target position for the arm
     var targetAngle: Float {
         switch state {
@@ -212,6 +224,10 @@ struct InserterComponent: Component {
         self.heldItem = nil
         self.state = .idle
         self.sourceEntity = nil
+        self.inputTarget = nil
+        self.outputTarget = nil
+        self.inputPosition = nil
+        self.outputPosition = nil
     }
 }
 

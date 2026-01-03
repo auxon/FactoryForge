@@ -906,6 +906,22 @@ class GameViewController: UIViewController {
             // Otherwise, open the machine UI for the selected entity
             self.uiSystem?.openMachineUI(for: selectedEntity)
         }
+        
+        uiSystem?.hud.onConfigureInserterPressed = { [weak self] in
+            guard let self = self else {
+                print("GameViewController: Configure inserter callback - self is nil")
+                return
+            }
+            guard let selectedEntity = self.uiSystem?.hud.selectedEntity else {
+                print("GameViewController: Configure inserter callback - no selected entity")
+                return
+            }
+            
+            print("GameViewController: Configure inserter button pressed for entity \(selectedEntity)")
+            
+            // Open inserter connection dialog
+            self.uiSystem?.showInserterConnectionDialog(entity: selectedEntity)
+        }
     }
     
     private func setupNotifications() {

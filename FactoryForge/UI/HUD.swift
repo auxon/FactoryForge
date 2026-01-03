@@ -28,6 +28,7 @@ final class HUD {
     var onDeleteBuildingPressed: (() -> Void)? // Called when delete button is pressed
     var onRotateBuildingPressed: (() -> Void)? // Called when rotate button is pressed (for belts)
     var onOpenMachinePressed: (() -> Void)? // Called when open button is pressed
+    var onConfigureInserterPressed: (() -> Void)? // Called when configure button is pressed (for inserters)
     
     // Selected building
     var selectedEntity: Entity? {
@@ -275,9 +276,13 @@ final class HUD {
         // Only render if a building is selected
         guard let selectedEntity = selectedEntity else { return }
         
-        // Check if selected entity is a belt
+        // Check if selected entity is a belt or inserter
         let isBelt = gameLoop?.world.has(BeltComponent.self, for: selectedEntity) ?? false
+        let isInserter = gameLoop?.world.has(InserterComponent.self, for: selectedEntity) ?? false
         let hasMachine = hasMachineUI(for: selectedEntity)
+        
+        // Debug logging
+        // print("HUD: renderBuildingActionButtons - selectedEntity: \(selectedEntity), isBelt: \(isBelt), isInserter: \(isInserter), hasMachine: \(hasMachine)")
         
         // Position buttons on the right side for thumb accessibility
         // Place them vertically stacked, starting from about 1/3 down the screen
@@ -307,8 +312,19 @@ final class HUD {
             nextButtonY += spacing
         }
         
-        // Open button (below delete/rotate, only for entities with machine UI)
-        if hasMachine {
+        // Configure button (for inserters, below delete/rotate)
+        if isInserter {
+            let configureButtonY = nextButtonY
+            let configureButtonX = screenSize.x - rightMargin
+            // print("HUD: Rendering configure button at (\(configureButtonX), \(configureButtonY)), screenSize: \(screenSize), rightMargin: \(rightMargin), callback: \(onConfigureInserterPressed != nil ? "set" : "nil")")
+            renderButton(renderer: renderer, position: Vector2(configureButtonX, configureButtonY), textureId: "gear", callback: onConfigureInserterPressed)
+            nextButtonY += spacing
+        } else {
+            // print("HUD: Not rendering configure button - isInserter is false")
+        }
+        
+        // Open button (below delete/rotate/configure, only for entities with machine UI that aren't inserters)
+        if hasMachine && !isInserter {
             let openButtonY = nextButtonY
             let openButtonX = screenSize.x - rightMargin
             renderButton(renderer: renderer, position: Vector2(openButtonX, openButtonY), textureId: "gear", callback: onOpenMachinePressed)
@@ -655,9 +671,23 @@ final class HUD {
                 nextButtonY += spacing
             }
             
-            // Open button (only for entities with machine UI)
+            // Configure button (only for inserters)
             if let selectedEntity = selectedEntity,
-               hasMachineUI(for: selectedEntity) {
+               gameLoop?.world.has(InserterComponent.self, for: selectedEntity) ?? false {
+                let configureButtonX = screenSize.x - rightMargin
+                let configureButtonY = nextButtonY
+                print("HUD: Checking configure button - tap at \(position), button at (\(configureButtonX), \(configureButtonY))")
+                if checkButtonTap(at: position, buttonPos: Vector2(configureButtonX, configureButtonY)) {
+                    print("HUD: Configure button tapped")
+                    onConfigureInserterPressed?()
+                    return true
+                }
+                nextButtonY += spacing
+            }
+            
+            // Open button (only for entities with machine UI that aren't inserters)
+            if let selectedEntity = selectedEntity,
+               hasMachineUI(for: selectedEntity) && !(gameLoop?.world.has(InserterComponent.self, for: selectedEntity) ?? false) {
                 let openButtonX = screenSize.x - rightMargin
                 let openButtonY = nextButtonY
                 if checkButtonTap(at: position, buttonPos: Vector2(openButtonX, openButtonY)) {

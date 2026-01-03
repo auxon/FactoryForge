@@ -38,6 +38,10 @@ final class InputManager: NSObject {
     // Building movement
     var entityToMove: Entity?  // Entity being moved (accessible for preview rendering)
     
+    // Inserter connection mode
+    var inserterToConfigure: Entity?  // Inserter being configured
+    var isConnectingInput: Bool = false  // True if setting input, false if setting output
+    
     // Belt and pole placement (drag-based)
     private var dragPlacementStartTile: IntVector2?  // Starting tile for drag placement
     private var dragPlacedTiles: Set<IntVector2> = []  // Tiles where items have been placed in current drag
@@ -311,6 +315,11 @@ final class InputManager: NSObject {
                     onTooltip?("Cannot move building here")
                 }
             }
+            
+        case .connectingInserter:
+            // Handle inserter connection selection
+            let tilePos = IntVector2(from: worldPos)
+            handleInserterConnectionSelection(at: tilePos, gameLoop: gameLoop)
         }
     }
 
@@ -338,6 +347,8 @@ final class InputManager: NSObject {
                 print("InputManager: Tap consumed by UI system")
                 return
             }
+            
+            // Connection selection is now handled in buildMode == .connectingInserter
         }
 
         // If no game loop exists, we're done (loading menu should have handled it)
@@ -534,6 +545,11 @@ final class InputManager: NSObject {
                     onTooltip?("Cannot move building here")
                 }
             }
+            
+        case .connectingInserter:
+            // Handle inserter connection selection
+            let tilePos = IntVector2(from: worldPos)
+            handleInserterConnectionSelection(at: tilePos, gameLoop: gameLoop)
         }
         
         onTap?(worldPos)
@@ -1288,11 +1304,94 @@ final class InputManager: NSObject {
         dragPlacedTiles = []
         dragPathPreview = []
         entityToMove = nil
+        // Clear inserter connection state
+        inserterToConfigure = nil
+        isConnectingInput = false
         // Clear selection rectangle state when exiting build mode
         isSelecting = false
         selectionStartScreenPos = nil
         selectionRect = nil
         print("InputManager: exitBuildMode completed - buildMode: \(buildMode), selectedBuildingId: \(selectedBuildingId ?? "nil")")
+    }
+    
+    func enterInserterConnectionMode(inserter: Entity, isInput: Bool) {
+        buildMode = .connectingInserter
+        inserterToConfigure = inserter
+        isConnectingInput = isInput
+        onTooltip?(isInput ? "Tap an entity or belt to set input connection" : "Tap an entity or belt to set output connection")
+    }
+    
+    private func handleInserterConnectionSelection(at tilePos: IntVector2, gameLoop: GameLoop) {
+        guard let inserterEntity = inserterToConfigure else {
+            exitBuildMode()
+            return
+        }
+        
+        guard let inserterPos = gameLoop.world.get(PositionComponent.self, for: inserterEntity) else {
+            exitBuildMode()
+            return
+        }
+        
+        // Check if selection is within 1 tile (including diagonals)
+        let distance = abs(tilePos.x - inserterPos.tilePosition.x) + abs(tilePos.y - inserterPos.tilePosition.y)
+        guard distance <= 1 else {
+            onTooltip?("Target must be adjacent to inserter")
+            return
+        }
+        
+        // Try to find entity at position
+        if let targetEntity = gameLoop.world.getEntityAt(position: tilePos) {
+            // Check if it's a valid target (belt, miner, machine, etc.)
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: targetEntity)
+            let hasMiner = gameLoop.world.has(MinerComponent.self, for: targetEntity)
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: targetEntity)
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: targetEntity)
+            let hasChest = gameLoop.world.has(ChestComponent.self, for: targetEntity)
+            
+            if hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest {
+                if isConnectingInput {
+                    if gameLoop.setInserterConnection(entity: inserterEntity, inputTarget: targetEntity, inputPosition: nil) {
+                        onTooltip?("Input connection set")
+                        exitBuildMode()
+                    } else {
+                        onTooltip?("Failed to set input connection")
+                    }
+                } else {
+                    if gameLoop.setInserterConnection(entity: inserterEntity, outputTarget: targetEntity, outputPosition: nil) {
+                        onTooltip?("Output connection set")
+                        exitBuildMode()
+                    } else {
+                        onTooltip?("Failed to set output connection")
+                    }
+                }
+                return
+            }
+        }
+        
+        // No entity, check if there's a belt at this position
+        let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
+        let hasBelt = entitiesAtPos.contains { gameLoop.world.has(BeltComponent.self, for: $0) }
+        
+        if hasBelt {
+            if isConnectingInput {
+                if gameLoop.setInserterConnection(entity: inserterEntity, inputTarget: nil, inputPosition: tilePos) {
+                    onTooltip?("Input connection set")
+                    exitBuildMode()
+                } else {
+                    onTooltip?("Failed to set input connection")
+                }
+            } else {
+                if gameLoop.setInserterConnection(entity: inserterEntity, outputTarget: nil, outputPosition: tilePos) {
+                    onTooltip?("Output connection set")
+                    exitBuildMode()
+                } else {
+                    onTooltip?("Failed to set output connection")
+                }
+            }
+            return
+        }
+        
+        onTooltip?("No valid target at this position")
     }
     
     func enterMoveMode(entity: Entity) {
@@ -1455,6 +1554,7 @@ enum BuildMode {
     case removing
     case selecting
     case moving
+    case connectingInserter  // Special mode for setting inserter connections
 }
 
 // MARK: - UIGestureRecognizerDelegate

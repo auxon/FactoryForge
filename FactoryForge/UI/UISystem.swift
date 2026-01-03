@@ -19,6 +19,7 @@ final class UISystem {
     private var machineUI: MachineUI
     private var loadingMenu: LoadingMenu
     private var entitySelectionDialog: EntitySelectionDialog?
+    private var inserterConnectionDialog: InserterConnectionDialog?
     
     // Current state
     private(set) var activePanel: UIPanel?
@@ -61,6 +62,9 @@ final class UISystem {
         // Reinitialize entity selection dialog with gameLoop
         entitySelectionDialog = EntitySelectionDialog(screenSize: screenSize, gameLoop: gameLoop, renderer: renderer)
         
+        // Reinitialize inserter connection dialog with gameLoop
+        inserterConnectionDialog = InserterConnectionDialog(screenSize: screenSize, gameLoop: gameLoop, renderer: renderer)
+        
         setupCallbacks()
     }
 
@@ -89,7 +93,11 @@ final class UISystem {
     func getCraftingMenu() -> CraftingMenu {
         return craftingMenu
     }
-
+    
+    func getInserterConnectionDialog() -> InserterConnectionDialog? {
+        return inserterConnectionDialog
+    }
+    
     private func setupCallbacks() {
         // HUD button callbacks
         hud.onInventoryPressed = { [weak self] in
@@ -179,6 +187,8 @@ final class UISystem {
                 machineUI.update(deltaTime: deltaTime)
             case .entitySelection:
                 entitySelectionDialog?.update(deltaTime: deltaTime)
+            case .inserterConnection:
+                inserterConnectionDialog?.update(deltaTime: deltaTime)
             }
         }
     }
@@ -203,6 +213,58 @@ final class UISystem {
     
     private func closeEntitySelectionDialog() {
         entitySelectionDialog?.close()
+        activePanel = nil
+        isAnyPanelOpen = false
+    }
+    
+    func showInserterConnectionDialog(entity: Entity) {
+        guard let dialog = inserterConnectionDialog else { return }
+        dialog.setInserter(entity: entity)
+        dialog.setInputManager(inputManager)  // Pass inputManager to dialog
+        
+        dialog.onInputSet = { [weak self] entity, targetEntity, targetPosition in
+            guard let self = self else { return }
+            if let gameLoop = self.gameLoop {
+                // If both are nil, it's a clear operation
+                let clearInput = (targetEntity == nil && targetPosition == nil)
+                if gameLoop.setInserterConnection(entity: entity, inputTarget: targetEntity, inputPosition: targetPosition, clearInput: clearInput) {
+                    print("UISystem: Input connection set successfully - targetEntity: \(targetEntity != nil ? "set" : "nil"), targetPosition: \(targetPosition != nil ? "\(targetPosition!)" : "nil")")
+                    // Don't close dialog - allow setting both input and output
+                    // Update the dialog to show the new connection
+                    dialog.setInserter(entity: entity)
+                } else {
+                    print("UISystem: Failed to set input connection")
+                }
+            }
+        }
+        
+        dialog.onOutputSet = { [weak self] entity, targetEntity, targetPosition in
+            guard let self = self else { return }
+            if let gameLoop = self.gameLoop {
+                // If both are nil, it's a clear operation
+                let clearOutput = (targetEntity == nil && targetPosition == nil)
+                if gameLoop.setInserterConnection(entity: entity, outputTarget: targetEntity, outputPosition: targetPosition, clearOutput: clearOutput) {
+                    print("UISystem: Output connection set successfully - targetEntity: \(targetEntity != nil ? "set" : "nil"), targetPosition: \(targetPosition != nil ? "\(targetPosition!)" : "nil")")
+                    // Don't close dialog - allow setting both input and output
+                    // Update the dialog to show the new connection
+                    dialog.setInserter(entity: entity)
+                } else {
+                    print("UISystem: Failed to set output connection")
+                }
+            }
+        }
+        
+        dialog.onCancel = { [weak self] in
+            self?.closeInserterConnectionDialog()
+        }
+        
+        dialog.open()
+        activePanel = .inserterConnection
+        isAnyPanelOpen = true
+    }
+    
+    private func closeInserterConnectionDialog() {
+        inserterConnectionDialog?.close()
         activePanel = nil
         isAnyPanelOpen = false
     }
@@ -236,6 +298,8 @@ final class UISystem {
                 machineUI.render(renderer: renderer)
             case .entitySelection:
                 entitySelectionDialog?.render(renderer: renderer)
+            case .inserterConnection:
+                inserterConnectionDialog?.render(renderer: renderer)
             }
         }
     }
@@ -275,6 +339,8 @@ final class UISystem {
             machineUI.open()
             case .entitySelection:
                 entitySelectionDialog?.open()
+            case .inserterConnection:
+                inserterConnectionDialog?.open()
         }
     }
     
@@ -295,6 +361,8 @@ final class UISystem {
                 machineUI.close()
             case .entitySelection:
                 entitySelectionDialog?.close()
+            case .inserterConnection:
+                inserterConnectionDialog?.close()
             }
         }
 
@@ -350,6 +418,8 @@ final class UISystem {
                 if machineUI.handleTap(at: screenPos) { return true }
             case .entitySelection:
                 if entitySelectionDialog?.handleTap(at: screenPos) ?? false { return true }
+            case .inserterConnection:
+                if inserterConnectionDialog?.handleTap(at: screenPos) ?? false { return true }
             }
 
             // If we reach here, the panel's handleTap returned false,
@@ -393,6 +463,8 @@ final class UISystem {
                 return nil // MachineUI doesn't need tooltips yet
             case .entitySelection:
                 return nil // EntitySelectionDialog doesn't need tooltips
+            case .inserterConnection:
+                return nil // InserterConnectionDialog doesn't need tooltips
             }
         }
 
@@ -425,6 +497,7 @@ enum UIPanel {
     case research
     case machine
     case entitySelection
+    case inserterConnection
 }
 
 // MARK: - Entity Selection Dialog
@@ -791,6 +864,375 @@ class CloseButton: UIElement {
                 color: .white,
                 layer: .ui
             ))
+        }
+    }
+}
+
+// MARK: - Inserter Connection Dialog
+
+    class InserterConnectionDialog {
+        private weak var gameLoop: GameLoop?
+        private weak var renderer: MetalRenderer?
+        private weak var inputManager: InputManager?
+        private var screenSize: Vector2
+        
+        private var inserterEntity: Entity?
+        private var setInputButton: UIButton
+        private var setOutputButton: UIButton
+        private var cancelButton: UIButton
+        private var clearInputButton: UIButton
+        private var clearOutputButton: UIButton
+    
+    var onInputSet: ((Entity, Entity?, IntVector2?) -> Void)?
+    var onOutputSet: ((Entity, Entity?, IntVector2?) -> Void)?
+    var onCancel: (() -> Void)?
+    
+    var isOpen: Bool = false
+    var isSelectingInput: Bool = false
+    var isSelectingOutput: Bool = false
+    
+    init(screenSize: Vector2, gameLoop: GameLoop?, renderer: MetalRenderer?) {
+        self.screenSize = screenSize
+        self.gameLoop = gameLoop
+        self.renderer = renderer
+        
+        // Get button sizes from textures
+        let buttonHeight: Float = 60 * UIScale
+        let spacing: Float = 20 * UIScale
+        let buttonWidth: Float = 200 * UIScale
+        
+        let centerX = screenSize.x / 2
+        let startY = screenSize.y / 2 - 100 * UIScale
+        
+        // Set Input button
+        setInputButton = UIButton(
+            frame: Rect(
+                center: Vector2(centerX, startY),
+                size: Vector2(buttonWidth, buttonHeight)
+            ),
+            textureId: "solid_white"
+        )
+        
+        // Set Output button
+        setOutputButton = UIButton(
+            frame: Rect(
+                center: Vector2(centerX, startY + buttonHeight + spacing),
+                size: Vector2(buttonWidth, buttonHeight)
+            ),
+            textureId: "solid_white"
+        )
+        
+        // Clear Input button
+        clearInputButton = UIButton(
+            frame: Rect(
+                center: Vector2(centerX, startY + (buttonHeight + spacing) * 2),
+                size: Vector2(buttonWidth * 0.7, buttonHeight * 0.7)
+            ),
+            textureId: "solid_white"
+        )
+        
+        // Clear Output button
+        clearOutputButton = UIButton(
+            frame: Rect(
+                center: Vector2(centerX, startY + (buttonHeight + spacing) * 2 + buttonHeight * 0.7 + spacing * 0.5),
+                size: Vector2(buttonWidth * 0.7, buttonHeight * 0.7)
+            ),
+            textureId: "solid_white"
+        )
+        
+        // Cancel button
+        let cancelSize = renderer?.textureAtlas.getTextureSize(for: "inserter_cancel_button") ?? (width: 810, height: 345)
+        let cancelAspectRatio = Float(cancelSize.width) / Float(cancelSize.height)
+        let cancelWidth = buttonHeight * cancelAspectRatio
+        cancelButton = UIButton(
+            frame: Rect(
+                center: Vector2(centerX, startY + (buttonHeight + spacing) * 3 + buttonHeight * 0.7),
+                size: Vector2(cancelWidth, buttonHeight)
+            ),
+            textureId: "inserter_cancel_button"
+        )
+        
+        setInputButton.onTap = { [weak self] in
+            guard let self = self, let inserterEntity = self.inserterEntity else { return }
+            // Close dialog and enter connection mode
+            self.onCancel?()
+            // Enter connection mode via input manager
+            if let inputManager = self.inputManager {
+                inputManager.enterInserterConnectionMode(inserter: inserterEntity, isInput: true)
+            }
+        }
+        
+        setOutputButton.onTap = { [weak self] in
+            guard let self = self, let inserterEntity = self.inserterEntity else { return }
+            // Close dialog and enter connection mode
+            self.onCancel?()
+            // Enter connection mode via input manager
+            if let inputManager = self.inputManager {
+                inputManager.enterInserterConnectionMode(inserter: inserterEntity, isInput: false)
+            }
+        }
+        
+        clearInputButton.onTap = { [weak self] in
+            guard let self = self, let entity = self.inserterEntity else { return }
+            self.onInputSet?(entity, nil, nil)
+        }
+        
+        clearOutputButton.onTap = { [weak self] in
+            guard let self = self, let entity = self.inserterEntity else { return }
+            self.onOutputSet?(entity, nil, nil)
+        }
+        
+        cancelButton.onTap = { [weak self] in
+            self?.onCancel?()
+        }
+    }
+    
+    func setInserter(entity: Entity) {
+        self.inserterEntity = entity
+        self.isSelectingInput = false
+        self.isSelectingOutput = false
+    }
+    
+    func setInputManager(_ inputManager: InputManager?) {
+        self.inputManager = inputManager
+    }
+    
+    func handleConnectionSelection(at worldPos: Vector2, tilePos: IntVector2) -> Bool {
+        guard let gameLoop = gameLoop, let inserterEntity = inserterEntity else { return false }
+        guard let inserterPos = gameLoop.world.get(PositionComponent.self, for: inserterEntity) else { return false }
+        
+        // Check if selection is within 1 tile (including diagonals)
+        let distance = abs(tilePos.x - inserterPos.tilePosition.x) + abs(tilePos.y - inserterPos.tilePosition.y)
+        guard distance <= 1 else { return false }
+        
+        // Try to find entity at position
+        if let targetEntity = gameLoop.world.getEntityAt(position: tilePos) {
+            // Check if it's a valid target (belt, miner, machine, etc.)
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: targetEntity)
+            let hasMiner = gameLoop.world.has(MinerComponent.self, for: targetEntity)
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: targetEntity)
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: targetEntity)
+            let hasChest = gameLoop.world.has(ChestComponent.self, for: targetEntity)
+            
+            if hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest {
+                if isSelectingInput {
+                    onInputSet?(inserterEntity, targetEntity, nil)
+                    isSelectingInput = false
+                    return true
+                } else if isSelectingOutput {
+                    onOutputSet?(inserterEntity, targetEntity, nil)
+                    isSelectingOutput = false
+                    return true
+                }
+            }
+        } else {
+            // No entity, check if there's a belt at this position by checking the world
+            // Try to find any entity at this position that has a BeltComponent
+            let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
+            let hasBelt = entitiesAtPos.contains { gameLoop.world.has(BeltComponent.self, for: $0) }
+            
+            if hasBelt {
+                if isSelectingInput {
+                    print("InserterConnectionDialog: Setting input position to \(tilePos)")
+                    onInputSet?(inserterEntity, nil, tilePos)
+                    isSelectingInput = false
+                    return true
+                } else if isSelectingOutput {
+                    print("InserterConnectionDialog: Setting output position to \(tilePos)")
+                    onOutputSet?(inserterEntity, nil, tilePos)
+                    isSelectingOutput = false
+                    return true
+                }
+            }
+        }
+        
+        return false
+    }
+    
+    func handleTap(at screenPos: Vector2) -> Bool {
+        if setInputButton.handleTap(at: screenPos) { return true }
+        if setOutputButton.handleTap(at: screenPos) { return true }
+        if clearInputButton.handleTap(at: screenPos) { return true }
+        if clearOutputButton.handleTap(at: screenPos) { return true }
+        if cancelButton.handleTap(at: screenPos) { return true }
+        return false
+    }
+    
+    func update(deltaTime: Float) {
+        setInputButton.update(deltaTime: deltaTime)
+        setOutputButton.update(deltaTime: deltaTime)
+        clearInputButton.update(deltaTime: deltaTime)
+        clearOutputButton.update(deltaTime: deltaTime)
+        cancelButton.update(deltaTime: deltaTime)
+    }
+    
+    func open() {
+        isOpen = true
+    }
+    
+    func close() {
+        isOpen = false
+        isSelectingInput = false
+        isSelectingOutput = false
+    }
+    
+    func render(renderer: MetalRenderer) {
+        guard isOpen else { return }
+        
+        // Render background
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        let bgWidth: Float = 300 * UIScale
+        let bgHeight: Float = 400 * UIScale
+        let bgRect = Rect(
+            center: Vector2(screenSize.x / 2, screenSize.y / 2),
+            size: Vector2(bgWidth, bgHeight)
+        )
+        renderer.queueSprite(SpriteInstance(
+            position: bgRect.center,
+            size: bgRect.size,
+            textureRect: solidRect,
+            color: Color(r: 0.1, g: 0.1, b: 0.15, a: 0.9),
+            layer: .ui
+        ))
+        
+        // Render buttons
+        setInputButton.render(renderer: renderer)
+        setOutputButton.render(renderer: renderer)
+        clearInputButton.render(renderer: renderer)
+        clearOutputButton.render(renderer: renderer)
+        cancelButton.render(renderer: renderer)
+        
+        // Render connection status with icons
+        if let gameLoop = gameLoop, let inserterEntity = inserterEntity,
+           let inserter = gameLoop.world.get(InserterComponent.self, for: inserterEntity) {
+            
+            let iconSize: Float = 50 * UIScale
+            let iconSpacing: Float = 10 * UIScale
+            let buttonHeight: Float = 60 * UIScale
+            let spacing: Float = 20 * UIScale
+            let startY = screenSize.y / 2 - 100 * UIScale
+            let centerX = screenSize.x / 2
+            let buttonWidth: Float = 200 * UIScale
+            
+            print("InserterConnectionDialog: Rendering icons - inputTarget: \(inserter.inputTarget != nil ? "set" : "nil"), inputPosition: \(inserter.inputPosition != nil ? "set" : "nil"), outputTarget: \(inserter.outputTarget != nil ? "set" : "nil"), outputPosition: \(inserter.outputPosition != nil ? "set" : "nil")")
+            
+            // Render input target icon (to the right of "Set Input" button)
+            if let inputTarget = inserter.inputTarget {
+                print("InserterConnectionDialog: Rendering input target icon for entity \(inputTarget)")
+                let iconX = centerX + buttonWidth / 2 + iconSpacing + iconSize / 2
+                let iconY = startY
+                if let sprite = gameLoop.world.get(SpriteComponent.self, for: inputTarget) {
+                    var textureId = sprite.textureId
+                    // Handle belt directional textures
+                    if textureId.contains("_belt_") {
+                        let parts = textureId.split(separator: "_")
+                        if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                            textureId = parts[0...beltIndex].joined(separator: "_")
+                        }
+                    }
+                    let textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
+                    print("InserterConnectionDialog: Rendering input entity icon at (\(iconX), \(iconY)) with texture '\(textureId)'")
+                    renderer.queueSprite(SpriteInstance(
+                        position: Vector2(iconX, iconY),
+                        size: Vector2(iconSize, iconSize),
+                        textureRect: textureRect,
+                        layer: .ui
+                    ))
+                } else {
+                    print("InserterConnectionDialog: Input target entity \(inputTarget) has no sprite component")
+                }
+            } else if let inputPos = inserter.inputPosition {
+                print("InserterConnectionDialog: Rendering input position icon for belt at \(inputPos)")
+                // Render belt icon for position-based input
+                let iconX = centerX + buttonWidth / 2 + iconSpacing + iconSize / 2
+                let iconY = startY
+                // Try to find belt entity at this position to get its texture
+                var beltTextureId = "transport_belt" // Default belt texture
+                let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: inputPos)
+                for entity in entitiesAtPos {
+                    if gameLoop.world.has(BeltComponent.self, for: entity),
+                       let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) {
+                        var textureId = sprite.textureId
+                        // Handle belt directional textures
+                        if textureId.contains("_belt_") {
+                            let parts = textureId.split(separator: "_")
+                            if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                                textureId = parts[0...beltIndex].joined(separator: "_")
+                            }
+                        }
+                        beltTextureId = textureId
+                        break
+                    }
+                }
+                print("InserterConnectionDialog: Using belt texture '\(beltTextureId)' for input position")
+                let textureRect = renderer.textureAtlas.getTextureRect(for: beltTextureId)
+                renderer.queueSprite(SpriteInstance(
+                    position: Vector2(iconX, iconY),
+                    size: Vector2(iconSize, iconSize),
+                    textureRect: textureRect,
+                    layer: .ui
+                ))
+            }
+            
+            // Render output target icon (to the right of "Set Output" button)
+            if let outputTarget = inserter.outputTarget {
+                print("InserterConnectionDialog: Rendering output target icon for entity \(outputTarget)")
+                let iconX = centerX + buttonWidth / 2 + iconSpacing + iconSize / 2
+                let iconY = startY + buttonHeight + spacing
+                if let sprite = gameLoop.world.get(SpriteComponent.self, for: outputTarget) {
+                    var textureId = sprite.textureId
+                    // Handle belt directional textures
+                    if textureId.contains("_belt_") {
+                        let parts = textureId.split(separator: "_")
+                        if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                            textureId = parts[0...beltIndex].joined(separator: "_")
+                        }
+                    }
+                    let textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
+                    print("InserterConnectionDialog: Rendering output entity icon at (\(iconX), \(iconY)) with texture '\(textureId)'")
+                    renderer.queueSprite(SpriteInstance(
+                        position: Vector2(iconX, iconY),
+                        size: Vector2(iconSize, iconSize),
+                        textureRect: textureRect,
+                        layer: .ui
+                    ))
+                } else {
+                    print("InserterConnectionDialog: Output target entity \(outputTarget) has no sprite component")
+                }
+            } else if let outputPos = inserter.outputPosition {
+                print("InserterConnectionDialog: Rendering output position icon for belt at \(outputPos)")
+                // Render belt icon for position-based output
+                let iconX = centerX + buttonWidth / 2 + iconSpacing + iconSize / 2
+                let iconY = startY + buttonHeight + spacing
+                // Try to find belt entity at this position to get its texture
+                var beltTextureId = "transport_belt" // Default belt texture
+                let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: outputPos)
+                for entity in entitiesAtPos {
+                    if gameLoop.world.has(BeltComponent.self, for: entity),
+                       let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) {
+                        var textureId = sprite.textureId
+                        // Handle belt directional textures
+                        if textureId.contains("_belt_") {
+                            let parts = textureId.split(separator: "_")
+                            if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                                textureId = parts[0...beltIndex].joined(separator: "_")
+                            }
+                        }
+                        beltTextureId = textureId
+                        break
+                    }
+                }
+                print("InserterConnectionDialog: Using belt texture '\(beltTextureId)' for output position")
+                let textureRect = renderer.textureAtlas.getTextureRect(for: beltTextureId)
+                renderer.queueSprite(SpriteInstance(
+                    position: Vector2(iconX, iconY),
+                    size: Vector2(iconSize, iconSize),
+                    textureRect: textureRect,
+                    layer: .ui
+                ))
+            }
+        } else {
+            print("InserterConnectionDialog: Cannot render icons - gameLoop or inserterEntity is nil, or inserter component not found")
         }
     }
 }

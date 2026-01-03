@@ -833,6 +833,62 @@ final class GameLoop {
         return true
     }
     
+    func setInserterConnection(entity: Entity, inputTarget: Entity? = nil, inputPosition: IntVector2? = nil, outputTarget: Entity? = nil, outputPosition: IntVector2? = nil, clearInput: Bool = false, clearOutput: Bool = false) -> Bool {
+        guard var inserter = world.get(InserterComponent.self, for: entity),
+              let inserterPos = world.get(PositionComponent.self, for: entity) else {
+            return false
+        }
+        
+        // Handle explicit clearing
+        if clearInput {
+            inserter.inputTarget = nil
+            inserter.inputPosition = nil
+        }
+        // Only update input if inputTarget or inputPosition is provided (and not explicitly clearing)
+        else if inputTarget != nil || inputPosition != nil {
+            if let inputTarget = inputTarget {
+                guard world.isAlive(inputTarget) else { return false }
+                if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
+                    let distance = abs(targetPos.tilePosition.x - inserterPos.tilePosition.x) + abs(targetPos.tilePosition.y - inserterPos.tilePosition.y)
+                    guard distance <= 1 else { return false }
+                }
+                inserter.inputTarget = inputTarget
+                inserter.inputPosition = nil // Clear position if setting entity
+            } else if let inputPosition = inputPosition {
+                let distance = abs(inputPosition.x - inserterPos.tilePosition.x) + abs(inputPosition.y - inserterPos.tilePosition.y)
+                guard distance <= 1 else { return false }
+                inserter.inputPosition = inputPosition
+                inserter.inputTarget = nil // Clear entity if setting position
+            }
+        }
+        
+        // Handle explicit clearing
+        if clearOutput {
+            inserter.outputTarget = nil
+            inserter.outputPosition = nil
+        }
+        // Only update output if outputTarget or outputPosition is provided (and not explicitly clearing)
+        else if outputTarget != nil || outputPosition != nil {
+            if let outputTarget = outputTarget {
+                guard world.isAlive(outputTarget) else { return false }
+                if let targetPos = world.get(PositionComponent.self, for: outputTarget) {
+                    let distance = abs(targetPos.tilePosition.x - inserterPos.tilePosition.x) + abs(targetPos.tilePosition.y - inserterPos.tilePosition.y)
+                    guard distance <= 1 else { return false }
+                }
+                inserter.outputTarget = outputTarget
+                inserter.outputPosition = nil // Clear position if setting entity
+            } else if let outputPosition = outputPosition {
+                let distance = abs(outputPosition.x - inserterPos.tilePosition.x) + abs(outputPosition.y - inserterPos.tilePosition.y)
+                guard distance <= 1 else { return false }
+                inserter.outputPosition = outputPosition
+                inserter.outputTarget = nil // Clear entity if setting position
+            }
+        }
+        
+        world.add(inserter, to: entity)
+        return true
+    }
+    
     func setRecipe(for entity: Entity, recipeId: String) {
         guard let recipe = recipeRegistry.get(recipeId) else { return }
         

@@ -55,6 +55,55 @@ final class InserterSystem: System {
             
             let speedMultiplier = power.satisfaction
             
+            // Validate configured connections at the start of each update
+            var updatedInserter = inserter
+            
+            // Validate input target connection
+            if let inputTarget = updatedInserter.inputTarget {
+                if !world.isAlive(inputTarget) {
+                    updatedInserter.inputTarget = nil
+                } else if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
+                    let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
+                    if distance > 1 {
+                        updatedInserter.inputTarget = nil
+                    }
+                } else {
+                    updatedInserter.inputTarget = nil
+                }
+            }
+            
+            // Validate input position connection
+            if let inputPos = updatedInserter.inputPosition {
+                let distance = abs(inputPos.x - position.tilePosition.x) + abs(inputPos.y - position.tilePosition.y)
+                if distance > 1 {
+                    updatedInserter.inputPosition = nil
+                }
+            }
+            
+            // Validate output target connection
+            if let outputTarget = updatedInserter.outputTarget {
+                if !world.isAlive(outputTarget) {
+                    updatedInserter.outputTarget = nil
+                } else if let targetPos = world.get(PositionComponent.self, for: outputTarget) {
+                    let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
+                    if distance > 1 {
+                        updatedInserter.outputTarget = nil
+                    }
+                } else {
+                    updatedInserter.outputTarget = nil
+                }
+            }
+            
+            // Validate output position connection
+            if let outputPos = updatedInserter.outputPosition {
+                let distance = abs(outputPos.x - position.tilePosition.x) + abs(outputPos.y - position.tilePosition.y)
+                if distance > 1 {
+                    updatedInserter.outputPosition = nil
+                }
+            }
+            
+            inserter = updatedInserter
+            
             // print("InserterSystem: Inserter at \(position.tilePosition) state=\(inserter.state), heldItem=\(inserter.heldItem != nil ? "\(inserter.heldItem!.itemId) x\(inserter.heldItem!.count)" : "nil")")
             
             switch inserter.state {
@@ -68,20 +117,49 @@ final class InserterSystem: System {
 
                 // Unified inserter: can pick up from sources (belts, miners) or machine outputs
                 if inserter.heldItem == nil {
-                    // Check all 8 adjacent directions for items to pick up
-                    let offsets = [
-                        IntVector2(0, 1), IntVector2(1, 1), IntVector2(1, 0), IntVector2(1, -1),
-                        IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
-                    ]
-
                     var foundSource = false
-                    for offset in offsets {
-                        let sourcePos = position.tilePosition + offset
-                        // Try both belt/miner sources and machine outputs
-                        if canPickUp(from: sourcePos) || canPickUpFromMachineOutput(at: sourcePos) {
+                    
+                    // Check configured input connection first
+                    if let inputTarget = inserter.inputTarget {
+                        // Validate target is still alive and adjacent
+                        if world.isAlive(inputTarget) {
+                            if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
+                                let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
+                                if distance <= 1 {
+                                    // Check if we can pick up from this configured target
+                                    if canPickUpFromEntity(inputTarget) || canPickUpFromMachineOutput(at: targetPos.tilePosition) {
+                                        inserter.state = .pickingUp
+                                        foundSource = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check configured input position (for belts)
+                    if !foundSource, let inputPos = inserter.inputPosition {
+                        if canPickUp(from: inputPos) {
                             inserter.state = .pickingUp
                             foundSource = true
-                            break
+                        }
+                    }
+                    
+                    // Fallback to auto-detection if no configured connection
+                    if !foundSource {
+                        // Check all 8 adjacent directions for items to pick up
+                        let offsets = [
+                            IntVector2(0, 1), IntVector2(1, 1), IntVector2(1, 0), IntVector2(1, -1),
+                            IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
+                        ]
+
+                        for offset in offsets {
+                            let sourcePos = position.tilePosition + offset
+                            // Try both belt/miner sources and machine outputs
+                            if canPickUp(from: sourcePos) || canPickUpFromMachineOutput(at: sourcePos) {
+                                inserter.state = .pickingUp
+                                foundSource = true
+                                break
+                            }
                         }
                     }
                 }
@@ -338,35 +416,71 @@ final class InserterSystem: System {
     }
     
     private func tryPickUp(inserter: inout InserterComponent, position: PositionComponent) -> ItemStack? {
-        // Check all 8 adjacent directions (including diagonals)
-        let offsets = [
-            IntVector2(0, 1),    // North
-            IntVector2(1, 1),     // Northeast
-            IntVector2(1, 0),     // East
-            IntVector2(1, -1),   // Southeast
-            IntVector2(0, -1),   // South
-            IntVector2(-1, -1),  // Southwest
-            IntVector2(-1, 0),    // West
-            IntVector2(-1, 1)     // Northwest
-        ]
+        var item: ItemStack? = nil
         
-        // print("InserterSystem: tryPickUp called for inserter at \(position.tilePosition)")
-        for offset in offsets {
-            let sourcePos = position.tilePosition + offset
-            
-            // Try to pick from belt first
-            if let item = tryPickFromBelt(at: sourcePos, stackSize: inserter.stackSize) {
-                // print("InserterSystem: tryPickUp picked from belt at \(sourcePos)")
-                inserter.sourceEntity = nil  // Belts don't have entities to track
-                return item
+        // Check configured input connection first
+        if let inputTarget = inserter.inputTarget {
+            // Validate target is still alive and adjacent
+            if world.isAlive(inputTarget) {
+                if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
+                    let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
+                    if distance <= 1 {
+                        // Try to pick from this configured target
+                        var sourceEntity: Entity? = inputTarget
+                        if let pickedItem = tryPickFromInventory(at: targetPos.tilePosition, stackSize: inserter.stackSize, sourceEntity: &sourceEntity) {
+                            inserter.sourceEntity = sourceEntity
+                            return pickedItem
+                        }
+                        // Also try machine output
+                        if let pickedItem = tryPickFromMachineOutput(entity: inputTarget, stackSize: inserter.stackSize) {
+                            inserter.sourceEntity = inputTarget
+                            return pickedItem
+                        }
+                    }
+                }
             }
+        }
+        
+        // Check configured input position (for belts)
+        if item == nil, let inputPos = inserter.inputPosition {
+            if let pickedItem = tryPickFromBelt(at: inputPos, stackSize: inserter.stackSize) {
+                inserter.sourceEntity = nil  // Belts don't have entities to track
+                return pickedItem
+            }
+        }
+        
+        // Fallback to auto-detection if no configured connection
+        if item == nil {
+            // Check all 8 adjacent directions (including diagonals)
+            let offsets = [
+                IntVector2(0, 1),    // North
+                IntVector2(1, 1),     // Northeast
+                IntVector2(1, 0),     // East
+                IntVector2(1, -1),   // Southeast
+                IntVector2(0, -1),   // South
+                IntVector2(-1, -1),  // Southwest
+                IntVector2(-1, 0),    // West
+                IntVector2(-1, 1)     // Northwest
+            ]
             
-            // Try to pick from inventory
-            var sourceEntity: Entity? = nil
-            if let item = tryPickFromInventory(at: sourcePos, stackSize: inserter.stackSize, sourceEntity: &sourceEntity) {
-                // print("InserterSystem: tryPickUp picked from inventory at \(sourcePos)")
-                inserter.sourceEntity = sourceEntity  // Track source entity
-                return item
+            // print("InserterSystem: tryPickUp called for inserter at \(position.tilePosition)")
+            for offset in offsets {
+                let sourcePos = position.tilePosition + offset
+                
+                // Try to pick from belt first
+                if let pickedItem = tryPickFromBelt(at: sourcePos, stackSize: inserter.stackSize) {
+                    // print("InserterSystem: tryPickUp picked from belt at \(sourcePos)")
+                    inserter.sourceEntity = nil  // Belts don't have entities to track
+                    return pickedItem
+                }
+                
+                // Try to pick from inventory
+                var sourceEntity: Entity? = nil
+                if let pickedItem = tryPickFromInventory(at: sourcePos, stackSize: inserter.stackSize, sourceEntity: &sourceEntity) {
+                    // print("InserterSystem: tryPickUp picked from inventory at \(sourcePos)")
+                    inserter.sourceEntity = sourceEntity  // Track source entity
+                    return pickedItem
+                }
             }
         }
         
@@ -380,6 +494,35 @@ final class InserterSystem: System {
             if let beltItem = beltSystem.takeItem(at: position, lane: lane) {
                 let maxStack = itemRegistry.get(beltItem.itemId)?.stackSize ?? 100
                 return ItemStack(itemId: beltItem.itemId, count: 1, maxStack: maxStack)
+            }
+        }
+        return nil
+    }
+    
+    private func canPickUpFromEntity(_ entity: Entity) -> Bool {
+        if let inventory = world.get(InventoryComponent.self, for: entity) {
+            return !inventory.isEmpty
+        }
+        return false
+    }
+    
+    private func tryPickFromMachineOutput(entity: Entity, stackSize: Int) -> ItemStack? {
+        guard var inventory = world.get(InventoryComponent.self, for: entity) else { return nil }
+        
+        // For machines, check output slots (second half of inventory)
+        let outputStartIndex = inventory.slots.count / 2
+        for index in outputStartIndex..<inventory.slots.count {
+            if var stack = inventory.slots[index] {
+                // Take one item from this slot
+                let taken = ItemStack(itemId: stack.itemId, count: 1, maxStack: stack.maxStack)
+                stack.count -= 1
+                if stack.count == 0 {
+                    inventory.slots[index] = nil
+                } else {
+                    inventory.slots[index] = stack
+                }
+                world.add(inventory, to: entity)
+                return taken
             }
         }
         return nil
@@ -424,37 +567,64 @@ final class InserterSystem: System {
     // MARK: - Drop Off Logic
     
     private func tryDropOff(inserter: InserterComponent, position: PositionComponent, item: ItemStack) -> Bool {
-        // Check all 8 adjacent directions (including diagonals)
-        let offsets = [
-            IntVector2(0, 1),    // North
-            IntVector2(1, 1),     // Northeast
-            IntVector2(1, 0),     // East
-            IntVector2(1, -1),   // Southeast
-            IntVector2(0, -1),   // South
-            IntVector2(-1, -1),  // Southwest
-            IntVector2(-1, 0),    // West
-            IntVector2(-1, 1)     // Northwest
-        ]
+        var success = false
         
-        // print("InserterSystem: tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), excluding source entity: \(inserter.sourceEntity != nil)")
-        for offset in offsets {
-            let targetPos = position.tilePosition + offset
-            
-            // Try to drop on belt first (belts don't have entities, so no need to exclude)
-            if tryDropOnBelt(at: targetPos, item: item) {
-                // print("InserterSystem: tryDropOff successfully dropped on belt at \(targetPos)")
-                return true
+        // Check configured output connection first
+        if let outputTarget = inserter.outputTarget {
+            // Connection should already be validated, but check one more time
+            if world.isAlive(outputTarget) {
+                if let targetPos = world.get(PositionComponent.self, for: outputTarget) {
+                    // Try to drop to this configured target
+                    if tryDropInInventory(at: targetPos.tilePosition, item: item, excludeEntity: inserter.sourceEntity) {
+                        success = true
+                    }
+                }
             }
+        }
+        
+        // Check configured output position (for belts)
+        if !success, let outputPos = inserter.outputPosition {
+            if tryDropOnBelt(at: outputPos, item: item) {
+                success = true
+            }
+        }
+        
+        // Fallback to auto-detection if no configured connection
+        if !success {
+            // Check all 8 adjacent directions (including diagonals)
+            let offsets = [
+                IntVector2(0, 1),    // North
+                IntVector2(1, 1),     // Northeast
+                IntVector2(1, 0),     // East
+                IntVector2(1, -1),   // Southeast
+                IntVector2(0, -1),   // South
+                IntVector2(-1, -1),  // Southwest
+                IntVector2(-1, 0),    // West
+                IntVector2(-1, 1)     // Northwest
+            ]
             
-            // Try to drop in inventory (exclude source entity)
-            if tryDropInInventory(at: targetPos, item: item, excludeEntity: inserter.sourceEntity) {
-                // print("InserterSystem: tryDropOff successfully dropped in inventory at \(targetPos)")
-                return true
+            // print("InserterSystem: tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), excluding source entity: \(inserter.sourceEntity != nil)")
+            for offset in offsets {
+                let targetPos = position.tilePosition + offset
+                
+                // Try to drop on belt first (belts don't have entities, so no need to exclude)
+                if tryDropOnBelt(at: targetPos, item: item) {
+                    // print("InserterSystem: tryDropOff successfully dropped on belt at \(targetPos)")
+                    success = true
+                    break
+                }
+                
+                // Try to drop in inventory (exclude source entity)
+                if tryDropInInventory(at: targetPos, item: item, excludeEntity: inserter.sourceEntity) {
+                    // print("InserterSystem: tryDropOff successfully dropped in inventory at \(targetPos)")
+                    success = true
+                    break
+                }
             }
         }
         
         // print("InserterSystem: tryDropOff failed to drop off at any adjacent position")
-        return false
+        return success
     }
     
     private func tryDropOnBelt(at position: IntVector2, item: ItemStack) -> Bool {
