@@ -13,7 +13,7 @@ final class GameLoop {
     // Game systems
     private var systems: [System] = []
     private let miningSystem: MiningSystem
-    private let beltSystem: BeltSystem
+    let beltSystem: BeltSystem  // Internal access for save system to register belts after loading
     private let inserterSystem: InserterSystem
     private let craftingSystem: CraftingSystem
     private let powerSystem: PowerSystem

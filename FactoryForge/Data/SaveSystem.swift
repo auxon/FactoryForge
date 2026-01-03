@@ -119,10 +119,27 @@ final class SaveSystem {
         // Load research state
         gameLoop.researchSystem.loadState(saveData.researchData)
         
+        // Register all belts in BeltSystem after deserialization
+        // Belts are loaded from save but not automatically registered in the belt system's internal graph
+        registerAllBelts(in: gameLoop)
+        
         // Load play time
         gameLoop.playTime = saveData.playTime
         
         print("Game loaded from save")
+    }
+    
+    /// Registers all belt entities in the BeltSystem after loading a saved game
+    private func registerAllBelts(in gameLoop: GameLoop) {
+        var beltCount = 0
+        for entity in gameLoop.world.entities {
+            if let position = gameLoop.world.get(PositionComponent.self, for: entity),
+               let belt = gameLoop.world.get(BeltComponent.self, for: entity) {
+                gameLoop.beltSystem.registerBelt(entity: entity, at: position.tilePosition, direction: belt.direction)
+                beltCount += 1
+            }
+        }
+        print("SaveSystem: Registered \(beltCount) belts after loading save")
     }
     
     private func removePlayerEntityFromWorld(_ world: World) {
