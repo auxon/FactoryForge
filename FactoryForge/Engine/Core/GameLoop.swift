@@ -173,20 +173,8 @@ final class GameLoop {
     
     // MARK: - Game Actions
     
-    /// Places an inserter with the specified type
-    func changeInserterType(entity: Entity, newType: InserterType) {
-        guard world.has(InserterComponent.self, for: entity) else { return }
-
-        // Update the inserter component with the new type
-        if var inserter = world.get(InserterComponent.self, for: entity) {
-            inserter.type = newType
-            world.remove(InserterComponent.self, from: entity)
-            world.add(inserter, to: entity)
-        }
-    }
-
-    func placeInserter(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2 = .zero, type: InserterType) -> Bool {
-        print("GameLoop: placeInserter called - buildingId: \(buildingId), position: \(position), type: \(type)")
+    func placeInserter(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2 = .zero) -> Bool {
+        print("GameLoop: placeInserter called - buildingId: \(buildingId), position: \(position)")
         guard let buildingDef = buildingRegistry.get(buildingId) else {
             print("GameLoop: placeInserter failed - buildingDef not found for: \(buildingId)")
             return false
@@ -215,8 +203,8 @@ final class GameLoop {
         world.add(PositionComponent(tilePosition: position, direction: direction, offset: offset), to: entity)
         print("GameLoop: Added PositionComponent to inserter entity \(entity) at tilePosition: \(position)")
 
-        // Add inserter-specific components with the specified type
-        addInserterComponents(entity: entity, buildingDef: buildingDef, type: type)
+        // Add inserter-specific components
+        addInserterComponents(entity: entity, buildingDef: buildingDef, type: .input) // Default to unified inserter behavior
         
         // Verify the position was set correctly
         if let pos = world.get(PositionComponent.self, for: entity) {

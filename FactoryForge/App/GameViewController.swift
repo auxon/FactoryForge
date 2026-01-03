@@ -253,10 +253,6 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
-        // Inserter type dialog now uses Metal rendering - no view setup needed
-        let dialog = uiSystem?.getInserterTypeDialog()
-        print("GameViewController: Inserter dialog exists: \(dialog != nil), ID: \(dialog?.debugId ?? -1)")
-
         // Set up crafting menu label callbacks
         print("GameViewController: Setting up CraftingMenu callbacks in setupUISystem")
         let craftingMenu = uiSystem?.getCraftingMenu()
@@ -906,22 +902,6 @@ class GameViewController: UIViewController {
             guard let gameLoop = self.gameLoop else { return }
             
             print("GameViewController: Open button pressed for entity \(selectedEntity)")
-            
-            // Check if it's an inserter - if so, open inserter type dialog
-            if gameLoop.world.has(InserterComponent.self, for: selectedEntity) {
-                if let pos = gameLoop.world.get(PositionComponent.self, for: selectedEntity),
-                   let inserter = gameLoop.world.get(InserterComponent.self, for: selectedEntity) {
-                    print("GameViewController: Opening inserter type dialog for inserter")
-                    self.uiSystem?.showInserterTypeDialogForExisting(
-                        entity: selectedEntity,
-                        currentType: inserter.type,
-                        position: pos.tilePosition,
-                        direction: inserter.direction,
-                        offset: pos.offset
-                    )
-                    return
-                }
-            }
             
             // Otherwise, open the machine UI for the selected entity
             self.uiSystem?.openMachineUI(for: selectedEntity)

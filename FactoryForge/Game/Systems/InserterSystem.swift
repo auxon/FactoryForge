@@ -66,57 +66,24 @@ final class InserterSystem: System {
                     break
                 }
 
-                // Check if we can pick something up based on inserter type
+                // Unified inserter: can pick up from sources (belts, miners) or machine outputs
                 if inserter.heldItem == nil {
-                    switch inserter.type {
-                    case .input:
-                        // Input inserters pick up from sources (belts, miners)
-                        // Check all 8 adjacent directions
-                        let offsets = [
-                            IntVector2(0, 1), IntVector2(1, 1), IntVector2(1, 0), IntVector2(1, -1),
-                            IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
-                        ]
+                    // Check all 8 adjacent directions for items to pick up
+                    let offsets = [
+                        IntVector2(0, 1), IntVector2(1, 1), IntVector2(1, 0), IntVector2(1, -1),
+                        IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
+                    ]
 
-                        // print("InserterSystem: Input inserter at \(position.tilePosition) checking for pickup sources")
-                        var foundSource = false
-                        for offset in offsets {
-                            let sourcePos = position.tilePosition + offset
-                            if canPickUp(from: sourcePos) {
-                                // print("InserterSystem: Input inserter at \(position.tilePosition) can pick up from \(sourcePos), transitioning to pickingUp")
-                                inserter.state = .pickingUp
-                                foundSource = true
-                                break
-                            }
-                        }
-                        if !foundSource {
-                            // print("InserterSystem: Input inserter at \(position.tilePosition) found no pickup sources in adjacent positions")
-                        }
-
-                    case .output:
-                        // Output inserters pick up from machine outputs (furnaces, assemblers)
-                        // Check adjacent machines for output items
-                        let offsets = [
-                            IntVector2(0, 1), IntVector2(1, 1), IntVector2(1, 0), IntVector2(1, -1),
-                            IntVector2(0, -1), IntVector2(-1, -1), IntVector2(-1, 0), IntVector2(-1, 1)
-                        ]
-
-                        // print("InserterSystem: Output inserter at \(position.tilePosition) checking for machine outputs")
-                        var foundOutput = false
-                        for offset in offsets {
-                            let checkPos = position.tilePosition + offset
-                            if canPickUpFromMachineOutput(at: checkPos) {
-                                // print("InserterSystem: Output inserter at \(position.tilePosition) can pick up from machine at \(checkPos), transitioning to pickingUp")
-                                inserter.state = .pickingUp
-                                foundOutput = true
-                                break
-                            }
-                        }
-                        if !foundOutput {
-                            // print("InserterSystem: Output inserter at \(position.tilePosition) found no machine outputs in adjacent positions")
+                    var foundSource = false
+                    for offset in offsets {
+                        let sourcePos = position.tilePosition + offset
+                        // Try both belt/miner sources and machine outputs
+                        if canPickUp(from: sourcePos) || canPickUpFromMachineOutput(at: sourcePos) {
+                            inserter.state = .pickingUp
+                            foundSource = true
+                            break
                         }
                     }
-                } else {
-                    // print("InserterSystem: Inserter at \(position.tilePosition) in idle state but already holding item")
                 }
 
             case .pickingUp:

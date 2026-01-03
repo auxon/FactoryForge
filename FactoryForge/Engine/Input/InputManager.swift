@@ -72,27 +72,6 @@ final class InputManager: NSObject {
     var onBuildingPlaced: ((String, IntVector2, Direction) -> Void)?
     var onEntitySelected: ((Entity?) -> Void)?
     var onTooltip: ((String) -> Void)? // Called when something is tapped to show tooltip
-    var onInserterTypeSelection: ((String, IntVector2, Direction, Vector2) -> Void)? // Called when placing inserter to choose type
-
-    /// Places an inserter with the specified type
-    func placeInserter(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2, type: InserterType) {
-        print("InputManager: placeInserter called - buildingId: \(buildingId), position: \(position), direction: \(direction), type: \(type)")
-        guard let gameLoop = gameLoop else {
-            print("InputManager: placeInserter failed - no gameLoop")
-            return
-        }
-
-        // Try to place the inserter with the specified type
-        if gameLoop.placeInserter(buildingId, at: position, direction: direction, offset: offset, type: type) {
-            print("InputManager: placeInserter succeeded")
-            onBuildingPlaced?(buildingId, position, direction)
-            exitBuildMode()
-        } else {
-            print("InputManager: placeInserter failed - placement returned false")
-            onTooltip?("Failed to place inserter")
-        }
-    }
-    
     init(view: UIView, gameLoop: GameLoop?, renderer: MetalRenderer? = nil) {
         self.view = view
         self.gameLoop = gameLoop
@@ -291,21 +270,6 @@ final class InputManager: NSObject {
                 let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
                 let tapOffset = worldPos - tileCenter - spriteSize / 2
-
-                // Special handling for inserters - ask for type selection
-                if buildingId == "inserter" || buildingId == "long-handed-inserter" || buildingId == "fast-inserter" {
-                    // Use rounded tile position for placement (rounds to nearest tile)
-                    let roundedTilePos = IntVector2.rounded(from: worldPos)
-                    // Check placement validity first
-                    if !gameLoop.canPlaceBuilding(buildingId, at: roundedTilePos, direction: buildDirection) {
-                        onTooltip?("Cannot place inserter here")
-                        return
-                    }
-
-                    // Call the inserter type selection callback with rounded position
-                    onInserterTypeSelection?(buildingId, roundedTilePos, buildDirection, tapOffset)
-                    return
-                }
 
                 // Check placement validity
                 if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
@@ -801,23 +765,6 @@ final class InputManager: NSObject {
         let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
         print("InputManager: Selected entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt)")
 
-        // Special handling for double-tapped inserters
-        if isDoubleTap && gameLoop.world.has(InserterComponent.self, for: entity) {
-            // Show inserter type dialog for existing inserter
-            if let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-               let inserter = gameLoop.world.get(InserterComponent.self, for: entity) {
-                // Show the inserter type dialog for modifying existing inserter
-                gameLoop.uiSystem?.showInserterTypeDialogForExisting(
-                    entity: entity,
-                    currentType: inserter.type,
-                    position: pos.tilePosition,
-                    direction: inserter.direction,
-                    offset: pos.offset
-                )
-                return
-            }
-        }
-
         // Select the entity (normal behavior)
         // First set InputManager's selectedEntity, then notify via callback (which updates HUD)
         // This ensures both are in sync
@@ -915,21 +862,6 @@ final class InputManager: NSObject {
                 if gameLoop.world.has(InserterComponent.self, for: entity) {
                     print("InputManager: Found inserter at \(tilePos) that wasn't returned by getEntityAt, prioritizing inserter over mining")
                     
-                    // Handle inserter selection (same as above)
-                    if isDoubleTap {
-                        if let pos = gameLoop.world.get(PositionComponent.self, for: entity),
-                           let inserter = gameLoop.world.get(InserterComponent.self, for: entity) {
-                            gameLoop.uiSystem?.showInserterTypeDialogForExisting(
-                                entity: entity,
-                                currentType: inserter.type,
-                                position: pos.tilePosition,
-                                direction: inserter.direction,
-                                offset: pos.offset
-                            )
-                            return
-                        }
-                    }
-                    
                     // Select the inserter (normal behavior)
                     selectedEntity = entity
                     onEntitySelected?(entity)
@@ -976,21 +908,6 @@ final class InputManager: NSObject {
             // If multiple entities contain the tap, prefer the smallest sprite (most specific)
             if let nearest = entitiesInBounds.min(by: { $0.1 < $1.1 })?.0 {
                 print("InputManager: No entity at exact position, selected entity \(nearest) whose sprite bounds contain tap position")
-                
-                // Handle inserter selection for double-tap
-                if isDoubleTap && gameLoop.world.has(InserterComponent.self, for: nearest) {
-                    if let pos = gameLoop.world.get(PositionComponent.self, for: nearest),
-                       let inserter = gameLoop.world.get(InserterComponent.self, for: nearest) {
-                        gameLoop.uiSystem?.showInserterTypeDialogForExisting(
-                            entity: nearest,
-                            currentType: inserter.type,
-                            position: pos.tilePosition,
-                            direction: inserter.direction,
-                            offset: pos.offset
-                        )
-                        return
-                    }
-                }
                 
                 // Select the nearest entity
                 selectedEntity = nearest
