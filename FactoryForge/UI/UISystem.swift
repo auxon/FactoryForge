@@ -922,22 +922,25 @@ class InserterConnectionDialog {
             textureId: "inserter_output_button"
         )
         
-        // Clear Input button
+        // Clear Input button - 32x32 pixels, positioned to the right of setInputButton
+        let clearButtonSize: Float = 32 * UIScale
+        let clearInputX = centerX + buttonWidth / 2 + spacing / 2 + clearButtonSize / 2
         clearInputButton = UIButton(
             frame: Rect(
-                center: Vector2(centerX, startY + (buttonHeight + spacing) * 2),
-                size: Vector2(buttonWidth * 0.7, buttonHeight * 0.7)
+                center: Vector2(clearInputX, startY),
+                size: Vector2(clearButtonSize, clearButtonSize)
             ),
-            textureId: "inserter_clear_input"
+            textureId: "clear"
         )
         
-        // Clear Output button
+        // Clear Output button - 32x32 pixels, positioned to the right of setOutputButton
+        let clearOutputX = centerX + buttonWidth / 2 + spacing / 2 + clearButtonSize / 2
         clearOutputButton = UIButton(
             frame: Rect(
-                center: Vector2(centerX, startY + (buttonHeight + spacing) * 2 + buttonHeight * 0.7 + spacing * 0.5),
-                size: Vector2(buttonWidth * 0.7, buttonHeight * 0.7)
+                center: Vector2(clearOutputX, startY + buttonHeight + spacing),
+                size: Vector2(clearButtonSize, clearButtonSize)
             ),
-            textureId: "inserter_clear_output"
+            textureId: "clear"
         )
         
         // Cancel button
@@ -946,7 +949,7 @@ class InserterConnectionDialog {
         let cancelWidth = buttonHeight * cancelAspectRatio
         cancelButton = UIButton(
             frame: Rect(
-                center: Vector2(centerX, startY + (buttonHeight + spacing) * 3 + buttonHeight * 0.7),
+                center: Vector2(centerX, startY + (buttonHeight + spacing) * 2),
                 size: Vector2(cancelWidth, buttonHeight)
             ),
             textureId: "inserter_cancel_button"
@@ -1079,9 +1082,9 @@ class InserterConnectionDialog {
     func render(renderer: MetalRenderer) {
         guard isOpen else { return }
         
-        // Render background
+        // Render background - wider to accommodate buttons and icons
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-        let bgWidth: Float = 300 * UIScale
+        let bgWidth: Float = 500 * UIScale
         let bgHeight: Float = 400 * UIScale
         let bgRect = Rect(
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
@@ -1116,10 +1119,13 @@ class InserterConnectionDialog {
             
             print("InserterConnectionDialog: Rendering icons - inputTarget: \(inserter.inputTarget != nil ? "set" : "nil"), inputPosition: \(inserter.inputPosition != nil ? "set" : "nil"), outputTarget: \(inserter.outputTarget != nil ? "set" : "nil"), outputPosition: \(inserter.outputPosition != nil ? "set" : "nil")")
             
-            // Render input target icon (to the right of "Set Input" button)
+            // Render input target icon (to the right of clearInputButton)
+            let clearButtonSize: Float = 32 * UIScale
+            let clearInputX = centerX + buttonWidth / 2 + spacing / 2 + clearButtonSize / 2
+            
             if let inputTarget = inserter.inputTarget {
                 print("InserterConnectionDialog: Rendering input target icon for entity \(inputTarget)")
-                let iconX = centerX + buttonWidth / 2 + iconSpacing + iconSize / 2
+                let iconX = clearInputX + clearButtonSize / 2 + iconSpacing + iconSize / 2
                 let iconY = startY
                 if let sprite = gameLoop.world.get(SpriteComponent.self, for: inputTarget) {
                     var textureId = sprite.textureId
@@ -1144,7 +1150,7 @@ class InserterConnectionDialog {
             } else if let inputPos = inserter.inputPosition {
                 print("InserterConnectionDialog: Rendering input position icon for belt at \(inputPos)")
                 // Render belt icon for position-based input
-                let iconX = centerX + buttonWidth / 2 + iconSpacing + iconSize / 2
+                let iconX = clearInputX + clearButtonSize / 2 + iconSpacing + iconSize / 2
                 let iconY = startY
                 // Try to find belt entity at this position to get its texture
                 var beltTextureId = "transport_belt" // Default belt texture
@@ -1174,10 +1180,12 @@ class InserterConnectionDialog {
                 ))
             }
             
-            // Render output target icon (to the right of "Set Output" button)
+            // Render output target icon (to the right of clearOutputButton)
+            let clearOutputX = centerX + buttonWidth / 2 + spacing / 2 + clearButtonSize / 2
+            
             if let outputTarget = inserter.outputTarget {
                 print("InserterConnectionDialog: Rendering output target icon for entity \(outputTarget)")
-                let iconX = centerX + buttonWidth / 2 + iconSpacing + iconSize / 2
+                let iconX = clearOutputX + clearButtonSize / 2 + iconSpacing + iconSize / 2
                 let iconY = startY + buttonHeight + spacing
                 if let sprite = gameLoop.world.get(SpriteComponent.self, for: outputTarget) {
                     var textureId = sprite.textureId
@@ -1202,7 +1210,7 @@ class InserterConnectionDialog {
             } else if let outputPos = inserter.outputPosition {
                 print("InserterConnectionDialog: Rendering output position icon for belt at \(outputPos)")
                 // Render belt icon for position-based output
-                let iconX = centerX + buttonWidth / 2 + iconSpacing + iconSize / 2
+                let iconX = clearOutputX + clearButtonSize / 2 + iconSpacing + iconSize / 2
                 let iconY = startY + buttonHeight + spacing
                 // Try to find belt entity at this position to get its texture
                 var beltTextureId = "transport_belt" // Default belt texture

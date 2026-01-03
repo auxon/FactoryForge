@@ -8,8 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0D0E9B4C2F0875F400943D17 /* cancel_button.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D0E9B4B2F0875F400943D17 /* cancel_button.png */; };
-		0D0E9B4F2F09A19000943D17 /* inserter_clear_input.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D0E9B4D2F09A19000943D17 /* inserter_clear_input.png */; };
-		0D0E9B502F09A19000943D17 /* inserter_clear_output.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D0E9B4E2F09A19000943D17 /* inserter_clear_output.png */; };
+		0D0E9B522F09A79200943D17 /* clear.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D0E9B512F09A79200943D17 /* clear.png */; };
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
 		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
 		0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371D2F0485C900941686 /* inserters_sheet.png */; };
@@ -248,8 +247,7 @@
 
 /* Begin PBXFileReference section */
 		0D0E9B4B2F0875F400943D17 /* cancel_button.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cancel_button.png; sourceTree = "<group>"; };
-		0D0E9B4D2F09A19000943D17 /* inserter_clear_input.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserter_clear_input.png; sourceTree = "<group>"; };
-		0D0E9B4E2F09A19000943D17 /* inserter_clear_output.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserter_clear_output.png; sourceTree = "<group>"; };
+		0D0E9B512F09A79200943D17 /* clear.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = clear.png; sourceTree = "<group>"; };
 		0D3A37192F044AC200941686 /* recycle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = recycle.png; sourceTree = "<group>"; };
 		0D3A371B2F047F7700941686 /* move.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = move.png; sourceTree = "<group>"; };
 		0D3A371D2F0485C900941686 /* inserters_sheet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserters_sheet.png; sourceTree = "<group>"; };
@@ -502,8 +500,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
-				0D0E9B4D2F09A19000943D17 /* inserter_clear_input.png */,
-				0D0E9B4E2F09A19000943D17 /* inserter_clear_output.png */,
+				0D0E9B512F09A79200943D17 /* clear.png */,
 				0D0E9B4B2F0875F400943D17 /* cancel_button.png */,
 				0D3A37212F060B2B00941686 /* inserter_cancel_button.png */,
 				0D3A37222F060B2B00941686 /* inserter_input_button.png */,
@@ -1214,8 +1211,6 @@
 				0D6FDC3E2EFDE1B500576EC3 /* medium_electric_pole.png in Resources */,
 				0D6FDC3F2EFDE1B500576EC3 /* solar_panel.png in Resources */,
 				0D0E9B4C2F0875F400943D17 /* cancel_button.png in Resources */,
-				0D0E9B4F2F09A19000943D17 /* inserter_clear_input.png in Resources */,
-				0D0E9B502F09A19000943D17 /* inserter_clear_output.png in Resources */,
 				0D6FDC402EFDE1B500576EC3 /* stone.png in Resources */,
 				0D6FDC412EFDE1B500576EC3 /* uranium_ore.png in Resources */,
 				0DE229982F022E6500BD619D /* biter_left.png in Resources */,
@@ -1266,6 +1261,7 @@
 				0D6FDC512EFDE1B500576EC3 /* steam_engine.png in Resources */,
 				0D3A371A2F044AC200941686 /* recycle.png in Resources */,
 				0D6FDC522EFDE1B500576EC3 /* spawner.png in Resources */,
+				0D0E9B522F09A79200943D17 /* clear.png in Resources */,
 				0D6FDC532EFDE1B500576EC3 /* gun_turret.png in Resources */,
 				0DE229892F01799C00BD619D /* turret.png in Resources */,
 				0DFF59DC2F02CACD00A8699D /* transport_belt_south_016.png in Resources */,

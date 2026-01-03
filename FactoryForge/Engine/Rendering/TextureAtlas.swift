@@ -211,9 +211,8 @@ final class TextureAtlas {
             ("inserter_input_button", nil),
             ("inserter_output_button", nil),
             ("inserter_cancel_button", nil),
-            ("inserter_clear_input", nil),
-            ("inserter_clear_output", nil),
-            
+            ("clear", nil),
+
             // Buildings - Storage
             ("wooden_chest", nil),
             ("iron_chest", nil),
