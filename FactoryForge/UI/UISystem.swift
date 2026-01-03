@@ -870,18 +870,18 @@ class CloseButton: UIElement {
 
 // MARK: - Inserter Connection Dialog
 
-    class InserterConnectionDialog {
-        private weak var gameLoop: GameLoop?
-        private weak var renderer: MetalRenderer?
-        private weak var inputManager: InputManager?
-        private var screenSize: Vector2
-        
-        private var inserterEntity: Entity?
-        private var setInputButton: UIButton
-        private var setOutputButton: UIButton
-        private var cancelButton: UIButton
-        private var clearInputButton: UIButton
-        private var clearOutputButton: UIButton
+class InserterConnectionDialog {
+    private weak var gameLoop: GameLoop?
+    private weak var renderer: MetalRenderer?
+    private weak var inputManager: InputManager?
+    private var screenSize: Vector2
+    
+    private var inserterEntity: Entity?
+    private var setInputButton: UIButton
+    private var setOutputButton: UIButton
+    private var cancelButton: UIButton
+    private var clearInputButton: UIButton
+    private var clearOutputButton: UIButton
     
     var onInputSet: ((Entity, Entity?, IntVector2?) -> Void)?
     var onOutputSet: ((Entity, Entity?, IntVector2?) -> Void)?
@@ -910,7 +910,7 @@ class CloseButton: UIElement {
                 center: Vector2(centerX, startY),
                 size: Vector2(buttonWidth, buttonHeight)
             ),
-            textureId: "solid_white"
+            textureId: "inserter_input_button"
         )
         
         // Set Output button
@@ -919,7 +919,7 @@ class CloseButton: UIElement {
                 center: Vector2(centerX, startY + buttonHeight + spacing),
                 size: Vector2(buttonWidth, buttonHeight)
             ),
-            textureId: "solid_white"
+            textureId: "inserter_output_button"
         )
         
         // Clear Input button
@@ -928,7 +928,7 @@ class CloseButton: UIElement {
                 center: Vector2(centerX, startY + (buttonHeight + spacing) * 2),
                 size: Vector2(buttonWidth * 0.7, buttonHeight * 0.7)
             ),
-            textureId: "solid_white"
+            textureId: "inserter_clear_input"
         )
         
         // Clear Output button
@@ -937,7 +937,7 @@ class CloseButton: UIElement {
                 center: Vector2(centerX, startY + (buttonHeight + spacing) * 2 + buttonHeight * 0.7 + spacing * 0.5),
                 size: Vector2(buttonWidth * 0.7, buttonHeight * 0.7)
             ),
-            textureId: "solid_white"
+            textureId: "inserter_clear_output"
         )
         
         // Cancel button
