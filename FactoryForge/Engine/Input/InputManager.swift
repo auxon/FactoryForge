@@ -789,6 +789,11 @@ final class InputManager: NSObject {
         print("InputManager: Setting selectedEntity to \(entity) and calling onEntitySelected callback")
         onEntitySelected?(entity)
         
+        // Show tooltip with entity icon
+        if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
+            onTooltipWithEntity?(tooltipText, entity)
+        }
+        
         // Double-check that HUD got the same entity (safety check)
         if let hudEntity = gameLoop.uiSystem?.hud.selectedEntity {
             if hudEntity.id != entity.id || hudEntity.generation != entity.generation {
