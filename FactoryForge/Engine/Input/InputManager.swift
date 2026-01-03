@@ -157,7 +157,7 @@ final class InputManager: NSObject {
             }
 
             // Check if a UI panel is open that should consume the tap
-            // If entitySelection dialog is open, let it handle double taps
+            // If entitySelection dialog is open, let it handle double taps specially
             if uiSystem.isPanelOpen(.entitySelection) {
                 print("InputManager: Double tap - entitySelection dialog is open, checking if dialog handles it")
                 // Check if the dialog handles the double tap (e.g., on a button)
@@ -170,9 +170,12 @@ final class InputManager: NSObject {
                 return
             }
             
-            // Don't call handleTap for double taps - double taps are for game actions, not UI
-            // The UI system should only handle single taps
-            print("InputManager: Double tap detected, skipping UI tap handler")
+            // For HUD buttons and other UI, double taps should work the same as single taps
+            // Check if UI system handles the tap (e.g., HUD buttons)
+            if uiSystem.handleTap(at: screenPos) {
+                print("InputManager: Double tap handled by UI system (HUD or panel)")
+                return
+            }
         }
 
         // If no game loop exists, we're done (loading menu should have handled it)
