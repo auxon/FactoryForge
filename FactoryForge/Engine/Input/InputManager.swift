@@ -594,9 +594,9 @@ final class InputManager: NSObject {
                 selectionStartScreenPos = screenPos
                 selectionRect = nil
             } else {
-                isDragging = true
-                panStartPosition = screenPos
-                cameraStartPosition = renderer.camera.position
+            isDragging = true
+            panStartPosition = screenPos
+            cameraStartPosition = renderer.camera.position
             }
             
             if buildMode == .placing || buildMode == .moving {
@@ -798,7 +798,7 @@ final class InputManager: NSObject {
             }
         }
     }
-    
+
     private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop, isDoubleTap: Bool = false) {
         // Get all entities at this position
         let allEntities = gameLoop.world.getAllEntitiesAt(position: tilePos)

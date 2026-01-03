@@ -28,7 +28,7 @@ final class MiningSystem: System {
             
             if !isBurnerMiner {
                 // Electric miner - check power
-                if let power = world.get(PowerConsumerComponent.self, for: entity) {
+            if let power = world.get(PowerConsumerComponent.self, for: entity) {
                     if power.satisfaction <= 0 {
                         updatedMiner.isActive = false
                         minerModifications.append((entity, updatedMiner))

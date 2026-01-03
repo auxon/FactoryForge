@@ -306,35 +306,35 @@ final class GameLoop {
                         continue
                     }
 
-                    // Check if the entity has a collision component
-                    if let collision = world.get(CollisionComponent.self, for: entity) {
-                        if collision.layer == .player {
-                            // Allow placement - ignore player
+                        // Check if the entity has a collision component
+                        if let collision = world.get(CollisionComponent.self, for: entity) {
+                            if collision.layer == .player {
+                                // Allow placement - ignore player
+                                continue
+                            }
+                        } else {
+                            print("GameLoop: Entity has no collision component")
+                        }
+
+                        // Check if it's a building or machine
+                        let hasBuildingComponents = world.has(PositionComponent.self, for: entity) &&
+                                                   world.has(SpriteComponent.self, for: entity)
+                        print("GameLoop: Entity appears to be a building/machine: \(hasBuildingComponents)")
+
+                        // For belts, allow placement on top of buildings too (for belt networks)
+                        if building.type == .belt {
                             continue
                         }
-                    } else {
-                        print("GameLoop: Entity has no collision component")
-                    }
-
-                    // Check if it's a building or machine
-                    let hasBuildingComponents = world.has(PositionComponent.self, for: entity) &&
-                                               world.has(SpriteComponent.self, for: entity)
-                    print("GameLoop: Entity appears to be a building/machine: \(hasBuildingComponents)")
-
-                    // For belts, allow placement on top of buildings too (for belt networks)
-                    if building.type == .belt {
-                        continue
-                    }
-                    
-                    // Allow inserters and poles to be placed on belts
-                    if building.type == .inserter || building.type == .powerPole {
-                        if world.has(BeltComponent.self, for: entity) {
-                            continue  // Allow inserter/pole on belt
-                        }
-                        // Also allow inserter/pole on another inserter/pole (for flexibility)
-                        if world.has(InserterComponent.self, for: entity) || world.has(PowerPoleComponent.self, for: entity) {
-                            continue
-                        }
+                        
+                        // Allow inserters and poles to be placed on belts
+                        if building.type == .inserter || building.type == .powerPole {
+                            if world.has(BeltComponent.self, for: entity) {
+                                continue  // Allow inserter/pole on belt
+                            }
+                            // Also allow inserter/pole on another inserter/pole (for flexibility)
+                            if world.has(InserterComponent.self, for: entity) || world.has(PowerPoleComponent.self, for: entity) {
+                                continue
+                            }
                         
                         // For inserters and poles, allow placement on top of buildings
                         // Check if the entity is a building (has building components like furnace, assembler, etc.)
@@ -412,7 +412,7 @@ final class GameLoop {
             world.add(InventoryComponent(slots: 1, allowedItems: nil), to: entity)
             // Only add power consumer for electric miners (burner miners use fuel)
             if buildingDef.powerConsumption > 0 {
-                world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             }
             
         case .furnace:
@@ -661,7 +661,7 @@ final class GameLoop {
                     textureId = parts[0...beltIndex].joined(separator: "_")
                 }
                 buildingDef = buildingRegistry.getByTexture(textureId)
-            } else {
+        } else {
                 buildingDef = buildingRegistry.getByTexture(textureId)
             }
             
@@ -743,20 +743,20 @@ final class GameLoop {
             }
         } else {
             // For other buildings, use texture ID matching
-            var textureId = sprite.textureId
+        var textureId = sprite.textureId
             
-            if textureId.contains("_belt_") {
-                // Extract base belt texture ID from directional texture
-                // e.g., "transport_belt_north_001" -> "transport_belt"
-                // e.g., "fast_transport_belt_north_001" -> "fast_transport_belt"
-                // e.g., "express_transport_belt_north_001" -> "express_transport_belt"
-                let parts = textureId.split(separator: "_")
-                // Find where "belt" appears, then take everything up to and including "belt"
-                if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
-                    textureId = parts[0...beltIndex].joined(separator: "_")
-                }
+        if textureId.contains("_belt_") {
+            // Extract base belt texture ID from directional texture
+            // e.g., "transport_belt_north_001" -> "transport_belt"
+            // e.g., "fast_transport_belt_north_001" -> "fast_transport_belt"
+            // e.g., "express_transport_belt_north_001" -> "express_transport_belt"
+            let parts = textureId.split(separator: "_")
+            // Find where "belt" appears, then take everything up to and including "belt"
+            if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                textureId = parts[0...beltIndex].joined(separator: "_")
             }
-            
+        }
+        
             buildingDef = buildingRegistry.getByTexture(textureId)
         }
         

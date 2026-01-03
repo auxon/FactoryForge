@@ -128,11 +128,11 @@ final class InserterSystem: System {
                                 if distance <= 1 {
                                     // Check if we can pick up from this configured target
                                     if canPickUpFromEntity(inputTarget) || canPickUpFromMachineOutput(at: targetPos.tilePosition) {
-                                        inserter.state = .pickingUp
-                                        foundSource = true
+                                inserter.state = .pickingUp
+                                foundSource = true
                                     }
-                                }
                             }
+                        }
                         }
                     }
                     
@@ -451,34 +451,34 @@ final class InserterSystem: System {
         
         // Fallback to auto-detection if no configured connection
         if item == nil {
-            // Check all 8 adjacent directions (including diagonals)
-            let offsets = [
-                IntVector2(0, 1),    // North
-                IntVector2(1, 1),     // Northeast
-                IntVector2(1, 0),     // East
-                IntVector2(1, -1),   // Southeast
-                IntVector2(0, -1),   // South
-                IntVector2(-1, -1),  // Southwest
-                IntVector2(-1, 0),    // West
-                IntVector2(-1, 1)     // Northwest
-            ]
+        // Check all 8 adjacent directions (including diagonals)
+        let offsets = [
+            IntVector2(0, 1),    // North
+            IntVector2(1, 1),     // Northeast
+            IntVector2(1, 0),     // East
+            IntVector2(1, -1),   // Southeast
+            IntVector2(0, -1),   // South
+            IntVector2(-1, -1),  // Southwest
+            IntVector2(-1, 0),    // West
+            IntVector2(-1, 1)     // Northwest
+        ]
+        
+        // print("InserterSystem: tryPickUp called for inserter at \(position.tilePosition)")
+        for offset in offsets {
+            let sourcePos = position.tilePosition + offset
             
-            // print("InserterSystem: tryPickUp called for inserter at \(position.tilePosition)")
-            for offset in offsets {
-                let sourcePos = position.tilePosition + offset
-                
-                // Try to pick from belt first
+            // Try to pick from belt first
                 if let pickedItem = tryPickFromBelt(at: sourcePos, stackSize: inserter.stackSize) {
-                    // print("InserterSystem: tryPickUp picked from belt at \(sourcePos)")
-                    inserter.sourceEntity = nil  // Belts don't have entities to track
+                // print("InserterSystem: tryPickUp picked from belt at \(sourcePos)")
+                inserter.sourceEntity = nil  // Belts don't have entities to track
                     return pickedItem
-                }
-                
-                // Try to pick from inventory
-                var sourceEntity: Entity? = nil
+            }
+            
+            // Try to pick from inventory
+            var sourceEntity: Entity? = nil
                 if let pickedItem = tryPickFromInventory(at: sourcePos, stackSize: inserter.stackSize, sourceEntity: &sourceEntity) {
-                    // print("InserterSystem: tryPickUp picked from inventory at \(sourcePos)")
-                    inserter.sourceEntity = sourceEntity  // Track source entity
+                // print("InserterSystem: tryPickUp picked from inventory at \(sourcePos)")
+                inserter.sourceEntity = sourceEntity  // Track source entity
                     return pickedItem
                 }
             }
@@ -591,32 +591,32 @@ final class InserterSystem: System {
         
         // Fallback to auto-detection if no configured connection
         if !success {
-            // Check all 8 adjacent directions (including diagonals)
-            let offsets = [
-                IntVector2(0, 1),    // North
-                IntVector2(1, 1),     // Northeast
-                IntVector2(1, 0),     // East
-                IntVector2(1, -1),   // Southeast
-                IntVector2(0, -1),   // South
-                IntVector2(-1, -1),  // Southwest
-                IntVector2(-1, 0),    // West
-                IntVector2(-1, 1)     // Northwest
-            ]
+        // Check all 8 adjacent directions (including diagonals)
+        let offsets = [
+            IntVector2(0, 1),    // North
+            IntVector2(1, 1),     // Northeast
+            IntVector2(1, 0),     // East
+            IntVector2(1, -1),   // Southeast
+            IntVector2(0, -1),   // South
+            IntVector2(-1, -1),  // Southwest
+            IntVector2(-1, 0),    // West
+            IntVector2(-1, 1)     // Northwest
+        ]
+        
+        // print("InserterSystem: tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), excluding source entity: \(inserter.sourceEntity != nil)")
+        for offset in offsets {
+            let targetPos = position.tilePosition + offset
             
-            // print("InserterSystem: tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), excluding source entity: \(inserter.sourceEntity != nil)")
-            for offset in offsets {
-                let targetPos = position.tilePosition + offset
-                
-                // Try to drop on belt first (belts don't have entities, so no need to exclude)
-                if tryDropOnBelt(at: targetPos, item: item) {
-                    // print("InserterSystem: tryDropOff successfully dropped on belt at \(targetPos)")
+            // Try to drop on belt first (belts don't have entities, so no need to exclude)
+            if tryDropOnBelt(at: targetPos, item: item) {
+                // print("InserterSystem: tryDropOff successfully dropped on belt at \(targetPos)")
                     success = true
                     break
-                }
-                
-                // Try to drop in inventory (exclude source entity)
-                if tryDropInInventory(at: targetPos, item: item, excludeEntity: inserter.sourceEntity) {
-                    // print("InserterSystem: tryDropOff successfully dropped in inventory at \(targetPos)")
+            }
+            
+            // Try to drop in inventory (exclude source entity)
+            if tryDropInInventory(at: targetPos, item: item, excludeEntity: inserter.sourceEntity) {
+                // print("InserterSystem: tryDropOff successfully dropped in inventory at \(targetPos)")
                     success = true
                     break
                 }

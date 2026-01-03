@@ -494,8 +494,12 @@ extension World {
     func deserialize(_ data: WorldData) {
         clear()
         
+        // Map old entity IDs to new entities for fixing references
+        var oldIdToNewEntity: [UInt32: Entity] = [:]
+        
         for entityData in data.entities {
             let entity = spawn()
+            oldIdToNewEntity[entityData.id] = entity
             
             // Deserialize each component
             if let posData = entityData.components["position"],
@@ -565,6 +569,51 @@ extension World {
             if let collisionData = entityData.components["collision"],
                let collision = try? JSONDecoder().decode(CollisionComponent.self, from: collisionData) {
                 add(collision, to: entity)
+            }
+        }
+        
+        // Fix entity references in InserterComponents after all entities are loaded
+        for entity in entities {
+            if var inserter = get(InserterComponent.self, for: entity) {
+                var needsUpdate = false
+                
+                // Fix inputTarget reference
+                if let oldInputTarget = inserter.inputTarget,
+                   let newInputTarget = oldIdToNewEntity[oldInputTarget.id] {
+                    inserter.inputTarget = newInputTarget
+                    needsUpdate = true
+                } else if inserter.inputTarget != nil {
+                    // Old entity no longer exists, clear the reference
+                    inserter.inputTarget = nil
+                    inserter.inputPosition = nil
+                    needsUpdate = true
+                }
+                
+                // Fix outputTarget reference
+                if let oldOutputTarget = inserter.outputTarget,
+                   let newOutputTarget = oldIdToNewEntity[oldOutputTarget.id] {
+                    inserter.outputTarget = newOutputTarget
+                    needsUpdate = true
+                } else if inserter.outputTarget != nil {
+                    // Old entity no longer exists, clear the reference
+                    inserter.outputTarget = nil
+                    inserter.outputPosition = nil
+                    needsUpdate = true
+                }
+                
+                // Fix sourceEntity reference (if present)
+                if let oldSourceEntity = inserter.sourceEntity,
+                   let newSourceEntity = oldIdToNewEntity[oldSourceEntity.id] {
+                    inserter.sourceEntity = newSourceEntity
+                    needsUpdate = true
+                } else if inserter.sourceEntity != nil {
+                    inserter.sourceEntity = nil
+                    needsUpdate = true
+                }
+                
+                if needsUpdate {
+                    add(inserter, to: entity)
+                }
             }
         }
     }
