@@ -120,34 +120,60 @@ final class InserterSystem: System {
                 if inserter.heldItem == nil {
                     // Check configured input connection first
                     if let inputTarget = inserter.inputTarget {
+                        print("InserterSystem: [idle] Checking inputTarget entity \(inputTarget.id) for items")
                         // Validate target is still alive and adjacent
                         if world.isAlive(inputTarget) {
                             if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
                                 let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
                                 if distance <= 1 {
-                                    // Check if we can pick up from this configured target
-                                    // Check inventory first, then machine output slots
-                                    var canPick = false
-                                    if let inventory = world.get(InventoryComponent.self, for: inputTarget) {
-                                        canPick = !inventory.isEmpty
-                                    }
-                                    if !canPick {
-                                        // Check machine output slots (second half of inventory)
+                                    // Check if target is a belt entity first
+                                    if world.has(BeltComponent.self, for: inputTarget) {
+                                        print("InserterSystem: [idle] inputTarget is a belt entity, checking for items")
+                                        if let belt = world.get(BeltComponent.self, for: inputTarget) {
+                                            let leftLaneItems = belt.leftLane.count
+                                            let rightLaneItems = belt.rightLane.count
+                                            let hasReadyItem = belt.leftLane.contains { $0.progress >= 0.9 } || belt.rightLane.contains { $0.progress >= 0.9 }
+                                            print("InserterSystem: [idle] Belt has leftLane=\(leftLaneItems) items, rightLane=\(rightLaneItems) items, hasReadyItem=\(hasReadyItem)")
+                                            if hasReadyItem {
+                                                print("InserterSystem: [idle] Belt has ready item, transitioning to pickingUp")
+                                                inserter.state = .pickingUp
+                                            }
+                                        }
+                                    } else {
+                                        // Check if we can pick up from this configured target (non-belt entities)
+                                        // Check inventory first, then machine output slots
+                                        var canPick = false
                                         if let inventory = world.get(InventoryComponent.self, for: inputTarget) {
-                                            let outputStartIndex = inventory.slots.count / 2
-                                            canPick = (outputStartIndex..<inventory.slots.count).contains { inventory.slots[$0] != nil }
+                                            canPick = !inventory.isEmpty
+                                        }
+                                        if !canPick {
+                                            // Check machine output slots (second half of inventory)
+                                            if let inventory = world.get(InventoryComponent.self, for: inputTarget) {
+                                                let outputStartIndex = inventory.slots.count / 2
+                                                canPick = (outputStartIndex..<inventory.slots.count).contains { inventory.slots[$0] != nil }
+                                            }
+                                        }
+                                        if canPick {
+                                            inserter.state = .pickingUp
                                         }
                                     }
-                                    if canPick {
-                                        inserter.state = .pickingUp
-                                    }
+                                } else {
+                                    print("InserterSystem: [idle] inputTarget too far away (distance=\(distance) > 1)")
                                 }
+                            } else {
+                                print("InserterSystem: [idle] inputTarget has no PositionComponent")
                             }
+                        } else {
+                            print("InserterSystem: [idle] inputTarget entity is not alive")
                         }
                     } else if let inputPos = inserter.inputPosition {
                         // Check configured input position (for belts)
+                        print("InserterSystem: Checking canPickUp from configured inputPosition \(inputPos)")
                         if canPickUp(from: inputPos) {
+                            print("InserterSystem: canPickUp returned true, transitioning to pickingUp")
                             inserter.state = .pickingUp
+                        } else {
+                            print("InserterSystem: canPickUp returned false for inputPosition \(inputPos)")
                         }
                     }
                     // If no configured input connection, inserter remains idle
@@ -461,27 +487,39 @@ final class InserterSystem: System {
                 if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
                     let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
                     if distance <= 1 {
-                        print("InserterSystem: inputTarget is adjacent (distance=\(distance)), checking inventory")
-                        // Directly access the configured target entity's inventory
-                        if var inventory = world.get(InventoryComponent.self, for: inputTarget) {
-                            let itemCount = inventory.slots.compactMap { $0 }.reduce(0) { $0 + $1.count }
-                            print("InserterSystem: inputTarget has inventory with \(itemCount) items")
-                            if let item = inventory.takeOne() {
-                                print("InserterSystem: Successfully picked up \(item.itemId) from inputTarget")
-                                inserter.sourceEntity = inputTarget
-                                world.add(inventory, to: inputTarget)
-                                return item
+                        // Check if inputTarget is a belt - if so, pick from the belt, not inventory
+                        if world.has(BeltComponent.self, for: inputTarget) {
+                            print("InserterSystem: inputTarget is a belt entity, using tryPickFromBeltEntity")
+                            if let pickedItem = tryPickFromBeltEntity(entity: inputTarget) {
+                                print("InserterSystem: Successfully picked up \(pickedItem.itemId) from belt entity")
+                                inserter.sourceEntity = nil  // Belts don't have entities to track
+                                return pickedItem
                             } else {
-                                print("InserterSystem: inputTarget inventory is empty")
+                                print("InserterSystem: Failed to pick up from belt entity")
                             }
                         } else {
-                            print("InserterSystem: inputTarget has no InventoryComponent")
-                        }
-                        // Also try machine output (for machines with separate output slots)
-                        if let pickedItem = tryPickFromMachineOutput(entity: inputTarget, stackSize: inserter.stackSize) {
-                            print("InserterSystem: Successfully picked up from machine output")
-                            inserter.sourceEntity = inputTarget
-                            return pickedItem
+                            print("InserterSystem: inputTarget is adjacent (distance=\(distance)), checking inventory")
+                            // Directly access the configured target entity's inventory
+                            if var inventory = world.get(InventoryComponent.self, for: inputTarget) {
+                                let itemCount = inventory.slots.compactMap { $0 }.reduce(0) { $0 + $1.count }
+                                print("InserterSystem: inputTarget has inventory with \(itemCount) items")
+                                if let item = inventory.takeOne() {
+                                    print("InserterSystem: Successfully picked up \(item.itemId) from inputTarget")
+                                    inserter.sourceEntity = inputTarget
+                                    world.add(inventory, to: inputTarget)
+                                    return item
+                                } else {
+                                    print("InserterSystem: inputTarget inventory is empty")
+                                }
+                            } else {
+                                print("InserterSystem: inputTarget has no InventoryComponent")
+                            }
+                            // Also try machine output (for machines with separate output slots)
+                            if let pickedItem = tryPickFromMachineOutput(entity: inputTarget, stackSize: inserter.stackSize) {
+                                print("InserterSystem: Successfully picked up from machine output")
+                                inserter.sourceEntity = inputTarget
+                                return pickedItem
+                            }
                         }
                     } else {
                         print("InserterSystem: inputTarget too far away (distance=\(distance))")
@@ -499,12 +537,15 @@ final class InserterSystem: System {
         // Check configured input position (for belts)
         // Check the exact position first, then all 8 adjacent positions including diagonals
         if item == nil, let inputPos = inserter.inputPosition {
+            print("InserterSystem: Trying to pick from belt at configured inputPosition \(inputPos)")
             // First try the exact configured position
             if let pickedItem = tryPickFromBelt(at: inputPos, stackSize: inserter.stackSize) {
+                print("InserterSystem: Successfully picked up from belt at exact position")
                 inserter.sourceEntity = nil  // Belts don't have entities to track
                 return pickedItem
             }
             
+            print("InserterSystem: No item found at exact position, checking adjacent positions")
             // If not found at exact position, check all 8 adjacent positions (including diagonals)
             let adjacentOffsets: [IntVector2] = [
                 IntVector2(0, 1),   // North
@@ -525,6 +566,7 @@ final class InserterSystem: System {
                 if distanceFromInserter <= 1 {
                     if let pickedItem = tryPickFromBelt(at: adjacentPos, stackSize: inserter.stackSize) {
                         // Found a belt at an adjacent position, use it
+                        print("InserterSystem: Successfully picked up from belt at adjacent position \(adjacentPos)")
                         inserter.sourceEntity = nil  // Belts don't have entities to track
                         // Update inputPosition to the actual belt position so we remember it
                         inserter.inputPosition = adjacentPos
@@ -532,10 +574,33 @@ final class InserterSystem: System {
                     }
                 }
             }
+            print("InserterSystem: Failed to pick up from belt at inputPosition \(inputPos) or adjacent positions")
         }
         
         // Only use configured input connections - no auto-detection
         // If no configured connection or connection failed, return nil
+        return nil
+    }
+    
+    /// Picks an item directly from a belt entity (when we have the entity reference)
+    private func tryPickFromBeltEntity(entity: Entity) -> ItemStack? {
+        guard world.has(BeltComponent.self, for: entity),
+              var belt = world.get(BeltComponent.self, for: entity) else {
+            print("InserterSystem: tryPickFromBeltEntity - entity does not have BeltComponent")
+            return nil
+        }
+        
+        // Try left lane first, then right
+        for lane in [BeltLane.left, BeltLane.right] {
+            if let beltItem = belt.takeItem(from: lane) {
+                world.add(belt, to: entity)
+                let maxStack = itemRegistry.get(beltItem.itemId)?.stackSize ?? 100
+                print("InserterSystem: Successfully picked up \(beltItem.itemId) from belt entity \(entity.id) lane \(lane == .left ? "left" : "right")")
+                return ItemStack(itemId: beltItem.itemId, count: 1, maxStack: maxStack)
+            }
+        }
+        
+        print("InserterSystem: tryPickFromBeltEntity - belt entity \(entity.id) has no items ready")
         return nil
     }
     

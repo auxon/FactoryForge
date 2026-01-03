@@ -1090,46 +1090,38 @@ class InserterConnectionDialog {
         let distance = abs(tilePos.x - inserterPos.tilePosition.x) + abs(tilePos.y - inserterPos.tilePosition.y)
         guard distance <= 1 else { return false }
         
-        // Try to find entity at position
-        if let targetEntity = gameLoop.world.getEntityAt(position: tilePos) {
-            // Check if it's a valid target (belt, miner, machine, etc.)
-            let hasBelt = gameLoop.world.has(BeltComponent.self, for: targetEntity)
-            let hasMiner = gameLoop.world.has(MinerComponent.self, for: targetEntity)
-            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: targetEntity)
-            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: targetEntity)
-            let hasChest = gameLoop.world.has(ChestComponent.self, for: targetEntity)
-            
-            if hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest {
-                if isSelectingInput {
-                    onInputSet?(inserterEntity, targetEntity, nil)
-                    isSelectingInput = false
-                    return true
-                } else if isSelectingOutput {
-                    onOutputSet?(inserterEntity, targetEntity, nil)
-                    isSelectingOutput = false
-                    return true
-                }
-            }
-        } else {
-            // No entity, check if there's a belt at this position by checking the world
-            // Try to find any entity at this position that has a BeltComponent
-            let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
-            let hasBelt = entitiesAtPos.contains { gameLoop.world.has(BeltComponent.self, for: $0) }
-            
-            if hasBelt {
-                if isSelectingInput {
-                    print("InserterConnectionDialog: Setting input position to \(tilePos)")
-                    onInputSet?(inserterEntity, nil, tilePos)
-                    isSelectingInput = false
-                    return true
-                } else if isSelectingOutput {
-                    print("InserterConnectionDialog: Setting output position to \(tilePos)")
-                    onOutputSet?(inserterEntity, nil, tilePos)
-                    isSelectingOutput = false
-                    return true
-                }
+        // Try to find entity at position - use getAllEntitiesAt to find all entities (including belts under buildings)
+        let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
+        
+        // Filter to valid targets (belt, miner, machine, etc.)
+        let validEntities = entitiesAtPos.filter { entity in
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+            let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+            let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+            return hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest
+        }
+        
+        // Prefer entities (so we can track them directly), but if multiple found, entitySelectionDialog should handle it
+        if let targetEntity = validEntities.first {
+            // Use the entity directly - this works for both belts and other entities
+            // Belts should be set as inputTarget/outputTarget so we can access them directly
+            if isSelectingInput {
+                print("InserterConnectionDialog: Setting input target entity to \(targetEntity.id) (hasBelt: \(gameLoop.world.has(BeltComponent.self, for: targetEntity)))")
+                onInputSet?(inserterEntity, targetEntity, nil)
+                isSelectingInput = false
+                return true
+            } else if isSelectingOutput {
+                print("InserterConnectionDialog: Setting output target entity to \(targetEntity.id) (hasBelt: \(gameLoop.world.has(BeltComponent.self, for: targetEntity)))")
+                onOutputSet?(inserterEntity, targetEntity, nil)
+                isSelectingOutput = false
+                return true
             }
         }
+        
+        // Fallback: if no valid entities found but we know there's a belt (shouldn't happen with getAllEntitiesAt, but keep for safety)
+        // This shouldn't be needed since getAllEntitiesAt should find belts, but kept as fallback
         
         return false
     }
