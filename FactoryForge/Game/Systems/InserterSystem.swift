@@ -294,17 +294,17 @@ final class InserterSystem: System {
             let rightLaneItems = belt.rightLane.count
             let leftLaneProgress = belt.leftLane.last?.progress ?? 0
             let rightLaneProgress = belt.rightLane.last?.progress ?? 0
-            // print("InserterSystem: canPickUp from \(position): belt found, leftLane=\(leftLaneItems) items (last progress=\(leftLaneProgress)), rightLane=\(rightLaneItems) items (last progress=\(rightLaneProgress))")
+            print("InserterSystem: canPickUp from \(position): belt found, leftLane=\(leftLaneItems) items (last progress=\(leftLaneProgress)), rightLane=\(rightLaneItems) items (last progress=\(rightLaneProgress))")
             
             for (laneIndex, laneItems) in [belt.leftLane, belt.rightLane].enumerated() {
                 if let lastItem = laneItems.last, lastItem.progress >= 0.9 {
-                    // print("InserterSystem: canPickUp from \(position): found belt item in lane \(laneIndex == 0 ? "left" : "right") with progress \(lastItem.progress)")
+                    print("InserterSystem: canPickUp from \(position): found belt item in lane \(laneIndex == 0 ? "left" : "right") with progress \(lastItem.progress)")
                     return true
                 }
             }
-            // print("InserterSystem: canPickUp from \(position): belt has items but none are ready (progress < 0.9)")
+            print("InserterSystem: canPickUp from \(position): belt has items but none are ready (progress < 0.9)")
         } else {
-            // print("InserterSystem: canPickUp from \(position): no belt found at this position")
+            print("InserterSystem: canPickUp from \(position): no belt found at this position")
         }
         
         // Check if there's an entity with inventory that has items

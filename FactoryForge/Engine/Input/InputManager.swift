@@ -647,7 +647,35 @@ final class InputManager: NSObject {
             }
             
         case .changed:
-            // Check for UI drag gesture
+            // Check if a UI panel is open - if so, don't process game world interactions
+            if let uiSystem = gameLoop.uiSystem, uiSystem.isAnyPanelOpen {
+                // Check for UI drag gesture
+                if !isUIDragging && !isJoystickActive {
+                    let dragDistance = (screenPos - dragStartPosition).length
+                    if dragDistance > 10 { // Minimum drag distance to start UI drag
+                        // Try to start UI drag
+                        isUIDragging = uiSystem.handleDrag(from: dragStartPosition, to: screenPos)
+                    } else {
+                        // Even if drag distance is small, check if we're within a UI panel
+                        // This prevents game world interactions when a panel is open
+                        if uiSystem.handleDrag(from: dragStartPosition, to: screenPos) {
+                            isUIDragging = true
+                        }
+                    }
+                }
+
+                // If UI drag is active or panel is open, consume the gesture
+                if isUIDragging {
+                    if let uiSystem = gameLoop.uiSystem {
+                        _ = uiSystem.handleDrag(from: dragStartPosition, to: screenPos)
+                    }
+                    return
+                }
+                // Even if not dragging, if a panel is open, don't process game world pan interactions
+                return
+            }
+
+            // Check for UI drag gesture (only if no panel is open)
             if !isUIDragging && !isJoystickActive {
                 let dragDistance = (screenPos - dragStartPosition).length
                 if dragDistance > 10 { // Minimum drag distance to start UI drag
@@ -688,7 +716,8 @@ final class InputManager: NSObject {
             }
 
             // Update selection rectangle (instead of camera panning)
-            if buildMode == .none && isSelecting, let startPos = selectionStartScreenPos {
+            // Don't update selection rectangle if a UI panel is open
+            if buildMode == .none && isSelecting && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let startPos = selectionStartScreenPos {
                 let startWorldPos = renderer.screenToWorld(startPos)
                 let endWorldPos = renderer.screenToWorld(screenPos)
                 
@@ -721,8 +750,9 @@ final class InputManager: NSObject {
 
             isDragging = false
             
-            // Handle selection rectangle end (only when not in build mode)
-            if buildMode == .none && isSelecting, let rect = selectionRect {
+            // Handle selection rectangle end (only when not in build mode and no UI panel is open)
+            // Don't process selection rectangle end if a UI panel is already open
+            if buildMode == .none && isSelecting && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let rect = selectionRect {
                 isSelecting = false
                 selectionStartScreenPos = nil
                 
