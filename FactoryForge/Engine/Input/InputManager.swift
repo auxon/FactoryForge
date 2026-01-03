@@ -76,6 +76,7 @@ final class InputManager: NSObject {
     var onBuildingPlaced: ((String, IntVector2, Direction) -> Void)?
     var onEntitySelected: ((Entity?) -> Void)?
     var onTooltip: ((String) -> Void)? // Called when something is tapped to show tooltip
+    var onTooltipWithEntity: ((String, Entity?) -> Void)? // Called when something is tapped to show tooltip with entity icon
     init(view: UIView, gameLoop: GameLoop?, renderer: MetalRenderer? = nil) {
         self.view = view
         self.gameLoop = gameLoop
@@ -389,7 +390,7 @@ final class InputManager: NSObject {
             if let entity = closestEntity {
                 // Show tooltip for the closest entity
                 if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
-                    onTooltip?(tooltipText)
+                    onTooltipWithEntity?(tooltipText, entity)
                     // Continue to entity selection - don't return early
                 }
             }

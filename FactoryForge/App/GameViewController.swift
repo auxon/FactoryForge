@@ -12,6 +12,7 @@ class GameViewController: UIViewController {
     
     // Tooltip label
     private var tooltipLabel: UILabel!
+    private var tooltipIconView: UIImageView!
     private var tooltipHideTimer: Timer?
 
     // Game over UI
@@ -93,16 +94,32 @@ class GameViewController: UIViewController {
         tooltipLabel.isHidden = true
         tooltipLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tooltipLabel)
+        
+        tooltipIconView = UIImageView()
+        tooltipIconView.contentMode = .scaleAspectFit
+        tooltipIconView.isHidden = true
+        tooltipIconView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(tooltipIconView)
 
-        NSLayoutConstraint.activate([
-            tooltipLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            tooltipLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            tooltipLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
-            tooltipLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20)
-        ])
+        // Set up icon view constraints (relative to label)
+        tooltipIconView.widthAnchor.constraint(equalToConstant: 32).isActive = true
+        tooltipIconView.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        tooltipIconView.centerYAnchor.constraint(equalTo: tooltipLabel.centerYAnchor).isActive = true
+        tooltipIconView.trailingAnchor.constraint(equalTo: tooltipLabel.leadingAnchor, constant: -8).isActive = true
+        tooltipIconView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20).isActive = true
+        
+        // Set up label constraints (can work with or without icon)
+        tooltipLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20).isActive = true
+        tooltipLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
+        tooltipLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20).isActive = true
+        tooltipLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -20).isActive = true
     }
 
     func showTooltip(_ text: String, duration: TimeInterval = 3.0) {
+        showTooltip(text, entity: nil, duration: duration)
+    }
+    
+    func showTooltip(_ text: String, entity: Entity?, duration: TimeInterval = 3.0) {
         // Create attributed string with black text and white outline
         let attributedString = NSMutableAttributedString(string: text)
         let range = NSRange(location: 0, length: text.count)
@@ -117,6 +134,22 @@ class GameViewController: UIViewController {
         tooltipLabel.attributedText = attributedString
         tooltipLabel.isHidden = false
         
+        // Show/hide icon based on entity
+        if let entity = entity, let gameLoop = gameLoop {
+            // Get texture ID from entity
+            let textureId = getEntityTextureId(entity: entity, gameLoop: gameLoop)
+            
+            // Load UIImage from bundle using texture ID
+            if let image = loadTextureImage(textureId: textureId) {
+                tooltipIconView.image = image
+                tooltipIconView.isHidden = false
+            } else {
+                tooltipIconView.isHidden = true
+            }
+        } else {
+            tooltipIconView.isHidden = true
+        }
+        
         // Cancel existing timer
         tooltipHideTimer?.invalidate()
         
@@ -126,8 +159,59 @@ class GameViewController: UIViewController {
         }
     }
     
+    private func getEntityTextureId(entity: Entity, gameLoop: GameLoop) -> String {
+        guard let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else {
+            return "solid_white"
+        }
+        
+        var textureId = sprite.textureId
+        
+        // Handle belt directional textures (e.g., "transport_belt_north_001" -> "transport_belt")
+        if textureId.contains("_belt_") {
+            let parts = textureId.split(separator: "_")
+            if let beltIndex = parts.firstIndex(where: { $0 == "belt" }) {
+                textureId = parts[0...beltIndex].joined(separator: "_")
+            }
+        }
+        
+        return textureId
+    }
+    
+    private func loadTextureImage(textureId: String) -> UIImage? {
+        // Map texture IDs to actual filenames (some have different names)
+        var filename = textureId
+        
+        // Handle special mappings
+        switch textureId {
+        case "burner_mining_drill":
+            filename = "burner_miner_drill"
+        case "transport_belt":
+            filename = "belt"
+        case "fast_transport_belt":
+            filename = "belt"  // Use same image
+        case "express_transport_belt":
+            filename = "belt"  // Use same image
+        default:
+            break
+        }
+        
+        // Try to load from bundle
+        if let imagePath = Bundle.main.path(forResource: filename, ofType: "png") {
+            return UIImage(contentsOfFile: imagePath)
+        }
+        
+        // Try with underscore replacement
+        let altFilename = textureId.replacingOccurrences(of: "_", with: "-")
+        if let imagePath = Bundle.main.path(forResource: altFilename, ofType: "png") {
+            return UIImage(contentsOfFile: imagePath)
+        }
+        
+        return nil
+    }
+    
     private func hideTooltip() {
         tooltipLabel.isHidden = true
+        tooltipIconView.isHidden = true
         tooltipHideTimer?.invalidate()
         tooltipHideTimer = nil
     }
@@ -720,6 +804,11 @@ class GameViewController: UIViewController {
         // Setup tooltip callback
         inputManager?.onTooltip = { [weak self] text in
             self?.showTooltip(text)
+        }
+        
+        // Setup tooltip callback with entity
+        inputManager?.onTooltipWithEntity = { [weak self] text, entity in
+            self?.showTooltip(text, entity: entity)
         }
         
         // Setup entity selection callback - open machine UI for furnaces/assemblers
