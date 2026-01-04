@@ -784,17 +784,8 @@ final class InputManager: NSObject {
                 isSelecting = false
                 selectionStartScreenPos = nil
                 
-                // Convert world rect to tile bounds
-                let minTileX = Int32(floor(rect.minX))
-                let maxTileX = Int32(ceil(rect.maxX))
-                let minTileY = Int32(floor(rect.minY))
-                let maxTileY = Int32(ceil(rect.maxY))
-                
-                // Get all entities within the rectangle
-                let selectedEntities = gameLoop.world.getAllEntitiesInRect(
-                    minX: minTileX, maxX: maxTileX,
-                    minY: minTileY, maxY: maxTileY
-                )
+                // Get all entities within the world rectangle
+                let selectedEntities = gameLoop.world.getAllEntitiesInWorldRect(rect)
                 
                 // Filter to only interactable entities
                 let interactableEntities = selectedEntities.filter { entity in
@@ -849,8 +840,12 @@ final class InputManager: NSObject {
                     
                     // Also check for belts at positions within the rectangle
                     var beltPositions: [IntVector2] = []
-                    for x in minTileX...maxTileX {
-                        for y in minTileY...maxTileY {
+                    let rectMinTileX = Int32(floor(rect.minX))
+                    let rectMaxTileX = Int32(ceil(rect.maxX))
+                    let rectMinTileY = Int32(floor(rect.minY))
+                    let rectMaxTileY = Int32(ceil(rect.maxY))
+                    for x in rectMinTileX...rectMaxTileX {
+                        for y in rectMinTileY...rectMaxTileY {
                             let pos = IntVector2(x: x, y: y)
                             let distance = abs(pos.x - inserterPos.tilePosition.x) + abs(pos.y - inserterPos.tilePosition.y)
                             if distance <= 1 {

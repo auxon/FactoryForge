@@ -74,9 +74,14 @@ final class World {
     
     /// Adds a component to an entity
     func add<T: Component>(_ component: T, to entity: Entity) {
+        // Special handling for PositionComponent: remove old position from spatial index
+        if let oldPosition = get(PositionComponent.self, for: entity) {
+            spatialIndex.removeValue(forKey: oldPosition.tilePosition)
+        }
+
         let store = getOrCreateStore(for: T.self)
         store.set(component, for: entity)
-        
+
         // Update spatial index for position components
         if let position = component as? PositionComponent {
             spatialIndex[position.tilePosition] = entity
@@ -297,12 +302,79 @@ final class World {
         return result
     }
     
+    /// Gets all entities within a world coordinate rectangle
+    /// Includes entities that overlap the rectangle (multi-tile entities)
+    func getAllEntitiesInWorldRect(_ worldRect: Rect) -> [Entity] {
+        var allEntities: [Entity] = []
+        var checkedEntities: Set<Entity> = []
+
+        // Convert world rect to tile bounds for spatial index lookup
+        let minTileX = Int32(floor(worldRect.minX))
+        let maxTileX = Int32(ceil(worldRect.maxX))
+        let minTileY = Int32(floor(worldRect.minY))
+        let maxTileY = Int32(ceil(worldRect.maxY))
+
+        // Check spatial index for tiles that intersect the world rect
+        for y in minTileY...maxTileY {
+            for x in minTileX...maxTileX {
+                // Check if this tile actually intersects the world rect
+                let tileMinX = Float(x)
+                let tileMaxX = Float(x + 1)
+                let tileMinY = Float(y)
+                let tileMaxY = Float(y + 1)
+
+                let tileIntersects = !(tileMaxX < worldRect.minX || tileMinX > worldRect.maxX ||
+                                     tileMaxY < worldRect.minY || tileMinY > worldRect.maxY)
+
+                if tileIntersects {
+                    if let entity = spatialIndex[IntVector2(x: x, y: y)] {
+                        if !checkedEntities.contains(entity) {
+                            allEntities.append(entity)
+                            checkedEntities.insert(entity)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Also check all entities with PositionComponent to find entities that overlap the world rect
+        let allEntitiesWithPosition = query(PositionComponent.self)
+
+        for entity in allEntitiesWithPosition {
+            guard !checkedEntities.contains(entity) else { continue }
+            guard let pos = get(PositionComponent.self, for: entity) else { continue }
+
+            let worldPos = pos.worldPosition
+            let sprite = get(SpriteComponent.self, for: entity)
+            let halfWidth = (sprite?.size.x ?? 1.0) / 2.0
+            let halfHeight = (sprite?.size.y ?? 1.0) / 2.0
+
+            // For sprites, the position is usually the center (for centered sprites) or bottom-left (for non-centered)
+            // For selection, we'll check if the entity's world bounds intersect the selection rect
+            let entityMinX = worldPos.x - halfWidth
+            let entityMaxX = worldPos.x + halfWidth
+            let entityMinY = worldPos.y - halfHeight
+            let entityMaxY = worldPos.y + halfHeight
+
+            // Check for intersection with world rect
+            let intersects = !(entityMaxX < worldRect.minX || entityMinX > worldRect.maxX ||
+                             entityMaxY < worldRect.minY || entityMinY > worldRect.maxY)
+
+            if intersects {
+                allEntities.append(entity)
+                checkedEntities.insert(entity)
+            }
+        }
+
+        return allEntities
+    }
+
     /// Gets all entities within a rectangular tile area (tile coordinates)
     /// Includes entities that overlap the rectangle (multi-tile entities)
     func getAllEntitiesInRect(minX: Int32, maxX: Int32, minY: Int32, maxY: Int32) -> [Entity] {
         var allEntities: [Entity] = []
         var checkedEntities: Set<Entity> = []
-        
+
         // Check spatial index for all tiles in the rectangle
         for y in minY...maxY {
             for x in minX...maxX {
@@ -314,35 +386,35 @@ final class World {
                 }
             }
         }
-        
+
         // Also check all entities with PositionComponent to find multi-tile entities that overlap
         let allEntitiesWithPosition = query(PositionComponent.self)
-        
+
         for entity in allEntitiesWithPosition {
             guard !checkedEntities.contains(entity) else { continue }
             guard let pos = get(PositionComponent.self, for: entity) else { continue }
-            
+
             let origin = pos.tilePosition
             let sprite = get(SpriteComponent.self, for: entity)
             let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
             let height = sprite != nil ? Int32(ceil(sprite!.size.y)) : 1
-            
+
             // Check if entity's bounds intersect with the selection rectangle
             let entityMinX = origin.x
             let entityMaxX = origin.x + width - 1
             let entityMinY = origin.y
             let entityMaxY = origin.y + height - 1
-            
+
             // Check for intersection
             let intersects = !(entityMaxX < minX || entityMinX > maxX ||
                                entityMaxY < minY || entityMinY > maxY)
-            
+
             if intersects {
                 allEntities.append(entity)
                 checkedEntities.insert(entity)
             }
         }
-        
+
         return allEntities
     }
     
