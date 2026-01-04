@@ -447,7 +447,7 @@ final class HUD {
     
     private func renderSelectionRectangle(renderer: MetalRenderer) {
         guard let inputManager = inputManager,
-              inputManager.buildMode == .none,  // Only render selection rectangle when not in build mode
+              (inputManager.buildMode == .none || inputManager.buildMode == .connectingInserter),  // Render selection rectangle in normal and inserter connection modes
               let selectionRect = inputManager.selectionRect else {
             return
         }
@@ -457,28 +457,30 @@ final class HUD {
             return
         }
         
+        // Get texture rect for solid_white (returns a default rect if not found)
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        
         let borderColor = Color(r: 0.2, g: 0.6, b: 1.0, a: 0.8)  // Blue selection color
         let fillColor = Color(r: 0.2, g: 0.6, b: 1.0, a: 0.2)  // Semi-transparent fill
         let borderThickness: Float = 0.15  // Border thickness in world units (thicker for visibility)
         
-        // Render semi-transparent fill (use .entity layer since this is world-space)
+        // Render semi-transparent fill (use .particle layer for world-space rendering on top of entities)
         renderer.queueSprite(SpriteInstance(
             position: selectionRect.center,
             size: selectionRect.size,
             textureRect: solidRect,
             color: fillColor,
-            layer: .entity  // Use .entity layer for world-space rendering
+            layer: .particle  // Use .particle layer (8) to render after entities but in world-space
         ))
         
-        // Render border (four edges) - use .entity layer for world-space
+        // Render border (four edges) - use .particle layer for world-space rendering on top
         // Top edge
         renderer.queueSprite(SpriteInstance(
             position: Vector2(selectionRect.center.x, selectionRect.maxY - borderThickness / 2),
             size: Vector2(selectionRect.width, borderThickness),
             textureRect: solidRect,
             color: borderColor,
-            layer: .entity
+            layer: .particle  // Use .particle layer (8) to render after entities but in world-space
         ))
         // Bottom edge
         renderer.queueSprite(SpriteInstance(
@@ -486,7 +488,7 @@ final class HUD {
             size: Vector2(selectionRect.width, borderThickness),
             textureRect: solidRect,
             color: borderColor,
-            layer: .entity
+            layer: .particle  // Use .particle layer (8) to render after entities but in world-space
         ))
         // Left edge
         renderer.queueSprite(SpriteInstance(
@@ -494,7 +496,7 @@ final class HUD {
             size: Vector2(borderThickness, selectionRect.height),
             textureRect: solidRect,
             color: borderColor,
-            layer: .entity
+            layer: .particle  // Use .particle layer (8) to render after entities but in world-space
         ))
         // Right edge
         renderer.queueSprite(SpriteInstance(
@@ -502,7 +504,7 @@ final class HUD {
             size: Vector2(borderThickness, selectionRect.height),
             textureRect: solidRect,
             color: borderColor,
-            layer: .entity
+            layer: .particle  // Use .particle layer (8) to render after entities but in world-space
         ))
     }
     
