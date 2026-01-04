@@ -130,8 +130,6 @@ final class InserterSystem: System {
                                     if world.has(BeltComponent.self, for: inputTarget) {
                                         // print("InserterSystem:[idle] inputTarget is a belt entity, checking for items")
                                         if let belt = world.get(BeltComponent.self, for: inputTarget) {
-                                            let leftLaneItems = belt.leftLane.count
-                                            let rightLaneItems = belt.rightLane.count
                                             let hasReadyItem = belt.leftLane.contains { $0.progress >= 0.9 } || belt.rightLane.contains { $0.progress >= 0.9 }
                                             // print("InserterSystem:[idle] Belt has leftLane=\(leftLaneItems) items, rightLane=\(rightLaneItems) items, hasReadyItem=\(hasReadyItem)")
                                             if hasReadyItem {
@@ -370,26 +368,6 @@ final class InserterSystem: System {
             }
         }
         
-        if let beltEntity = beltEntity,
-           let belt = world.get(BeltComponent.self, for: beltEntity) {
-            // Check if either lane has an item near the end (ready to be picked up)
-            let leftLaneItems = belt.leftLane.count
-            let rightLaneItems = belt.rightLane.count
-            let leftLaneProgress = belt.leftLane.last?.progress ?? 0
-            let rightLaneProgress = belt.rightLane.last?.progress ?? 0
-            // print("InserterSystem:canPickUp from \(position): belt found, leftLane=\(leftLaneItems) items (last progress=\(leftLaneProgress)), rightLane=\(rightLaneItems) items (last progress=\(rightLaneProgress))")
-            
-            for (laneIndex, laneItems) in [belt.leftLane, belt.rightLane].enumerated() {
-                if let lastItem = laneItems.last, lastItem.progress >= 0.9 {
-                    // print("InserterSystem:canPickUp from \(position): found belt item in lane \(laneIndex == 0 ? "left" : "right") with progress \(lastItem.progress)")
-                    return true
-                }
-            }
-            // print("InserterSystem:canPickUp from \(position): belt has items but none are ready (progress < 0.9)")
-        } else {
-            // print("InserterSystem:canPickUp from \(position): no belt found at this position or adjacent positions")
-        }
-        
         // Check if there's an entity with inventory that has items
         // For multi-tile buildings, check ALL nearby entities for adjacency (not just ones where position is within bounds)
         // because the miner might be adjacent but the checked position might be outside its bounds
@@ -476,10 +454,8 @@ final class InserterSystem: System {
     }
     
     private func tryPickUp(inserter: inout InserterComponent, position: PositionComponent) -> ItemStack? {
-        var item: ItemStack? = nil
-        
-        // print("InserterSystem:tryPickUp called for inserter at \(position.tilePosition), inputTarget=\(inserter.inputTarget?.id ?? 0), inputPosition=\(inserter.inputPosition != nil ? "(\(inserter.inputPosition!.x), \(inserter.inputPosition!.y))" : "nil")")
-        
+        let item: ItemStack? = nil
+ 
         // Check configured input connection first
         if let inputTarget = inserter.inputTarget {
             // Validate target is still alive and adjacent
@@ -501,8 +477,6 @@ final class InserterSystem: System {
                             // print("InserterSystem:inputTarget is adjacent (distance=\(distance)), checking inventory")
                             // Directly access the configured target entity's inventory
                             if var inventory = world.get(InventoryComponent.self, for: inputTarget) {
-                                let itemCount = inventory.slots.compactMap { $0 }.reduce(0) { $0 + $1.count }
-                                // print("InserterSystem:inputTarget has inventory with \(itemCount) items")
                                 if let item = inventory.takeOne() {
                                     // print("InserterSystem:Successfully picked up \(item.itemId) from inputTarget")
                                     inserter.sourceEntity = inputTarget
@@ -934,9 +908,6 @@ final class InserterSystem: System {
 
                 // Check if entity is adjacent (within 1 tile in any direction, including diagonals)
                 if distance <= 1 {
-                    let hasFurnace = world.has(FurnaceComponent.self, for: entity)
-                    let hasAssembler = world.has(AssemblerComponent.self, for: entity)
-
                     // Check for inventory on machines (furnaces, assemblers)
                     if let inventory = world.get(InventoryComponent.self, for: entity) {
                         // For machines, check output slots (second half of inventory)
@@ -944,8 +915,6 @@ final class InserterSystem: System {
                         let hasOutputItems = (outputStartIndex..<inventory.slots.count).contains { index in
                             inventory.slots[index] != nil
                         }
-
-                        // // print("InserterSystem:canPickUpFromMachineOutput at \(position): adjacent machine \(entity) at \(entityPos.tilePosition), hasFurnace=\(hasFurnace), hasAssembler=\(hasAssembler), hasOutputItems=\(hasOutputItems)")
                         if hasOutputItems {
                             return true
                         }

@@ -44,15 +44,51 @@ final class BeltSystem: System {
         needsResort = true
     }
     
+    func updateBeltDirection(entity: Entity, newDirection: Direction) {
+        guard let position = world.get(PositionComponent.self, for: entity)?.tilePosition,
+              var node = beltGraph[position] else {
+            return
+        }
+
+        // Update the direction in the graph
+        node.direction = newDirection
+        beltGraph[position] = node
+
+        // Update connections for this belt and all potentially affected neighbors
+        updateConnections(for: position)
+
+        // Update connections for positions that might be affected by the direction change
+        let oldFrontPos = position + node.direction.opposite.intVector  // Where it used to point
+        let newFrontPos = position + newDirection.intVector  // Where it now points
+
+        // Update connections for the old and new output positions
+        updateConnections(for: oldFrontPos)
+        updateConnections(for: newFrontPos)
+
+        // Update connections for all adjacent positions (belts that might point to us)
+        for offset in [IntVector2(1, 0), IntVector2(-1, 0), IntVector2(0, 1), IntVector2(0, -1)] {
+            let neighborPos = position + offset
+            updateConnections(for: neighborPos)
+        }
+
+        // Also update connections for positions that might be pointing at our new/old positions
+        for offset in [IntVector2(1, 0), IntVector2(-1, 0), IntVector2(0, 1), IntVector2(0, -1)] {
+            let extendedPos = position + offset * 2
+            updateConnections(for: extendedPos)
+        }
+
+        needsResort = true
+    }
+
     func unregisterBelt(at position: IntVector2) {
         beltGraph.removeValue(forKey: position)
-        
+
         // Update neighbors' connections
         for offset in [IntVector2(1, 0), IntVector2(-1, 0), IntVector2(0, 1), IntVector2(0, -1)] {
             let neighborPos = position + offset
             updateConnections(for: neighborPos)
         }
-        
+
         needsResort = true
     }
     
@@ -284,7 +320,7 @@ final class BeltSystem: System {
 private struct BeltNode {
     let entity: Entity
     let position: IntVector2
-    let direction: Direction
+    var direction: Direction
     var inputEntities: [Entity] = []
     var outputEntity: Entity?
 }

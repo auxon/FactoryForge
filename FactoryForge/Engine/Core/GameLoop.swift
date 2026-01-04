@@ -354,31 +354,7 @@ final class GameLoop {
                             print("GameLoop: Allowing inserter/pole placement on top of building at \(checkPos)")
                             continue
                         }
-                        
-                        // For other entities, check if we're adjacent or overlapping
-                        if let entityPos = world.get(PositionComponent.self, for: entity),
-                           let sprite = world.get(SpriteComponent.self, for: entity) {
-                            let origin = entityPos.tilePosition
-                            // Use exact same calculation as getEntityAt
-                            let width = Int32(ceil(sprite.size.x))
-                            let height = Int32(ceil(sprite.size.y))
-                            
-                            // Check if checkPos is actually within the entity's bounds
-                            // This matches the exact logic in World.getEntityAt
-                            let isWithinBounds = checkPos.x >= origin.x && 
-                                                 checkPos.x < origin.x + width &&
-                                                 checkPos.y >= origin.y && 
-                                                 checkPos.y < origin.y + height
-                            
-                            // Allow placement if adjacent or overlapping for inserters/poles
-                            print("GameLoop: Allowing inserter/pole placement (adjacent or overlapping) at \(checkPos), entity at \(origin) size \(width)x\(height)")
-                            continue
-                        } else {
-                            // If entity doesn't have position/sprite, allow placement
-                            // (This handles edge cases where entities might not have all components)
-                            print("GameLoop: Entity at \(checkPos) doesn't have position/sprite components, allowing inserter/pole placement")
-                            continue
-                        }
+                        continue
                     }
 
                     // Block placement on other entities
@@ -819,21 +795,20 @@ final class GameLoop {
     
     func rotateBelt(entity: Entity) -> Bool {
         // Check if entity is a belt
-        guard var belt = world.get(BeltComponent.self, for: entity),
-              let position = world.get(PositionComponent.self, for: entity) else {
+        guard var belt = world.get(BeltComponent.self, for: entity) else {
             return false
         }
-        
+
         // Rotate direction clockwise
-        belt.direction = belt.direction.clockwise
-        
+        let newDirection = belt.direction.clockwise
+        belt.direction = newDirection
+
         // Update belt component
         world.add(belt, to: entity)
-        
-        // Re-register belt in belt system with new direction
-        beltSystem.unregisterBelt(at: position.tilePosition)
-        beltSystem.registerBelt(entity: entity, at: position.tilePosition, direction: belt.direction)
-        
+
+        // Update belt system with new direction
+        beltSystem.updateBeltDirection(entity: entity, newDirection: newDirection)
+
         return true
     }
     

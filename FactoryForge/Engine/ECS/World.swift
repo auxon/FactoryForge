@@ -224,9 +224,6 @@ final class World {
         // If only one entity, return it
         if allEntitiesAtPosition.count == 1 {
             let entity = allEntitiesAtPosition[0]
-            let hasInserter = has(InserterComponent.self, for: entity)
-            let hasBelt = has(BeltComponent.self, for: entity)
-            // print("World: getEntityAt(\(position)) - single entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt)")
             return entity
         }
 

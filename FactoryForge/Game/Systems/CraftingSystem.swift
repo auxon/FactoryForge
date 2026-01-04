@@ -124,24 +124,11 @@ final class CraftingSystem: System {
                     let canStart = canStartRecipe(recipe: recipe, inventory: inventory)
 
                     if canStart {
-                        let oreCountBefore = inventory.count(of: recipe.inputs.first?.itemId ?? "")
-                        // print("CraftingSystem: Furnace at entity \(entity) can start recipe \(recipe.id), has \(oreCountBefore) \(recipe.inputs.first?.itemId ?? "unknown")")
                         for input in recipe.inputs {
-                            let countBefore = inventory.count(of: input.itemId)
                             inventory.remove(itemId: input.itemId, count: input.count)
-                            let countAfter = inventory.count(of: input.itemId)
-                            // print("CraftingSystem: Furnace consumed \(input.count) \(input.itemId), count before=\(countBefore), after=\(countAfter)")
                         }
-                        let oreCountAfter = inventory.count(of: recipe.inputs.first?.itemId ?? "")
-                        // print("CraftingSystem: Furnace at entity \(entity) started smelting \(recipe.inputs.first?.itemId ?? "unknown"), ore count before=\(oreCountBefore), after=\(oreCountAfter)")
                         furnace.smeltingProgress = 0.001
                         world.add(inventory, to: entity)
-                    } else {
-                        // Log why we can't start
-                        let missingInputs = recipe.inputs.filter { inventory.count(of: $0.itemId) < $0.count }
-                        if !missingInputs.isEmpty {
-                            // print("CraftingSystem: Furnace at entity \(entity) cannot start recipe \(recipe.id), missing: \(missingInputs.map { "\($0.count) \($0.itemId)" }.joined(separator: ", "))")
-                        }
                     }
                 }
             }
