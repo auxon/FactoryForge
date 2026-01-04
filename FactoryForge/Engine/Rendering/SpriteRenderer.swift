@@ -13,7 +13,7 @@ final class SpriteRenderer {
     // Vertex buffer for expanded vertices
     private var spriteVertexBuffer: MTLBuffer?
     private var spriteVertices: [UIVertex] = []
-    private let maxVertices = 1024
+    private let maxVertices = 8192  // Increased from 1024 to handle more sprites (1024 vertices = 170 sprites, 8192 = 1365 sprites)
 
     // Queued sprites for current frame
     private var queuedSprites: [SpriteInstance] = []
