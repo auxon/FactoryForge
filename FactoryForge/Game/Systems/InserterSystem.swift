@@ -474,25 +474,25 @@ final class InserterSystem: System {
                                 // print("InserterSystem:Failed to pick up from belt entity")
                             }
                         } else {
-                            // print("InserterSystem:inputTarget is adjacent (distance=\(distance)), checking inventory")
-                            // Directly access the configured target entity's inventory
-                            if var inventory = world.get(InventoryComponent.self, for: inputTarget) {
-                                if let item = inventory.takeOne() {
-                                    // print("InserterSystem:Successfully picked up \(item.itemId) from inputTarget")
+                            // Check if target is a machine (furnace, assembler) that has separate input/output slots
+                            let isMachine = world.has(FurnaceComponent.self, for: inputTarget) ||
+                                           world.has(AssemblerComponent.self, for: inputTarget)
+
+                            if isMachine {
+                                // For machines, only pick from output slots
+                                if let pickedItem = tryPickFromMachineOutput(entity: inputTarget, stackSize: inserter.stackSize) {
                                     inserter.sourceEntity = inputTarget
-                                    world.add(inventory, to: inputTarget)
-                                    return item
-                                } else {
-                                    // print("InserterSystem:inputTarget inventory is empty")
+                                    return pickedItem
                                 }
                             } else {
-                                // print("InserterSystem:inputTarget has no InventoryComponent")
-                            }
-                            // Also try machine output (for machines with separate output slots)
-                            if let pickedItem = tryPickFromMachineOutput(entity: inputTarget, stackSize: inserter.stackSize) {
-                                // print("InserterSystem:Successfully picked up from machine output")
-                                inserter.sourceEntity = inputTarget
-                                return pickedItem
+                                // For non-machines (miners, chests, etc.), pick from any slot
+                                if var inventory = world.get(InventoryComponent.self, for: inputTarget) {
+                                    if let item = inventory.takeOne() {
+                                        inserter.sourceEntity = inputTarget
+                                        world.add(inventory, to: inputTarget)
+                                        return item
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -886,12 +886,38 @@ final class InserterSystem: System {
         
         // Check if entity has inventory that can accept the item
         guard var inventory = world.get(InventoryComponent.self, for: targetEntity) else { return false }
-        guard inventory.canAccept(itemId: item.itemId) else { return false }
-        
-        // Drop the item
-        let remaining = inventory.add(item)
-        world.add(inventory, to: targetEntity)
-        return remaining == 0
+
+        // Check if target is a machine (furnace, assembler) that has separate input/output slots
+        let isMachine = world.has(FurnaceComponent.self, for: targetEntity) ||
+                       world.has(AssemblerComponent.self, for: targetEntity)
+
+        if isMachine {
+            // For machines, only drop to input slots (first half of inventory)
+            let inputSlotCount = inventory.slots.count / 2
+
+            // Temporarily modify inventory to only allow input slots
+            var tempInventory = inventory
+            // Clear output slots so they can't be used
+            for i in inputSlotCount..<inventory.slots.count {
+                tempInventory.slots[i] = nil
+            }
+
+            guard tempInventory.canAccept(itemId: item.itemId) else { return false }
+
+            // Add to input slots only
+            let remaining = tempInventory.add(item)
+            inventory = tempInventory
+            world.add(inventory, to: targetEntity)
+            return remaining == 0
+        } else {
+            // For non-machines, add to any slot
+            guard inventory.canAccept(itemId: item.itemId) else { return false }
+
+            // Drop the item
+            let remaining = inventory.add(item)
+            world.add(inventory, to: targetEntity)
+            return remaining == 0
+        }
     }
 
     /// Checks if there's something to pick up from machine output at a position
