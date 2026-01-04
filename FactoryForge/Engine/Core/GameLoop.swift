@@ -853,8 +853,29 @@ final class GameLoop {
             if let inputTarget = inputTarget {
                 guard world.isAlive(inputTarget) else { return false }
                 if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
-                    let distance = abs(targetPos.tilePosition.x - inserterPos.tilePosition.x) + abs(targetPos.tilePosition.y - inserterPos.tilePosition.y)
-                    guard distance <= 1 else { return false }
+                    let targetOrigin = targetPos.tilePosition
+                    let inserterTile = inserterPos.tilePosition
+                    
+                    // Get entity size for multi-tile entities
+                    let sprite = world.get(SpriteComponent.self, for: inputTarget)
+                    let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
+                    let height = sprite != nil ? Int32(ceil(sprite!.size.y)) : 1
+                    
+                    // Check if ANY tile of the target entity is within 1 tile of the inserter
+                    var isWithinRange = false
+                    for y in targetOrigin.y..<(targetOrigin.y + height) {
+                        for x in targetOrigin.x..<(targetOrigin.x + width) {
+                            let targetTile = IntVector2(x: x, y: y)
+                            let distance = abs(targetTile.x - inserterTile.x) + abs(targetTile.y - inserterTile.y)
+                            if distance <= 1 {
+                                isWithinRange = true
+                                break
+                            }
+                        }
+                        if isWithinRange { break }
+                    }
+                    
+                    guard isWithinRange else { return false }
                 }
                 inserter.inputTarget = inputTarget
                 inserter.inputPosition = nil // Clear position if setting entity
@@ -876,8 +897,29 @@ final class GameLoop {
             if let outputTarget = outputTarget {
                 guard world.isAlive(outputTarget) else { return false }
                 if let targetPos = world.get(PositionComponent.self, for: outputTarget) {
-                    let distance = abs(targetPos.tilePosition.x - inserterPos.tilePosition.x) + abs(targetPos.tilePosition.y - inserterPos.tilePosition.y)
-                    guard distance <= 1 else { return false }
+                    let targetOrigin = targetPos.tilePosition
+                    let inserterTile = inserterPos.tilePosition
+                    
+                    // Get entity size for multi-tile entities
+                    let sprite = world.get(SpriteComponent.self, for: outputTarget)
+                    let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
+                    let height = sprite != nil ? Int32(ceil(sprite!.size.y)) : 1
+                    
+                    // Check if ANY tile of the target entity is within 1 tile of the inserter
+                    var isWithinRange = false
+                    for y in targetOrigin.y..<(targetOrigin.y + height) {
+                        for x in targetOrigin.x..<(targetOrigin.x + width) {
+                            let targetTile = IntVector2(x: x, y: y)
+                            let distance = abs(targetTile.x - inserterTile.x) + abs(targetTile.y - inserterTile.y)
+                            if distance <= 1 {
+                                isWithinRange = true
+                                break
+                            }
+                        }
+                        if isWithinRange { break }
+                    }
+                    
+                    guard isWithinRange else { return false }
                 }
                 inserter.outputTarget = outputTarget
                 inserter.outputPosition = nil // Clear position if setting entity

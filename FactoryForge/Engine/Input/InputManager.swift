@@ -1490,24 +1490,74 @@ final class InputManager: NSObject {
             return
         }
         
-        // Check if selection is within 1 tile (including diagonals)
-        let distance = abs(tilePos.x - inserterPos.tilePosition.x) + abs(tilePos.y - inserterPos.tilePosition.y)
-        guard distance <= 1 else {
+        let inserterTile = inserterPos.tilePosition
+        
+        // Check all tiles within 1 tile (including diagonals) from inserter to find entities
+        // This ensures we catch multi-tile entities even if the tapped tile isn't adjacent
+        var allFoundEntities: Set<Entity> = []
+        
+        // Check all adjacent tiles (including diagonals)
+        for dy in -1...1 {
+            for dx in -1...1 {
+                // Skip center tile (that's the inserter itself)
+                if dx == 0 && dy == 0 { continue }
+                
+                let checkTile = IntVector2(x: inserterTile.x + Int32(dx), y: inserterTile.y + Int32(dy))
+                let entitiesAtTile = gameLoop.world.getAllEntitiesAt(position: checkTile)
+                for entity in entitiesAtTile {
+                    allFoundEntities.insert(entity)
+                }
+            }
+        }
+        
+        // Also check the tapped position (in case user taps on a tile 2+ away but still valid)
+        // but only if it's within reasonable range
+        let distance = abs(tilePos.x - inserterTile.x) + abs(tilePos.y - inserterTile.y)
+        if distance <= 2 {
+            let entitiesAtTappedPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
+            for entity in entitiesAtTappedPos {
+                allFoundEntities.insert(entity)
+            }
+        } else {
+            // Tapped tile is too far away
             onTooltip?("Target must be adjacent to inserter")
             return
         }
         
-        // Get all entities at this position (may be multiple if belts are under buildings)
-        let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
-        
-        // Filter to valid targets (belts, miners, machines, etc.)
-        let validEntities = entitiesAtPos.filter { entity in
+        // Filter to valid targets (belts, miners, machines, boilers, etc.)
+        // For multi-tile entities, verify that at least one tile is within 1 tile of the inserter
+        let validEntities: [Entity] = Array(allFoundEntities).filter { entity in
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
             let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
             let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
             let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
             let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
-            return hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest
+            let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
+            let isValidType = hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest || hasGenerator
+            
+            guard isValidType else { return false }
+            
+            // For all entities (single or multi-tile), verify at least one tile is within 1 tile of inserter
+            guard let entityPos = gameLoop.world.get(PositionComponent.self, for: entity) else { return false }
+            let entityOrigin = entityPos.tilePosition
+            
+            // Get entity size from sprite component
+            let sprite = gameLoop.world.get(SpriteComponent.self, for: entity)
+            let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
+            let height = sprite != nil ? Int32(ceil(sprite!.size.y)) : 1
+            
+            // Check if any tile of this entity is within 1 tile of the inserter
+            for y in entityOrigin.y..<(entityOrigin.y + height) {
+                for x in entityOrigin.x..<(entityOrigin.x + width) {
+                    let entityTile = IntVector2(x: x, y: y)
+                    let tileDistance = abs(entityTile.x - inserterTile.x) + abs(entityTile.y - inserterTile.y)
+                    if tileDistance <= 1 {
+                        return true  // Found at least one tile within range
+                    }
+                }
+            }
+            
+            return false  // No tiles within range
         }
         
         // If multiple entities, show selection dialog
@@ -1519,8 +1569,9 @@ final class InputManager: NSObject {
             // Single entity, connect directly
             handleInserterConnectionEntitySelected(entity: targetEntity, gameLoop: gameLoop)
         } else {
-            // Check if there's a belt at this position (might not be in validEntities if it's hidden under a building)
-            let hasBelt = entitiesAtPos.contains { gameLoop.world.has(BeltComponent.self, for: $0) }
+            // Check if there's a belt at the tapped position (might not be in validEntities if it's hidden under a building)
+            let entitiesAtTappedPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
+            let hasBelt = entitiesAtTappedPos.contains { gameLoop.world.has(BeltComponent.self, for: $0) }
             
             if hasBelt {
                 handleInserterConnectionPositionSelected(position: tilePos, gameLoop: gameLoop)

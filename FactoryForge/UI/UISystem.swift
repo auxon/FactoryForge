@@ -1086,22 +1086,79 @@ class InserterConnectionDialog {
         guard let gameLoop = gameLoop, let inserterEntity = inserterEntity else { return false }
         guard let inserterPos = gameLoop.world.get(PositionComponent.self, for: inserterEntity) else { return false }
         
-        // Check if selection is within 1 tile (including diagonals)
-        let distance = abs(tilePos.x - inserterPos.tilePosition.x) + abs(tilePos.y - inserterPos.tilePosition.y)
-        guard distance <= 1 else { return false }
+        // Check all tiles within 1 tile (including diagonals) from inserter to find entities
+        // This ensures we catch multi-tile entities even if the tapped tile isn't adjacent
+        var allFoundEntities: Set<Entity> = []
+        let inserterTile = inserterPos.tilePosition
         
-        // Try to find entity at position - use getAllEntitiesAt to find all entities (including belts under buildings)
-        let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
+        // Check all adjacent tiles (including diagonals)
+        for dy in -1...1 {
+            for dx in -1...1 {
+                // Skip center tile (that's the inserter itself)
+                if dx == 0 && dy == 0 { continue }
+                
+                let checkTile = IntVector2(x: inserterTile.x + Int32(dx), y: inserterTile.y + Int32(dy))
+                let entitiesAtTile = gameLoop.world.getAllEntitiesAt(position: checkTile)
+                for entity in entitiesAtTile {
+                    allFoundEntities.insert(entity)
+                }
+            }
+        }
+        
+        // Also check the tapped position (in case user taps on a tile 2+ away but still valid)
+        // but only if it's within reasonable range
+        let distance = abs(tilePos.x - inserterTile.x) + abs(tilePos.y - inserterTile.y)
+        if distance <= 2 {
+            let entitiesAtTappedPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
+            for entity in entitiesAtTappedPos {
+                allFoundEntities.insert(entity)
+            }
+        }
         
         // Filter to valid targets (belt, miner, machine, boiler, etc.)
-        let validEntities = entitiesAtPos.filter { entity in
+        // For multi-tile entities, verify that at least one tile is within 1 tile of the inserter
+        let validEntities = allFoundEntities.filter { entity in
+            // Check if entity has valid components
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
             let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
             let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
             let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
             let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
             let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
-            return hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest || hasGenerator
+            let isValidType = hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest || hasGenerator
+            
+            guard isValidType else { return false }
+            
+            // For all entities (single or multi-tile), verify at least one tile is within 1 tile of inserter
+            guard let entityPos = gameLoop.world.get(PositionComponent.self, for: entity) else { return false }
+            let entityOrigin = entityPos.tilePosition
+            
+            // Get entity size from sprite component
+            let sprite = gameLoop.world.get(SpriteComponent.self, for: entity)
+            let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
+            let height = sprite != nil ? Int32(ceil(sprite!.size.y)) : 1
+            
+            // Check if any tile of this entity is within 1 tile of the inserter
+            for y in entityOrigin.y..<(entityOrigin.y + height) {
+                for x in entityOrigin.x..<(entityOrigin.x + width) {
+                    let entityTile = IntVector2(x: x, y: y)
+                    let tileDistance = abs(entityTile.x - inserterTile.x) + abs(entityTile.y - inserterTile.y)
+                    if tileDistance <= 1 {
+                        return true  // Found at least one tile within range
+                    }
+                }
+            }
+            
+            return false  // No tiles within range
+        }
+        
+        // Debug logging
+        print("InserterConnectionDialog: Found \(allFoundEntities.count) entities near inserter, \(validEntities.count) are valid")
+        for entity in allFoundEntities {
+            let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
+            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            print("InserterConnectionDialog: Entity \(entity.id) - Generator: \(hasGenerator), Belt: \(hasBelt), Furnace: \(hasFurnace)")
         }
         
         // Prefer entities (so we can track them directly), but if multiple found, entitySelectionDialog should handle it
@@ -1109,21 +1166,19 @@ class InserterConnectionDialog {
             // Use the entity directly - this works for both belts and other entities
             // Belts should be set as inputTarget/outputTarget so we can access them directly
             if isSelectingInput {
-                print("InserterConnectionDialog: Setting input target entity to \(targetEntity.id) (hasBelt: \(gameLoop.world.has(BeltComponent.self, for: targetEntity)))")
+                print("InserterConnectionDialog: Setting input target entity to \(targetEntity.id) (hasBelt: \(gameLoop.world.has(BeltComponent.self, for: targetEntity)), hasGenerator: \(gameLoop.world.has(GeneratorComponent.self, for: targetEntity)))")
                 onInputSet?(inserterEntity, targetEntity, nil)
                 isSelectingInput = false
                 return true
             } else if isSelectingOutput {
-                print("InserterConnectionDialog: Setting output target entity to \(targetEntity.id) (hasBelt: \(gameLoop.world.has(BeltComponent.self, for: targetEntity)))")
+                print("InserterConnectionDialog: Setting output target entity to \(targetEntity.id) (hasBelt: \(gameLoop.world.has(BeltComponent.self, for: targetEntity)), hasGenerator: \(gameLoop.world.has(GeneratorComponent.self, for: targetEntity)))")
                 onOutputSet?(inserterEntity, targetEntity, nil)
                 isSelectingOutput = false
                 return true
             }
         }
         
-        // Fallback: if no valid entities found but we know there's a belt (shouldn't happen with getAllEntitiesAt, but keep for safety)
-        // This shouldn't be needed since getAllEntitiesAt should find belts, but kept as fallback
-        
+        print("InserterConnectionDialog: No valid target found at position \(tilePos) (inserter at \(inserterTile))")
         return false
     }
     
