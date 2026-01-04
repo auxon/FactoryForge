@@ -80,11 +80,14 @@ final class ChunkManager {
         // Try to load from disk first
         if let savedChunk = loadChunkFromDisk(coord) {
             chunks[coord] = savedChunk
+            print("ChunkManager: Loaded chunk at (\(coord.x), \(coord.y)) from disk, biome: \(savedChunk.biome)")
         } else {
-            // Generate new chunk
+            // Generate new chunk (chunk file doesn't exist or failed to load)
+            print("ChunkManager: WARNING - Could not load chunk at (\(coord.x), \(coord.y)) from disk (slot: \(currentSaveSlot ?? "nil")). Generating new chunk.")
             let biome = biomeGenerator.getBiome(at: coord)
             let chunk = worldGenerator.generateChunk(at: coord, biome: biome)
             chunks[coord] = chunk
+            print("ChunkManager: Generated new chunk at (\(coord.x), \(coord.y)) with biome: \(biome)")
         }
 
         loadedChunks.insert(coord)
@@ -137,17 +140,33 @@ final class ChunkManager {
         return Array(chunks.values)
     }
     
-    /// Clears all loaded chunks (used when loading a save to force reload from disk)
-    func clearLoadedChunks() {
-        // Save any dirty chunks before clearing
-        for (_, chunk) in chunks {
-            if chunk.isDirty {
-                saveChunkToDisk(chunk)
+    /// Clears all loaded chunks
+    /// - Parameter saveDirty: If true, saves dirty chunks before clearing. If false, discards them (use when loading a game to avoid overwriting saved chunks)
+    /// Note: This should be called AFTER setSaveSlot() when loading, so chunks load from the correct directory
+    func clearLoadedChunks(saveDirty: Bool = true) {
+        if saveDirty {
+            // Only save dirty chunks if we have a valid save slot set
+            // This prevents saving chunks from one slot to another when switching saves
+            if let slotName = currentSaveSlot {
+                var savedCount = 0
+                for (_, chunk) in chunks {
+                    if chunk.isDirty {
+                        saveChunkToDisk(chunk)
+                        savedCount += 1
+                    }
+                }
+                if savedCount > 0 {
+                    print("ChunkManager: Saved \(savedCount) dirty chunks before clearing (slot: \(slotName))")
+                }
+            } else {
+                print("ChunkManager: WARNING - clearLoadedChunks called without save slot set, not saving dirty chunks")
             }
+        } else {
+            print("ChunkManager: Clearing chunks without saving (loading game - discarding incorrectly generated chunks)")
         }
         chunks.removeAll()
         loadedChunks.removeAll()
-        print("ChunkManager: Cleared all loaded chunks")
+        print("ChunkManager: Cleared all loaded chunks (save slot: \(currentSaveSlot ?? "nil"))")
     }
     
     /// Force loads chunks around a specific position (used when loading a save)
@@ -185,48 +204,94 @@ final class ChunkManager {
     
     // MARK: - Persistence
     
+    /// Current save slot name (used to organize chunks per save slot)
+    private var currentSaveSlot: String? = nil
+    
+    /// Sets the current save slot for chunk persistence
+    func setSaveSlot(_ slotName: String?) {
+        currentSaveSlot = slotName
+        print("ChunkManager: Set save slot to: \(slotName ?? "nil")")
+    }
+    
     /// Saves all currently loaded chunks to disk (used before saving the game)
     func saveAllChunks() {
+        guard currentSaveSlot != nil else {
+            print("ChunkManager: Warning - saving chunks without a save slot set")
+            return
+        }
+        
         for (_, chunk) in chunks {
             saveChunkToDisk(chunk)
             // Mark as not dirty since we just saved it
             chunk.isDirty = false
         }
-        print("ChunkManager: Saved \(chunks.count) chunks to disk")
+        print("ChunkManager: Saved \(chunks.count) chunks to disk for slot: \(currentSaveSlot ?? "unknown")")
     }
     
     private func saveChunkToDisk(_ chunk: Chunk) {
-        // TODO: Implement chunk saving
+        guard let slotName = currentSaveSlot else {
+            print("ChunkManager: ERROR - Cannot save chunk at (\(chunk.coord.x), \(chunk.coord.y)) - no save slot set")
+            return
+        }
+        
         let data = chunk.serialize()
         let filename = "chunk_\(chunk.coord.x)_\(chunk.coord.y).json"
         
-        if let saveDir = getSaveDirectory() {
-            let url = saveDir.appendingPathComponent(filename)
-            if let jsonData = try? JSONEncoder().encode(data) {
-                try? jsonData.write(to: url)
-            }
+        guard let saveDir = getSaveDirectory(for: slotName) else {
+            print("ChunkManager: ERROR - Cannot get save directory for slot: \(slotName)")
+            return
+        }
+        
+        let url = saveDir.appendingPathComponent(filename)
+        do {
+            let jsonData = try JSONEncoder().encode(data)
+            try jsonData.write(to: url)
+            print("ChunkManager: Saved chunk at (\(chunk.coord.x), \(chunk.coord.y)) to slot: \(slotName) at \(url.path)")
+        } catch {
+            print("ChunkManager: ERROR - Failed to save chunk at (\(chunk.coord.x), \(chunk.coord.y)): \(error)")
         }
     }
     
     private func loadChunkFromDisk(_ coord: ChunkCoord) -> Chunk? {
-        let filename = "chunk_\(coord.x)_\(coord.y).json"
-        
-        guard let saveDir = getSaveDirectory() else { return nil }
-        let url = saveDir.appendingPathComponent(filename)
-        
-        guard let data = try? Data(contentsOf: url),
-              let chunkData = try? JSONDecoder().decode(ChunkData.self, from: data) else {
+        guard let slotName = currentSaveSlot else {
+            print("ChunkManager: WARNING - Cannot load chunk at (\(coord.x), \(coord.y)) - no save slot set")
             return nil
         }
         
-        return Chunk.deserialize(chunkData)
+        let filename = "chunk_\(coord.x)_\(coord.y).json"
+        
+        guard let saveDir = getSaveDirectory(for: slotName) else {
+            print("ChunkManager: ERROR - Cannot get save directory for slot: \(slotName)")
+            return nil
+        }
+        
+        let url = saveDir.appendingPathComponent(filename)
+        
+        // Check if file exists
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: url.path) else {
+            print("ChunkManager: Chunk file does not exist at \(url.path)")
+            return nil
+        }
+        
+        do {
+            let data = try Data(contentsOf: url)
+            let chunkData = try JSONDecoder().decode(ChunkData.self, from: data)
+            let chunk = Chunk.deserialize(chunkData)
+            print("ChunkManager: Loaded chunk at (\(coord.x), \(coord.y)) from slot: \(slotName), biome: \(chunk.biome), path: \(url.path)")
+            return chunk
+        } catch {
+            print("ChunkManager: ERROR - Failed to load chunk at (\(coord.x), \(coord.y)) from slot: \(slotName), path: \(url.path), error: \(error)")
+            return nil
+        }
     }
     
-    private func getSaveDirectory() -> URL? {
+    private func getSaveDirectory(for slotName: String) -> URL? {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         guard let documentsDir = paths.first else { return nil }
         
-        let saveDir = documentsDir.appendingPathComponent("saves/chunks")
+        // Organize chunks per save slot
+        let saveDir = documentsDir.appendingPathComponent("saves/chunks/\(slotName)")
         try? FileManager.default.createDirectory(at: saveDir, withIntermediateDirectories: true)
         return saveDir
     }

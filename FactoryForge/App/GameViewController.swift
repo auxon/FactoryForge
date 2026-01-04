@@ -459,6 +459,9 @@ class GameViewController: UIViewController {
         gameLoop = GameLoop(renderer: renderer, seed: randomSeed)
         renderer.gameLoop = gameLoop
 
+        // Load initial chunks for new game (no save slot needed for new games)
+        gameLoop?.chunkManager.update(playerPosition: gameLoop!.player.position)
+
         // Reset camera to snap to new player position immediately
         if let playerPosition = gameLoop?.player.position {
             renderer.camera.position = playerPosition
@@ -604,8 +607,8 @@ class GameViewController: UIViewController {
         // Set UI system on game loop
         gameLoop?.uiSystem = uiSystem
         
-        // Load save data into game loop
-        saveSystem.load(saveData: saveData, into: gameLoop!)
+        // Load save data into game loop (pass slot name so chunks load from correct directory)
+        saveSystem.load(saveData: saveData, into: gameLoop!, slotName: slotName)
         
         // Update UI system with game loop
         uiSystem?.setGameLoop(gameLoop!)

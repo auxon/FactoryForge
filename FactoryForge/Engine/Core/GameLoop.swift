@@ -98,8 +98,10 @@ final class GameLoop {
         // Load registries from JSON
         loadGameData()
         
-        // Generate initial world around player
-        chunkManager.update(playerPosition: player.position)
+        // Note: Don't load chunks here - they will be loaded when:
+        // 1. For saved games: After saveSystem.load() sets the save slot and loads chunks from disk
+        // 2. For new games: When GameLoop.update() is first called (which calls chunkManager.update())
+        // This prevents chunks from being regenerated before the save slot is set when loading a game
     }
     
     private func loadGameData() {

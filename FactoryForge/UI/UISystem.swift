@@ -1093,14 +1093,15 @@ class InserterConnectionDialog {
         // Try to find entity at position - use getAllEntitiesAt to find all entities (including belts under buildings)
         let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
         
-        // Filter to valid targets (belt, miner, machine, etc.)
+        // Filter to valid targets (belt, miner, machine, boiler, etc.)
         let validEntities = entitiesAtPos.filter { entity in
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
             let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
             let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
             let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
             let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
-            return hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest
+            let hasGenerator = gameLoop.world.has(GeneratorComponent.self, for: entity)
+            return hasBelt || hasMiner || hasFurnace || hasAssembler || hasChest || hasGenerator
         }
         
         // Prefer entities (so we can track them directly), but if multiple found, entitySelectionDialog should handle it

@@ -19,6 +19,9 @@ final class SaveSystem {
     // MARK: - Save
     
     func save(gameLoop: GameLoop, slotName: String = "autosave") {
+        // Set the save slot in chunk manager so chunks are saved to the correct directory
+        gameLoop.chunkManager.setSaveSlot(slotName)
+        
         // Save all loaded chunks to disk before saving the game state
         gameLoop.chunkManager.saveAllChunks()
         
@@ -60,16 +63,23 @@ final class SaveSystem {
     
     // MARK: - Load
     
-    func load(saveData: GameSave, into gameLoop: GameLoop) {
-        // Update ChunkManager seed if it differs from the save file
+    func load(saveData: GameSave, into gameLoop: GameLoop, slotName: String? = nil) {
+        // Update ChunkManager seed FIRST, before loading any chunks
         // This ensures chunks are generated/loaded with the correct seed
         if saveData.seed != gameLoop.chunkManager.seed {
             gameLoop.chunkManager.updateSeed(saveData.seed)
         }
         
+        // Set the save slot in chunk manager so chunks are loaded from the correct directory
+        if let slotName = slotName {
+            gameLoop.chunkManager.setSaveSlot(slotName)
+            print("SaveSystem: Loading chunks from slot: \(slotName)")
+        }
+        
         // Clear all loaded chunks so they will be loaded fresh from disk
-        // This prevents regenerating chunks that should be loaded from saved state
-        gameLoop.chunkManager.clearLoadedChunks()
+        // Don't save dirty chunks - they may have been incorrectly regenerated before the save slot was set
+        // This prevents overwriting the correct saved chunks with incorrectly generated ones
+        gameLoop.chunkManager.clearLoadedChunks(saveDirty: false)
         
         // Load world state FIRST (this clears the world, including the player's entity)
         gameLoop.world.deserialize(saveData.worldData)
