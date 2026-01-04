@@ -55,6 +55,12 @@ final class SpriteRenderer {
     func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, world: World, camera: Camera2D) {
         // Collect sprites from world entities
         let visibleRect = camera.visibleRect.expanded(by: 5)
+        let cameraCenter = camera.position
+        let maxRenderDistance = camera.zoom * 15.0  // Adjust based on zoom level
+
+        var spritesCollected = 0
+        var spritesCulledDistance = 0
+        var spritesCulledSize = 0
 
         // Query all entities with position and sprite components
         for entity in world.query(PositionComponent.self, SpriteComponent.self) {
@@ -63,6 +69,23 @@ final class SpriteRenderer {
 
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
+            spritesCollected += 1
+
+            // Distance-based culling: skip sprites too far from camera center
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else {
+                spritesCulledDistance += 1
+                continue
+            }
+
+            // Skip very small sprites when zoomed out (performance optimization)
+            // Convert world size to screen size: worldSize * zoom * 32.0 (pixels per world unit)
+            let screenSize = sprite.size * camera.zoom * Float(32.0)
+            let minScreenSize = camera.zoom > 2.0 ? Float(4.0) : Float(2.0)  // Minimum screen pixels for sprite to be worth rendering
+            guard screenSize.x >= minScreenSize || screenSize.y >= minScreenSize else {
+                spritesCulledSize += 1
+                continue
+            }
 
             // Skip belt rendering here - belts are drawn as simple shapes instead of sprites
             let beltTypes = ["transport_belt", "fast_transport_belt", "express_transport_belt"]
@@ -94,7 +117,7 @@ final class SpriteRenderer {
         renderBelts(world: world, visibleRect: visibleRect, camera: camera)
         
         // Add items on belts
-        renderBeltItems(world: world, visibleRect: visibleRect)
+        renderBeltItems(world: world, visibleRect: visibleRect, camera: camera)
 
         // Add progress bars for mining drills
         renderMiningProgressBars(world: world, visibleRect: visibleRect, camera: camera)
@@ -104,13 +127,20 @@ final class SpriteRenderer {
 
         guard !queuedSprites.isEmpty else { return }
 
-        // Sort by layer
-        queuedSprites.sort { $0.layer < $1.layer }
+        // Sort by texture first (for better batching), then by layer
+        queuedSprites.sort { (a, b) -> Bool in
+            if a.textureRect.origin != b.textureRect.origin {
+                return a.textureRect.origin.x < b.textureRect.origin.x ||
+                       (a.textureRect.origin.x == b.textureRect.origin.x && a.textureRect.origin.y < b.textureRect.origin.y)
+            }
+            return a.layer < b.layer
+        }
 
         // Generate vertices for all sprites
         spriteVertices.removeAll(keepingCapacity: true)
 
-        for sprite in queuedSprites.prefix(maxVertices / 6) {
+        let spritesToRender = min(queuedSprites.count, maxVertices / 6)
+        for sprite in queuedSprites.prefix(spritesToRender) {
             let uvOrigin = Vector2(sprite.textureRect.origin.x, sprite.textureRect.origin.y)
             let uvSize = Vector2(sprite.textureRect.size.x, sprite.textureRect.size.y)
             let color = sprite.color.vector4
@@ -152,12 +182,22 @@ final class SpriteRenderer {
         encoder.setFragmentSamplerState(textureAtlas.sampler, index: 0)
 
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+
+        // Debug performance info (only in debug builds)
+        #if DEBUG
+        let totalSprites = spritesCollected + spritesCulledDistance + spritesCulledSize
+        if totalSprites > 50 {  // Only log when there are many sprites
+            print("SpriteRenderer: Rendered \(spritesToRender) sprites (\(spritesCollected) collected, \(spritesCulledDistance) culled by distance, \(spritesCulledSize) culled by size)")
+        }
+        #endif
     }
     
     private func renderBelts(world: World, visibleRect: Rect, camera: Camera2D) {
         // Use solid white texture and tint it with belt color
         let solidRect = textureAtlas.getTextureRect(for: "solid_white")
-        
+        let cameraCenter = camera.position
+        let maxRenderDistance = camera.zoom * 15.0
+
         // Belt colors for different types
         let beltColors: [String: Color] = [
             "transport_belt": Color(r: 0.5, g: 0.5, b: 0.5, a: 1.0),      // Grey
@@ -169,9 +209,13 @@ final class SpriteRenderer {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let belt = world.get(BeltComponent.self, for: entity),
                   let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
-            
+
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
+
+            // Distance-based culling for belts
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
             
             // Get belt color based on texture ID
             let beltColor = beltColors[sprite.textureId] ?? Color(r: 0.5, g: 0.5, b: 0.5, a: 1.0)
@@ -196,13 +240,20 @@ final class SpriteRenderer {
         }
     }
     
-    private func renderBeltItems(world: World, visibleRect: Rect) {
+    private func renderBeltItems(world: World, visibleRect: Rect, camera: Camera2D) {
+        let cameraCenter = camera.position
+        let maxRenderDistance = camera.zoom * 15.0
+
         for entity in world.query(BeltComponent.self) {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let belt = world.get(BeltComponent.self, for: entity) else { continue }
 
             let basePos = position.worldPosition
             guard visibleRect.contains(basePos) else { continue }
+
+            // Distance-based culling for belt items
+            let distanceFromCamera = (basePos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
 
             // Render items on left lane
             for item in belt.leftLane {
@@ -237,6 +288,9 @@ final class SpriteRenderer {
     }
 
     private func renderMiningProgressBars(world: World, visibleRect: Rect, camera: Camera2D) {
+        let cameraCenter = camera.position
+        let maxRenderDistance = camera.zoom * 15.0
+
         // Query entities with MinerComponent and SpriteComponent
         for entity in world.query(MinerComponent.self, SpriteComponent.self) {
             guard let position = world.get(PositionComponent.self, for: entity),
@@ -248,6 +302,10 @@ final class SpriteRenderer {
 
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
+
+            // Distance-based culling for progress bars
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
 
             // Position progress bar below the drill sprite
             let progressBarPos = worldPos + Vector2(0, sprite.size.y / 2 + 0.3) // 0.3 units below sprite
@@ -285,6 +343,9 @@ final class SpriteRenderer {
     }
 
     private func renderCraftingProgressBars(world: World, visibleRect: Rect, camera: Camera2D) {
+        let cameraCenter = camera.position
+        let maxRenderDistance = camera.zoom * 15.0
+
         // Query entities with crafting components and sprite components
 
         // Render furnace progress bars
@@ -298,6 +359,10 @@ final class SpriteRenderer {
 
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
+
+            // Distance-based culling for progress bars
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
 
             // Position progress bar below the furnace sprite
             let progressBarPos = worldPos + Vector2(0, sprite.size.y / 2 + 0.3) // 0.3 units below sprite
@@ -344,6 +409,10 @@ final class SpriteRenderer {
 
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
+
+            // Distance-based culling for progress bars
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
 
             // Position progress bar below the assembler sprite
             let progressBarPos = worldPos + Vector2(0, sprite.size.y / 2 + 0.3) // 0.3 units below sprite
