@@ -31,7 +31,7 @@ struct MinerComponent: Component {
 // MARK: - Smelting
 
 /// Component for furnaces
-struct FurnaceComponent: Component {
+struct FurnaceComponent: Component, Codable {
     /// Smelting speed multiplier
     var smeltingSpeed: Float
 
@@ -53,6 +53,33 @@ struct FurnaceComponent: Component {
         self.smeltingProgress = 0
         self.fuelRemaining = 0
         self.pendingBatches = 0
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case smeltingSpeed
+        case recipe
+        case smeltingProgress
+        case fuelRemaining
+        case pendingBatches
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        smeltingSpeed = try container.decode(Float.self, forKey: .smeltingSpeed)
+        recipe = try container.decodeIfPresent(Recipe.self, forKey: .recipe)
+        smeltingProgress = try container.decode(Float.self, forKey: .smeltingProgress)
+        fuelRemaining = try container.decode(Float.self, forKey: .fuelRemaining)
+        // Handle missing pendingBatches field in old saves
+        pendingBatches = try container.decodeIfPresent(Int.self, forKey: .pendingBatches) ?? 0
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(smeltingSpeed, forKey: .smeltingSpeed)
+        try container.encodeIfPresent(recipe, forKey: .recipe)
+        try container.encode(smeltingProgress, forKey: .smeltingProgress)
+        try container.encode(fuelRemaining, forKey: .fuelRemaining)
+        try container.encode(pendingBatches, forKey: .pendingBatches)
     }
 }
 
