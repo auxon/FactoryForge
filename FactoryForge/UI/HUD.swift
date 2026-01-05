@@ -245,6 +245,9 @@ final class HUD {
         // Render build mode exit button (only when in build mode)
         renderBuildModeExitButton(renderer: renderer)
 
+        // Render selected building indicator (only when in build mode)
+        renderSelectedBuildingIndicator(renderer: renderer)
+
         // Render mining animations
         renderMiningAnimations(renderer: renderer)
 
@@ -275,6 +278,22 @@ final class HUD {
         let buttonY = bottomMargin + buttonSize / 2
 
         renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "build", callback: onExitBuildModePressed)
+    }
+
+    private func renderSelectedBuildingIndicator(renderer: MetalRenderer) {
+        // Only show when in build mode
+        guard let inputManager = inputManager,
+              inputManager.buildMode == .placing,
+              let selectedBuildingId = inputManager.selectedBuildingId,
+              let gameLoop = gameLoop,
+              let buildingDef = gameLoop.buildingRegistry.get(selectedBuildingId) else { return }
+
+        // Position it next to the build mode exit button, to the left
+        let buttonX = screenSize.x - bottomMargin - buttonSize / 2 - buttonSize - buttonSpacing - buttonSize - buttonSpacing
+        let buttonY = bottomMargin + buttonSize / 2
+
+        // Render the selected building's texture
+        renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: buildingDef.textureId, callback: nil)
     }
     
     private func hasMachineUI(for entity: Entity) -> Bool {
