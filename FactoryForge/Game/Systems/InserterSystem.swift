@@ -830,8 +830,8 @@ final class InserterSystem: System {
     
     private func tryDropOff(inserter: InserterComponent, position: PositionComponent, item: ItemStack) -> Bool {
         var success = false
-        
-        print("InserterSystem:tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), outputTarget=\(inserter.outputTarget != nil ? "set" : "nil"), outputPosition=\(inserter.outputPosition != nil ? "set" : "nil")")
+
+        print("InserterSystem:tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), outputTarget=\(inserter.outputTarget != nil ? "set (\(inserter.outputTarget!.id))" : "nil"), outputPosition=\(inserter.outputPosition != nil ? "set (\(inserter.outputPosition!))" : "nil")")
 
         // Check configured output connection first
         if let outputTarget = inserter.outputTarget {
@@ -1031,14 +1031,18 @@ final class InserterSystem: System {
             let buildingWidth = Int(ceil(sprite.size.x))
             let buildingHeight = Int(ceil(sprite.size.y))
 
+            print("InserterSystem: tryDropInInventory - target is multi-tile building, size \(buildingWidth)x\(buildingHeight) at \(targetPos.tilePosition)")
+
             // Check if position is within or adjacent to any tile of the building
             for dy in 0..<buildingHeight {
                 for dx in 0..<buildingWidth {
                     let buildingTileX = targetPos.tilePosition.x + Int32(dx)
                     let buildingTileY = targetPos.tilePosition.y + Int32(dy)
                     let distance = abs(buildingTileX - position.x) + abs(buildingTileY - position.y)
+                    print("InserterSystem: tryDropInInventory - checking tile (\(buildingTileX),\(buildingTileY)), distance to inserter at (\(position.x),\(position.y)) = \(distance)")
                     if distance <= 2 {
                         isAdjacent = true
+                        print("InserterSystem: tryDropInInventory - found adjacent tile, isAdjacent = true")
                         break
                     }
                 }
@@ -1048,9 +1052,13 @@ final class InserterSystem: System {
             // Single-tile entity - check if position is adjacent (within 1 tile including diagonals)
             let distance = abs(targetPos.tilePosition.x - position.x) + abs(targetPos.tilePosition.y - position.y)
             isAdjacent = distance <= 2
+            print("InserterSystem: tryDropInInventory - single-tile entity at \(targetPos.tilePosition), distance to inserter at (\(position.x),\(position.y)) = \(distance), isAdjacent = \(isAdjacent)")
         }
-        
-        guard isAdjacent else { return false }
+
+        guard isAdjacent else {
+            print("InserterSystem: tryDropInInventory - not adjacent, cannot drop")
+            return false
+        }
         
         // Check if entity has inventory that can accept the item
         guard var inventory = world.get(InventoryComponent.self, for: targetEntity) else { return false }

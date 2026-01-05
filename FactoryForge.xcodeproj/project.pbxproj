@@ -11,6 +11,7 @@
 		0D0E9B522F09A79200943D17 /* clear.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D0E9B512F09A79200943D17 /* clear.png */; };
 		0D18B5502F0B6B2B006B70A5 /* build.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B54F2F0B6B2B006B70A5 /* build.png */; };
 		0D18B5522F0B6FAC006B70A5 /* place.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5512F0B6FAC006B70A5 /* place.m4a */; };
+		0D18B5562F0C64BE006B70A5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5552F0C64BE006B70A5 /* Assets.xcassets */; };
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
 		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
 		0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371D2F0485C900941686 /* inserters_sheet.png */; };
@@ -252,6 +253,7 @@
 		0D0E9B512F09A79200943D17 /* clear.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = clear.png; sourceTree = "<group>"; };
 		0D18B54F2F0B6B2B006B70A5 /* build.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = build.png; sourceTree = "<group>"; };
 		0D18B5512F0B6FAC006B70A5 /* place.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = place.m4a; sourceTree = "<group>"; };
+		0D18B5552F0C64BE006B70A5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0D3A37192F044AC200941686 /* recycle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = recycle.png; sourceTree = "<group>"; };
 		0D3A371B2F047F7700941686 /* move.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = move.png; sourceTree = "<group>"; };
 		0D3A371D2F0485C900941686 /* inserters_sheet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserters_sheet.png; sourceTree = "<group>"; };
@@ -840,6 +842,7 @@
 		A0000200001 /* FactoryForge */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B5552F0C64BE006B70A5 /* Assets.xcassets */,
 				0D6FDBD12EFDC7E900576EC3 /* Assets */,
 				A0000200010 /* App */,
 				A0000200020 /* Engine */,
@@ -1142,6 +1145,7 @@
 				0D6FDC242EFDE1B500576EC3 /* laser_turret.png in Resources */,
 				0D6FDC252EFDE1B500576EC3 /* electric_furnace.png in Resources */,
 				0D6FDC262EFDE1B500576EC3 /* piercing_rounds_magazine.png in Resources */,
+				0D18B5562F0C64BE006B70A5 /* Assets.xcassets in Resources */,
 				0DE229852F01794500BD619D /* chest.png in Resources */,
 				0D6FDC6A2EFEE52D00576EC3 /* delete_game.png in Resources */,
 				0D6FDC6B2EFEE52D00576EC3 /* load_game.png in Resources */,
