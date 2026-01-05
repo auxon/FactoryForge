@@ -1196,7 +1196,7 @@ final class InputManager: NSObject {
     
     // MARK: - Helper Methods
     
-    private func getEntityTooltipText(entity: Entity, gameLoop: GameLoop?) -> String? {
+    func getEntityTooltipText(entity: Entity, gameLoop: GameLoop?) -> String? {
         guard let world = gameLoop?.world else { return nil }
 
         var tooltipLines: [String] = []

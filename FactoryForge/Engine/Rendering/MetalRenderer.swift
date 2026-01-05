@@ -34,9 +34,12 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     // Game loop reference
     weak var gameLoop: GameLoop?
-    
+
     // UI system reference (needed for loading menu)
     weak var uiSystem: UISystem?
+
+    // Selected entity for highlighting
+    var selectedEntity: Entity?
     
     // Frame statistics
     private(set) var drawCallCount: Int = 0
@@ -223,7 +226,8 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
                 encoder: encoder,
                 viewProjection: viewProjection,
                 world: gameLoop.world,
-                camera: camera
+                camera: camera,
+                selectedEntity: selectedEntity
             )
         }
         

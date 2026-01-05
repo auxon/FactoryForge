@@ -15,6 +15,9 @@ class GameViewController: UIViewController {
     private var tooltipIconView: UIImageView!
     private var tooltipHideTimer: Timer?
 
+    // Persistent tooltip for selected entity
+    private var selectedEntityTooltip: (text: String, entity: Entity?, persistent: Bool) = ("", nil, false)
+
     // Game over UI
     private var gameOverLabel: UILabel!
     private var menuButtonLabel: UILabel!
@@ -118,27 +121,30 @@ class GameViewController: UIViewController {
     func showTooltip(_ text: String, duration: TimeInterval = 3.0) {
         showTooltip(text, entity: nil, duration: duration)
     }
-    
-    func showTooltip(_ text: String, entity: Entity?, duration: TimeInterval = 3.0) {
+
+    func showTooltip(_ text: String, entity: Entity?, duration: TimeInterval = 3.0, persistent: Bool = false) {
+        // Store tooltip info
+        selectedEntityTooltip = (text, entity, persistent)
+
         // Create attributed string with black text and white outline
         let attributedString = NSMutableAttributedString(string: text)
         let range = NSRange(location: 0, length: text.count)
-        
+
         // Set black text color
         attributedString.addAttribute(.foregroundColor, value: UIColor.black, range: range)
-        
+
         // Add white stroke/outline (negative stroke width creates an outline)
         attributedString.addAttribute(.strokeColor, value: UIColor.white, range: range)
         attributedString.addAttribute(.strokeWidth, value: -3.0, range: range)
-        
+
         tooltipLabel.attributedText = attributedString
         tooltipLabel.isHidden = false
-        
+
         // Show/hide icon based on entity
         if let entity = entity, let gameLoop = gameLoop {
             // Get texture ID from entity
             let textureId = getEntityTextureId(entity: entity, gameLoop: gameLoop)
-            
+
             // Load UIImage from bundle using texture ID
             if let image = loadTextureImage(textureId: textureId) {
                 tooltipIconView.image = image
@@ -149,13 +155,35 @@ class GameViewController: UIViewController {
         } else {
             tooltipIconView.isHidden = true
         }
-        
+
         // Cancel existing timer
         tooltipHideTimer?.invalidate()
-        
-        // Hide after duration
-        tooltipHideTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
-            self?.hideTooltip()
+
+        // Only set timer for non-persistent tooltips
+        if !persistent {
+            // Hide after duration and show persistent tooltip if available
+            tooltipHideTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
+                self?.hideTooltip()
+            }
+        }
+    }
+
+    /// Update the persistent tooltip for the selected entity
+    func updateSelectedEntityTooltip(entity: Entity?, text: String?) {
+        if let entity = entity, let text = text {
+            // Set persistent tooltip for selected entity
+            showTooltip(text, entity: entity, persistent: true)
+        } else {
+            // Clear persistent tooltip
+            selectedEntityTooltip = ("", nil, false)
+            hideTooltip()
+        }
+    }
+
+    /// Show the persistent tooltip for the selected entity (called when temporary tooltip expires)
+    private func showPersistentTooltipIfAvailable() {
+        if selectedEntityTooltip.persistent && !selectedEntityTooltip.text.isEmpty {
+            showTooltip(selectedEntityTooltip.text, entity: selectedEntityTooltip.entity, persistent: true)
         }
     }
     
@@ -214,6 +242,9 @@ class GameViewController: UIViewController {
         tooltipIconView.isHidden = true
         tooltipHideTimer?.invalidate()
         tooltipHideTimer = nil
+
+        // Show persistent tooltip if available
+        showPersistentTooltipIfAvailable()
     }
 
     private func setupGameOverUI() {
@@ -806,12 +837,12 @@ class GameViewController: UIViewController {
 
         // Setup tooltip callback
         inputManager?.onTooltip = { [weak self] text in
-            self?.showTooltip(text)
+            self?.showTooltip(text, entity: nil, persistent: false)
         }
-        
+
         // Setup tooltip callback with entity
         inputManager?.onTooltipWithEntity = { [weak self] text, entity in
-            self?.showTooltip(text, entity: entity)
+            self?.showTooltip(text, entity: entity, persistent: false)
         }
         
         // Setup entity selection callback - open machine UI for furnaces/assemblers
@@ -822,6 +853,12 @@ class GameViewController: UIViewController {
             // Update HUD with selected entity first (before any UI operations)
             print("GameViewController: onEntitySelected called with entity: \(entity?.id ?? 0)")
             self.uiSystem?.hud.selectedEntity = entity
+
+            // Update renderer with selected entity for highlighting
+            self.renderer.selectedEntity = entity
+
+            // Clear any persistent tooltip when selection changes
+            self.updateSelectedEntityTooltip(entity: nil, text: nil)
             
             // Verify the entity was set correctly in HUD
             if let entity = entity {
@@ -839,40 +876,14 @@ class GameViewController: UIViewController {
             
             // If no entity selected, clear selection
             guard let entity = entity else { return }
-            
+
             let world = gameLoop.world
-            
-            // Check if it's a machine we can interact with
-            if world.has(FurnaceComponent.self, for: entity) {
-                print("GameViewController: Furnace selected, opening Machine UI")
-                // Open machine UI
-                gameLoop.uiSystem?.openMachineUI(for: entity)
-            } else if world.has(AssemblerComponent.self, for: entity) {
-                print("GameViewController: Assembler selected, opening Machine UI")
-                // Open machine UI
-                gameLoop.uiSystem?.openMachineUI(for: entity)
-            } else if world.has(MinerComponent.self, for: entity) {
-                print("GameViewController: Mining drill selected, opening Machine UI")
-                // Open machine UI
-                gameLoop.uiSystem?.openMachineUI(for: entity)
-            } else if world.has(GeneratorComponent.self, for: entity) {
-                print("GameViewController: Generator/Boiler selected, opening Machine UI")
-                // Open machine UI for generators (boilers, etc.)
-                gameLoop.uiSystem?.openMachineUI(for: entity)
-            } else if world.has(ChestComponent.self, for: entity) {
+
+            // Only open inventory UI for chests automatically (other machines require clicking the Open button)
+            if world.has(ChestComponent.self, for: entity) {
                 print("GameViewController: Chest selected, opening Inventory UI")
                 // Open inventory UI for chest
                 gameLoop.uiSystem?.openChestInventory(for: entity)
-            } else {
-                // Fallback: check if it's a boiler by size/texture (for old saves that don't have GeneratorComponent)
-                if let sprite = world.get(SpriteComponent.self, for: entity) {
-                    // Boiler is 2x3 tiles
-                    if sprite.size.x == 2.0 && sprite.size.y == 3.0 {
-                        print("GameViewController: Boiler detected by size (2x3), opening Machine UI")
-                        // Open machine UI for boiler
-                        gameLoop.uiSystem?.openMachineUI(for: entity)
-                    }
-                }
             }
         }
         
@@ -1008,11 +1019,22 @@ class GameViewController: UIViewController {
                 print("GameViewController: Configure inserter callback - no selected entity")
                 return
             }
-            
+
             print("GameViewController: Configure inserter button pressed for entity \(selectedEntity)")
-            
+
             // Open inserter connection dialog
             self.uiSystem?.showInserterConnectionDialog(entity: selectedEntity)
+        }
+
+        // Setup callback for when HUD selection changes (e.g., entity dies)
+        uiSystem?.hud.onSelectedEntityChanged = { [weak self] entity in
+            guard let self = self else { return }
+            // Update renderer
+            self.renderer.selectedEntity = entity
+            // Only show persistent tooltip if entity became nil (died) - otherwise let normal tooltips handle it
+            if entity == nil {
+                self.updateSelectedEntityTooltip(entity: nil, text: nil)
+            }
         }
     }
     

@@ -45,7 +45,7 @@ final class CraftingSystem: System {
                 }
             } else {
                 // Try to start crafting
-                if canStartRecipe(recipe: recipe, inventory: inventory) {
+                if canStartRecipe(recipe: recipe, inventory: inventory, entity: entity, world: world) {
                     // Consume inputs
                     for input in recipe.inputs {
                         inventory.remove(itemId: input.itemId, count: input.count)
@@ -121,7 +121,7 @@ final class CraftingSystem: System {
                 }
 
                 // Only start new recipes if we have fuel/power
-                if hasFuel && canStartRecipe(recipe: recipe, inventory: inventory) {
+                if hasFuel && canStartRecipe(recipe: recipe, inventory: inventory, entity: entity, world: world) {
                     // Consume inputs
                     for input in recipe.inputs {
                         inventory.remove(itemId: input.itemId, count: input.count)
@@ -133,21 +133,42 @@ final class CraftingSystem: System {
         }
     }
     
-    private func canStartRecipe(recipe: Recipe, inventory: InventoryComponent) -> Bool {
+    private func canStartRecipe(recipe: Recipe, inventory: InventoryComponent, entity: Entity? = nil, world: World? = nil) -> Bool {
         // Check if we have all inputs
         for input in recipe.inputs {
             if inventory.count(of: input.itemId) < input.count {
                 return false
             }
         }
-        
+
         // Check if we have space for outputs
-        for output in recipe.outputs {
-            if !inventory.canAccept(itemId: output.itemId) {
-                return false
+        if let entity = entity, let world = world, world.has(FurnaceComponent.self, for: entity) {
+            // For furnaces, check space only in output slots (second half)
+            let outputStartIndex = inventory.slots.count / 2
+            for output in recipe.outputs {
+                var hasSpace = false
+                for i in outputStartIndex..<inventory.slots.count {
+                    if let existing = inventory.slots[i], existing.itemId == output.itemId && existing.count < existing.maxStack {
+                        hasSpace = true
+                        break
+                    } else if inventory.slots[i] == nil {
+                        hasSpace = true
+                        break
+                    }
+                }
+                if !hasSpace {
+                    return false
+                }
+            }
+        } else {
+            // For assemblers and other machines, check space anywhere in inventory
+            for output in recipe.outputs {
+                if !inventory.canAccept(itemId: output.itemId) {
+                    return false
+                }
             }
         }
-        
+
         return true
     }
     
@@ -158,7 +179,7 @@ final class CraftingSystem: System {
 
         for output in recipe.outputs {
             if isFurnace {
-                // Try to add to output slots first (second half)
+                // For furnaces, ONLY add to output slots (second half) - never to input slots
                 var added = false
                 for i in outputStartIndex..<inventory.slots.count {
                     if let existing = inventory.slots[i], existing.itemId == output.itemId && existing.count < existing.maxStack {
@@ -173,12 +194,15 @@ final class CraftingSystem: System {
                         break
                     }
                 }
-                // If output slots are full, fall back to regular add (will use first available slot)
+                // If output slots are full, allow completion but use fallback (any available slot)
+                // This prevents furnaces from getting stuck with in-progress recipes
                 if !added {
+                    print("Warning: Furnace output slots are full - using fallback placement for recipe \(recipe.id)")
+                    // Use regular add as fallback (will place in any available slot, including input slots if needed)
                     let remaining = inventory.add(output)
                     if remaining > 0 {
-                        // Couldn't add all items - this shouldn't happen if canStartRecipe checked properly
-                        print("Warning: Could not add all output items to furnace inventory")
+                        print("Warning: Could not place furnace output - no space anywhere in inventory")
+                        // In a real game, this might destroy the item or something
                     }
                 }
             } else {

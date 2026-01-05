@@ -52,7 +52,7 @@ final class SpriteRenderer {
         queuedSprites.append(sprite)
     }
     
-    func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, world: World, camera: Camera2D) {
+    func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, world: World, camera: Camera2D, selectedEntity: Entity?) {
         // Collect sprites from world entities
         let visibleRect = camera.visibleRect.expanded(by: 5)
         let cameraCenter = camera.position
@@ -103,14 +103,36 @@ final class SpriteRenderer {
             // Buildings use directional sprites or don't need rotation
             let rotation = sprite.centered ? position.direction.angle : 0
 
+            // Check if this entity is selected for highlighting
+            let isSelected = selectedEntity != nil && entity.id == selectedEntity!.id && entity.generation == selectedEntity!.generation
+            let tintColor = isSelected ?
+                Color(r: sprite.tint.r * 1.5, g: sprite.tint.g * 1.5, b: sprite.tint.b * 1.0, a: sprite.tint.a) :
+                sprite.tint  // Brighten selected entities
+
             queuedSprites.append(SpriteInstance(
                 position: renderPos,
                 size: sprite.size,
                 rotation: rotation,
                 textureRect: textureRect,
-                color: sprite.tint,
+                color: tintColor,
                 layer: sprite.layer
             ))
+
+            // Add highlight outline for selected entities
+            if isSelected {
+                // Render a slightly larger, semi-transparent version behind the original sprite
+                let highlightSize = sprite.size * 1.1  // 10% larger
+                let highlightColor = Color(r: 1.0, g: 1.0, b: 0.0, a: 0.3)  // Yellow semi-transparent highlight
+
+                queuedSprites.append(SpriteInstance(
+                    position: renderPos,
+                    size: highlightSize,
+                    rotation: rotation,
+                    textureRect: textureRect,
+                    color: highlightColor,
+                    layer: sprite.layer  // Same layer, but will be rendered first due to queue order
+                ))
+            }
         }
 
         // Render belts as simple shapes (before items so items appear on top)

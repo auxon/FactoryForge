@@ -211,14 +211,11 @@ final class UISystem {
                 print("UISystem: Double-tapped inserter in selection dialog, opening connection dialog")
                 self.closeEntitySelectionDialog()
                 self.showInserterConnectionDialog(entity: entity)
-            } else if world.has(FurnaceComponent.self, for: entity) ||
-                      world.has(AssemblerComponent.self, for: entity) ||
-                      world.has(MinerComponent.self, for: entity) ||
-                      world.has(GeneratorComponent.self, for: entity) {
-                // It's a machine - open machine UI
-                print("UISystem: Double-tapped machine in selection dialog, opening machine UI")
+            } else if world.has(ChestComponent.self, for: entity) {
+                // Only open inventory UI for chests automatically
+                print("UISystem: Double-tapped chest in selection dialog, opening inventory UI")
                 self.closeEntitySelectionDialog()
-                self.openMachineUI(for: entity)
+                self.openChestInventory(for: entity)
             }
         }
         

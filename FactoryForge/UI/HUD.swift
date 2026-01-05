@@ -35,8 +35,13 @@ final class HUD {
         didSet {
             // Validate that the selected entity is still alive
             validateSelectedEntity()
+            // Notify about selection change
+            onSelectedEntityChanged?(selectedEntity)
         }
     }
+
+    // Callback when selected entity changes
+    var onSelectedEntityChanged: ((Entity?) -> Void)?
 
     /// Validates that the currently selected entity is still alive
     private func validateSelectedEntity() {

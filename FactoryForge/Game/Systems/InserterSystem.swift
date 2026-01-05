@@ -112,6 +112,7 @@ final class InserterSystem: System {
                 if inserter.heldItem != nil {
                     // // print("InserterSystem:Inserter at \(position.tilePosition) in idle state but holding item \(inserter.heldItem!.itemId), transitioning to droppingOff")
                     inserter.state = .droppingOff
+                    inserter.dropTimeout = 0  // Reset timeout when starting to drop
                     break
                 }
 
@@ -256,11 +257,12 @@ final class InserterSystem: System {
                 let distanceToZero = min(abs(normalizedArmAngle), abs(normalizedArmAngle - 2 * .pi))
                 // Snap if: within one rotation step, or very close to target, or close to 0/2π
                 // Use a larger threshold to ensure we snap when close
-                if abs(angleDiff) <= rotationSpeed * 2 || abs(angleDiff) < 0.3 || distanceToZero < 0.3 {
-                    inserter.armAngle = targetAngle
-                    // // print("InserterSystem:Inserter at \(position.tilePosition) arm reached target (0), transitioning to droppingOff (angleDiff=\(angleDiff), distanceToZero=\(distanceToZero))")
-                    inserter.state = .droppingOff
-                } else {
+                    if abs(angleDiff) <= rotationSpeed * 2 || abs(angleDiff) < 0.3 || distanceToZero < 0.3 {
+                        inserter.armAngle = targetAngle
+                        // // print("InserterSystem:Inserter at \(position.tilePosition) arm reached target (0), transitioning to droppingOff (angleDiff=\(angleDiff), distanceToZero=\(distanceToZero))")
+                        inserter.state = .droppingOff
+                        inserter.dropTimeout = 0  // Reset timeout when starting to drop
+                    } else {
                     // Calculate new angle using normalized value
                     let newAngle = normalizedArmAngle + (angleDiff > 0 ? rotationSpeed : -rotationSpeed)
                     
@@ -303,17 +305,39 @@ final class InserterSystem: System {
                         // // print("InserterSystem:Inserter at \(position.tilePosition) successfully dropped off item")
                         inserter.heldItem = nil
                         inserter.sourceEntity = nil  // Clear source entity after dropping off
+                        inserter.dropTimeout = 0  // Reset timeout on successful drop
                         inserter.state = .idle
                         inserter.armAngle = 0
                     } else {
                         // // print("InserterSystem:Inserter at \(position.tilePosition) failed to drop off")
                         // Can't drop off (output is full) - keep holding the item and wait
-                        // Don't clear heldItem - this allows the inserter to retry when space becomes available
-                        // The inserter will stay in .droppingOff state and retry next frame
+                        inserter.dropTimeout += deltaTime
+
+                        // If we've been trying to drop for too long, put the item back and go idle
+                        let dropTimeoutLimit: Float = 10.0  // 10 seconds
+                        if inserter.dropTimeout >= dropTimeoutLimit {
+                            print("InserterSystem:Inserter at \(position.tilePosition) timed out trying to drop \(item.itemId), putting back to source")
+                            // Try to put the item back to the source
+                            if let sourceEntity = inserter.sourceEntity, tryPutBackToSource(inserter: &inserter, sourceEntity: sourceEntity, item: item) {
+                                // Successfully put back
+                                inserter.heldItem = nil
+                                inserter.sourceEntity = nil
+                            } else {
+                                // Couldn't put back - just drop the item (this shouldn't happen in normal gameplay)
+                                print("Warning: InserterSystem:Could not put item back to source, dropping item")
+                                inserter.heldItem = nil
+                                inserter.sourceEntity = nil
+                            }
+                            inserter.dropTimeout = 0
+                            inserter.state = .idle
+                            inserter.armAngle = 0
+                        }
+                        // Don't clear heldItem - keep trying to drop
                         // Don't reset armAngle - keep it at 0 (facing output) while waiting
                     }
                 } else {
                     inserter.state = .idle
+                    inserter.dropTimeout = 0
                 }
             }
         }
@@ -555,7 +579,41 @@ final class InserterSystem: System {
         // If no configured connection or connection failed, return nil
         return nil
     }
-    
+
+    /// Try to put an item back to its source entity
+    private func tryPutBackToSource(inserter: inout InserterComponent, sourceEntity: Entity, item: ItemStack) -> Bool {
+        // Only put back if the source can accept the item
+        guard var inventory = world.get(InventoryComponent.self, for: sourceEntity) else { return false }
+
+        // Check if source is a machine with input/output slots
+        let isMachine = world.has(FurnaceComponent.self, for: sourceEntity) ||
+                       world.has(AssemblerComponent.self, for: sourceEntity)
+
+        if isMachine {
+            // For machines, we picked from output slots, so put back to output slots
+            let outputStartIndex = inventory.slots.count / 2
+            // Temporarily modify inventory to only allow output slots for putting back
+            var tempInventory = inventory
+            for i in 0..<outputStartIndex {
+                tempInventory.slots[i] = nil  // Clear input slots
+            }
+
+            guard tempInventory.canAccept(itemId: item.itemId) else { return false }
+
+            let remaining = tempInventory.add(item)
+            inventory = tempInventory
+            world.add(inventory, to: sourceEntity)
+            return remaining == 0
+        } else {
+            // For regular entities, just add back normally
+            guard inventory.canAccept(itemId: item.itemId) else { return false }
+
+            let remaining = inventory.add(item)
+            world.add(inventory, to: sourceEntity)
+            return remaining == 0
+        }
+    }
+
     /// Picks an item directly from a belt entity (when we have the entity reference)
     private func tryPickFromBeltEntity(entity: Entity) -> ItemStack? {
         guard world.has(BeltComponent.self, for: entity),
