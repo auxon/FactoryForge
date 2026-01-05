@@ -85,6 +85,7 @@ final class TextureAtlas {
             ("assembler", nil),
             ("load_game", nil),
             ("menu", nil),
+            ("build", nil),
             ("new_game", nil),
             ("save_game", nil),
             ("recycle", nil),

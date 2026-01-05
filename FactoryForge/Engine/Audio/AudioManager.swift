@@ -182,11 +182,11 @@ final class AudioManager {
     // MARK: - Sound Effect Names
     
     func playPlaceSound() {
-        playSound("place.wav")
+        playSound("place.m4a")
     }
     
     func playRemoveSound() {
-        playSound("remove.wav")
+        playSound("place.m4a")
     }
     
     func playClickSound() {

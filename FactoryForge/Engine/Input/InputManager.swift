@@ -322,10 +322,8 @@ final class InputManager: NSObject {
                 // Try to place with offset to center at tap location
                 if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
-                    // Exit build mode after placing (except for belts which allow drag placement)
-                    if !buildingId.contains("belt") {
-                        exitBuildMode()
-                    }
+                    // Keep in build mode to allow placing more buildings
+                    AudioManager.shared.playPlaceSound()
                 } else {
                     onTooltip?("Failed to place building")
                 }
@@ -538,11 +536,9 @@ final class InputManager: NSObject {
                 // Try to place with offset to center at tap location
                 if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
-                    // Exit build mode after placing (except for belts which allow drag placement)
-                    if !buildingId.contains("belt") {
-                        exitBuildMode()
-                    }
+                    // Keep in build mode to allow placing more buildings
                     // Play placement sound/feedback
+                    AudioManager.shared.playPlaceSound()
                 } else {
                     onTooltip?("Failed to place building")
                 }
@@ -888,10 +884,9 @@ final class InputManager: NSObject {
                 }
             }
             
-            // Exit build mode after belt/pole placement drag ends
-            if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") || buildingId.contains("pole") {
-                exitBuildMode()
-            } else {
+            // Keep in build mode after placement (including belts/poles)
+            // Users can exit via the build mode button or other means
+            if buildMode == .placing {
                 // Clear drag placement state on drag end (for other modes)
                 dragPlacedTiles = []
             }
@@ -1157,11 +1152,9 @@ final class InputManager: NSObject {
             // Try to place with offset to center at tap location
             if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
                 onBuildingPlaced?(buildingId, tilePos, buildDirection)
-                // Exit build mode after placing (except for belts which allow drag placement)
-                if !buildingId.contains("belt") {
-                    exitBuildMode()
-                }
+                // Keep in build mode to allow placing more buildings
                 // Play placement sound/feedback
+                AudioManager.shared.playPlaceSound()
             } else {
                 onTooltip?("Failed to place building")
             }

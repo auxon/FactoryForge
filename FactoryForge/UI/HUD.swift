@@ -29,6 +29,7 @@ final class HUD {
     var onRotateBuildingPressed: (() -> Void)? // Called when rotate button is pressed (for belts)
     var onOpenMachinePressed: (() -> Void)? // Called when open button is pressed
     var onConfigureInserterPressed: (() -> Void)? // Called when configure button is pressed (for inserters)
+    var onExitBuildModePressed: (() -> Void)? // Called when exit build mode button is pressed
     
     // Selected building
     var selectedEntity: Entity? {
@@ -240,7 +241,10 @@ final class HUD {
         
         // Render menu button (top-right corner)
         renderMenuButton(renderer: renderer)
-        
+
+        // Render build mode exit button (only when in build mode)
+        renderBuildModeExitButton(renderer: renderer)
+
         // Render mining animations
         renderMiningAnimations(renderer: renderer)
 
@@ -258,8 +262,19 @@ final class HUD {
         // Menu button in top-right corner
         let buttonX = screenSize.x - bottomMargin - buttonSize / 2
         let buttonY = bottomMargin + buttonSize / 2
-        
+
         renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "menu", callback: onMenuPressed)
+    }
+
+    private func renderBuildModeExitButton(renderer: MetalRenderer) {
+        // Only show when in build mode
+        guard let inputManager = inputManager, inputManager.buildMode != .none else { return }
+
+        // Position it next to the menu button, to the left
+        let buttonX = screenSize.x - bottomMargin - buttonSize / 2 - buttonSize - buttonSpacing
+        let buttonY = bottomMargin + buttonSize / 2
+
+        renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "build", callback: onExitBuildModePressed)
     }
     
     private func hasMachineUI(for entity: Entity) -> Bool {
@@ -629,11 +644,20 @@ final class HUD {
         }
         
         // Check menu button (top-right corner)
-        let buttonX = screenSize.x - bottomMargin - buttonSize / 2
+        let menuButtonX = screenSize.x - bottomMargin - buttonSize / 2
         let buttonY = bottomMargin + buttonSize / 2
-        if checkButtonTap(at: position, buttonPos: Vector2(buttonX, buttonY)) {
+        if checkButtonTap(at: position, buttonPos: Vector2(menuButtonX, buttonY)) {
             onMenuPressed?()
             return true
+        }
+
+        // Check build mode exit button (only when in build mode)
+        if let inputManager = inputManager, inputManager.buildMode != .none {
+            let exitButtonX = screenSize.x - bottomMargin - buttonSize / 2 - buttonSize - buttonSpacing
+            if checkButtonTap(at: position, buttonPos: Vector2(exitButtonX, buttonY)) {
+                onExitBuildModePressed?()
+                return true
+            }
         }
         
         // Check move and delete buttons if a building is selected

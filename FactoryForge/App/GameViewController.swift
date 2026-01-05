@@ -514,7 +514,10 @@ class GameViewController: UIViewController {
         
         // Setup input (this will also set up HUD callbacks)
         setupInput()
-        
+
+        // Exit build mode when starting a new game
+        inputManager?.exitBuildMode()
+
         // Force immediate redraw after UI system update
         metalView.setNeedsDisplay()
 
@@ -646,6 +649,9 @@ class GameViewController: UIViewController {
         
         // Setup input
         setupInput()
+
+        // Exit build mode when loading a saved game
+        inputManager?.exitBuildMode()
 
         // Enable save button in loading menu (game is now running)
         uiSystem?.getLoadingMenu().onSaveGameRequested = { [weak self] in
@@ -1028,6 +1034,12 @@ class GameViewController: UIViewController {
 
             // Open inserter connection dialog
             self.uiSystem?.showInserterConnectionDialog(entity: selectedEntity)
+        }
+
+        // Setup exit build mode callback
+        uiSystem?.hud.onExitBuildModePressed = { [weak self] in
+            print("GameViewController: Exit build mode button pressed")
+            self?.inputManager?.exitBuildMode()
         }
 
         // Setup callback for when HUD selection changes (e.g., entity dies)
