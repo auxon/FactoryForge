@@ -40,7 +40,7 @@ final class CraftingSystem: System {
                 
                 if assembler.craftingProgress >= 1.0 {
                     // Complete crafting
-                    completeRecipe(recipe: recipe, inventory: &inventory, entity: entity, world: world)
+                    completeRecipe(recipe: recipe, inventory: &inventory, entity: entity, world: world, batchCount: 1)
                     assembler.craftingProgress = 0
                 }
             } else {
@@ -96,7 +96,7 @@ final class CraftingSystem: System {
             }
             
             guard let recipe = furnace.recipe else { return }
-            
+
             // Check if crafting in progress
             if furnace.smeltingProgress > 0 {
                 // Continue in-progress recipes regardless of current fuel status
@@ -104,8 +104,11 @@ final class CraftingSystem: System {
                 furnace.smeltingProgress += deltaTime / smeltTime
 
                 if furnace.smeltingProgress >= 1.0 {
-                    completeRecipe(recipe: recipe, inventory: &inventory, entity: entity, world: world)
+                    // Complete all pending batches
+                    let batchesCompleted = furnace.pendingBatches
+                    completeRecipe(recipe: recipe, inventory: &inventory, entity: entity, world: world, batchCount: batchesCompleted)
                     furnace.smeltingProgress = 0
+                    furnace.pendingBatches = 0
                     furnace.recipe = nil  // Reset to auto-select next
                 }
             } else {
@@ -118,16 +121,23 @@ final class CraftingSystem: System {
                         world.add(inventory, to: entity)
                     }
                 }
-                
+
                 // Only start new recipes if we have fuel/power
                 if hasFuel {
-                    let canStart = canStartRecipe(recipe: recipe, inventory: inventory)
+                    // Count how many complete sets of inputs are available
+                    var maxBatches = Int.max
+                    for input in recipe.inputs {
+                        let available = inventory.count(of: input.itemId)
+                        maxBatches = min(maxBatches, available / input.count)
+                    }
 
-                    if canStart {
+                    if maxBatches > 0 {
+                        // Consume inputs for all available batches
                         for input in recipe.inputs {
-                            inventory.remove(itemId: input.itemId, count: input.count)
+                            inventory.remove(itemId: input.itemId, count: input.count * maxBatches)
                         }
                         furnace.smeltingProgress = 0.001
+                        furnace.pendingBatches = maxBatches
                         world.add(inventory, to: entity)
                     }
                 }
@@ -153,31 +163,35 @@ final class CraftingSystem: System {
         return true
     }
     
-    private func completeRecipe(recipe: Recipe, inventory: inout InventoryComponent, entity: Entity, world: World) {
+    private func completeRecipe(recipe: Recipe, inventory: inout InventoryComponent, entity: Entity, world: World, batchCount: Int = 1) {
         // For furnaces, put outputs in the second half of inventory slots
         let isFurnace = world.has(FurnaceComponent.self, for: entity)
         let outputStartIndex = isFurnace ? inventory.slots.count / 2 : 0
-        
+
         for output in recipe.outputs {
+            // Multiply output by batch count
+            var multipliedOutput = output
+            multipliedOutput.count *= batchCount
+
             if isFurnace {
                 // Try to add to output slots first (second half)
                 var added = false
                 for i in outputStartIndex..<inventory.slots.count {
-                    if let existing = inventory.slots[i], existing.itemId == output.itemId && existing.count < existing.maxStack {
+                    if let existing = inventory.slots[i], existing.itemId == multipliedOutput.itemId && existing.count < existing.maxStack {
                         // Add to existing stack
-                        inventory.slots[i]?.count += output.count
+                        inventory.slots[i]?.count += multipliedOutput.count
                         added = true
                         break
                     } else if inventory.slots[i] == nil {
                         // Add to empty slot
-                        inventory.slots[i] = output
+                        inventory.slots[i] = multipliedOutput
                         added = true
                         break
                     }
                 }
                 // If output slots are full, fall back to regular add (will use first available slot)
                 if !added {
-                    let remaining = inventory.add(output)
+                    let remaining = inventory.add(multipliedOutput)
                     if remaining > 0 {
                         // Couldn't add all items - this shouldn't happen if canStartRecipe checked properly
                         print("Warning: Could not add all output items to furnace inventory")
@@ -185,7 +199,7 @@ final class CraftingSystem: System {
                 }
             } else {
                 // For assemblers, use regular add
-                inventory.add(output)
+                inventory.add(multipliedOutput)
             }
         }
         world.add(inventory, to: entity)

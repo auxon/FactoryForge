@@ -34,21 +34,25 @@ struct MinerComponent: Component {
 struct FurnaceComponent: Component {
     /// Smelting speed multiplier
     var smeltingSpeed: Float
-    
+
     /// Current recipe being smelted
     var recipe: Recipe?
-    
+
     /// Smelting progress (0-1)
     var smeltingProgress: Float
-    
+
     /// Fuel remaining
     var fuelRemaining: Float
-    
+
+    /// Number of batches currently being processed
+    var pendingBatches: Int
+
     init(smeltingSpeed: Float = 1.0) {
         self.smeltingSpeed = smeltingSpeed
         self.recipe = nil
         self.smeltingProgress = 0
         self.fuelRemaining = 0
+        self.pendingBatches = 0
     }
 }
 

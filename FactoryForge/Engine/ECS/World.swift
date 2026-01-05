@@ -346,15 +346,30 @@ final class World {
 
             let worldPos = pos.worldPosition
             let sprite = get(SpriteComponent.self, for: entity)
-            let halfWidth = (sprite?.size.x ?? 1.0) / 2.0
-            let halfHeight = (sprite?.size.y ?? 1.0) / 2.0
+            let spriteSize = sprite?.size ?? Vector2(1, 1)
+            let isCentered = sprite?.centered ?? false
 
-            // For sprites, the position is usually the center (for centered sprites) or bottom-left (for non-centered)
-            // For selection, we'll check if the entity's world bounds intersect the selection rect
-            let entityMinX = worldPos.x - halfWidth
-            let entityMaxX = worldPos.x + halfWidth
-            let entityMinY = worldPos.y - halfHeight
-            let entityMaxY = worldPos.y + halfHeight
+            // Calculate bounds based on whether the sprite is centered or not
+            let entityMinX: Float
+            let entityMaxX: Float
+            let entityMinY: Float
+            let entityMaxY: Float
+
+            if isCentered {
+                // Centered sprites: position is at center
+                let halfWidth = spriteSize.x / 2.0
+                let halfHeight = spriteSize.y / 2.0
+                entityMinX = worldPos.x - halfWidth
+                entityMaxX = worldPos.x + halfWidth
+                entityMinY = worldPos.y - halfHeight
+                entityMaxY = worldPos.y + halfHeight
+            } else {
+                // Non-centered sprites: position is at bottom-left
+                entityMinX = worldPos.x
+                entityMaxX = worldPos.x + spriteSize.x
+                entityMinY = worldPos.y
+                entityMaxY = worldPos.y + spriteSize.y
+            }
 
             // Check for intersection with world rect
             let intersects = !(entityMaxX < worldRect.minX || entityMinX > worldRect.maxX ||
