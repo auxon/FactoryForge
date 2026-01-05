@@ -180,7 +180,7 @@ final class BuildingRegistry {
             maxHealth: 40,
             cost: [ItemStack(itemId: "inserter", count: 1)]
         )
-        inserter.inserterSpeed = 0.83
+        inserter.inserterSpeed = 4.0
         inserter.inserterStackSize = 1
         inserter.powerConsumption = 13
         register(inserter)
