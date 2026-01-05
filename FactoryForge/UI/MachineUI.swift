@@ -126,8 +126,31 @@ final class MachineUI: UIPanel_Base {
                 frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
                 index: 0
             ))
+        } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+            // Furnaces: 2 input slots (left) and 2 output slots (right)
+            let slotSpacing: Float = 5 * UIScale
+
+            // Input slots (left side) - slots 0 and 1
+            for i in 0..<2 {
+                let slotX = frame.minX + 50 * UIScale
+                let slotY = frame.minY + 80 * UIScale + Float(i) * (slotSize + slotSpacing)
+                inputSlots.append(InventorySlot(
+                    frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
+                    index: i
+                ))
+            }
+
+            // Output slots (right side) - slots 2 and 3
+            for i in 0..<2 {
+                let slotX = frame.maxX - 50 * UIScale
+                let slotY = frame.minY + 80 * UIScale + Float(i) * (slotSize + slotSpacing)
+                outputSlots.append(InventorySlot(
+                    frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
+                    index: i + 2  // Output slots start at index 2
+                ))
+            }
         } else {
-            // Default setup for other machines (assemblers, furnaces)
+            // Default setup for other machines (assemblers)
             let slotSpacing: Float = 5 * UIScale
 
             // Input slots (left side)
@@ -140,13 +163,13 @@ final class MachineUI: UIPanel_Base {
                 ))
             }
 
-            // Output slots (right side)
+            // Output slots (right side) - slots 4, 5, 6, 7
             for i in 0..<4 {
                 let slotX = frame.maxX - 50 * UIScale
                 let slotY = frame.minY + 80 * UIScale + Float(i) * (slotSize + slotSpacing)
                 outputSlots.append(InventorySlot(
                     frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
-                    index: i
+                    index: i + 4  // Output slots start at index 4
                 ))
             }
         }
@@ -354,18 +377,29 @@ final class MachineUI: UIPanel_Base {
                 }
             } else {
                 // Default behavior for assemblers/furnaces: split inventory in half
+                var hasChanges = false
+                var outputSummary = ""
                 for (index, slot) in inputSlots.enumerated() {
-                    if index < inventory.slots.count / 2 {
-                        slot.item = inventory.slots[index]
-                        updateCountLabel(for: slot, label: inputCountLabels[index], item: slot.item)
+                    let oldItem = slot.item
+                    slot.item = inventory.slots[slot.index]
+                    if oldItem?.itemId != slot.item?.itemId || oldItem?.count != slot.item?.count {
+                        hasChanges = true
                     }
+                    updateCountLabel(for: slot, label: inputCountLabels[index], item: slot.item)
                 }
                 for (index, slot) in outputSlots.enumerated() {
-                    let inventoryIndex = inventory.slots.count / 2 + index
-                    if inventoryIndex < inventory.slots.count {
-                        slot.item = inventory.slots[inventoryIndex]
-                        updateCountLabel(for: slot, label: outputCountLabels[index], item: slot.item)
+                    let oldItem = slot.item
+                    slot.item = inventory.slots[slot.index]
+                    if oldItem?.itemId != slot.item?.itemId || oldItem?.count != slot.item?.count {
+                        hasChanges = true
                     }
+                    if slot.item != nil {
+                        outputSummary += "\(slot.item!.itemId) x\(slot.item!.count) "
+                    }
+                    updateCountLabel(for: slot, label: outputCountLabels[index], item: slot.item)
+                }
+                if hasChanges && !outputSummary.isEmpty {
+                    print("MachineUI: 📦 Outputs: \(outputSummary.trimmingCharacters(in: .whitespaces))")
                 }
             }
         }
@@ -558,14 +592,8 @@ final class MachineUI: UIPanel_Base {
             // Output slot - try to take item to player inventory
             guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { return }
 
-            // Get the actual item from the inventory slot (not from slot.item which might be stale)
-            let outputSlotIndex: Int
-            if gameLoop.world.has(GeneratorComponent.self, for: entity) {
-                // Generators don't have output slots
-                return
-            } else {
-                outputSlotIndex = machineInventory.slots.count / 2 + slot.index
-            }
+    // Get the actual item from the inventory slot (not from slot.item which might be stale)
+    let outputSlotIndex = slot.index
             guard outputSlotIndex < machineInventory.slots.count,
                   let item = machineInventory.slots[outputSlotIndex] else { return }
             

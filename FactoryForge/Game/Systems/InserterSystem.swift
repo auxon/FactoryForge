@@ -74,7 +74,7 @@ final class InserterSystem: System {
                         for x in targetOrigin.x..<(targetOrigin.x + width) {
                             let targetTile = IntVector2(x: x, y: y)
                             let distance = abs(targetTile.x - position.tilePosition.x) + abs(targetTile.y - position.tilePosition.y)
-                            if distance <= 2 {
+                            if distance <= 4 {
                                 isWithinRange = true
                                 break
                             }
@@ -95,6 +95,13 @@ final class InserterSystem: System {
                 let distance = abs(inputPos.x - position.tilePosition.x) + abs(inputPos.y - position.tilePosition.y)
                 if distance > 2 {
                     updatedInserter.inputPosition = nil
+                } else {
+                    // Check if there's still a belt at this position
+                    let entitiesAtPos = world.getAllEntitiesAt(position: inputPos)
+                    let hasBelt = entitiesAtPos.contains { world.has(BeltComponent.self, for: $0) }
+                    if !hasBelt {
+                        updatedInserter.inputPosition = nil
+                    }
                 }
             }
             
@@ -114,7 +121,7 @@ final class InserterSystem: System {
                         for x in targetOrigin.x..<(targetOrigin.x + width) {
                             let targetTile = IntVector2(x: x, y: y)
                             let distance = abs(targetTile.x - position.tilePosition.x) + abs(targetTile.y - position.tilePosition.y)
-                            if distance <= 2 {
+                            if distance <= 4 {
                                 isWithinRange = true
                                 break
                             }
@@ -135,6 +142,13 @@ final class InserterSystem: System {
                 let distance = abs(outputPos.x - position.tilePosition.x) + abs(outputPos.y - position.tilePosition.y)
                 if distance > 2 {
                     updatedInserter.outputPosition = nil
+                } else {
+                    // Check if there's still a belt at this position
+                    let entitiesAtPos = world.getAllEntitiesAt(position: outputPos)
+                    let hasBelt = entitiesAtPos.contains { world.has(BeltComponent.self, for: $0) }
+                    if !hasBelt {
+                        updatedInserter.outputPosition = nil
+                    }
                 }
             }
             
@@ -157,15 +171,18 @@ final class InserterSystem: System {
                 if inserter.heldItem == nil {
                     // Check configured input connection first
                     if let inputTarget = inserter.inputTarget {
-                        // print("InserterSystem:[idle] Checking inputTarget entity \(inputTarget.id) for items")
+                        print("InserterSystem: [idle] Inserter \(entity.id) checking inputTarget \(inputTarget.id) for items, heldItem: \(inserter.heldItem != nil ? "not nil" : "nil")")
                         // Validate target is still alive and adjacent
                         if world.isAlive(inputTarget) {
                             if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
                                 let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
-                                if distance <= 2 {
+                                print("InserterSystem: [idle] Distance to target \(inputTarget.id): \(distance) (inserter at \(position.tilePosition), target at \(targetPos.tilePosition))")
+                                if distance <= 4 {
                                     // Check if target is a belt entity first
-                                    if world.has(BeltComponent.self, for: inputTarget) {
-                                        // print("InserterSystem:[idle] inputTarget is a belt entity, checking for items")
+                                    let hasBelt = world.has(BeltComponent.self, for: inputTarget)
+                                    print("InserterSystem: [idle] inputTarget \(inputTarget.id) has BeltComponent: \(hasBelt)")
+                                    if hasBelt {
+                                        print("InserterSystem: [idle] inputTarget is a belt entity")
                                         if let belt = world.get(BeltComponent.self, for: inputTarget) {
                                             let hasReadyItem = belt.leftLane.contains { $0.progress >= 0.9 } || belt.rightLane.contains { $0.progress >= 0.9 }
                                             // print("InserterSystem:[idle] Belt has leftLane=\(leftLaneItems) items, rightLane=\(rightLaneItems) items, hasReadyItem=\(hasReadyItem)")
@@ -179,13 +196,17 @@ final class InserterSystem: System {
                                         var canPick = false
                                         if let inventory = world.get(InventoryComponent.self, for: inputTarget) {
                                             // Check if target is a machine (furnace, assembler)
-                                            let isMachine = world.has(FurnaceComponent.self, for: inputTarget) ||
-                                                           world.has(AssemblerComponent.self, for: inputTarget)
+                                            let hasFurnace = world.has(FurnaceComponent.self, for: inputTarget)
+                                            let hasAssembler = world.has(AssemblerComponent.self, for: inputTarget)
+                                            let isMachine = hasFurnace || hasAssembler
+                                            print("InserterSystem: [idle] inline check - hasFurnace: \(hasFurnace), hasAssembler: \(hasAssembler), isMachine: \(isMachine)")
 
                                             if isMachine {
-                                                // For machines, only check output slots (second half of inventory)
-                                                let outputStartIndex = inventory.slots.count / 2
-                                                canPick = (outputStartIndex..<inventory.slots.count).contains { inventory.slots[$0] != nil }
+                                                // For machines, check output slots
+                                                let hasFurnace = world.has(FurnaceComponent.self, for: inputTarget)
+                                                let outputStartIndex = hasFurnace ? 2 : inventory.slots.count / 2
+                                                let outputEndIndex = hasFurnace ? 3 : inventory.slots.count - 1
+                                                canPick = (outputStartIndex...outputEndIndex).contains { inventory.slots[$0] != nil }
                                             } else {
                                                 // For non-machines (miners, chests), check all slots
                                                 canPick = !inventory.isEmpty
@@ -361,15 +382,16 @@ final class InserterSystem: System {
                                 // Successfully put back
                                 inserter.heldItem = nil
                                 inserter.sourceEntity = nil
+                                inserter.dropTimeout = 0
+                                inserter.state = .idle
+                                inserter.armAngle = 0
                             } else {
-                                // Couldn't put back - just drop the item (this shouldn't happen in normal gameplay)
-                                print("Warning: InserterSystem:Could not put item back to source, dropping item")
-                                inserter.heldItem = nil
-                                inserter.sourceEntity = nil
+                                // Couldn't put back - keep the item and reset timeout to try again
+                                // This prevents item loss while still allowing recovery if destination becomes available
+                                print("Warning: InserterSystem:Could not put item back to source, will keep trying to drop off")
+                                inserter.dropTimeout = 0  // Reset timeout to keep trying
+                                // Stay in droppingOff state with item
                             }
-                            inserter.dropTimeout = 0
-                            inserter.state = .idle
-                            inserter.armAngle = 0
                         }
                         // Don't clear heldItem - keep trying to drop
                         // Don't reset armAngle - keep it at 0 (facing output) while waiting
@@ -521,6 +543,7 @@ final class InserterSystem: System {
  
         // Check configured input connection first
         if let inputTarget = inserter.inputTarget {
+            print("InserterSystem: canPickUpFromInputTarget for inputTarget \(inputTarget.id)")
             // Validate target is still alive and adjacent
             if world.isAlive(inputTarget) {
                 if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
@@ -538,14 +561,21 @@ final class InserterSystem: System {
                             }
                         } else {
                             // Check if target is a machine (furnace, assembler) that has separate input/output slots
-                            let isMachine = world.has(FurnaceComponent.self, for: inputTarget) ||
-                                           world.has(AssemblerComponent.self, for: inputTarget)
+                            let hasFurnace = world.has(FurnaceComponent.self, for: inputTarget)
+                            let hasAssembler = world.has(AssemblerComponent.self, for: inputTarget)
+                            let isMachine = hasFurnace || hasAssembler
+                            print("InserterSystem: canPickUpFromInputTarget - hasFurnace: \(hasFurnace), hasAssembler: \(hasAssembler), isMachine: \(isMachine)")
 
                             if isMachine {
+                                print("InserterSystem: [idle] isMachine true, calling tryPickFromMachineOutput")
                                 // For machines, only pick from output slots
+                                print("InserterSystem: Picking from machine \(inputTarget.id) output slots")
                                 if let pickedItem = tryPickFromMachineOutput(entity: inputTarget, stackSize: inserter.stackSize) {
+                                    print("InserterSystem: Successfully picked \(pickedItem.itemId) x\(pickedItem.count) from machine")
                                     inserter.sourceEntity = inputTarget
                                     return pickedItem
+                                } else {
+                                    print("InserterSystem: No items available in machine output slots")
                                 }
                             } else {
                                 // For non-machines (miners, chests, etc.), pick from any slot
@@ -629,18 +659,41 @@ final class InserterSystem: System {
                        world.has(AssemblerComponent.self, for: sourceEntity)
 
         if isMachine {
-            // For machines, we picked from output slots, so put back to output slots
+            // For machines, we picked from output slots, so prefer to put back to output slots
             let outputStartIndex = inventory.slots.count / 2
-            // Temporarily modify inventory to only allow output slots for putting back
-            var tempInventory = inventory
-            for i in 0..<outputStartIndex {
-                tempInventory.slots[i] = nil  // Clear input slots
+            var remaining = item.count
+
+            // First, try to add to existing output stacks
+            for i in outputStartIndex..<inventory.slots.count {
+                if var slot = inventory.slots[i], slot.itemId == item.itemId && slot.count < slot.maxStack {
+                    let space = slot.maxStack - slot.count
+                    let toAdd = min(space, remaining)
+                    slot.count += toAdd
+                    inventory.slots[i] = slot
+                    remaining -= toAdd
+                    if remaining == 0 { break }
+                }
             }
 
-            guard tempInventory.canAccept(itemId: item.itemId) else { return false }
+            // Then add to empty output slots
+            if remaining > 0 {
+                for i in outputStartIndex..<inventory.slots.count {
+                    if inventory.slots[i] == nil {
+                        let toAdd = min(item.maxStack, remaining)
+                        inventory.slots[i] = ItemStack(itemId: item.itemId, count: toAdd, maxStack: item.maxStack)
+                        remaining -= toAdd
+                        if remaining == 0 { break }
+                    }
+                }
+            }
 
-            let remaining = tempInventory.add(item)
-            inventory = tempInventory
+            // If output slots are full, fall back to any available slot (including input slots)
+            // This prevents item loss when the machine is overproducing
+            if remaining > 0 {
+                let fallbackRemaining = inventory.add(ItemStack(itemId: item.itemId, count: remaining, maxStack: item.maxStack))
+                remaining = fallbackRemaining
+            }
+
             world.add(inventory, to: sourceEntity)
             return remaining == 0
         } else {
@@ -712,10 +765,14 @@ final class InserterSystem: System {
     
     private func tryPickFromMachineOutput(entity: Entity, stackSize: Int) -> ItemStack? {
         guard var inventory = world.get(InventoryComponent.self, for: entity) else { return nil }
-        
-        // For machines, check output slots (second half of inventory)
-        let outputStartIndex = inventory.slots.count / 2
-        for index in outputStartIndex..<inventory.slots.count {
+
+        let hasFurnace = world.has(FurnaceComponent.self, for: entity)
+        let outputStartIndex = hasFurnace ? 2 : inventory.slots.count / 2
+        let outputEndIndex = hasFurnace ? 3 : inventory.slots.count - 1
+
+        print("InserterSystem: tryPickFromMachineOutput for entity \(entity.id), checking slots \(outputStartIndex)-\(outputEndIndex)")
+        for index in outputStartIndex...outputEndIndex {
+            print("InserterSystem: Checking slot \(index): \(inventory.slots[index] != nil ? "\(inventory.slots[index]!.itemId) x\(inventory.slots[index]!.count)" : "empty")")
             if var stack = inventory.slots[index] {
                 // Take one item from this slot
                 let taken = ItemStack(itemId: stack.itemId, count: 1, maxStack: stack.maxStack)
@@ -729,6 +786,7 @@ final class InserterSystem: System {
                 return taken
             }
         }
+        print("InserterSystem: No items found in output slots")
         return nil
     }
     
@@ -773,40 +831,45 @@ final class InserterSystem: System {
     private func tryDropOff(inserter: InserterComponent, position: PositionComponent, item: ItemStack) -> Bool {
         var success = false
         
-        // print("InserterSystem:tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), outputTarget=\(inserter.outputTarget?.id ?? 0), outputPosition=\(inserter.outputPosition != nil ? "(\(inserter.outputPosition!.x), \(inserter.outputPosition!.y))" : "nil")")
-        
+        print("InserterSystem:tryDropOff called for inserter at \(position.tilePosition) with item \(item.itemId), outputTarget=\(inserter.outputTarget != nil ? "set" : "nil"), outputPosition=\(inserter.outputPosition != nil ? "set" : "nil")")
+
         // Check configured output connection first
         if let outputTarget = inserter.outputTarget {
+            print("InserterSystem:outputTarget is set (entity \(outputTarget.id))")
             // Connection should already be validated, but check one more time
             if world.isAlive(outputTarget) {
+                print("InserterSystem:outputTarget is alive")
                 if let targetPos = world.get(PositionComponent.self, for: outputTarget) {
+                    print("InserterSystem:outputTarget has position at \(targetPos.tilePosition)")
                     // Validate adjacency one more time
                     let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
+                    print("InserterSystem:distance from inserter at \(position.tilePosition) to target at \(targetPos.tilePosition) is \(distance)")
                     if distance <= 2 {
+                        print("InserterSystem:outputTarget is within range")
                         // Check if outputTarget is a belt - if so, drop on the belt, not in inventory
                         let hasBelt = world.has(BeltComponent.self, for: outputTarget)
                         let hasInventory = world.has(InventoryComponent.self, for: outputTarget)
-                        // print("InserterSystem:outputTarget entity check - hasBelt=\(hasBelt), hasInventory=\(hasInventory)")
-                        
+                        print("InserterSystem:outputTarget entity check - hasBelt=\(hasBelt), hasInventory=\(hasInventory)")
+
                         if hasBelt {
-                            // print("InserterSystem:outputTarget is a belt entity, dropping directly to belt")
+                            print("InserterSystem:outputTarget is a belt entity, dropping directly to belt")
                             if tryDropOnBeltEntity(entity: outputTarget, item: item) {
-                                // print("InserterSystem:Successfully dropped to outputTarget belt entity")
+                                print("InserterSystem:Successfully dropped to outputTarget belt entity")
                                 success = true
                             } else {
-                                // print("InserterSystem:Failed to drop to outputTarget belt entity")
+                                print("InserterSystem:Failed to drop to outputTarget belt entity")
                             }
                         } else if hasInventory {
                             // Try to drop to this configured target (for entities with inventory)
-                            // print("InserterSystem:outputTarget has inventory, using tryDropInInventory")
-                            if tryDropInInventory(at: targetPos.tilePosition, item: item, excludeEntity: inserter.sourceEntity, targetEntity: outputTarget) {
-                                // print("InserterSystem:Successfully dropped to outputTarget entity")
+                            print("InserterSystem:outputTarget has inventory, using tryDropInInventory")
+                            if tryDropInInventory(at: position.tilePosition, item: item, excludeEntity: inserter.sourceEntity, targetEntity: outputTarget) {
+                                print("InserterSystem:Successfully dropped to outputTarget entity")
                                 success = true
                             } else {
-                                // print("InserterSystem:Failed to drop to outputTarget entity")
+                                print("InserterSystem:Failed to drop to outputTarget entity")
                             }
                         } else {
-                            // print("InserterSystem:outputTarget has neither BeltComponent nor InventoryComponent")
+                            print("InserterSystem:outputTarget has neither BeltComponent nor InventoryComponent")
                         }
                     } else {
                         // print("InserterSystem:outputTarget too far away (distance=\(distance))")
@@ -822,13 +885,13 @@ final class InserterSystem: System {
         // Check configured output position (for belts)
         // Check the exact position first, then all 8 adjacent positions including diagonals
         if !success, let outputPos = inserter.outputPosition {
-            // print("InserterSystem:Trying to drop on belt at configured position \(outputPos)")
+            print("InserterSystem:Trying to drop on belt at configured position \(outputPos)")
             // First try the exact configured position
             if tryDropOnBelt(at: outputPos, item: item, inserterPosition: position.tilePosition) {
-                // print("InserterSystem:Successfully dropped on belt at exact position")
+                print("InserterSystem:Successfully dropped on belt at exact position")
                 success = true
             } else {
-                // print("InserterSystem:Failed to drop at exact position, checking adjacent positions")
+                print("InserterSystem:Failed to drop at exact position, checking adjacent positions")
                 // If not found at exact position, check all 8 adjacent positions (including diagonals)
                 let adjacentOffsets: [IntVector2] = [
                     IntVector2(0, 1),   // North
@@ -847,7 +910,7 @@ final class InserterSystem: System {
                     let distanceFromInserter = abs(adjacentPos.x - position.tilePosition.x) + abs(adjacentPos.y - position.tilePosition.y)
                     if distanceFromInserter <= 1 {
                         if tryDropOnBelt(at: adjacentPos, item: item, inserterPosition: position.tilePosition) {
-                            // print("InserterSystem:Successfully dropped on belt at adjacent position \(adjacentPos)")
+                            print("InserterSystem:Successfully dropped on belt at adjacent position \(adjacentPos)")
                             success = true
                             break
                         }
@@ -940,17 +1003,25 @@ final class InserterSystem: System {
     private func tryDropInInventory(at position: IntVector2, item: ItemStack, excludeEntity: Entity?, targetEntity: Entity) -> Bool {
         // Only drop to the specific configured target entity
         // This ensures inserters only output to the entity selected via inserterConnectionDialog
-        
+
         // Skip if this is the source entity (don't drop back to where we picked up from)
         if let excludeEntity = excludeEntity, targetEntity.id == excludeEntity.id && targetEntity.generation == excludeEntity.generation {
             return false
         }
-        
+
         // Validate the target entity is still alive
-        guard world.isAlive(targetEntity) else { return false }
-        
+        guard world.isAlive(targetEntity) else {
+            print("InserterSystem: tryDropInInventory - target entity is not alive")
+            return false
+        }
+
         // Get the target entity's position
-        guard let targetPos = world.get(PositionComponent.self, for: targetEntity) else { return false }
+        guard let targetPos = world.get(PositionComponent.self, for: targetEntity) else {
+            print("InserterSystem: tryDropInInventory - target entity has no position")
+            return false
+        }
+
+        print("InserterSystem: tryDropInInventory - attempting to drop \(item.itemId) x\(item.count) to entity \(targetEntity.id)")
         
         // Check if the target entity is adjacent to the position we're checking
         // For multi-tile buildings, check if the position is within or adjacent to the building
@@ -988,32 +1059,54 @@ final class InserterSystem: System {
         let isMachine = world.has(FurnaceComponent.self, for: targetEntity) ||
                        world.has(AssemblerComponent.self, for: targetEntity)
 
+        print("InserterSystem: tryDropInInventory - target is machine: \(isMachine)")
+
         if isMachine {
+            print("InserterSystem: tryDropInInventory - dropping to machine input slots")
             // For machines, only drop to input slots (first half of inventory)
             let inputSlotCount = inventory.slots.count / 2
 
-            // Temporarily modify inventory to only allow input slots
-            var tempInventory = inventory
-            // Clear output slots so they can't be used
-            for i in inputSlotCount..<inventory.slots.count {
-                tempInventory.slots[i] = nil
+            // Check if input slots can accept the item
+            var canAcceptInInput = false
+            for i in 0..<inputSlotCount {
+                if inventory.slots[i] == nil || (inventory.slots[i]?.itemId == item.itemId && inventory.slots[i]!.count < inventory.slots[i]!.maxStack) {
+                    canAcceptInInput = true
+                    break
+                }
             }
+            print("InserterSystem: tryDropInInventory - machine input slots can accept \(item.itemId): \(canAcceptInInput)")
+            guard canAcceptInInput else { return false }
 
-            guard tempInventory.canAccept(itemId: item.itemId) else { return false }
-
-            // Add to input slots only
-            let remaining = tempInventory.add(item)
-            inventory = tempInventory
-            world.add(inventory, to: targetEntity)
-            return remaining == 0
+            // Add to first available input slot
+            for i in 0..<inputSlotCount {
+                if inventory.slots[i] == nil {
+                    inventory.slots[i] = ItemStack(itemId: item.itemId, count: item.count, maxStack: item.maxStack)
+                    world.add(inventory, to: targetEntity)
+                    print("InserterSystem: tryDropInInventory - machine drop success: true, placed in empty slot \(i)")
+                    return true
+                } else if inventory.slots[i]?.itemId == item.itemId && inventory.slots[i]!.count < inventory.slots[i]!.maxStack {
+                    let canAdd = min(item.count, inventory.slots[i]!.maxStack - inventory.slots[i]!.count)
+                    inventory.slots[i]!.count += canAdd
+                    world.add(inventory, to: targetEntity)
+                    let success = canAdd == item.count
+                    print("InserterSystem: tryDropInInventory - machine drop success: \(success), added \(canAdd) to slot \(i), remaining: \(item.count - canAdd)")
+                    return success
+                }
+            }
+            return false
         } else {
+            print("InserterSystem: tryDropInInventory - dropping to non-machine")
             // For non-machines, add to any slot
-            guard inventory.canAccept(itemId: item.itemId) else { return false }
+            let canAccept = inventory.canAccept(itemId: item.itemId)
+            print("InserterSystem: tryDropInInventory - non-machine can accept \(item.itemId): \(canAccept)")
+            guard canAccept else { return false }
 
             // Drop the item
             let remaining = inventory.add(item)
             world.add(inventory, to: targetEntity)
-            return remaining == 0
+            let success = remaining == 0
+            print("InserterSystem: tryDropInInventory - non-machine drop success: \(success), remaining: \(remaining)")
+            return success
         }
     }
 
@@ -1033,11 +1126,13 @@ final class InserterSystem: System {
                 if distance <= 2 {
                     // Check for inventory on machines (furnaces, assemblers)
                     if let inventory = world.get(InventoryComponent.self, for: entity) {
-                        // For machines, check output slots (second half of inventory)
-                        let outputStartIndex = inventory.slots.count / 2
-                        let hasOutputItems = (outputStartIndex..<inventory.slots.count).contains { index in
-                            inventory.slots[index] != nil
-                        }
+                    // For machines, check output slots
+                    let hasFurnace = world.has(FurnaceComponent.self, for: entity)
+                    let outputStartIndex = hasFurnace ? 2 : inventory.slots.count / 2
+                    let outputEndIndex = hasFurnace ? 3 : inventory.slots.count - 1
+                    let hasOutputItems = (outputStartIndex...outputEndIndex).contains { index in
+                        inventory.slots[index] != nil
+                    }
                         if hasOutputItems {
                             return true
                         }

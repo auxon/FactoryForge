@@ -68,7 +68,7 @@ final class GameLoop {
         miningSystem = MiningSystem(world: world, chunkManager: chunkManager)
         beltSystem = BeltSystem(world: world)
         inserterSystem = InserterSystem(world: world, beltSystem: beltSystem, itemRegistry: itemRegistry)
-        craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry)
+        craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry, itemRegistry: itemRegistry)
         powerSystem = PowerSystem(world: world)
         researchSystem = ResearchSystem(world: world, technologyRegistry: technologyRegistry)
         pollutionSystem = PollutionSystem(world: world, chunkManager: chunkManager)
@@ -399,8 +399,8 @@ final class GameLoop {
             world.add(FurnaceComponent(
                 smeltingSpeed: buildingDef.craftingSpeed
             ), to: entity)
-            // Furnace needs 4 input slots and 4 output slots (8 total)
-            world.add(InventoryComponent(slots: 8, allowedItems: nil), to: entity)
+            // Furnace needs 2 input slots and 2 output slots (4 total)
+            world.add(InventoryComponent(slots: 4, allowedItems: nil), to: entity)
             
         case .assembler:
             world.add(AssemblerComponent(
@@ -857,6 +857,12 @@ final class GameLoop {
             } else if let inputPosition = inputPosition {
                 let distance = abs(inputPosition.x - inserterPos.tilePosition.x) + abs(inputPosition.y - inserterPos.tilePosition.y)
                 guard distance <= 2 else { return false }
+
+                // Validate that there's actually a belt at the input position
+                let entitiesAtPos = world.getAllEntitiesAt(position: inputPosition)
+                let hasBelt = entitiesAtPos.contains { world.has(BeltComponent.self, for: $0) }
+                guard hasBelt else { return false }
+
                 inserter.inputPosition = inputPosition
                 inserter.inputTarget = nil // Clear entity if setting position
             }
@@ -901,6 +907,12 @@ final class GameLoop {
             } else if let outputPosition = outputPosition {
                 let distance = abs(outputPosition.x - inserterPos.tilePosition.x) + abs(outputPosition.y - inserterPos.tilePosition.y)
                 guard distance <= 2 else { return false }
+
+                // Validate that there's actually a belt at the output position
+                let entitiesAtPos = world.getAllEntitiesAt(position: outputPosition)
+                let hasBelt = entitiesAtPos.contains { world.has(BeltComponent.self, for: $0) }
+                guard hasBelt else { return false }
+
                 inserter.outputPosition = outputPosition
                 inserter.outputTarget = nil // Clear entity if setting position
             }
