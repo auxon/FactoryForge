@@ -63,8 +63,26 @@ final class InserterSystem: System {
                 if !world.isAlive(inputTarget) {
                     updatedInserter.inputTarget = nil
                 } else if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
-                    let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
-                    if distance > 1 {
+                    // For multi-tile entities, check if ANY tile is within range
+                    let targetOrigin = targetPos.tilePosition
+                    let sprite = world.get(SpriteComponent.self, for: inputTarget)
+                    let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
+                    let height = sprite != nil ? Int32(ceil(sprite!.size.y)) : 1
+
+                    var isWithinRange = false
+                    for y in targetOrigin.y..<(targetOrigin.y + height) {
+                        for x in targetOrigin.x..<(targetOrigin.x + width) {
+                            let targetTile = IntVector2(x: x, y: y)
+                            let distance = abs(targetTile.x - position.tilePosition.x) + abs(targetTile.y - position.tilePosition.y)
+                            if distance <= 2 {
+                                isWithinRange = true
+                                break
+                            }
+                        }
+                        if isWithinRange { break }
+                    }
+
+                    if !isWithinRange {
                         updatedInserter.inputTarget = nil
                     }
                 } else {
@@ -75,7 +93,7 @@ final class InserterSystem: System {
             // Validate input position connection
             if let inputPos = updatedInserter.inputPosition {
                 let distance = abs(inputPos.x - position.tilePosition.x) + abs(inputPos.y - position.tilePosition.y)
-                if distance > 1 {
+                if distance > 2 {
                     updatedInserter.inputPosition = nil
                 }
             }
@@ -85,8 +103,26 @@ final class InserterSystem: System {
                 if !world.isAlive(outputTarget) {
                     updatedInserter.outputTarget = nil
                 } else if let targetPos = world.get(PositionComponent.self, for: outputTarget) {
-                    let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
-                    if distance > 1 {
+                    // For multi-tile entities, check if ANY tile is within range
+                    let targetOrigin = targetPos.tilePosition
+                    let sprite = world.get(SpriteComponent.self, for: outputTarget)
+                    let width = sprite != nil ? Int32(ceil(sprite!.size.x)) : 1
+                    let height = sprite != nil ? Int32(ceil(sprite!.size.y)) : 1
+
+                    var isWithinRange = false
+                    for y in targetOrigin.y..<(targetOrigin.y + height) {
+                        for x in targetOrigin.x..<(targetOrigin.x + width) {
+                            let targetTile = IntVector2(x: x, y: y)
+                            let distance = abs(targetTile.x - position.tilePosition.x) + abs(targetTile.y - position.tilePosition.y)
+                            if distance <= 2 {
+                                isWithinRange = true
+                                break
+                            }
+                        }
+                        if isWithinRange { break }
+                    }
+
+                    if !isWithinRange {
                         updatedInserter.outputTarget = nil
                     }
                 } else {
@@ -97,7 +133,7 @@ final class InserterSystem: System {
             // Validate output position connection
             if let outputPos = updatedInserter.outputPosition {
                 let distance = abs(outputPos.x - position.tilePosition.x) + abs(outputPos.y - position.tilePosition.y)
-                if distance > 1 {
+                if distance > 2 {
                     updatedInserter.outputPosition = nil
                 }
             }
@@ -126,7 +162,7 @@ final class InserterSystem: System {
                         if world.isAlive(inputTarget) {
                             if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
                                 let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
-                                if distance <= 1 {
+                                if distance <= 2 {
                                     // Check if target is a belt entity first
                                     if world.has(BeltComponent.self, for: inputTarget) {
                                         // print("InserterSystem:[idle] inputTarget is a belt entity, checking for items")
@@ -140,16 +176,19 @@ final class InserterSystem: System {
                                         }
                                     } else {
                                         // Check if we can pick up from this configured target (non-belt entities)
-                                        // Check inventory first, then machine output slots
                                         var canPick = false
                                         if let inventory = world.get(InventoryComponent.self, for: inputTarget) {
-                                            canPick = !inventory.isEmpty
-                                        }
-                                        if !canPick {
-                                            // Check machine output slots (second half of inventory)
-                                            if let inventory = world.get(InventoryComponent.self, for: inputTarget) {
+                                            // Check if target is a machine (furnace, assembler)
+                                            let isMachine = world.has(FurnaceComponent.self, for: inputTarget) ||
+                                                           world.has(AssemblerComponent.self, for: inputTarget)
+
+                                            if isMachine {
+                                                // For machines, only check output slots (second half of inventory)
                                                 let outputStartIndex = inventory.slots.count / 2
                                                 canPick = (outputStartIndex..<inventory.slots.count).contains { inventory.slots[$0] != nil }
+                                            } else {
+                                                // For non-machines (miners, chests), check all slots
+                                                canPick = !inventory.isEmpty
                                             }
                                         }
                                         if canPick {
@@ -404,7 +443,7 @@ final class InserterSystem: System {
                 let distance = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
                 
                 // Check if entity is adjacent (within 1 tile in any direction, including diagonals)
-                if distance <= 1 {
+                if distance <= 2 {
                     _ = world.has(MinerComponent.self, for: entity)
                     _ = world.has(FurnaceComponent.self, for: entity)
 
@@ -486,7 +525,7 @@ final class InserterSystem: System {
             if world.isAlive(inputTarget) {
                 if let targetPos = world.get(PositionComponent.self, for: inputTarget) {
                     let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
-                    if distance <= 1 {
+                    if distance <= 2 {
                         // Check if inputTarget is a belt - if so, pick from the belt, not inventory
                         if world.has(BeltComponent.self, for: inputTarget) {
                             // print("InserterSystem:inputTarget is a belt entity, using tryPickFromBeltEntity")
@@ -561,7 +600,7 @@ final class InserterSystem: System {
                 // Validate that this adjacent position is within 1 tile of the inserter (including diagonals)
                 // This ensures we only check positions that the inserter can actually reach
                 let distanceFromInserter = abs(adjacentPos.x - position.tilePosition.x) + abs(adjacentPos.y - position.tilePosition.y)
-                if distanceFromInserter <= 1 {
+                if distanceFromInserter <= 2 {
                     if let pickedItem = tryPickFromBelt(at: adjacentPos, stackSize: inserter.stackSize) {
                         // Found a belt at an adjacent position, use it
                         // print("InserterSystem:Successfully picked up from belt at adjacent position \(adjacentPos)")
@@ -701,7 +740,7 @@ final class InserterSystem: System {
                 let distance = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
                 
                 // Check if entity is adjacent (within 1 tile in any direction, including diagonals)
-                if distance <= 1 {
+                if distance <= 2 {
                     if var inventory = world.get(InventoryComponent.self, for: entity) {
                         if let item = inventory.takeOne() {
                             // // print("InserterSystem:tryPickFromInventory picked item \(item.itemId) from entity \(entity) at \(entityPos.tilePosition)")
@@ -743,7 +782,7 @@ final class InserterSystem: System {
                 if let targetPos = world.get(PositionComponent.self, for: outputTarget) {
                     // Validate adjacency one more time
                     let distance = abs(targetPos.tilePosition.x - position.tilePosition.x) + abs(targetPos.tilePosition.y - position.tilePosition.y)
-                    if distance <= 1 {
+                    if distance <= 2 {
                         // Check if outputTarget is a belt - if so, drop on the belt, not in inventory
                         let hasBelt = world.has(BeltComponent.self, for: outputTarget)
                         let hasInventory = world.has(InventoryComponent.self, for: outputTarget)
@@ -927,7 +966,7 @@ final class InserterSystem: System {
                     let buildingTileX = targetPos.tilePosition.x + Int32(dx)
                     let buildingTileY = targetPos.tilePosition.y + Int32(dy)
                     let distance = abs(buildingTileX - position.x) + abs(buildingTileY - position.y)
-                    if distance <= 1 {
+                    if distance <= 2 {
                         isAdjacent = true
                         break
                     }
@@ -937,7 +976,7 @@ final class InserterSystem: System {
         } else {
             // Single-tile entity - check if position is adjacent (within 1 tile including diagonals)
             let distance = abs(targetPos.tilePosition.x - position.x) + abs(targetPos.tilePosition.y - position.y)
-            isAdjacent = distance <= 1
+            isAdjacent = distance <= 2
         }
         
         guard isAdjacent else { return false }
@@ -991,7 +1030,7 @@ final class InserterSystem: System {
                 let distance = abs(entityPos.tilePosition.x - position.x) + abs(entityPos.tilePosition.y - position.y)
 
                 // Check if entity is adjacent (within 1 tile in any direction, including diagonals)
-                if distance <= 1 {
+                if distance <= 2 {
                     // Check for inventory on machines (furnaces, assemblers)
                     if let inventory = world.get(InventoryComponent.self, for: entity) {
                         // For machines, check output slots (second half of inventory)

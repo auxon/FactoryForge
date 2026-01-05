@@ -842,7 +842,7 @@ final class GameLoop {
                         for x in targetOrigin.x..<(targetOrigin.x + width) {
                             let targetTile = IntVector2(x: x, y: y)
                             let distance = abs(targetTile.x - inserterTile.x) + abs(targetTile.y - inserterTile.y)
-                            if distance <= 1 {
+                            if distance <= 2 {
                                 isWithinRange = true
                                 break
                             }
@@ -856,7 +856,7 @@ final class GameLoop {
                 inserter.inputPosition = nil // Clear position if setting entity
             } else if let inputPosition = inputPosition {
                 let distance = abs(inputPosition.x - inserterPos.tilePosition.x) + abs(inputPosition.y - inserterPos.tilePosition.y)
-                guard distance <= 1 else { return false }
+                guard distance <= 2 else { return false }
                 inserter.inputPosition = inputPosition
                 inserter.inputTarget = nil // Clear entity if setting position
             }
@@ -886,7 +886,7 @@ final class GameLoop {
                         for x in targetOrigin.x..<(targetOrigin.x + width) {
                             let targetTile = IntVector2(x: x, y: y)
                             let distance = abs(targetTile.x - inserterTile.x) + abs(targetTile.y - inserterTile.y)
-                            if distance <= 1 {
+                            if distance <= 2 {
                                 isWithinRange = true
                                 break
                             }
@@ -900,7 +900,7 @@ final class GameLoop {
                 inserter.outputPosition = nil // Clear position if setting entity
             } else if let outputPosition = outputPosition {
                 let distance = abs(outputPosition.x - inserterPos.tilePosition.x) + abs(outputPosition.y - inserterPos.tilePosition.y)
-                guard distance <= 1 else { return false }
+                guard distance <= 2 else { return false }
                 inserter.outputPosition = outputPosition
                 inserter.outputTarget = nil // Clear entity if setting position
             }

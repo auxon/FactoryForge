@@ -324,6 +324,12 @@ final class InputManager: NSObject {
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
                     // Keep in build mode to allow placing more buildings
                     AudioManager.shared.playPlaceSound()
+
+                    // Select the newly placed entity
+                    if let placedEntity = gameLoop.world.getEntityAt(position: tilePos) {
+                        selectedEntity = placedEntity
+                        onEntitySelected?(placedEntity)
+                    }
                 } else {
                     onTooltip?("Failed to place building")
                 }
@@ -539,6 +545,12 @@ final class InputManager: NSObject {
                     // Keep in build mode to allow placing more buildings
                     // Play placement sound/feedback
                     AudioManager.shared.playPlaceSound()
+
+                    // Select the newly placed entity
+                    if let placedEntity = gameLoop.world.getEntityAt(position: tilePos) {
+                        selectedEntity = placedEntity
+                        onEntitySelected?(placedEntity)
+                    }
                 } else {
                     onTooltip?("Failed to place building")
                 }
@@ -604,6 +616,8 @@ final class InputManager: NSObject {
 
         switch recognizer.state {
         case .began:
+            // Reset joystick state at the start of each new touch
+            isJoystickActive = false
             dragStartPosition = screenPos
 
             // Check if touch started in UI area FIRST (for drag gestures)
@@ -636,7 +650,13 @@ final class InputManager: NSObject {
                         isJoystickActive = true
                         return  // Prevent camera pan, but gesture continues for .changed/.ended
                     }
+                } else {
+                    // Touch is not on joystick - ensure joystick state is reset
+                    isJoystickActive = false
                 }
+            } else {
+                // No joystick available - ensure joystick state is reset
+                isJoystickActive = false
             }
 
             
@@ -735,13 +755,19 @@ final class InputManager: NSObject {
                 if buildMode != .none {
                     exitBuildMode()
                 }
+                // Reset selection state when joystick is active (safety check)
+                if isSelecting {
+                    isSelecting = false
+                    selectionStartScreenPos = nil
+                    selectionRect = nil
+                }
                 // Prevent selection when joystick is active
                 return
             }
 
             // Update selection rectangle (instead of camera panning)
-            // Don't update selection rectangle if a UI panel is open
-            if (buildMode == .none || buildMode == .connectingInserter) && isSelecting && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let startPos = selectionStartScreenPos {
+            // Don't update selection rectangle if a UI panel is open or joystick is active
+            if (buildMode == .none || buildMode == .connectingInserter) && isSelecting && !isJoystickActive && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let startPos = selectionStartScreenPos {
                 let startWorldPos = renderer.screenToWorld(startPos)
                 let endWorldPos = renderer.screenToWorld(screenPos)
                 
@@ -820,7 +846,7 @@ final class InputManager: NSObject {
                                         let tileX = entityPos.tilePosition.x + Int32(dx)
                                         let tileY = entityPos.tilePosition.y + Int32(dy)
                                         let distance = abs(tileX - inserterPos.tilePosition.x) + abs(tileY - inserterPos.tilePosition.y)
-                                        if distance <= 1 {
+                                        if distance <= 2 {
                                             return true
                                         }
                                     }
@@ -828,7 +854,7 @@ final class InputManager: NSObject {
                                 return false
                             } else {
                                 let distance = abs(entityPos.tilePosition.x - inserterPos.tilePosition.x) + abs(entityPos.tilePosition.y - inserterPos.tilePosition.y)
-                                return distance <= 1
+                                return distance <= 2
                             }
                         }
                         return false
@@ -844,7 +870,7 @@ final class InputManager: NSObject {
                         for y in rectMinTileY...rectMaxTileY {
                             let pos = IntVector2(x: x, y: y)
                             let distance = abs(pos.x - inserterPos.tilePosition.x) + abs(pos.y - inserterPos.tilePosition.y)
-                            if distance <= 1 {
+                            if distance <= 2 {
                                 let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: pos)
                                 if entitiesAtPos.contains(where: { gameLoop.world.has(BeltComponent.self, for: $0) }) {
                                     beltPositions.append(pos)
@@ -1155,6 +1181,12 @@ final class InputManager: NSObject {
                 // Keep in build mode to allow placing more buildings
                 // Play placement sound/feedback
                 AudioManager.shared.playPlaceSound()
+
+                // Select the newly placed entity
+                if let placedEntity = gameLoop.world.getEntityAt(position: tilePos) {
+                    selectedEntity = placedEntity
+                    onEntitySelected?(placedEntity)
+                }
             } else {
                 onTooltip?("Failed to place building")
             }
@@ -1729,6 +1761,13 @@ final class InputManager: NSObject {
             // Place the building (placeBuilding already removes items from inventory)
             if gameLoop.placeBuilding(buildingId, at: pos, direction: direction, offset: .zero) {
                 dragPlacedTiles.insert(pos)
+
+                // Select the newly placed entity (only for the last placed building in drag)
+                // We select the last one placed since drag placement places multiple buildings
+                if let placedEntity = gameLoop.world.getEntityAt(position: pos) {
+                    selectedEntity = placedEntity
+                    onEntitySelected?(placedEntity)
+                }
             }
         }
     }

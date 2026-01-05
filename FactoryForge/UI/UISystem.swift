@@ -1114,7 +1114,7 @@ class InserterConnectionDialog {
         
         // Filter to valid targets (belt, miner, machine, boiler, etc.)
         // For multi-tile entities, verify that at least one tile is within 1 tile of the inserter
-        let validEntities = allFoundEntities.filter { entity in
+        let validEntities = Array(allFoundEntities.filter { entity in
             // Check if entity has valid components
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
             let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
@@ -1140,14 +1140,14 @@ class InserterConnectionDialog {
                 for x in entityOrigin.x..<(entityOrigin.x + width) {
                     let entityTile = IntVector2(x: x, y: y)
                     let tileDistance = abs(entityTile.x - inserterTile.x) + abs(entityTile.y - inserterTile.y)
-                    if tileDistance <= 1 {
+                    if tileDistance <= 2 {
                         return true  // Found at least one tile within range
                     }
                 }
             }
             
             return false  // No tiles within range
-        }
+        })
         
         // Debug logging
         print("InserterConnectionDialog: Found \(allFoundEntities.count) entities near inserter, \(validEntities.count) are valid")
@@ -1158,10 +1158,24 @@ class InserterConnectionDialog {
             print("InserterConnectionDialog: Entity \(entity.id) - Generator: \(hasGenerator), Belt: \(hasBelt), Furnace: \(hasFurnace)")
         }
         
-        // Prefer entities (so we can track them directly), but if multiple found, entitySelectionDialog should handle it
-        if let targetEntity = validEntities.first {
-            // Use the entity directly - this works for both belts and other entities
-            // Belts should be set as inputTarget/outputTarget so we can access them directly
+        // If multiple entities found, show selection dialog
+        if validEntities.count > 1 {
+            print("InserterConnectionDialog: Found \(validEntities.count) valid entities, showing selection dialog")
+            gameLoop.uiSystem?.showEntitySelectionDialog(entities: validEntities) { [weak self] selectedEntity in
+                guard let self = self else { return }
+                if self.isSelectingInput {
+                    print("InserterConnectionDialog: User selected input entity \(selectedEntity.id)")
+                    self.onInputSet?(self.inserterEntity!, selectedEntity, nil)
+                    self.isSelectingInput = false
+                } else if self.isSelectingOutput {
+                    print("InserterConnectionDialog: User selected output entity \(selectedEntity.id)")
+                    self.onOutputSet?(self.inserterEntity!, selectedEntity, nil)
+                    self.isSelectingOutput = false
+                }
+            }
+            return true
+        } else if let targetEntity = validEntities.first {
+            // Single entity found, connect directly
             if isSelectingInput {
                 print("InserterConnectionDialog: Setting input target entity to \(targetEntity.id) (hasBelt: \(gameLoop.world.has(BeltComponent.self, for: targetEntity)), hasGenerator: \(gameLoop.world.has(GeneratorComponent.self, for: targetEntity)))")
                 onInputSet?(inserterEntity, targetEntity, nil)

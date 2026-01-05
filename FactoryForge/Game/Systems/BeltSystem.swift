@@ -93,13 +93,10 @@ final class BeltSystem: System {
     }
     
     private func updateConnections(for position: IntVector2) {
-        guard var node = beltGraph[position] else { 
-            print("BeltSystem: updateConnections - No belt node at \(position)")
-            return 
+        guard var node = beltGraph[position] else {
+            return
         }
-        
-        print("BeltSystem: updateConnections for belt at \(position) (dir: \(node.direction))")
-        
+
         // Find output connection (belt in front in the direction we're facing)
         // This connects even if the output belt is going at a 90-degree angle
         let outputPos = position + node.direction.intVector
@@ -107,14 +104,13 @@ final class BeltSystem: System {
             // Connect to belt at the position we're pointing to, regardless of its direction
             // This allows 90-degree turns
             node.outputEntity = outputNode.entity
-            
+
             // Update belt component
             if var belt = world.get(BeltComponent.self, for: node.entity) {
                 belt.outputConnection = outputNode.entity
                 world.add(belt, to: node.entity)
-                print("BeltSystem: Belt at \(position) (dir: \(node.direction)) connected output to belt at \(outputPos) (dir: \(outputNode.direction))")
             }
-            
+
             // IMPORTANT: Also ensure the output belt has this belt as an input
             // This ensures bidirectional connection for 90-degree turns
             if var outputBelt = world.get(BeltComponent.self, for: outputNode.entity) {
@@ -125,7 +121,6 @@ final class BeltSystem: System {
                     outputBelt.inputConnection = outputNodeCopy.inputEntities.first
                     world.add(outputBelt, to: outputNode.entity)
                     beltGraph[outputPos] = outputNodeCopy
-                    print("BeltSystem: Belt at \(outputPos) (dir: \(outputNode.direction)) now has input from belt at \(position) (dir: \(node.direction))")
                 }
             }
         } else {
@@ -133,10 +128,9 @@ final class BeltSystem: System {
             if var belt = world.get(BeltComponent.self, for: node.entity) {
                 belt.outputConnection = nil
                 world.add(belt, to: node.entity)
-                print("BeltSystem: Belt at \(position) (dir: \(node.direction)) has no output connection")
             }
         }
-        
+
         // Find input connections (belts pointing to us from any adjacent position)
         // This includes belts directly behind us, and belts at 90-degree angles
         node.inputEntities = []
@@ -148,17 +142,16 @@ final class BeltSystem: System {
                 if inputOutputPos == position {
                     // This belt is pointing directly at us, so it can feed into us
                     node.inputEntities.append(inputNode.entity)
-                    print("BeltSystem: Belt at \(position) (dir: \(node.direction)) connected input from belt at \(inputPos) (dir: \(inputNode.direction))")
                 }
             }
         }
-        
+
         // Update input connection on belt component
         if var belt = world.get(BeltComponent.self, for: node.entity) {
             belt.inputConnection = node.inputEntities.first
             world.add(belt, to: node.entity)
         }
-        
+
         beltGraph[position] = node
     }
     
@@ -251,8 +244,8 @@ final class BeltSystem: System {
                         }
                     }
                 }
-                // Can't transfer, stop at end
-                newProgress = 0.99
+                // Can't transfer, stay at end to block items behind
+                newProgress = 1.0
             }
             
             item.progress = max(item.progress, newProgress)  // Don't go backwards

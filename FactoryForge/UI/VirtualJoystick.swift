@@ -77,10 +77,14 @@ final class VirtualJoystick {
     // MARK: - Touch Handling
     
     func handleTouchBegan(at position: Vector2, touchId: Int) -> Bool {
+        // Reset state first (in case it was left in a bad state)
+        isActive = false
+        stickCenter = _baseCenter
+        direction = .zero
+
         // Check if touch is within the joystick activation area
         let activationRadius = baseRadius * 1.5
         let distance = (position - _baseCenter).length
-
 
         if distance <= activationRadius {
             isActive = true
