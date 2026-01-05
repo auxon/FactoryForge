@@ -857,8 +857,12 @@ class GameViewController: UIViewController {
             // Update renderer with selected entity for highlighting
             self.renderer.selectedEntity = entity
 
-            // Clear any persistent tooltip when selection changes
-            self.updateSelectedEntityTooltip(entity: nil, text: nil)
+            // Show persistent tooltip for selected entity
+            if let entity = entity, let tooltipText = self.inputManager?.getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
+                self.updateSelectedEntityTooltip(entity: entity, text: tooltipText)
+            } else {
+                self.updateSelectedEntityTooltip(entity: nil, text: nil)
+            }
             
             // Verify the entity was set correctly in HUD
             if let entity = entity {

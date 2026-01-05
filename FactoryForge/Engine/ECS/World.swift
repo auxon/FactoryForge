@@ -694,7 +694,22 @@ extension World {
                     inserter.sourceEntity = nil
                     needsUpdate = true
                 }
-                
+
+                // Reset inserter state and ensure proper initialization for loaded inserters
+                // This prevents issues with saved inserters being in invalid states
+                inserter.state = .idle
+                inserter.armAngle = 0
+                inserter.heldItem = nil
+                inserter.dropTimeout = 0
+                // Clear any potentially invalid target references that couldn't be fixed
+                if inserter.inputTarget == nil {
+                    inserter.inputPosition = nil
+                }
+                if inserter.outputTarget == nil {
+                    inserter.outputPosition = nil
+                }
+                needsUpdate = true
+
                 if needsUpdate {
                     add(inserter, to: entity)
                 }

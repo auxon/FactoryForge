@@ -204,7 +204,7 @@ struct InserterComponent: Component {
     var outputPosition: IntVector2?
 
     /// Time spent trying to drop current item (for timeout logic)
-    var dropTimeout: Float
+    var dropTimeout: Float = 0
     
     /// Target position for the arm
     var targetAngle: Float {
@@ -231,7 +231,6 @@ struct InserterComponent: Component {
         self.outputTarget = nil
         self.inputPosition = nil
         self.outputPosition = nil
-        self.dropTimeout = 0
     }
 }
 
