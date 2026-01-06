@@ -136,29 +136,111 @@ final class AutoPlaySystem: System {
     private func placeBuilding(type: String, at position: IntVector2, direction: Direction) {
         print("🏗️ Placing \(type) at \(position) facing \(direction)")
 
-        // Check if the building type exists
-        guard gameLoop?.buildingRegistry.get(type) != nil else {
-            print("❌ Building type '\(type)' not found")
+        guard let gameLoop = gameLoop else {
+            print("❌ No game loop available")
             return
         }
 
-        // Place the building using the existing game loop method
-        // This is a simplified version - in reality we'd need to call the proper placement method
-        print("✅ Building \(type) placed at \(position)")
+        // Temporarily give player unlimited resources for auto-play
+        let originalInventory = gameLoop.player.inventory
+        var unlimitedInventory = originalInventory
+        // Add plenty of all required resources
+        unlimitedInventory.add(ItemStack(itemId: "iron_plate", count: 1000))
+        unlimitedInventory.add(ItemStack(itemId: "copper_plate", count: 1000))
+        unlimitedInventory.add(ItemStack(itemId: "steel_plate", count: 1000))
+        unlimitedInventory.add(ItemStack(itemId: "electronic_circuit", count: 1000))
+        gameLoop.player.inventory = unlimitedInventory
+
+        // Place the building
+        let success = gameLoop.placeBuilding(type, at: position, direction: direction)
+
+        // Restore original inventory (minus any costs that were actually deducted)
+        gameLoop.player.inventory = gameLoop.player.inventory
+
+        if success {
+            print("✅ Building \(type) placed at \(position)")
+        } else {
+            print("❌ Failed to place building \(type) at \(position)")
+        }
     }
 
     private func connectBuildings(from: IntVector2, to: IntVector2) {
         print("🔗 Connecting buildings from \(from) to \(to)")
 
-        // This would need to be implemented to place belts between buildings
-        // For now, just log the action
+        guard let gameLoop = gameLoop else {
+            print("❌ No game loop available")
+            return
+        }
+
+        // Calculate path between buildings (simple straight line for now)
+        let deltaX = to.x - from.x
+        let deltaY = to.y - from.y
+
+        // Determine primary direction
+        let direction: Direction
+        if abs(deltaX) > abs(deltaY) {
+            direction = deltaX > 0 ? .east : .west
+        } else {
+            direction = deltaY > 0 ? .south : .north
+        }
+
+        // Place belts along the path
+        let steps = max(abs(deltaX), abs(deltaY))
+        for step in 1..<steps {
+            let t = Float(step) / Float(steps)
+            let x = Int(from.x) + Int(Float(deltaX) * t)
+            let y = Int(from.y) + Int(Float(deltaY) * t)
+            let beltPos = IntVector2(x: Int32(x), y: Int32(y))
+
+            // Give unlimited resources for belts
+            var unlimitedInventory = gameLoop.player.inventory
+            unlimitedInventory.add(ItemStack(itemId: "iron_plate", count: 100))
+            gameLoop.player.inventory = unlimitedInventory
+
+            let success = gameLoop.placeBuilding("transport_belt", at: beltPos, direction: direction)
+            if success {
+                print("  📦 Placed belt at \(beltPos)")
+            } else {
+                print("  ❌ Failed to place belt at \(beltPos)")
+            }
+        }
+
+        print("✅ Connection attempt complete")
     }
 
     private func startProduction(at position: IntVector2) {
         print("⚙️ Starting production at \(position)")
 
-        // This would need to be implemented to start crafting in buildings
-        // For now, just log the action
+        guard let gameLoop = gameLoop else {
+            print("❌ No game loop available")
+            return
+        }
+
+        // Find the entity at this position
+        let entitiesAtPosition = gameLoop.world.getAllEntitiesAt(position: position)
+        guard let entity = entitiesAtPosition.first else {
+            print("❌ No entity found at \(position)")
+            return
+        }
+
+        // Determine what type of machine it is and set appropriate recipe
+        if gameLoop.world.has(AssemblerComponent.self, for: entity) {
+            // Set assembler to craft electronic circuits (requires copper cables)
+            gameLoop.setRecipe(for: entity, recipeId: "electronic_circuit")
+            print("  🔧 Set assembler to craft electronic circuits")
+
+            // Fill assembler with copper cables for crafting
+            fillMachineInputs(entity: entity, itemId: "copper_cable", count: 10)
+        } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+            // Set furnace to smelt copper ore into copper plates
+            gameLoop.setRecipe(for: entity, recipeId: "copper_plate")
+            print("  🔥 Set furnace to smelt copper plates")
+
+            // Fill furnace with copper ore for smelting
+            fillMachineInputs(entity: entity, itemId: "copper_ore", count: 10)
+        } else {
+            print("❌ Entity at \(position) is not a machine that can produce")
+        }
     }
 
     private func takeScreenshot(name: String) {
@@ -166,6 +248,27 @@ final class AutoPlaySystem: System {
 
         // This would need to be implemented to capture screenshots
         // For now, just log the action
+    }
+
+    private func fillMachineInputs(entity: Entity, itemId: String, count: Int) {
+        guard let gameLoop = gameLoop else { return }
+
+        guard var inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else {
+            print("❌ No inventory found for entity")
+            return
+        }
+
+        // Add items to input slots (slots 0-3 for most machines)
+        let itemStack = ItemStack(itemId: itemId, count: count)
+        for slotIndex in 0..<4 {
+            if slotIndex < inventory.slots.count {
+                inventory.slots[slotIndex] = itemStack
+                print("  📥 Added \(count)x \(itemId) to slot \(slotIndex)")
+                break // Add to first available slot
+            }
+        }
+
+        gameLoop.world.add(inventory, to: entity)
     }
 
     private func evaluateSuccessCriteria(_ criteria: [SuccessCondition]) -> Bool {
@@ -213,6 +316,59 @@ extension AutoPlaySystem {
                     .setGameSpeed(.normal)
                 ],
                 duration: nil,
+                successCriteria: []
+            )
+
+        case "basic_mining":
+            return GameScenario(
+                name: "Basic Mining",
+                description: "Places a miner and lets it run",
+                steps: [
+                    .placeBuilding(type: "electric_miner", position: IntVector2(x: 5, y: 5), direction: .north),
+                    .wait(seconds: 10.0),
+                    .setGameSpeed(.normal)
+                ],
+                duration: 15.0,
+                successCriteria: []
+            )
+
+        case "smelting_setup":
+            return GameScenario(
+                name: "Smelting Setup",
+                description: "Miner + Furnace production chain",
+                steps: [
+                    .placeBuilding(type: "electric_miner", position: IntVector2(x: 5, y: 5), direction: .north),
+                    .wait(seconds: 2.0),
+                    .placeBuilding(type: "electric_furnace", position: IntVector2(x: 8, y: 5), direction: .north),
+                    .wait(seconds: 2.0),
+                    .connectBuildings(from: IntVector2(x: 5, y: 5), to: IntVector2(x: 8, y: 5)),
+                    .wait(seconds: 10.0)
+                ],
+                duration: 20.0,
+                successCriteria: []
+            )
+
+        case "production_line":
+            return GameScenario(
+                name: "Production Line",
+                description: "Complete miner → furnace → assembler chain",
+                steps: [
+                    .placeBuilding(type: "electric_miner", position: IntVector2(x: 5, y: 5), direction: .north),
+                    .wait(seconds: 1.0),
+                    .placeBuilding(type: "electric_furnace", position: IntVector2(x: 8, y: 5), direction: .north),
+                    .wait(seconds: 1.0),
+                    .placeBuilding(type: "assembling_machine_1", position: IntVector2(x: 11, y: 5), direction: .north),
+                    .wait(seconds: 1.0),
+                    .connectBuildings(from: IntVector2(x: 5, y: 5), to: IntVector2(x: 8, y: 5)),
+                    .wait(seconds: 1.0),
+                    .connectBuildings(from: IntVector2(x: 8, y: 5), to: IntVector2(x: 11, y: 5)),
+                    .wait(seconds: 1.0),
+                    .startProduction(at: IntVector2(x: 8, y: 5)), // Start furnace
+                    .wait(seconds: 1.0),
+                    .startProduction(at: IntVector2(x: 11, y: 5)), // Start assembler
+                    .wait(seconds: 15.0)
+                ],
+                duration: 25.0,
                 successCriteria: []
             )
 

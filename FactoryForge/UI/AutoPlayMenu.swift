@@ -60,12 +60,15 @@ final class AutoPlayMenu: UIPanel_Base {
             ("Select Scenario:", frame.minY + 60 * UIScale, 20),
             ("Basic Test - Speed changes", frame.minY + 100 * UIScale, 16),
             ("Speed Demo - Auto speed cycling", frame.minY + 140 * UIScale, 16),
-            ("Select Speed:", frame.minY + 180 * UIScale, 20),
-            ("0.5x Slow", frame.minY + 220 * UIScale, 16),
-            ("1x Normal", frame.minY + 260 * UIScale, 16),
-            ("2x Fast", frame.minY + 300 * UIScale, 16),
-            ("4x Faster", frame.minY + 340 * UIScale, 16),
-            ("8x Fastest", frame.minY + 380 * UIScale, 16),
+            ("Basic Mining - Place electric miner", frame.minY + 180 * UIScale, 16),
+            ("Smelting Setup - Miner + Furnace", frame.minY + 220 * UIScale, 16),
+            ("Production Line - Complete chain", frame.minY + 260 * UIScale, 16),
+            ("Select Speed:", frame.minY + 320 * UIScale, 20),
+            ("0.5x Slow", frame.minY + 360 * UIScale, 16),
+            ("1x Normal", frame.minY + 400 * UIScale, 16),
+            ("2x Fast", frame.minY + 440 * UIScale, 16),
+            ("4x Faster", frame.minY + 480 * UIScale, 16),
+            ("8x Fastest", frame.minY + 520 * UIScale, 16),
             ("Start Auto-Play", frame.maxY - 100 * UIScale, 18),
             ("Stop Auto-Play", frame.maxY - 100 * UIScale, 18)
         ]
@@ -125,7 +128,10 @@ final class AutoPlayMenu: UIPanel_Base {
 
         let scenarios = [
             ("basic_test", "Basic Test - Speed changes"),
-            ("speed_demo", "Speed Demo - Auto speed cycling")
+            ("speed_demo", "Speed Demo - Auto speed cycling"),
+            ("basic_mining", "Basic Mining - Place electric miner"),
+            ("smelting_setup", "Smelting Setup - Miner + Furnace"),
+            ("production_line", "Production Line - Complete chain")
         ]
 
         for (scenarioId, scenarioName) in scenarios {
@@ -134,7 +140,7 @@ final class AutoPlayMenu: UIPanel_Base {
                     center: Vector2(frame.center.x, currentY + buttonHeight / 2),
                     size: Vector2(buttonWidth, buttonHeight)
                 ),
-                textureId: "solid_white"  // Use solid color for text buttons
+                textureId: "solid_white"  // Invisible button - text labels provide visual interface
             )
             button.onTap = { [weak self] in
                 AudioManager.shared.playClickSound()
@@ -166,7 +172,7 @@ final class AutoPlayMenu: UIPanel_Base {
                     center: Vector2(frame.center.x, currentY + buttonHeight / 2),
                     size: Vector2(buttonWidth, buttonHeight)
                 ),
-                textureId: "solid_white"  // Use solid color for text buttons
+                textureId: "solid_white"  // Invisible button - text labels provide visual interface
             )
             button.onTap = { [weak self] in
                 AudioManager.shared.playClickSound()
@@ -243,19 +249,8 @@ final class AutoPlayMenu: UIPanel_Base {
         // Render close button
         closeButton.render(renderer: renderer)
 
-        // Render scenario buttons
-        for button in scenarioButtons {
-            button.render(renderer: renderer)
-        }
-
-        // Render speed buttons
-        for button in speedButtons {
-            button.render(renderer: renderer)
-        }
-
-        // Render control buttons
-        startButton.render(renderer: renderer)
-        stopButton.render(renderer: renderer)
+        // Note: Buttons are not rendered - text labels provide the visual interface
+        // Buttons exist only for touch handling
     }
 
     override func handleTap(at position: Vector2) -> Bool {
