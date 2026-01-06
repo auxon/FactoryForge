@@ -445,7 +445,6 @@ final class GameLoop {
                 sprite.animation = beltAnimation
                 sprite.textureId = beltFrames[0]  // Start with first frame
                 world.add(sprite, to: entity)
-                print("  First frame: \(beltFrames[0])")
             } else {
                 print("✗ No sprite component found for belt entity")
             }
@@ -835,10 +834,8 @@ final class GameLoop {
         }
 
         // Rotate direction clockwise
-        let oldDirection = belt.direction
         let newDirection = belt.direction.clockwise
         belt.direction = newDirection
-        print("🔄 Rotating belt from \(oldDirection) to \(newDirection)")
 
         // Update belt component
         world.add(belt, to: entity)
@@ -858,11 +855,9 @@ final class GameLoop {
                 frameTime: 0.1,  // 16 frames × 0.1s = 1.6 seconds per loop
                 isLooping: true
             )
-            let oldTextureId = sprite.textureId
             sprite.animation = beltAnimation
             sprite.textureId = beltFrames[0]  // Start with first frame
             world.add(sprite, to: entity)
-            print("✓ Updated belt animation for \(newDirection) direction (using north frames with rotation) - old: \(oldTextureId), new: \(beltFrames[0])")
         } else {
             print("⚠️ No sprite component found for belt entity during rotation")
         }

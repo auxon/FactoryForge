@@ -91,37 +91,17 @@ final class SpriteRenderer {
                 continue
             }
 
-            // Debug: check for belt animations
-            if sprite.textureId.contains("transport_belt") {
-                print("🎬 Processing belt sprite: \(sprite.textureId), has animation: \(sprite.animation != nil)")
-                print("   Sprite size: \(sprite.size), position: \(worldPos)")
-                if let anim = sprite.animation {
-                    print("   Animation frames: \(anim.frames.count), current frame: \(anim.currentFrame.description)")
-                }
-            }
 
             // Animated belts are rendered as sprites, non-animated belts are rendered as shapes
             let beltTypes = ["transport_belt", "fast_transport_belt", "express_transport_belt"]
             if beltTypes.contains(sprite.textureId) && sprite.animation == nil {
-                print("🔄 Skipping non-animated belt \(sprite.textureId) from sprite rendering")
                 continue  // Skip non-animated belt sprites - they'll be drawn as shapes in renderBelts
-            }
-
-            // Debug: show when belts are being rendered as sprites
-            if sprite.textureId.contains("transport_belt") {
-                print("🎨 Rendering belt \(sprite.textureId) as sprite (has animation: \(sprite.animation != nil))")
             }
 
             // Update animation if present (use a mutable copy for rendering)
             var renderSprite = sprite
             
-            let finalTextureId = renderSprite.textureId
-            let textureRect = textureAtlas.getTextureRect(for: finalTextureId)
-
-            // Debug: check texture rect for belts
-            if finalTextureId.contains("transport_belt") {
-                print("🖼️ Belt texture '\(finalTextureId)' rect: \(textureRect)")
-            }
+            let textureRect = textureAtlas.getTextureRect(for: renderSprite.textureId)
 
             if var animation = renderSprite.animation {
                 if let newTextureId = animation.update(deltaTime: 1.0/60.0) {  // Assume 60 FPS for now
@@ -145,7 +125,6 @@ final class SpriteRenderer {
             if let belt = belt {
                 // Belts use their transport direction (even if centered)
                 rotation = belt.direction.angle
-                print("🔄 Belt at \(worldPos) using belt direction \(belt.direction) -> rotation \(rotation) radians (\(rotation * 180 / .pi)°)")
             } else if renderSprite.centered {
                 // Centered sprites (like player) use position direction
                 rotation = position.direction.angle
@@ -158,14 +137,6 @@ final class SpriteRenderer {
                 Color(r: renderSprite.tint.r * 1.5, g: renderSprite.tint.g * 1.5, b: renderSprite.tint.b * 1.0, a: renderSprite.tint.a) :
                 renderSprite.tint  // Brighten selected entities
 
-            // Debug: check belt queuing
-            if renderSprite.textureId.contains("transport_belt") {
-                print("📦 Queuing belt sprite: \(renderSprite.textureId) at \(renderPos) size \(renderSprite.size)")
-                if let anim = renderSprite.animation {
-                    let currentAnimTexture = anim.frames[anim.currentFrame]
-                    print("   Animation: frame \(anim.currentFrame)/\(anim.frames.count), elapsed: \(anim.elapsedTime), current texture: \(currentAnimTexture)")
-                }
-            }
 
             queuedSprites.append(SpriteInstance(
                 position: renderPos,
@@ -307,7 +278,6 @@ final class SpriteRenderer {
 
             // Skip belts with animations - they are rendered as sprites in the main loop
             if sprite.animation != nil {
-                print("🔄 Skipping animated belt \(sprite.textureId) from shape rendering")
                 continue
             }
 
