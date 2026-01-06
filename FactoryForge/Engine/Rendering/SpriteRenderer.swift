@@ -224,9 +224,12 @@ final class SpriteRenderer {
         let beltColors: [String: Color] = [
             "transport_belt": Color(r: 0.5, g: 0.5, b: 0.5, a: 1.0),      // Grey
             "fast_transport_belt": Color(r: 0.2, g: 0.5, b: 0.9, a: 1.0),  // Blue
-            "express_transport_belt": Color(r: 0.8, g: 0.2, b: 0.8, a: 1.0) // Purple
+            "express_transport_belt": Color(r: 0.8, g: 0.2, b: 0.8, a: 1.0), // Purple
+            "underground_belt": Color(r: 0.3, g: 0.3, b: 0.3, a: 1.0),    // Dark grey
+            "splitter": Color(r: 0.6, g: 0.4, b: 0.2, a: 1.0),             // Brown
+            "merger": Color(r: 0.4, g: 0.6, b: 0.2, a: 1.0)                // Green
         ]
-        
+
         for entity in world.query(BeltComponent.self, SpriteComponent.self) {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let belt = world.get(BeltComponent.self, for: entity),
@@ -238,28 +241,166 @@ final class SpriteRenderer {
             // Distance-based culling for belts
             let distanceFromCamera = (worldPos - cameraCenter).length
             guard distanceFromCamera <= maxRenderDistance else { continue }
-            
+
             // Get belt color based on texture ID
             let beltColor = beltColors[sprite.textureId] ?? Color(r: 0.5, g: 0.5, b: 0.5, a: 1.0)
-            
-            // Draw belt as a simple rectangle
-            // The belt should be oriented along its direction
-            let beltWidth: Float = 0.7  // Width of the belt (70% of tile)
-            let beltLength: Float = 1.0  // Full tile length
-            
-            // Create a rectangle oriented along the belt direction
-            let angle = belt.direction.angle
-            let beltSize = Vector2(beltWidth, beltLength)
-            
+
+            // Handle different belt types
+            switch belt.type {
+            case .normal:
+                renderNormalBelt(worldPos: worldPos, belt: belt, beltColor: beltColor, solidRect: solidRect, sprite: sprite)
+            case .underground:
+                renderUndergroundBelt(worldPos: worldPos, belt: belt, beltColor: beltColor, solidRect: solidRect, sprite: sprite)
+            case .splitter:
+                renderSplitter(worldPos: worldPos, belt: belt, beltColor: beltColor, solidRect: solidRect, sprite: sprite)
+            case .merger:
+                renderMerger(worldPos: worldPos, belt: belt, beltColor: beltColor, solidRect: solidRect, sprite: sprite)
+            case .bridge:
+                renderBridgeBelt(worldPos: worldPos, belt: belt, beltColor: beltColor, solidRect: solidRect, sprite: sprite)
+            }
+        }
+    }
+
+    private func renderNormalBelt(worldPos: Vector2, belt: BeltComponent, beltColor: Color, solidRect: Rect, sprite: SpriteComponent) {
+        // Draw belt as a simple rectangle
+        let beltWidth: Float = 0.7  // Width of the belt (70% of tile)
+        let beltLength: Float = 1.0  // Full tile length
+
+        let angle = belt.direction.angle
+        let beltSize = Vector2(beltWidth, beltLength)
+
+        queuedSprites.append(SpriteInstance(
+            position: worldPos,
+            size: beltSize,
+            rotation: angle,
+            textureRect: solidRect,
+            color: beltColor,
+            layer: sprite.layer
+        ))
+    }
+
+    private func renderUndergroundBelt(worldPos: Vector2, belt: BeltComponent, beltColor: Color, solidRect: Rect, sprite: SpriteComponent) {
+        // Underground belts show only the input/output ends as small circles
+        let endSize = Vector2(0.3, 0.3)
+
+        // Input end (slightly darker)
+        queuedSprites.append(SpriteInstance(
+            position: worldPos,
+            size: endSize,
+            rotation: 0,
+            textureRect: solidRect,
+            color: Color(r: beltColor.r * 0.7, g: beltColor.g * 0.7, b: beltColor.b * 0.7, a: beltColor.a),
+            layer: sprite.layer
+        ))
+
+        // Output end if different position
+        if let outputPos = belt.undergroundOutputPosition {
+            let outputWorldPos = Vector2(Float(outputPos.x), Float(outputPos.y))
             queuedSprites.append(SpriteInstance(
-                position: worldPos,
-                size: beltSize,
-                rotation: angle,
+                position: outputWorldPos,
+                size: endSize,
+                rotation: 0,
                 textureRect: solidRect,
                 color: beltColor,
                 layer: sprite.layer
             ))
         }
+    }
+
+    private func renderSplitter(worldPos: Vector2, belt: BeltComponent, beltColor: Color, solidRect: Rect, sprite: SpriteComponent) {
+        // Splitters are rendered as a central hub with multiple arms
+        let hubSize = Vector2(0.5, 0.5)
+        let armWidth: Float = 0.3
+        let armLength: Float = 0.4
+
+        // Central hub
+        queuedSprites.append(SpriteInstance(
+            position: worldPos,
+            size: hubSize,
+            rotation: 0,
+            textureRect: solidRect,
+            color: beltColor,
+            layer: sprite.layer
+        ))
+
+        // Arms in all four directions
+        for direction in [Direction.north, .east, .south, .west] {
+            let armOffset = Vector2(Float(direction.intVector.x), Float(direction.intVector.y)) * armLength
+            let armPos = worldPos + armOffset
+            let armSize = Vector2(armWidth, armLength * 2)
+            let angle = direction.angle
+
+            queuedSprites.append(SpriteInstance(
+                position: armPos,
+                size: armSize,
+                rotation: angle,
+                textureRect: solidRect,
+                color: Color(r: beltColor.r * 0.8, g: beltColor.g * 0.8, b: beltColor.b * 0.8, a: beltColor.a),
+                layer: sprite.layer
+            ))
+        }
+    }
+
+    private func renderMerger(worldPos: Vector2, belt: BeltComponent, beltColor: Color, solidRect: Rect, sprite: SpriteComponent) {
+        // Mergers are similar to splitters but with different coloring
+        let hubSize = Vector2(0.5, 0.5)
+        let armWidth: Float = 0.3
+        let armLength: Float = 0.4
+
+        // Central hub (slightly different color)
+        queuedSprites.append(SpriteInstance(
+            position: worldPos,
+            size: hubSize,
+            rotation: 0,
+            textureRect: solidRect,
+            color: Color(r: beltColor.r * 1.2, g: beltColor.g * 1.2, b: beltColor.b * 1.2, a: beltColor.a),
+            layer: sprite.layer
+        ))
+
+        // Arms in all four directions (slightly wider)
+        for direction in [Direction.north, .east, .south, .west] {
+            let armOffset = Vector2(Float(direction.intVector.x), Float(direction.intVector.y)) * armLength
+            let armPos = worldPos + armOffset
+            let armSize = Vector2(armWidth * 1.2, armLength * 2)
+            let angle = direction.angle
+
+            queuedSprites.append(SpriteInstance(
+                position: armPos,
+                size: armSize,
+                rotation: angle,
+                textureRect: solidRect,
+                color: Color(r: beltColor.r * 0.9, g: beltColor.g * 0.9, b: beltColor.b * 0.9, a: beltColor.a),
+                layer: sprite.layer
+            ))
+        }
+    }
+
+    private func renderBridgeBelt(worldPos: Vector2, belt: BeltComponent, beltColor: Color, solidRect: Rect, sprite: SpriteComponent) {
+        // Bridge belts are elevated - render slightly higher and with a shadow
+        let beltWidth: Float = 0.7
+        let beltLength: Float = 1.0
+        let angle = belt.direction.angle
+        let beltSize = Vector2(beltWidth, beltLength)
+
+        // Shadow underneath (darker, slightly offset)
+        queuedSprites.append(SpriteInstance(
+            position: worldPos + Vector2(0.05, -0.05),
+            size: beltSize * 1.1,
+            rotation: angle,
+            textureRect: solidRect,
+            color: Color(r: 0.0, g: 0.0, b: 0.0, a: 0.3),
+            layer: .groundDecoration
+        ))
+
+        // Main belt (elevated)
+        queuedSprites.append(SpriteInstance(
+            position: worldPos,
+            size: beltSize,
+            rotation: angle,
+            textureRect: solidRect,
+            color: beltColor,
+            layer: sprite.layer
+        ))
     }
     
     private func renderBeltItems(world: World, visibleRect: Rect, camera: Camera2D) {

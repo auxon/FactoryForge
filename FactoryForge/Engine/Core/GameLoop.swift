@@ -411,11 +411,25 @@ final class GameLoop {
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             
         case .belt:
+            // Determine belt type based on building ID
+            let beltType: BeltType
+            switch buildingDef.id {
+            case "underground-belt":
+                beltType = .underground
+            case "splitter":
+                beltType = .splitter
+            case "merger":
+                beltType = .merger
+            default:
+                beltType = .normal
+            }
+
             world.add(BeltComponent(
                 speed: buildingDef.beltSpeed,
-                direction: direction
+                direction: direction,
+                type: beltType
             ), to: entity)
-            beltSystem.registerBelt(entity: entity, at: position, direction: direction)
+            beltSystem.registerBelt(entity: entity, at: position, direction: direction, type: beltType)
             
         case .inserter:
             addInserterComponents(entity: entity, buildingDef: buildingDef, type: .input) // Default to input for regular placement

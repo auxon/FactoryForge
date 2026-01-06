@@ -189,6 +189,47 @@ final class RecipeRegistry {
             category: .crafting,
             order: "g"
         ))
+
+        register(Recipe(
+            id: "underground-belt",
+            name: "Underground Belt",
+            inputs: [
+                ItemStack(itemId: "iron-plate", count: 10),
+                ItemStack(itemId: "transport-belt", count: 5)
+            ],
+            outputs: [ItemStack(itemId: "underground-belt", count: 2)],
+            craftTime: 1,
+            category: .crafting,
+            order: "g1"
+        ))
+
+        register(Recipe(
+            id: "splitter",
+            name: "Splitter",
+            inputs: [
+                ItemStack(itemId: "electronic-circuit", count: 5),
+                ItemStack(itemId: "iron-plate", count: 5),
+                ItemStack(itemId: "transport-belt", count: 4)
+            ],
+            outputs: [ItemStack(itemId: "splitter", count: 1)],
+            craftTime: 1,
+            category: .crafting,
+            order: "g2"
+        ))
+
+        register(Recipe(
+            id: "merger",
+            name: "Merger",
+            inputs: [
+                ItemStack(itemId: "electronic-circuit", count: 5),
+                ItemStack(itemId: "iron-plate", count: 5),
+                ItemStack(itemId: "transport-belt", count: 4)
+            ],
+            outputs: [ItemStack(itemId: "merger", count: 1)],
+            craftTime: 1,
+            category: .crafting,
+            order: "g3"
+        ))
         
         register(Recipe(
             id: "inserter",

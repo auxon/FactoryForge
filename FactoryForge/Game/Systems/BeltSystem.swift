@@ -19,20 +19,29 @@ final class BeltSystem: System {
     
     // MARK: - Belt Registration
     
-    func registerBelt(entity: Entity, at position: IntVector2, direction: Direction) {
-        let node = BeltNode(entity: entity, position: position, direction: direction)
+    func registerBelt(entity: Entity, at position: IntVector2, direction: Direction, type: BeltType = .normal) {
+        let node = BeltNode(entity: entity, position: position, direction: direction, type: type)
         beltGraph[position] = node
         updateConnections(for: position)
-        
+
+        // For underground belts, also register the output position if specified
+        if type == .underground {
+            if let beltComp = world.get(BeltComponent.self, for: entity),
+               let outputPos = beltComp.undergroundOutputPosition {
+                let outputNode = BeltNode(entity: entity, position: outputPos, direction: direction, type: type)
+                beltGraph[outputPos] = outputNode
+            }
+        }
+
         // Update connections for neighbors that might now connect to this belt
         // Check the belt behind us (opposite of our direction)
         let behindPos = position - direction.intVector
         updateConnections(for: behindPos)
-        
+
         // Check the belt in front of us (in our direction)
         let frontPos = position + direction.intVector
         updateConnections(for: frontPos)
-        
+
         // Also check adjacent positions in case belts are pointing at us
         for offset in [IntVector2(1, 0), IntVector2(-1, 0), IntVector2(0, 1), IntVector2(0, -1)] {
             let neighborPos = position + offset
@@ -40,7 +49,7 @@ final class BeltSystem: System {
                 updateConnections(for: neighborPos)
             }
         }
-        
+
         needsResort = true
     }
     
@@ -97,6 +106,21 @@ final class BeltSystem: System {
             return
         }
 
+        switch node.type {
+        case .normal, .bridge:
+            updateNormalBeltConnections(for: position, node: &node)
+        case .underground:
+            updateUndergroundBeltConnections(for: position, node: &node)
+        case .splitter:
+            updateSplitterConnections(for: position, node: &node)
+        case .merger:
+            updateMergerConnections(for: position, node: &node)
+        }
+
+        beltGraph[position] = node
+    }
+
+    private func updateNormalBeltConnections(for position: IntVector2, node: inout BeltNode) {
         // Find output connection (belt in front in the direction we're facing)
         // This connects even if the output belt is going at a 90-degree angle
         let outputPos = position + node.direction.intVector
@@ -151,8 +175,74 @@ final class BeltSystem: System {
             belt.inputConnection = node.inputEntities.first
             world.add(belt, to: node.entity)
         }
+    }
 
-        beltGraph[position] = node
+    private func updateUndergroundBeltConnections(for position: IntVector2, node: inout BeltNode) {
+        // Underground belts connect input and output positions
+        // For now, treat them similar to normal belts but with special handling
+        updateNormalBeltConnections(for: position, node: &node)
+    }
+
+    private func updateSplitterConnections(for position: IntVector2, node: inout BeltNode) {
+        // Splitters take one input and distribute to multiple outputs
+        node.inputEntities = []
+        node.outputEntity = nil
+
+        // Find input (belt pointing to us)
+        for offset in [IntVector2(1, 0), IntVector2(-1, 0), IntVector2(0, 1), IntVector2(0, -1)] {
+            let inputPos = position + offset
+            if let inputNode = beltGraph[inputPos] {
+                let inputOutputPos = inputPos + inputNode.direction.intVector
+                if inputOutputPos == position {
+                    node.inputEntities.append(inputNode.entity)
+                }
+            }
+        }
+
+        // Find outputs (belts in front of us and to the sides)
+        var outputEntities: [Entity] = []
+        for offset in [IntVector2(1, 0), IntVector2(-1, 0), IntVector2(0, 1), IntVector2(0, -1)] {
+            let outputPos = position + offset
+            if let outputNode = beltGraph[outputPos] {
+                // Connect to any adjacent belt (splitters output in all directions)
+                outputEntities.append(outputNode.entity)
+            }
+        }
+
+        // Update belt component with multiple connections
+        if var belt = world.get(BeltComponent.self, for: node.entity) {
+            belt.inputConnection = node.inputEntities.first
+            belt.outputConnections = outputEntities
+            world.add(belt, to: node.entity)
+        }
+    }
+
+    private func updateMergerConnections(for position: IntVector2, node: inout BeltNode) {
+        // Mergers take multiple inputs and combine into one output
+        node.inputEntities = []
+        node.outputEntity = nil
+
+        // Find inputs (any adjacent belts)
+        var inputEntities: [Entity] = []
+        for offset in [IntVector2(1, 0), IntVector2(-1, 0), IntVector2(0, 1), IntVector2(0, -1)] {
+            let inputPos = position + offset
+            if let inputNode = beltGraph[inputPos] {
+                inputEntities.append(inputNode.entity)
+            }
+        }
+
+        // Find output (belt in front of us)
+        let outputPos = position + node.direction.intVector
+        if let outputNode = beltGraph[outputPos] {
+            node.outputEntity = outputNode.entity
+        }
+
+        // Update belt component with multiple inputs
+        if var belt = world.get(BeltComponent.self, for: node.entity) {
+            belt.inputConnections = inputEntities
+            belt.outputConnection = node.outputEntity
+            world.add(belt, to: node.entity)
+        }
     }
     
     private func topologicalSort() {
@@ -204,15 +294,29 @@ final class BeltSystem: System {
         // Process belts in topological order
         for entity in sortedBelts {
             guard var belt = world.get(BeltComponent.self, for: entity) else { continue }
-            
+
             let speed = belt.speed * deltaTime
-            
-            // Move items on left lane
-            moveItemsOnLane(lane: &belt.leftLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .left)
-            
-            // Move items on right lane
-            moveItemsOnLane(lane: &belt.rightLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .right)
-            
+
+            // Handle different belt types
+            switch belt.type {
+            case .normal, .bridge:
+                // Standard belt behavior
+                moveItemsOnLane(lane: &belt.leftLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .left)
+                moveItemsOnLane(lane: &belt.rightLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .right)
+
+            case .underground:
+                // Underground belts move items instantly between input and output
+                moveUndergroundBeltItems(belt: &belt, entity: entity)
+
+            case .splitter:
+                // Splitters distribute items from input to multiple outputs
+                moveSplitterItems(belt: &belt, speed: speed, entity: entity)
+
+            case .merger:
+                // Mergers combine items from multiple inputs
+                moveMergerItems(belt: &belt, speed: speed, entity: entity)
+            }
+
             world.add(belt, to: entity)
         }
     }
@@ -256,6 +360,58 @@ final class BeltSystem: System {
     private func getOutputBelt(for entity: Entity) -> Entity? {
         guard let belt = world.get(BeltComponent.self, for: entity) else { return nil }
         return belt.outputConnection
+    }
+
+    private func moveUndergroundBeltItems(belt: inout BeltComponent, entity: Entity) {
+        // Underground belts instantly transfer items from input position to output position
+        // For now, we'll simulate this by moving items very quickly
+        // In a more advanced implementation, we'd track underground routing
+
+        let speed = belt.speed * 10.0 // Much faster underground movement
+
+        moveItemsOnLane(lane: &belt.leftLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .left)
+        moveItemsOnLane(lane: &belt.rightLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .right)
+    }
+
+    private func moveSplitterItems(belt: inout BeltComponent, speed: Float, entity: Entity) {
+        // Splitters take items from input and distribute to multiple outputs
+
+        // First, try to get items from input connections
+        if let inputEntity = belt.inputConnection {
+            if var inputBelt = world.get(BeltComponent.self, for: inputEntity) {
+                // Try to take items from input belt
+                if let item = inputBelt.takeItemFromMerger() { // Reusing merger method for taking from input
+                    // Add to splitter's distribution logic
+                    _ = belt.addItemToSplitter(item.itemId)
+                    // Update the input belt
+                    world.add(inputBelt, to: inputEntity)
+                }
+            }
+        }
+
+        // Move items along splitter and distribute to outputs
+        moveItemsOnLane(lane: &belt.leftLane, speed: speed, outputBelt: belt.outputConnections.first, outputLane: .left)
+        moveItemsOnLane(lane: &belt.rightLane, speed: speed, outputBelt: belt.outputConnections.last, outputLane: .right)
+    }
+
+    private func moveMergerItems(belt: inout BeltComponent, speed: Float, entity: Entity) {
+        // Mergers combine items from multiple inputs into one output
+
+        // Try to get items from all input connections
+        for inputEntity in belt.inputConnections {
+            if var inputBelt = world.get(BeltComponent.self, for: inputEntity) {
+                if let item = inputBelt.takeItemFromMerger() {
+                    // Add to merger's combined output
+                    _ = belt.addItemToSplitter(item.itemId) // Reusing splitter method for distribution
+                    // Update the input belt
+                    world.add(inputBelt, to: inputEntity)
+                }
+            }
+        }
+
+        // Move combined items to output
+        moveItemsOnLane(lane: &belt.leftLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .left)
+        moveItemsOnLane(lane: &belt.rightLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .right)
     }
     
     // MARK: - Public Interface
@@ -314,6 +470,7 @@ private struct BeltNode {
     let entity: Entity
     let position: IntVector2
     var direction: Direction
+    var type: BeltType = .normal
     var inputEntities: [Entity] = []
     var outputEntity: Entity?
 }

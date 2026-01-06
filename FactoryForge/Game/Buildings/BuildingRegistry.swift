@@ -151,7 +151,7 @@ final class BuildingRegistry {
         )
         transportBelt.beltSpeed = 1.875  // 15 items/s per lane
         register(transportBelt)
-        
+
         var fastBelt = BuildingDefinition(
             id: "fast-transport-belt",
             name: "Fast Transport Belt",
@@ -161,7 +161,7 @@ final class BuildingRegistry {
         )
         fastBelt.beltSpeed = 3.75  // 30 items/s per lane
         register(fastBelt)
-        
+
         var expressBelt = BuildingDefinition(
             id: "express-transport-belt",
             name: "Express Transport Belt",
@@ -171,6 +171,37 @@ final class BuildingRegistry {
         )
         expressBelt.beltSpeed = 5.625  // 45 items/s per lane
         register(expressBelt)
+
+        // Advanced Belts
+        var undergroundBelt = BuildingDefinition(
+            id: "underground-belt",
+            name: "Underground Belt",
+            type: .belt,
+            maxHealth: 60,
+            cost: [ItemStack(itemId: "iron-plate", count: 10), ItemStack(itemId: "transport-belt", count: 5)]
+        )
+        undergroundBelt.beltSpeed = 1.875  // Same speed as transport belt
+        register(undergroundBelt)
+
+        var splitter = BuildingDefinition(
+            id: "splitter",
+            name: "Splitter",
+            type: .belt,
+            maxHealth: 80,
+            cost: [ItemStack(itemId: "electronic-circuit", count: 5), ItemStack(itemId: "iron-plate", count: 5), ItemStack(itemId: "transport-belt", count: 4)]
+        )
+        splitter.beltSpeed = 1.875
+        register(splitter)
+
+        var merger = BuildingDefinition(
+            id: "merger",
+            name: "Merger",
+            type: .belt,
+            maxHealth: 80,
+            cost: [ItemStack(itemId: "electronic-circuit", count: 5), ItemStack(itemId: "iron-plate", count: 5), ItemStack(itemId: "transport-belt", count: 4)]
+        )
+        merger.beltSpeed = 1.875
+        register(merger)
         
         // Inserters
         var inserter = BuildingDefinition(

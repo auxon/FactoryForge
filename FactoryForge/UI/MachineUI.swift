@@ -381,7 +381,11 @@ final class MachineUI: UIPanel_Base {
                 var outputSummary = ""
                 for (index, slot) in inputSlots.enumerated() {
                     let oldItem = slot.item
-                    slot.item = inventory.slots[slot.index]
+                    if slot.index < inventory.slots.count {
+                        slot.item = inventory.slots[slot.index]
+                    } else {
+                        slot.item = nil  // Slot index out of bounds
+                    }
                     if oldItem?.itemId != slot.item?.itemId || oldItem?.count != slot.item?.count {
                         hasChanges = true
                     }
@@ -389,7 +393,11 @@ final class MachineUI: UIPanel_Base {
                 }
                 for (index, slot) in outputSlots.enumerated() {
                     let oldItem = slot.item
-                    slot.item = inventory.slots[slot.index]
+                    if slot.index < inventory.slots.count {
+                        slot.item = inventory.slots[slot.index]
+                    } else {
+                        slot.item = nil  // Slot index out of bounds
+                    }
                     if oldItem?.itemId != slot.item?.itemId || oldItem?.count != slot.item?.count {
                         hasChanges = true
                     }

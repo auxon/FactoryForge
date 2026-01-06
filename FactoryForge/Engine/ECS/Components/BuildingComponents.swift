@@ -79,32 +79,103 @@ struct AssemblerComponent: Component {
 // MARK: - Logistics
 
 /// Component for transport belts
+/// Different types of belt entities
+enum BeltType: Codable {
+    case normal
+    case underground
+    case splitter
+    case merger
+    case bridge
+}
+
 struct BeltComponent: Component {
     /// Belt speed in tiles per second
     var speed: Float
-    
+
     /// Belt direction
     var direction: Direction
-    
+
+    /// Type of belt
+    var type: BeltType
+
     /// Items on the left lane
     var leftLane: [BeltItem]
-    
+
     /// Items on the right lane
     var rightLane: [BeltItem]
-    
+
     /// Connected belt on input side
     var inputConnection: Entity?
-    
+
     /// Connected belt on output side
     var outputConnection: Entity?
-    
-    init(speed: Float = 1.0, direction: Direction = .north) {
+
+    /// For underground belts: separate input and output positions
+    var undergroundInputPosition: IntVector2?
+    var undergroundOutputPosition: IntVector2?
+
+    /// For splitters/mergers: multiple input/output connections
+    var inputConnections: [Entity]
+    var outputConnections: [Entity]
+
+    init(speed: Float = 1.0, direction: Direction = .north, type: BeltType = .normal) {
         self.speed = speed
         self.direction = direction
+        self.type = type
         self.leftLane = []
         self.rightLane = []
         self.inputConnection = nil
         self.outputConnection = nil
+        self.undergroundInputPosition = nil
+        self.undergroundOutputPosition = nil
+        self.inputConnections = []
+        self.outputConnections = []
+    }
+
+    // Custom Codable conformance for backward compatibility
+    enum CodingKeys: String, CodingKey {
+        case speed, direction, type, leftLane, rightLane
+        case inputConnection, outputConnection
+        case undergroundInputPosition, undergroundOutputPosition
+        case inputConnections, outputConnections
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        speed = try container.decode(Float.self, forKey: .speed)
+        direction = try container.decode(Direction.self, forKey: .direction)
+
+        // New fields with backward compatibility - default to .normal if not present
+        type = try container.decodeIfPresent(BeltType.self, forKey: .type) ?? .normal
+
+        leftLane = try container.decode([BeltItem].self, forKey: .leftLane)
+        rightLane = try container.decode([BeltItem].self, forKey: .rightLane)
+
+        inputConnection = try container.decodeIfPresent(Entity.self, forKey: .inputConnection)
+        outputConnection = try container.decodeIfPresent(Entity.self, forKey: .outputConnection)
+
+        // New fields with defaults for backward compatibility
+        undergroundInputPosition = try container.decodeIfPresent(IntVector2.self, forKey: .undergroundInputPosition)
+        undergroundOutputPosition = try container.decodeIfPresent(IntVector2.self, forKey: .undergroundOutputPosition)
+        inputConnections = try container.decodeIfPresent([Entity].self, forKey: .inputConnections) ?? []
+        outputConnections = try container.decodeIfPresent([Entity].self, forKey: .outputConnections) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(speed, forKey: .speed)
+        try container.encode(direction, forKey: .direction)
+        try container.encode(type, forKey: .type)
+        try container.encode(leftLane, forKey: .leftLane)
+        try container.encode(rightLane, forKey: .rightLane)
+        try container.encode(inputConnection, forKey: .inputConnection)
+        try container.encode(outputConnection, forKey: .outputConnection)
+        try container.encode(undergroundInputPosition, forKey: .undergroundInputPosition)
+        try container.encode(undergroundOutputPosition, forKey: .undergroundOutputPosition)
+        try container.encode(inputConnections, forKey: .inputConnections)
+        try container.encode(outputConnections, forKey: .outputConnections)
     }
     
     /// Adds an item to the belt
@@ -150,6 +221,38 @@ struct BeltComponent: Component {
                 return rightLane.removeLast()
             }
         }
+        return nil
+    }
+
+    /// For splitters: distributes items to output lanes in round-robin fashion
+    mutating func addItemToSplitter(_ itemId: String) -> Bool {
+        guard type == .splitter else { return false }
+
+        // Alternate between left and right lanes for even distribution
+        let leftCount = leftLane.count
+        let rightCount = rightLane.count
+
+        if leftCount <= rightCount {
+            // Add to left lane
+            return addItem(itemId, lane: .left, position: 0)
+        } else {
+            // Add to right lane
+            return addItem(itemId, lane: .right, position: 0)
+        }
+    }
+
+    /// For mergers: combines items from multiple inputs
+    mutating func takeItemFromMerger() -> BeltItem? {
+        guard type == .merger else { return nil }
+
+        // Check both lanes and take from the one with items ready
+        if let item = takeItem(from: .left) {
+            return item
+        }
+        if let item = takeItem(from: .right) {
+            return item
+        }
+
         return nil
     }
 }
