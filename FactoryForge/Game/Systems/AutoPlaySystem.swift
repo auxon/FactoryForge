@@ -105,7 +105,16 @@ final class AutoPlaySystem: System {
             print("⚡ Game speed set to \(speedValue)x")
 
         case .placeBuilding(let type, let position, let direction):
-            placeBuilding(type: type, at: position, direction: direction)
+            // For burner mining drills, try to place on trees first
+            if type == "burner-mining-drill" {
+                if let treePos = findClosestTree(to: position) {
+                    placeBuilding(type: type, at: treePos, direction: direction)
+                } else {
+                    placeBuilding(type: type, at: position, direction: direction)
+                }
+            } else {
+                placeBuilding(type: type, at: position, direction: direction)
+            }
 
         case .connectBuildings(let from, let to):
             connectBuildings(from: from, to: to)
@@ -133,8 +142,129 @@ final class AutoPlaySystem: System {
 
     // MARK: - Step Implementation
 
+    private func findClosestOre(to position: IntVector2, searchRadius: Int = 20) -> IntVector2? {
+        guard let gameLoop = gameLoop else { return nil }
+
+        var closestOre: IntVector2?
+        var closestDistance = Int.max
+
+        // Get building size for mining drills (assume 3x3 for now)
+        let buildingWidth = 3
+        let buildingHeight = 3
+
+        // Search in a square around the position
+        for y in (Int(position.y) - searchRadius)...(Int(position.y) + searchRadius) {
+            for x in (Int(position.x) - searchRadius)...(Int(position.x) + searchRadius) {
+                let checkPos = IntVector2(x: Int32(x), y: Int32(y))
+
+                // Check if this tile has ore AND the entire building footprint is buildable
+                var footprintBuildable = true
+                var hasOre = false
+
+                // Check the entire building footprint
+                for dy in 0..<buildingHeight {
+                    for dx in 0..<buildingWidth {
+                        let tilePos = IntVector2(x: checkPos.x + Int32(dx), y: checkPos.y + Int32(dy))
+                        if let tile = gameLoop.chunkManager.getTile(at: tilePos) {
+                            if !tile.isBuildable {
+                                footprintBuildable = false
+                                break
+                            }
+                            if tile.resource != nil {
+                                hasOre = true
+                            }
+                        } else {
+                            footprintBuildable = false
+                            break
+                        }
+                    }
+                    if !footprintBuildable {
+                        break
+                    }
+                }
+
+                if footprintBuildable && hasOre {
+                    let distance = abs(checkPos.x - position.x) + abs(checkPos.y - position.y)
+                    if distance < closestDistance {
+                        closestDistance = Int(distance)
+                        closestOre = checkPos
+                    }
+                }
+            }
+        }
+
+        return closestOre
+    }
+
+    private func findClosestTree(to position: IntVector2, searchRadius: Int = 10) -> IntVector2? {
+        guard let gameLoop = gameLoop else { return nil }
+
+        var closestTree: IntVector2?
+        var closestDistance = Int.max
+
+        // Search in a square around the position
+        for y in (Int(position.y) - searchRadius)...(Int(position.y) + searchRadius) {
+            for x in (Int(position.x) - searchRadius)...(Int(position.x) + searchRadius) {
+                let checkPos = IntVector2(x: Int32(x), y: Int32(y))
+
+                // Check if there are tree entities at this position
+                let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: checkPos)
+                for entity in entitiesAtPos {
+                    if gameLoop.world.get(TreeComponent.self, for: entity) != nil {
+                        // Found a tree
+                        let distance = abs(checkPos.x - position.x) + abs(checkPos.y - position.y)
+                        if distance < closestDistance {
+                            closestDistance = Int(distance)
+                            closestTree = checkPos
+                        }
+                        break // Only need one tree per position
+                    }
+                }
+            }
+        }
+
+        return closestTree
+    }
+
+    private func findNearbyBuildablePosition(to position: IntVector2, radius: Int = 5) -> IntVector2? {
+        guard let gameLoop = gameLoop else { return nil }
+
+        // Search for any buildable position near the target
+        for y in (Int(position.y) - radius)...(Int(position.y) + radius) {
+            for x in (Int(position.x) - radius)...(Int(position.x) + radius) {
+                let checkPos = IntVector2(x: Int32(x), y: Int32(y))
+
+                // Check if this tile is buildable (no ore, but can have buildings)
+                if let tile = gameLoop.chunkManager.getTile(at: checkPos),
+                   tile.isBuildable {
+                    return checkPos
+                }
+            }
+        }
+
+        return nil
+    }
+
     private func placeBuilding(type: String, at position: IntVector2, direction: Direction) {
-        print("🏗️ Placing \(type) at \(position) facing \(direction)")
+        var actualPosition = position
+
+        // For mining drills, find the closest ore deposit
+        if type == "electric-mining-drill" || type == "burner-mining-drill" {
+            if let orePosition = findClosestOre(to: position) {
+                actualPosition = orePosition
+                print("🏗️ Placing \(type) at \(position) facing \(direction) - found ore at \(actualPosition)")
+            } else {
+                // If no buildable ore found, try to find any nearby buildable position
+                if let buildablePos = findNearbyBuildablePosition(to: position, radius: 5) {
+                    actualPosition = buildablePos
+                    print("🏗️ Placing \(type) at \(position) facing \(direction) - no ore found, using buildable position \(actualPosition)")
+                } else {
+                    print("🏗️ Placing \(type) at \(position) facing \(direction) - no buildable position found nearby")
+                }
+            }
+        } else {
+            print("🏗️ Placing \(type) at \(position) facing \(direction)")
+        }
 
         guard let gameLoop = gameLoop else {
             print("❌ No game loop available")
@@ -156,27 +286,41 @@ final class AutoPlaySystem: System {
         gameLoop.player.inventory = unlimitedInventory
 
         // Place the building
-        let success = gameLoop.placeBuilding(type, at: position, direction: direction)
+        let success = gameLoop.placeBuilding(type, at: actualPosition, direction: direction)
 
         // Restore original inventory (minus any costs that were actually deducted)
         gameLoop.player.inventory = gameLoop.player.inventory
 
         if success {
-            print("✅ Building \(type) placed at \(position)")
+            print("✅ Building \(type) placed at \(actualPosition)")
         } else {
-            print("❌ Failed to place building \(type) at \(position)")
+            print("❌ Failed to place building \(type) at \(actualPosition)")
             // Debug: Check why placement failed
-            let canPlace = gameLoop.canPlaceBuilding(type, at: position, direction: direction)
+            let canPlace = gameLoop.canPlaceBuilding(type, at: actualPosition, direction: direction)
             print("   Can place building: \(canPlace)")
             if !canPlace {
                 print("   Checking building definition...")
                 if let buildingDef = gameLoop.buildingRegistry.get(type) {
                     print("   Building \(type) exists: \(buildingDef.name)")
+                    print("   Size: \(buildingDef.width)x\(buildingDef.height)")
                     print("   Cost: \(buildingDef.cost)")
                     print("   Has required items: \(unlimitedInventory.has(items: buildingDef.cost))")
                     // Check if position is valid
-                    let canPlaceAtPos = gameLoop.canPlaceBuilding(type, at: position, direction: direction)
-                    print("   Can place at position \(position): \(canPlaceAtPos)")
+                    let canPlaceAtPos = gameLoop.canPlaceBuilding(type, at: actualPosition, direction: direction)
+                    print("   Can place at position \(actualPosition): \(canPlaceAtPos)")
+
+                    // Check each tile in the building footprint
+                    print("   Checking building footprint:")
+                    for dy in 0..<buildingDef.height {
+                        for dx in 0..<buildingDef.width {
+                            let tilePos = IntVector2(x: actualPosition.x + Int32(dx), y: actualPosition.y + Int32(dy))
+                            if let tile = gameLoop.chunkManager.getTile(at: tilePos) {
+                                print("     Tile (\(tilePos.x), \(tilePos.y)): type=\(tile.type), resource=\(tile.resource != nil ? "yes" : "no"), buildable=\(tile.isBuildable)")
+                            } else {
+                                print("     Tile (\(tilePos.x), \(tilePos.y)): not loaded")
+                            }
+                        }
+                    }
                 } else {
                     print("   Building \(type) not found in registry!")
                 }
@@ -349,6 +493,19 @@ extension AutoPlaySystem {
                     .setGameSpeed(.normal)
                 ],
                 duration: 15.0,
+                successCriteria: []
+            )
+
+        case "wood_gathering":
+            return GameScenario(
+                name: "Wood Gathering",
+                description: "Place burner mining drill on tree for wood",
+                steps: [
+                    .placeBuilding(type: "burner-mining-drill", position: IntVector2(x: 3, y: 3), direction: .north),
+                    .wait(seconds: 15.0),
+                    .setGameSpeed(.normal)
+                ],
+                duration: 20.0,
                 successCriteria: []
             )
 

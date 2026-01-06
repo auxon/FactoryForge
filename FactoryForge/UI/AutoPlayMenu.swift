@@ -129,6 +129,7 @@ final class AutoPlayMenu: UIPanel_Base {
             "Basic Test - Speed changes",
             "Speed Demo - Auto speed cycling",
             "Basic Mining - Place electric miner",
+            "Wood Gathering - Burner drill on tree",
             "Smelting Setup - Miner + Furnace",
             "Production Line - Complete chain"
         ]
@@ -214,9 +215,9 @@ final class AutoPlayMenu: UIPanel_Base {
                     AudioManager.shared.playClickSound()
                     self?.onStopAutoplay?()
                 }
-            } else if scenarioIndex < 5 && ["Basic Test", "Speed Demo", "Basic Mining", "Smelting Setup", "Production Line"].contains(where: { text.contains($0) }) {
+            } else if scenarioIndex < 6 && ["Basic Test", "Speed Demo", "Basic Mining", "Wood Gathering", "Smelting Setup", "Production Line"].contains(where: { text.contains($0) }) {
                 // Scenario selection labels
-                let scenarioId = ["basic_test", "speed_demo", "basic_mining", "smelting_setup", "production_line"][scenarioIndex]
+                let scenarioId = ["basic_test", "speed_demo", "basic_mining", "wood_gathering", "smelting_setup", "production_line"][scenarioIndex]
                 scenarioLabels.append(label)
                 label.onTap = { [weak self] in
                     AudioManager.shared.playClickSound()
@@ -253,7 +254,7 @@ final class AutoPlayMenu: UIPanel_Base {
 
         // Highlight selected scenario
         if let selectedScenario = selectedScenario,
-           let index = ["basic_test", "speed_demo", "basic_mining", "smelting_setup", "production_line"].firstIndex(of: selectedScenario),
+           let index = ["basic_test", "speed_demo", "basic_mining", "wood_gathering", "smelting_setup", "production_line"].firstIndex(of: selectedScenario),
            index < scenarioLabels.count {
             scenarioLabels[index].backgroundColor = UIColor.blue.withAlphaComponent(0.5)
             print("AutoPlayMenu: Highlighted scenario at index \(index)")

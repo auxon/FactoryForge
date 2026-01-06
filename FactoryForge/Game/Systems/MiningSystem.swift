@@ -48,42 +48,103 @@ final class MiningSystem: System {
                 updatedMiner.isActive = true
             }
             
-            // Find resource at miner position
-            guard let resource = findResource(at: position.tilePosition) else {
+            // Try to find a resource or tree to mine
+            var targetResource: ResourceDeposit? = nil
+            var targetTree: Entity? = nil
+            var outputItemId: String = ""
+
+            // First, try to find a tile resource (for electric miners)
+            targetResource = findResource(at: position.tilePosition)
+
+            // If no tile resource found, or if this is a burner miner, try to find a tree
+            if targetResource == nil || isBurnerMiner {
+                targetTree = findTree(at: position.tilePosition)
+            }
+
+            // If neither resource nor tree found, deactivate miner
+            if targetResource == nil && targetTree == nil {
                 updatedMiner.isActive = false
                 minerModifications.append((entity, updatedMiner))
                 return
             }
-            
-            updatedMiner.isActive = true  // Ensure it's active if resource found
-            updatedMiner.resourceOutput = resource.type.outputItem
-            
-            // Check if output inventory has space
-            guard inventory.canAccept(itemId: resource.type.outputItem) else { 
-                minerModifications.append((entity, updatedMiner))
-                return 
+
+            updatedMiner.isActive = true  // Ensure it's active if target found
+
+            // Determine output item
+            if let resource = targetResource {
+                outputItemId = resource.type.outputItem
+            } else if targetTree != nil {
+                outputItemId = "wood"
             }
-            
+
+            updatedMiner.resourceOutput = outputItemId
+
+            // Check if output inventory has space
+            guard inventory.canAccept(itemId: outputItemId) else {
+                minerModifications.append((entity, updatedMiner))
+                return
+            }
+
             // Calculate speed multiplier (power satisfaction for electric miners, 1.0 for burner miners)
             var speedMultiplier: Float = 1.0
             if let power = world.get(PowerConsumerComponent.self, for: entity) {
                 speedMultiplier = power.satisfaction
             }
-            
+
             // Progress mining
-            let miningTime = 1.0 / (updatedMiner.miningSpeed * resource.richness * speedMultiplier)
+            var miningTime: Float
+            if let resource = targetResource {
+                // Tile resource mining time
+                miningTime = 1.0 / (updatedMiner.miningSpeed * resource.richness * speedMultiplier)
+            } else {
+                // Tree mining time (fixed, not based on richness)
+                miningTime = 1.0 / (updatedMiner.miningSpeed * speedMultiplier)
+            }
+
             updatedMiner.progress += deltaTime / miningTime
-            
+
             // Complete mining
             if updatedMiner.progress >= 1.0 {
                 updatedMiner.progress = 0
-                
-                // Extract from resource
-                let mined = chunkManager.mineResource(at: position.tilePosition)
-                if mined > 0 {
-                    // Add to output inventory
-                    inventory.add(itemId: resource.type.outputItem, count: 1)
-                    inventoryModifications.append((entity, inventory))
+
+                if let resource = targetResource {
+                    // Extract from tile resource
+                    let mined = chunkManager.mineResource(at: position.tilePosition)
+                    if mined > 0 {
+                        // Add to output inventory
+                        inventory.add(itemId: outputItemId, count: mined)
+                        inventoryModifications.append((entity, inventory))
+                    }
+                } else if let treeEntity = targetTree, var tree = world.get(TreeComponent.self, for: treeEntity) {
+                    // Double-check tree has wood left (safety check)
+                    if tree.woodYield > 0 {
+                        // Harvest 1 wood from the tree
+                        tree.woodYield -= 1
+                        inventory.add(itemId: "wood", count: 1)
+                        inventoryModifications.append((entity, inventory))
+
+                        // Damage the tree's health
+                        if let health = world.get(HealthComponent.self, for: treeEntity) {
+                            var updatedHealth = health
+                            updatedHealth.current -= 10  // Fixed damage per mining operation
+
+                            if updatedHealth.isDead || tree.woodYield <= 0 {
+                                // Tree is depleted - mark for removal
+                                tree.markedForRemoval = true
+                                print("MiningSystem: Tree depleted, marking for removal")
+                            }
+
+                            world.add(updatedHealth, to: treeEntity)
+                        }
+
+                        // Update tree component
+                        world.add(tree, to: treeEntity)
+                    } else {
+                        // Tree has no wood left - should have been marked for removal already
+                        print("MiningSystem: WARNING - Tree with no wood found, should have been removed")
+                        tree.markedForRemoval = true
+                        world.add(tree, to: treeEntity)
+                    }
                 }
             }
             
@@ -98,6 +159,25 @@ final class MiningSystem: System {
         for (entity, inventory) in inventoryModifications {
             world.add(inventory, to: entity)
         }
+
+        // Remove destroyed trees
+        var treesToRemove: [Entity] = []
+        world.forEach(TreeComponent.self) { entity, tree in
+            if tree.markedForRemoval {
+                print("MiningSystem: Removing destroyed tree entity \(entity)")
+                treesToRemove.append(entity)
+            }
+        }
+        for entity in treesToRemove {
+            world.despawn(entity)
+        }
+
+        // Debug: Count remaining trees
+        var treeCount = 0
+        world.forEach(TreeComponent.self) { _, _ in treeCount += 1 }
+        if treeCount > 0 {
+            print("MiningSystem: \(treeCount) trees remaining in world")
+        }
         
     }
     
@@ -111,6 +191,29 @@ final class MiningSystem: System {
                 }
             }
         }
+        return nil
+    }
+
+    private func findTree(at position: IntVector2) -> Entity? {
+        // Look for tree entities in the mining area
+        let miningRadius: Int32 = 2  // Mining drills can reach 2 tiles away
+
+        // Find all tree entities within mining radius
+        for dy in -miningRadius...miningRadius {
+            for dx in -miningRadius...miningRadius {
+                let checkPos = IntVector2(x: position.x + dx, y: position.y + dy)
+
+                // Find entities at this position
+                let entitiesAtPos = world.getAllEntitiesAt(position: checkPos)
+                for entity in entitiesAtPos {
+                    if let tree = world.get(TreeComponent.self, for: entity), tree.woodYield > 0 {
+                        // Found a harvestable tree entity
+                        return entity
+                    }
+                }
+            }
+        }
+
         return nil
     }
 }

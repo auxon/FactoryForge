@@ -517,6 +517,9 @@ extension World {
             if let health = get(HealthComponent.self, for: entity) {
                 components["health"] = try? JSONEncoder().encode(health)
             }
+            if let tree = get(TreeComponent.self, for: entity) {
+                components["tree"] = try? JSONEncoder().encode(tree)
+            }
             if let inventory = get(InventoryComponent.self, for: entity) {
                 components["inventory"] = try? JSONEncoder().encode(inventory)
             }
@@ -597,6 +600,10 @@ extension World {
             if let healthData = entityData.components["health"],
                let health = try? JSONDecoder().decode(HealthComponent.self, from: healthData) {
                 add(health, to: entity)
+            }
+            if let treeData = entityData.components["tree"],
+               let tree = try? JSONDecoder().decode(TreeComponent.self, from: treeData) {
+                add(tree, to: entity)
             }
             if let invData = entityData.components["inventory"],
                let inventory = try? JSONDecoder().decode(InventoryComponent.self, from: invData) {

@@ -50,6 +50,9 @@ final class GameLoop {
 
     // Player death state
     private(set) var isPlayerDead: Bool = false
+
+    // Chunks that have had trees spawned
+    private var treeSpawnedChunks: Set<ChunkCoord> = []
     
     init(renderer: MetalRenderer, seed: UInt64? = nil) {
         self.renderer = renderer
@@ -68,7 +71,7 @@ final class GameLoop {
         
         // Initialize player
         player = Player(world: world)
-        
+
         // Initialize game systems
         miningSystem = MiningSystem(world: world, chunkManager: chunkManager)
         beltSystem = BeltSystem(world: world)
@@ -97,15 +100,20 @@ final class GameLoop {
             combatSystem,
             autoPlaySystem
         ]
-        
+
         // Initialize save system
         saveSystem = SaveSystem()
-        
+
         // Initialize UI
         uiSystem = UISystem(gameLoop: self, renderer: renderer)
-        
+
         // Load registries from JSON
         loadGameData()
+
+        // Spawn trees for loaded chunks (after ALL properties are initialized)
+        print("GameLoop: Spawning trees for initially loaded chunks")
+        spawnTreesForLoadedChunks()
+        print("GameLoop: Finished spawning initial trees")
         
         // Note: Don't load chunks here - they will be loaded when:
         // 1. For saved games: After saveSystem.load() sets the save slot and loads chunks from disk
@@ -148,7 +156,13 @@ final class GameLoop {
 
         // Update chunk loading based on player position
         chunkManager.update(playerPosition: player.position)
-        
+
+        // Spawn trees for newly loaded forest chunks
+        let treesSpawned = spawnTreesForNewChunks()
+        if treesSpawned > 0 {
+            print("GameLoop: Spawned \(treesSpawned) trees this frame")
+        }
+
         // Fixed timestep updates for game systems
         while Time.shared.consumeFixedUpdate() {
             for system in systems {
@@ -328,97 +342,211 @@ final class GameLoop {
 
         return true
     }
-    
+
+    private func spawnTreesForLoadedChunks() {
+        // Spawn trees for all currently loaded chunks that can support trees
+        for chunk in chunkManager.allLoadedChunks {
+            print("GameLoop: Init check chunk (\(chunk.coord.x), \(chunk.coord.y)) biome: \(chunk.biome)")
+            let shouldSpawnTrees = chunk.biome != .volcanic
+            if shouldSpawnTrees && !treeSpawnedChunks.contains(chunk.coord) {
+                print("GameLoop: Spawning trees for initial chunk (\(chunk.coord.x), \(chunk.coord.y))")
+                spawnTreesForChunk(chunk)
+                treeSpawnedChunks.insert(chunk.coord)
+
+                // Special case: spawn extra trees near player in chunk (0,0)
+                if chunk.coord == ChunkCoord(x: 0, y: 0) {
+                    spawnTreesNearPlayer(chunk)
+                }
+            }
+        }
+    }
+
+    private func spawnTreesNearPlayer(_ chunk: Chunk) {
+        let playerPos = world.get(PositionComponent.self, for: player.playerEntity)?.tilePosition ?? IntVector2(x: 0, y: 0)
+
+        // Spawn trees in a small radius around the player
+        let nearPlayerPositions = [
+            IntVector2(x: playerPos.x + 3, y: playerPos.y + 3),
+            IntVector2(x: playerPos.x - 3, y: playerPos.y + 3),
+            IntVector2(x: playerPos.x + 3, y: playerPos.y - 3),
+            IntVector2(x: playerPos.x - 3, y: playerPos.y - 3),
+            IntVector2(x: playerPos.x + 5, y: playerPos.y),
+            IntVector2(x: playerPos.x - 5, y: playerPos.y),
+            IntVector2(x: playerPos.x, y: playerPos.y + 5),
+            IntVector2(x: playerPos.x, y: playerPos.y - 5),
+        ]
+
+        for position in nearPlayerPositions {
+            // Check if position is in this chunk and on grass
+            let chunkOrigin = chunk.worldOrigin
+            let localX = Int(position.x - chunkOrigin.x)
+            let localY = Int(position.y - chunkOrigin.y)
+
+            if localX >= 0 && localX < Chunk.size && localY >= 0 && localY < Chunk.size {
+                if let tile = chunkManager.getTile(at: position), tile.type == .grass {
+                    spawnTree(at: position)
+                    print("GameLoop: Spawned tree near player at \(position)")
+                }
+            }
+        }
+    }
+
+    private func spawnTreesForNewChunks() -> Int {
+        var totalTreesSpawned = 0
+        // Check for newly loaded chunks that need trees
+        for chunk in chunkManager.allLoadedChunks {
+            print("GameLoop: Checking chunk (\(chunk.coord.x), \(chunk.coord.y)) biome: \(chunk.biome)")
+            // Spawn trees in biomes that can support trees (most biomes except volcanic)
+            let shouldSpawnTrees = chunk.biome != .volcanic
+            if shouldSpawnTrees && !treeSpawnedChunks.contains(chunk.coord) {
+                let treesInChunk = spawnTreesForChunk(chunk)
+                totalTreesSpawned += treesInChunk
+                treeSpawnedChunks.insert(chunk.coord)
+            }
+        }
+        return totalTreesSpawned
+    }
+
+    private func spawnTreesForChunk(_ chunk: Chunk) -> Int {
+        let chunkOrigin = chunk.worldOrigin
+        var treesSpawned = 0
+
+        // Spawn trees randomly throughout the chunk
+        let treeCount = chunk.biome == .forest ? 8 : 4  // More trees in forests, fewer elsewhere
+        for _ in 0..<treeCount {
+            let localX = Int.random(in: 0..<Chunk.size)
+            let localY = Int.random(in: 0..<Chunk.size)
+
+            let worldX = chunkOrigin.x + Int32(localX)
+            let worldY = chunkOrigin.y + Int32(localY)
+            let position = IntVector2(x: worldX, y: worldY)
+
+            // Spawn on any tile in forest chunks (trees can grow on various terrain)
+            if chunkManager.getTile(at: position) != nil {
+                spawnTree(at: position)
+                treesSpawned += 1
+            }
+        }
+
+        if treesSpawned > 0 {
+            print("GameLoop: Spawned \(treesSpawned) trees in forest chunk at (\(chunk.coord.x), \(chunk.coord.y))")
+        }
+        return treesSpawned
+    }
+
+
+    private func spawnTree(at position: IntVector2) {
+        let entity = world.spawn()
+
+        // Position component
+        world.add(PositionComponent(tilePosition: position, direction: .south, offset: .zero), to: entity)
+
+        // Health component (trees can be damaged)
+        world.add(HealthComponent(maxHealth: 50), to: entity)
+
+        // Tree component (defines wood yield)
+        world.add(TreeComponent(woodYield: 4), to: entity)
+
+        // Sprite component for rendering
+        world.add(SpriteComponent(textureId: "tree", size: Vector2(1, 1), layer: .entity, centered: true), to: entity)
+
+        let hasTree = world.has(TreeComponent.self, for: entity)
+        let hasPos = world.has(PositionComponent.self, for: entity)
+        let hasHealth = world.has(HealthComponent.self, for: entity)
+        let hasSprite = world.has(SpriteComponent.self, for: entity)
+
+        print("Spawned tree at \(position) with entity \(entity)")
+        print("  Components: Tree=\(hasTree), Position=\(hasPos), Health=\(hasHealth), Sprite=\(hasSprite)")
+
+        if !hasTree || !hasPos || !hasHealth || !hasSprite {
+            print("  ERROR: Tree missing required components!")
+        }
+    }
+
     func canPlaceBuilding(_ buildingId: String, at position: IntVector2, direction: Direction, ignoringEntity: Entity? = nil) -> Bool {
-        guard let buildingDef = buildingRegistry.get(buildingId) else { return false }
+        guard let buildingDef = buildingRegistry.get(buildingId) else {
+            return false
+        }
         return canPlaceBuilding(buildingDef, at: position, ignoringEntity: ignoringEntity)
     }
 
     private func canPlaceBuilding(_ building: BuildingDefinition, at position: IntVector2, ignoringEntity: Entity? = nil) -> Bool {
+        // Special case for mining drills: allow placement near trees
+        if building.type == .miner {
+            // Check for trees in an expanded area around the mining drill
+            // This accounts for visual trees that might not be exactly on tile positions
+            let searchRadius = 2  // Check 5x5 area (position ±2)
 
-        // Debug: Check where the player is
-        for entity in world.query(PositionComponent.self) {
-            if let _ = world.get(PositionComponent.self, for: entity),
-               let collision = world.get(CollisionComponent.self, for: entity),
-               collision.layer == .player {
-                break
+            for dy in -searchRadius...searchRadius {
+                for dx in -searchRadius...searchRadius {
+                    let checkPos = position + IntVector2(Int(dx), Int(dy))
+                    let entitiesAtPos = world.getAllEntitiesAt(position: checkPos)
+                    for entity in entitiesAtPos {
+                        if world.has(TreeComponent.self, for: entity) {
+                            let tree = world.get(TreeComponent.self, for: entity)!
+                            // Only allow placement on trees that have wood left
+                            if tree.woodYield > 0 {
+                                print("GameLoop: Found harvestable tree entity \(entity) at \(checkPos) (wood: \(tree.woodYield))")
+                                return true
+                            }
+                        }
+                    }
+                }
             }
+            print("GameLoop: No harvestable trees found near mining drill position \(position)")
+            // No trees found in the expanded search area
         }
 
+        // Standard building placement validation
         for dy in 0..<building.height {
             for dx in 0..<building.width {
                 let checkPos = position + IntVector2(Int(dx), Int(dy))
 
-                // Check if tile is buildable
-                guard let tile = chunkManager.getTile(at: checkPos) else {
-                    return false
-                }
-                guard tile.isBuildable else {
+                // Check if tile exists and is buildable
+                guard let tile = chunkManager.getTile(at: checkPos), tile.isBuildable else {
                     return false
                 }
 
-                // Check if there's already a building here
+                // Check for conflicting entities at this position
                 if world.hasEntityAt(position: checkPos) {
-                    // Get the entity and check what it is
                     guard let entity = world.getEntityAt(position: checkPos) else {
-                        // hasEntityAt returned true but getEntityAt returned nil - this shouldn't happen
-                        // but allow placement to be safe
-                        print("GameLoop: WARNING - hasEntityAt returned true but getEntityAt returned nil at \(checkPos)")
-                        continue
+                        continue  // Entity disappeared, allow placement
                     }
-                    
-                    // If this is the entity we're ignoring (e.g., when moving a building), skip it
+
+                    // Skip the entity we're ignoring (e.g., when moving buildings)
                     if let ignoringEntity = ignoringEntity, entity == ignoringEntity {
                         continue
                     }
 
-                        // Check if the entity has a collision component
-                        if let collision = world.get(CollisionComponent.self, for: entity) {
-                            if collision.layer == .player {
-                                // Allow placement - ignore player
-                                continue
-                            }
-                        } else {
-                            print("GameLoop: Entity has no collision component")
-                        }
-
-                        // Check if it's a building or machine
-                        let hasBuildingComponents = world.has(PositionComponent.self, for: entity) &&
-                                                   world.has(SpriteComponent.self, for: entity)
-                        print("GameLoop: Entity appears to be a building/machine: \(hasBuildingComponents)")
-
-                        // For belts, allow placement on top of buildings too (for belt networks)
-                        if building.type == .belt {
-                            continue
-                        }
-                        
-                        // Allow inserters and poles to be placed on belts
-                        if building.type == .inserter || building.type == .powerPole {
-                            if world.has(BeltComponent.self, for: entity) {
-                                continue  // Allow inserter/pole on belt
-                            }
-                            // Also allow inserter/pole on another inserter/pole (for flexibility)
-                            if world.has(InserterComponent.self, for: entity) || world.has(PowerPoleComponent.self, for: entity) {
-                                continue
-                            }
-                        
-                        // For inserters and poles, allow placement on top of buildings
-                        // Check if the entity is a building (has building components like furnace, assembler, etc.)
-                        let isBuilding = world.has(FurnaceComponent.self, for: entity) ||
-                                        world.has(AssemblerComponent.self, for: entity) ||
-                                        world.has(MinerComponent.self, for: entity) ||
-                                        world.has(GeneratorComponent.self, for: entity) ||
-                                        world.has(ChestComponent.self, for: entity) ||
-                                        world.has(LabComponent.self, for: entity) ||
-                                        world.has(SolarPanelComponent.self, for: entity) ||
-                                        world.has(AccumulatorComponent.self, for: entity)
-                        
-                        if isBuilding {
-                            // Allow inserters/poles to be placed on top of buildings
-                            print("GameLoop: Allowing inserter/pole placement on top of building at \(checkPos)")
-                            continue
-                        }
+                    // Allow placement on player (player can be walked over)
+                    if let collision = world.get(CollisionComponent.self, for: entity),
+                       collision.layer.contains(.player) {
                         continue
+                    }
+
+                    // Special placement rules for different building types
+                    switch building.type {
+                    case .belt:
+                        // Belts can be placed on top of buildings
+                        continue
+
+                    case .inserter, .powerPole:
+                        // Inserters and poles can be placed on belts
+                        if world.has(BeltComponent.self, for: entity) {
+                            continue
+                        }
+                        // Inserters and poles can be placed on other inserters/poles
+                        if world.has(InserterComponent.self, for: entity) ||
+                           world.has(PowerPoleComponent.self, for: entity) {
+                            continue
+                        }
+                        // Inserters and poles can be placed on buildings
+                        if isBuilding(entity) {
+                            continue
+                        }
+
+                    default:
+                        break
                     }
 
                     // Block placement on other entities
@@ -426,7 +554,20 @@ final class GameLoop {
                 }
             }
         }
+
         return true
+    }
+
+    /// Check if an entity is a building (furnace, assembler, etc.)
+    private func isBuilding(_ entity: Entity) -> Bool {
+        return world.has(FurnaceComponent.self, for: entity) ||
+               world.has(AssemblerComponent.self, for: entity) ||
+               world.has(MinerComponent.self, for: entity) ||
+               world.has(GeneratorComponent.self, for: entity) ||
+               world.has(ChestComponent.self, for: entity) ||
+               world.has(LabComponent.self, for: entity) ||
+               world.has(SolarPanelComponent.self, for: entity) ||
+               world.has(AccumulatorComponent.self, for: entity)
     }
     
     private func addBuildingComponents(entity: Entity, buildingDef: BuildingDefinition, position: IntVector2, direction: Direction) {

@@ -21,7 +21,8 @@ struct HealthComponent: Component {
     var isDead: Bool {
         return current <= 0
     }
-    
+
+
     /// Health as a percentage (0-1)
     var percentage: Float {
         return max > 0 ? current / max : 0
@@ -73,6 +74,21 @@ struct HealthComponent: Component {
         immunityTimer = 0
     }
 }
+
+/// Tree component for harvestable trees
+struct TreeComponent: Component {
+    /// Amount of wood this tree will drop when harvested
+    var woodYield: Int
+
+    /// Whether this tree has been marked for removal
+    var markedForRemoval: Bool
+
+    init(woodYield: Int = 800) {
+        self.woodYield = woodYield
+        self.markedForRemoval = false
+    }
+}
+    
 
 /// Armor/resistance component
 struct ArmorComponent: Component {
