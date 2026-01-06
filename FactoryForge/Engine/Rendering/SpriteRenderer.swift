@@ -61,6 +61,7 @@ final class SpriteRenderer {
         var spritesCollected = 0
         var spritesCulledDistance = 0
         var spritesCulledSize = 0
+        var animationUpdates: [(Entity, SpriteComponent)] = []
 
         // Query all entities with position and sprite components
         for entity in world.query(PositionComponent.self, SpriteComponent.self) {
@@ -96,45 +97,64 @@ final class SpriteRenderer {
                 }
             }
 
-            // Skip belt rendering here - belts are drawn as simple shapes instead of sprites
+            // Animated belts are rendered as sprites, non-animated belts are rendered as shapes
             let beltTypes = ["transport_belt", "fast_transport_belt", "express_transport_belt"]
-            if beltTypes.contains(sprite.textureId) {
-                continue  // Skip belt sprites - they'll be drawn as shapes
+            if beltTypes.contains(sprite.textureId) && sprite.animation == nil {
+                continue  // Skip non-animated belt sprites - they'll be drawn as shapes in renderBelts
             }
 
-            let textureRect = textureAtlas.getTextureRect(for: sprite.textureId)
+            // Update animation if present (use a mutable copy for rendering)
+            var renderSprite = sprite
+            
+            let textureRect = textureAtlas.getTextureRect(for: renderSprite.textureId)
 
             // Debug: check texture rect for belts
-            if sprite.textureId.contains("transport_belt") {
-                print("🖼️ Belt texture '\(sprite.textureId)' rect: \(textureRect)")
+            if renderSprite.textureId.contains("transport_belt") {
+                print("🖼️ Belt texture '\(renderSprite.textureId)' rect: \(textureRect)")
+            }
+
+            if var animation = renderSprite.animation {
+                if let newTextureId = animation.update(deltaTime: 1.0/60.0) {  // Assume 60 FPS for now
+                    renderSprite.textureId = newTextureId
+                }
+                renderSprite.animation = animation
+
+                // Collect animation updates to apply after the query
+                var updatedSprite = sprite
+                updatedSprite.animation = animation
+                updatedSprite.textureId = renderSprite.textureId
+                animationUpdates.append((entity, updatedSprite))
             }
 
             // For centered sprites (like player), use position directly
             // For non-centered sprites (buildings), offset by half size to align with tile origin
-            let renderPos = sprite.centered ? worldPos : worldPos + Vector2(sprite.size.x / 2, sprite.size.y / 2)
+            let renderPos = renderSprite.centered ? worldPos : worldPos + Vector2(renderSprite.size.x / 2, renderSprite.size.y / 2)
 
             // Only apply rotation to centered sprites (like player), not buildings
             // Buildings use directional sprites or don't need rotation
-            let rotation = sprite.centered ? position.direction.angle : 0
+            let rotation = renderSprite.centered ? position.direction.angle : 0
 
             // Check if this entity is selected for highlighting
             let isSelected = selectedEntity != nil && entity.id == selectedEntity!.id && entity.generation == selectedEntity!.generation
             let tintColor = isSelected ?
-                Color(r: sprite.tint.r * 1.5, g: sprite.tint.g * 1.5, b: sprite.tint.b * 1.0, a: sprite.tint.a) :
-                sprite.tint  // Brighten selected entities
+                Color(r: renderSprite.tint.r * 1.5, g: renderSprite.tint.g * 1.5, b: renderSprite.tint.b * 1.0, a: renderSprite.tint.a) :
+                renderSprite.tint  // Brighten selected entities
 
             // Debug: check belt queuing
-            if sprite.textureId.contains("transport_belt") {
-                print("📦 Queuing belt sprite: \(sprite.textureId) at \(renderPos) size \(sprite.size)")
+            if renderSprite.textureId.contains("transport_belt") {
+                print("📦 Queuing belt sprite: \(renderSprite.textureId) at \(renderPos) size \(renderSprite.size)")
+                if let anim = renderSprite.animation {
+                    print("   Animation: frame \(anim.currentFrame)/\(anim.frames.count), elapsed: \(anim.elapsedTime)")
+                }
             }
 
             queuedSprites.append(SpriteInstance(
                 position: renderPos,
-                size: sprite.size,
+                size: renderSprite.size,
                 rotation: rotation,
                 textureRect: textureRect,
                 color: tintColor,
-                layer: sprite.layer
+                layer: renderSprite.layer
             ))
 
             // Add highlight outline for selected entities
@@ -152,6 +172,11 @@ final class SpriteRenderer {
                     layer: sprite.layer  // Same layer, but will be rendered first due to queue order
                 ))
             }
+        }
+
+        // Apply collected animation updates
+        for (entity, updatedSprite) in animationUpdates {
+            world.add(updatedSprite, to: entity)
         }
 
         // Render belts as simple shapes (before items so items appear on top)
@@ -261,10 +286,12 @@ final class SpriteRenderer {
             let distanceFromCamera = (worldPos - cameraCenter).length
             guard distanceFromCamera <= maxRenderDistance else { continue }
 
-            // Skip belts with animations - they will be rendered by the main sprite system
+            // Skip belts with animations - they are rendered as sprites in the main loop
             if sprite.animation != nil {
                 continue
             }
+
+            // Non-animated belts use solid shapes
 
             // Get belt color based on texture ID
             let beltColor = beltColors[sprite.textureId] ?? Color(r: 0.5, g: 0.5, b: 0.5, a: 1.0)
@@ -286,18 +313,18 @@ final class SpriteRenderer {
     }
 
     private func renderNormalBelt(worldPos: Vector2, belt: BeltComponent, beltColor: Color, solidRect: Rect, sprite: SpriteComponent) {
-        // Draw belt as a simple rectangle
-        let beltWidth: Float = 0.7  // Width of the belt (70% of tile)
-        let beltLength: Float = 1.0  // Full tile length
+        // Use animated belt texture instead of solid rectangle
+        let currentTextureId = sprite.textureId
+        let textureRect = textureAtlas.getTextureRect(for: currentTextureId)
 
-        let angle = belt.direction.angle
-        let beltSize = Vector2(beltWidth, beltLength)
+        // Draw belt as a sprite with the animated texture
+        let beltSize = Vector2(1.0, 1.0)  // Full tile size
 
         queuedSprites.append(SpriteInstance(
             position: worldPos,
             size: beltSize,
-            rotation: angle,
-            textureRect: solidRect,
+            rotation: 0,  // No rotation - directional textures handle orientation
+            textureRect: textureRect,
             color: beltColor,
             layer: sprite.layer
         ))

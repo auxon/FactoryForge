@@ -430,10 +430,22 @@ final class GameLoop {
                 type: beltType
             ), to: entity)
 
-            // Add belt animation (temporary: use north frames for all directions)
+            // Add belt animation using direction-specific frames
             if var sprite = world.get(SpriteComponent.self, for: entity) {
-                // Create animation frames using north direction for now
-                let beltFrames = (1...16).map { "transport_belt_north_\(String(format: "%03d", $0))" }
+                // Map direction to texture name
+                let directionName: String
+                switch direction {
+                case .north: directionName = "north"
+                case .east: directionName = "east"
+                case .south: directionName = "south"
+                case .west: directionName = "west"
+                }
+
+                // Create animation frames using the correct direction, cycling through 4 frames
+                let beltFrames = (1...16).map { frameIndex in
+                    let actualFrame = ((frameIndex - 1) % 4) + 1  // Cycle through frames 1-4
+                    return "transport_belt_\(directionName)_\(String(format: "%03d", actualFrame))"
+                }
                 var beltAnimation = SpriteAnimation(
                     frames: beltFrames,
                     frameTime: 0.1,  // 16 frames × 0.1s = 1.6 seconds per loop
@@ -442,7 +454,7 @@ final class GameLoop {
                 sprite.animation = beltAnimation
                 sprite.textureId = beltFrames[0]  // Start with first frame
                 world.add(sprite, to: entity)
-                print("✓ Set up belt animation with \(beltFrames.count) frames")
+                print("✓ Set up belt animation for \(directionName) direction with \(beltFrames.count) frames")
                 print("  First frame: \(beltFrames[0])")
             } else {
                 print("✗ No sprite component found for belt entity")
@@ -841,6 +853,36 @@ final class GameLoop {
 
         // Update belt system with new direction
         beltSystem.updateBeltDirection(entity: entity, newDirection: newDirection)
+
+        // Update sprite animation to use new directional frames
+        if var sprite = world.get(SpriteComponent.self, for: entity) {
+            // Map new direction to texture name
+            let directionName: String
+            switch newDirection {
+            case .north: directionName = "north"
+            case .east: directionName = "east"
+            case .south: directionName = "south"
+            case .west: directionName = "west"
+            }
+
+            // Create animation frames using the 4 available frames per direction, repeated to fill 16 frames
+            let beltFrames = (1...16).map { frameIndex in
+                let actualFrame = ((frameIndex - 1) % 4) + 1  // Cycle through frames 1-4
+                return "transport_belt_\(directionName)_\(String(format: "%03d", actualFrame))"
+            }
+            var beltAnimation = SpriteAnimation(
+                frames: beltFrames,
+                frameTime: 0.1,  // 16 frames × 0.1s = 1.6 seconds per loop
+                isLooping: true
+            )
+            let oldTextureId = sprite.textureId
+            sprite.animation = beltAnimation
+            sprite.textureId = beltFrames[0]  // Start with first frame
+            world.add(sprite, to: entity)
+            print("✓ Updated belt animation for \(directionName) direction - old: \(oldTextureId), new: \(beltFrames[0])")
+        } else {
+            print("⚠️ No sprite component found for belt entity during rotation")
+        }
 
         return true
     }

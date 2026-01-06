@@ -373,6 +373,8 @@ final class TextureAtlas {
                                 let frameImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
                                 let frameName = "transport_belt_\(direction)_\(String(format: "%03d", frameIndex))"
 
+                                print("    Processing frame \(frameCount) at (\(frameX),\(frameY)) -> \(frameName) (direction: \(direction), frame: \(frameIndex))")
+
                                 if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
                                     print("    ✓ Loaded \(frameName)")
                                 } else {
