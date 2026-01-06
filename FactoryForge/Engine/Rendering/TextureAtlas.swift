@@ -302,8 +302,16 @@ final class TextureAtlas {
                 let uiButtonNames = ["new_game", "save_game", "load_game", "delete_game"]
                 // Bullet images use their actual size (not forced to 32x32)
                 let bulletNames = ["bullet", "bullet_up", "bullet_down", "bullet_left", "bullet_right"]
+                // Multi-tile buildings use their actual size to prevent distortion
+                let multiTileBuildings = [
+                    "assembling_machine_1", "assembling_machine_2", "assembling_machine_3",
+                    "electric_mining_drill", "electric_furnace", "burner_miner_drill",
+                    "burner_mining_drill", "stone_furnace", "steel_furnace",
+                    "lab", "solar_panel", "boiler", "steam_engine",
+                    "gun_turret", "laser_turret", "radar"
+                ]
                 let buttonSpriteSize = uiButtonNames.contains(textureId) ? 256 : spriteSize
-                let useActualSize = bulletNames.contains(textureId)
+                let useActualSize = bulletNames.contains(textureId) || multiTileBuildings.contains(textureId)
                 
                 if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: buttonSpriteSize, useActualSize: useActualSize) {
                     print("✓ Loaded: \(filename).png -> textureId: \(textureId)")
