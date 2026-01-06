@@ -139,70 +139,6 @@ final class TextureAtlas {
             ("express_transport_belt", nil),
 
             // Belt animation frames
-            ("transport_belt_north_001", nil),
-            ("transport_belt_north_002", nil),
-            ("transport_belt_north_003", nil),
-            ("transport_belt_north_004", nil),
-            ("transport_belt_north_005", nil),
-            ("transport_belt_north_006", nil),
-            ("transport_belt_north_007", nil),
-            ("transport_belt_north_008", nil),
-            ("transport_belt_north_009", nil),
-            ("transport_belt_north_010", nil),
-            ("transport_belt_north_011", nil),
-            ("transport_belt_north_012", nil),
-            ("transport_belt_north_013", nil),
-            ("transport_belt_north_014", nil),
-            ("transport_belt_north_015", nil),
-            ("transport_belt_north_016", nil),
-            ("transport_belt_east_001", nil),
-            ("transport_belt_east_002", nil),
-            ("transport_belt_east_003", nil),
-            ("transport_belt_east_004", nil),
-            ("transport_belt_east_005", nil),
-            ("transport_belt_east_006", nil),
-            ("transport_belt_east_007", nil),
-            ("transport_belt_east_008", nil),
-            ("transport_belt_east_009", nil),
-            ("transport_belt_east_010", nil),
-            ("transport_belt_east_011", nil),
-            ("transport_belt_east_012", nil),
-            ("transport_belt_east_013", nil),
-            ("transport_belt_east_014", nil),
-            ("transport_belt_east_015", nil),
-            ("transport_belt_east_016", nil),
-            ("transport_belt_south_001", nil),
-            ("transport_belt_south_002", nil),
-            ("transport_belt_south_003", nil),
-            ("transport_belt_south_004", nil),
-            ("transport_belt_south_005", nil),
-            ("transport_belt_south_006", nil),
-            ("transport_belt_south_007", nil),
-            ("transport_belt_south_008", nil),
-            ("transport_belt_south_009", nil),
-            ("transport_belt_south_010", nil),
-            ("transport_belt_south_011", nil),
-            ("transport_belt_south_012", nil),
-            ("transport_belt_south_013", nil),
-            ("transport_belt_south_014", nil),
-            ("transport_belt_south_015", nil),
-            ("transport_belt_south_016", nil),
-            ("transport_belt_west_001", nil),
-            ("transport_belt_west_002", nil),
-            ("transport_belt_west_003", nil),
-            ("transport_belt_west_004", nil),
-            ("transport_belt_west_005", nil),
-            ("transport_belt_west_006", nil),
-            ("transport_belt_west_007", nil),
-            ("transport_belt_west_008", nil),
-            ("transport_belt_west_009", nil),
-            ("transport_belt_west_010", nil),
-            ("transport_belt_west_011", nil),
-            ("transport_belt_west_012", nil),
-            ("transport_belt_west_013", nil),
-            ("transport_belt_west_014", nil),
-            ("transport_belt_west_015", nil),
-            ("transport_belt_west_016", nil),
             ("transport_belt_animation", nil),
 
             // Advanced Belts
@@ -304,6 +240,10 @@ final class TextureAtlas {
             }
             
             if let image = image {
+                if textureId == "transport_belt_animation" {
+                    print("🎬 Processing transport_belt_animation.png...")
+                }
+
                 // UI buttons need larger slots to preserve quality (they're 805x279px)
                 let uiButtonNames = ["new_game", "save_game", "load_game", "delete_game"]
                 // Bullet images use their actual size (not forced to 32x32)
@@ -318,11 +258,19 @@ final class TextureAtlas {
                 ]
                 let buttonSpriteSize = uiButtonNames.contains(textureId) ? 256 : spriteSize
                 let useActualSize = bulletNames.contains(textureId) || multiTileBuildings.contains(textureId)
-                
+
                 if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: buttonSpriteSize, useActualSize: useActualSize) {
-                    print("✓ Loaded: \(filename).png -> textureId: \(textureId)")
+                    if textureId == "transport_belt_animation" {
+                        print("✓ Successfully processed transport_belt_animation.png")
+                    } else {
+                        print("✓ Loaded: \(filename).png -> textureId: \(textureId)")
+                    }
                 } else {
-                    print("✗ Failed to pack: \(filename).png")
+                    if textureId == "transport_belt_animation" {
+                        print("✗ Failed to process transport_belt_animation.png")
+                    } else {
+                        print("✗ Failed to pack: \(filename).png")
+                    }
                 }
             } else {
                 print("✗ Could not load: \(filename).png (textureId: \(textureId))")
@@ -345,9 +293,17 @@ final class TextureAtlas {
     }
     
     private func packSpriteIntoAtlas(image: UIImage, name: String, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int, skipBorderCrop: Bool = false, useActualSize: Bool = false) -> Bool {
+        if name.contains("transport_belt") {
+            print("🎨 Packing belt texture: \(name), size: \(image.size), skipBorderCrop: \(skipBorderCrop), useActualSize: \(useActualSize)")
+        }
+
         guard let cgImage = image.cgImage else {
             print("Warning: Could not get CGImage for \(name)")
             return false
+        }
+
+        if name.contains("transport_belt") {
+            print("  CGImage size: \(cgImage.width)x\(cgImage.height)")
         }
         
         // UI button names (define once at function start)
@@ -385,6 +341,70 @@ final class TextureAtlas {
             }
 
             // All frames have been loaded into the atlas, return false to indicate this was handled separately
+            return false
+        } else if name == "transport_belt_animation" && imageWidth == 1024 && imageHeight == 1024 {
+            print("🎬 Processing transport_belt_animation.png sprite sheet (\(imageWidth)x\(imageHeight)) - extracting 4x4 grid of 256x256 frames")
+
+            // Based on user correction: "4x4 256x256 pixels"
+            // 4x4 grid of 256x256 pixel frames = 16 frames total (1024/4 = 256)
+            let frameSize = 256
+            let framesPerRow = 4
+            let directions = ["north", "east", "south", "west"]
+
+            // Extract 16 frames from the 4x4 grid
+            var frameCount = 0
+
+            for row in 0..<framesPerRow {
+                for col in 0..<framesPerRow {
+                    let frameX = col * frameSize
+                    let frameY = row * frameSize
+                    let frameRect = CGRect(x: frameX, y: frameY, width: frameSize, height: frameSize)
+
+                    if let croppedCGImage = cgImage.cropping(to: frameRect) {
+                        // Check if this frame has visible pixels
+                        let hasVisiblePixels = checkForVisiblePixels(in: croppedCGImage)
+
+                        if hasVisiblePixels {
+                            let directionIndex = frameCount / 4  // 4 frames per direction
+                            let frameIndex = (frameCount % 4) + 1  // 1-based
+
+                            if directionIndex < directions.count {
+                                let direction = directions[directionIndex]
+                                let frameImage = UIImage(cgImage: croppedCGImage, scale: image.scale, orientation: image.imageOrientation)
+                                let frameName = "transport_belt_\(direction)_\(String(format: "%03d", frameIndex))"
+
+                                if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
+                                    print("    ✓ Loaded \(frameName)")
+                                } else {
+                                    print("    ✗ Failed to load \(frameName)")
+                                }
+                            }
+                            frameCount += 1
+                        } else {
+                            print("    Skipping empty frame at (\(frameX),\(frameY))")
+                        }
+                    } else {
+                        print("    ✗ Failed to crop frame at (\(frameX),\(frameY))")
+                    }
+                }
+            }
+
+            print("✓ Finished processing transport_belt_animation sprite sheet - loaded \(frameCount) valid frames")
+
+            if frameCount < 16 {
+                print("⚠️ Only found \(frameCount) valid frames, falling back to existing belt texture")
+                // Fallback: use existing belt texture
+                if let existingBeltRect = textureRects["transport_belt"] {
+                    let directions = ["north", "east", "south", "west"]
+                    for direction in directions {
+                        for i in 1...16 {
+                            let frameName = "transport_belt_\(direction)_\(String(format: "%03d", i))"
+                            textureRects[frameName] = existingBeltRect
+                        }
+                    }
+                }
+            }
+
             return false
         } else if name == "inserters_sheet" && imageWidth == 1024 && imageHeight == 1024 {
             // Load all 16 frames from 4x4 grid for inserters (256x256 frames each)
@@ -516,6 +536,10 @@ final class TextureAtlas {
             print("Warning: Could not get processed CGImage for \(name)")
             return false
         }
+
+        if name.contains("transport_belt") {
+            print("  Processed CGImage size: \(processedCGImage.width)x\(processedCGImage.height)")
+        }
         
         // For UI buttons and bullets, keep their aspect ratio; for others, scale to square targetSize
         let finalImage: UIImage
@@ -623,10 +647,42 @@ final class TextureAtlas {
             atlasX = 0
             atlasY += spriteSize
         }
-        
+
+        if name.contains("transport_belt") {
+            print("  ✓ Successfully packed \(name) into atlas at (\(atlasX),\(atlasY))")
+        }
+
         return true
     }
     
+    private func checkForVisiblePixels(in cgImage: CGImage) -> Bool {
+        guard let dataProvider = cgImage.dataProvider,
+              let data = dataProvider.data else {
+            return false
+        }
+
+        let length = CFDataGetLength(data)
+        let bytesPerPixel = 4 // RGBA
+        let pixelCount = length / bytesPerPixel
+
+        // Sample a few pixels to check for visibility
+        let sampleCount = min(100, pixelCount) // Check up to 100 pixels
+        let step = max(1, pixelCount / sampleCount)
+
+        for i in stride(from: 0, to: pixelCount, by: step) {
+            let pixelStart = i * bytesPerPixel
+            if pixelStart + 3 < length {
+                // Check alpha channel (index 3 in RGBA)
+                let alpha: UInt8 = CFDataGetBytePtr(data)![pixelStart + 3]
+                if alpha > 10 { // More than 10/255 alpha
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
     private func createAtlasFromImage(_ image: UIImage, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int) {
         // Convert UIImage to pixel data
         guard let cgImage = image.cgImage else {

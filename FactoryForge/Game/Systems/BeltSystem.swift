@@ -295,6 +295,9 @@ final class BeltSystem: System {
         for entity in sortedBelts {
             guard var belt = world.get(BeltComponent.self, for: entity) else { continue }
 
+            // Update belt animation speed based on actual belt speed and power
+            updateBeltAnimation(entity: entity, belt: belt)
+
             let speed = belt.speed * deltaTime
 
             // Handle different belt types
@@ -360,6 +363,29 @@ final class BeltSystem: System {
     private func getOutputBelt(for entity: Entity) -> Entity? {
         guard let belt = world.get(BeltComponent.self, for: entity) else { return nil }
         return belt.outputConnection
+    }
+
+    private func updateBeltAnimation(entity: Entity, belt: BeltComponent) {
+        // Update belt animation playback speed based on belt speed and power
+        guard var sprite = world.get(SpriteComponent.self, for: entity),
+              var animation = sprite.animation else { return }
+
+        // Check power status
+        var speedMultiplier: Float = 1.0
+        if let power = world.get(PowerConsumerComponent.self, for: entity) {
+            speedMultiplier = power.satisfaction
+        }
+
+        // Adjust animation speed based on belt speed and power
+        // Base animation is 1.6 seconds for 16 frames (0.1s per frame)
+        // Speed up/slow down based on belt speed and power
+        let baseFrameTime: Float = 0.1
+        let beltSpeedFactor = belt.speed / Float(1.875)  // Normalize to transport belt speed
+        let adjustedFrameTime = baseFrameTime / (beltSpeedFactor * speedMultiplier)
+
+        animation.frameTime = adjustedFrameTime
+        sprite.animation = animation
+        world.add(sprite, to: entity)
     }
 
     private func moveUndergroundBeltItems(belt: inout BeltComponent, entity: Entity) {

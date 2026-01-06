@@ -87,6 +87,15 @@ final class SpriteRenderer {
                 continue
             }
 
+            // Debug: check for belt animations
+            if sprite.textureId.contains("transport_belt") {
+                print("🎬 Processing belt sprite: \(sprite.textureId), has animation: \(sprite.animation != nil)")
+                print("   Sprite size: \(sprite.size), position: \(worldPos)")
+                if let anim = sprite.animation {
+                    print("   Animation frames: \(anim.frames.count), current frame: \(anim.currentFrame.description)")
+                }
+            }
+
             // Skip belt rendering here - belts are drawn as simple shapes instead of sprites
             let beltTypes = ["transport_belt", "fast_transport_belt", "express_transport_belt"]
             if beltTypes.contains(sprite.textureId) {
@@ -94,6 +103,11 @@ final class SpriteRenderer {
             }
 
             let textureRect = textureAtlas.getTextureRect(for: sprite.textureId)
+
+            // Debug: check texture rect for belts
+            if sprite.textureId.contains("transport_belt") {
+                print("🖼️ Belt texture '\(sprite.textureId)' rect: \(textureRect)")
+            }
 
             // For centered sprites (like player), use position directly
             // For non-centered sprites (buildings), offset by half size to align with tile origin
@@ -108,6 +122,11 @@ final class SpriteRenderer {
             let tintColor = isSelected ?
                 Color(r: sprite.tint.r * 1.5, g: sprite.tint.g * 1.5, b: sprite.tint.b * 1.0, a: sprite.tint.a) :
                 sprite.tint  // Brighten selected entities
+
+            // Debug: check belt queuing
+            if sprite.textureId.contains("transport_belt") {
+                print("📦 Queuing belt sprite: \(sprite.textureId) at \(renderPos) size \(sprite.size)")
+            }
 
             queuedSprites.append(SpriteInstance(
                 position: renderPos,
@@ -241,6 +260,11 @@ final class SpriteRenderer {
             // Distance-based culling for belts
             let distanceFromCamera = (worldPos - cameraCenter).length
             guard distanceFromCamera <= maxRenderDistance else { continue }
+
+            // Skip belts with animations - they will be rendered by the main sprite system
+            if sprite.animation != nil {
+                continue
+            }
 
             // Get belt color based on texture ID
             let beltColor = beltColors[sprite.textureId] ?? Color(r: 0.5, g: 0.5, b: 0.5, a: 1.0)

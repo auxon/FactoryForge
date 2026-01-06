@@ -429,6 +429,25 @@ final class GameLoop {
                 direction: direction,
                 type: beltType
             ), to: entity)
+
+            // Add belt animation (temporary: use north frames for all directions)
+            if var sprite = world.get(SpriteComponent.self, for: entity) {
+                // Create animation frames using north direction for now
+                let beltFrames = (1...16).map { "transport_belt_north_\(String(format: "%03d", $0))" }
+                var beltAnimation = SpriteAnimation(
+                    frames: beltFrames,
+                    frameTime: 0.1,  // 16 frames × 0.1s = 1.6 seconds per loop
+                    isLooping: true
+                )
+                sprite.animation = beltAnimation
+                sprite.textureId = beltFrames[0]  // Start with first frame
+                world.add(sprite, to: entity)
+                print("✓ Set up belt animation with \(beltFrames.count) frames")
+                print("  First frame: \(beltFrames[0])")
+            } else {
+                print("✗ No sprite component found for belt entity")
+            }
+
             beltSystem.registerBelt(entity: entity, at: position, direction: direction, type: beltType)
             
         case .inserter:
