@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 /// Main game loop that coordinates all game systems
 final class GameLoop {
@@ -143,8 +144,12 @@ final class GameLoop {
     /// Main update loop - called every frame
     func update() {
         guard isRunning else { return }
-        
+
+        let frameStartTime = CACurrentMediaTime()
+
         Time.shared.update()
+        let timeUpdateEnd = CACurrentMediaTime()
+
         let realDeltaTime = Time.shared.deltaTime
         let gameSpeedFloat = Float(gameSpeed)
         let deltaTime = realDeltaTime * gameSpeedFloat
@@ -160,6 +165,8 @@ final class GameLoop {
             lastProfileTime = Double(Time.shared.totalTime)
         }
 
+        let deathCheckStart = CACurrentMediaTime()
+
         // Check for player death
         if !isPlayerDead && player.isDead {
             handlePlayerDeath()
@@ -170,9 +177,11 @@ final class GameLoop {
             return
         }
 
+        let playerUpdateStart = CACurrentMediaTime()
         // Update player
         player.update(deltaTime: deltaTime)
 
+        let chunkUpdateStart = CACurrentMediaTime()
         // Update chunk loading based on player position (only if moved significantly)
         let playerPos = player.position
         let distanceMoved = (playerPos - lastChunkUpdatePosition).lengthSquared
@@ -187,6 +196,7 @@ final class GameLoop {
             }
         }
 
+        let systemsUpdateStart = CACurrentMediaTime()
         // Fixed timestep updates for game systems (limit to prevent spiral of death)
         var fixedUpdateCount = 0
         let maxFixedUpdates = 5  // Maximum fixed updates per frame
@@ -196,12 +206,14 @@ final class GameLoop {
             }
             fixedUpdateCount += 1
         }
-        
+
+        let uiUpdateStart = CACurrentMediaTime()
         // Update UI (skip if game is effectively paused to save performance)
         if gameSpeed > 0.01 {
             uiSystem?.update(deltaTime: deltaTime)
         }
 
+        let cameraUpdateStart = CACurrentMediaTime()
         // Update renderer camera to follow player (only if not manually panning and player is alive)
         if !isPlayerDead {
             let shouldFollowPlayer = inputManager?.isDragging == false
@@ -210,6 +222,25 @@ final class GameLoop {
             }
         }
         renderer?.camera.update(deltaTime: deltaTime)
+
+        let endTime = CACurrentMediaTime()
+
+        // Detailed performance profiling (every 60 frames)
+        if frameCount % 60 == 0 {
+            let totalFrameTime = endTime - frameStartTime
+            let timeUpdateTime = timeUpdateEnd - frameStartTime
+            let deathCheckTime = playerUpdateStart - deathCheckStart
+            let playerUpdateTime = chunkUpdateStart - playerUpdateStart
+            let chunkUpdateTime = systemsUpdateStart - chunkUpdateStart
+            let systemsUpdateTime = uiUpdateStart - systemsUpdateStart
+            let uiUpdateTime = cameraUpdateStart - uiUpdateStart
+            let cameraUpdateTime = endTime - cameraUpdateStart
+
+            print(String(format: "Frame Profile (%.1f FPS): Time=%.2fms, TimeUpdate=%.2fms, DeathCheck=%.2fms, Player=%.2fms, Chunk=%.2fms, Systems=%.2fms, UI=%.2fms, Camera=%.2fms",
+                         1.0/realDeltaTime, totalFrameTime*1000,
+                         timeUpdateTime*1000, deathCheckTime*1000, playerUpdateTime*1000,
+                         chunkUpdateTime*1000, systemsUpdateTime*1000, uiUpdateTime*1000, cameraUpdateTime*1000))
+        }
 
         // Call update callback
         onUpdate?()

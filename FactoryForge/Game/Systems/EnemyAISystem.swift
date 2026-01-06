@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 /// System that handles enemy AI and spawning
 final class EnemyAISystem: System {
@@ -91,6 +92,7 @@ final class EnemyAISystem: System {
     }
     
     func update(deltaTime: Float) {
+        let startTime = CACurrentMediaTime()
         let currentTime = Time.shared.totalTime
 
         // Register any existing enemies that don't have Biter objects
@@ -118,6 +120,13 @@ final class EnemyAISystem: System {
         if Double(currentTime) - lastEvolutionUpdate > evolutionUpdateInterval {
             updateEvolution(deltaTime: deltaTime * Float(evolutionUpdateInterval / (Double(currentTime) - lastEvolutionUpdate)))
             lastEvolutionUpdate = Double(currentTime)
+        }
+
+        // Profile enemy AI performance
+        let endTime = CACurrentMediaTime()
+        let duration = endTime - startTime
+        if Int(Time.shared.frameCount) % 60 == 0 {
+            print(String(format: "EnemyAISystem: %.2fms", duration*1000))
         }
     }
     

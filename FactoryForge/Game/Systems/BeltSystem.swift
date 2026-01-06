@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 /// System that handles transport belt item movement
 final class BeltSystem: System {
@@ -287,10 +288,12 @@ final class BeltSystem: System {
     // MARK: - Update
     
     func update(deltaTime: Float) {
+        let startTime = CACurrentMediaTime()
+
         if needsResort {
             topologicalSort()
         }
-        
+
         // Process belts in topological order
         for entity in sortedBelts {
             guard var belt = world.get(BeltComponent.self, for: entity) else { continue }
@@ -321,6 +324,14 @@ final class BeltSystem: System {
             }
 
             world.add(belt, to: entity)
+        }
+
+        // Profile belt system performance
+        let endTime = CACurrentMediaTime()
+        let duration = Float(endTime - startTime)
+        if sortedBelts.count > 0 && Int(Time.shared.frameCount) % 60 == 0 {
+            print(String(format: "BeltSystem: %.2fms for %d belts (%.3fms per belt)",
+                         duration*1000, sortedBelts.count, (duration*1000)/Float(sortedBelts.count)))
         }
     }
     
