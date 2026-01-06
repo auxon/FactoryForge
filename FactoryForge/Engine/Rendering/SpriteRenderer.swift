@@ -279,7 +279,7 @@ final class SpriteRenderer {
 
             // Render items on left lane
             for item in belt.leftLane {
-                let itemPos = basePos + Vector2(-0.25, item.progress - 0.5).rotated(by: belt.direction.angle)
+                let itemPos = calculateBeltItemPosition(basePos: basePos, beltDirection: belt.direction, laneOffset: -0.25, progress: item.progress)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
 
                 queuedSprites.append(SpriteInstance(
@@ -294,7 +294,7 @@ final class SpriteRenderer {
 
             // Render items on right lane
             for item in belt.rightLane {
-                let itemPos = basePos + Vector2(0.25, item.progress - 0.5).rotated(by: belt.direction.angle)
+                let itemPos = calculateBeltItemPosition(basePos: basePos, beltDirection: belt.direction, laneOffset: 0.25, progress: item.progress)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
 
                 queuedSprites.append(SpriteInstance(
@@ -306,6 +306,23 @@ final class SpriteRenderer {
                     layer: .item
                 ))
             }
+        }
+    }
+
+    private func calculateBeltItemPosition(basePos: Vector2, beltDirection: Direction, laneOffset: Float, progress: Float) -> Vector2 {
+        // Calculate position along the belt based on direction
+        // Progress goes from 0 (start) to 1 (end)
+        // We want items to move from the belt start to the belt end
+
+        switch beltDirection {
+        case .north: // Moving up (positive Y)
+            return basePos + Vector2(laneOffset, progress - 0.5)
+        case .south: // Moving down (negative Y)
+            return basePos + Vector2(laneOffset, -(progress - 0.5)) // Flip for downward movement
+        case .east: // Moving right (positive X)
+            return basePos + Vector2(progress - 0.5, laneOffset)
+        case .west: // Moving left (negative X)
+            return basePos + Vector2(-(progress - 0.5), laneOffset) // Flip for leftward movement
         }
     }
 
