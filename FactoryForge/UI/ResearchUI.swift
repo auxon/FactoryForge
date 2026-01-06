@@ -375,6 +375,20 @@ final class ResearchUI: UIPanel_Base {
     private func startResearch(_ tech: Technology) {
         // Try to start research
         if let researchSystem = findResearchSystem() {
+            print("ResearchUI: Checking if tech '\(tech.name)' can be researched...")
+            let canResearch = researchSystem.canResearch(tech)
+            print("ResearchUI: canResearch = \(canResearch)")
+
+            if !canResearch {
+                print("ResearchUI: Tech cannot be researched. Checking prerequisites...")
+                for prereq in tech.prerequisites {
+                    let completed = researchSystem.completedTechnologies.contains(prereq)
+                    print("ResearchUI: Prerequisite '\(prereq)' completed: \(completed)")
+                }
+                let alreadyCompleted = researchSystem.completedTechnologies.contains(tech.id)
+                print("ResearchUI: Tech already completed: \(alreadyCompleted)")
+            }
+
             let success = researchSystem.selectResearch(tech.id)
             print("ResearchUI: Attempted to start research '\(tech.name)' (id: \(tech.id)), success: \(success)")
 

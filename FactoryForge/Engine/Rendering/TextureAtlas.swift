@@ -203,6 +203,7 @@ final class TextureAtlas {
             ("transport_belt_west_014", nil),
             ("transport_belt_west_015", nil),
             ("transport_belt_west_016", nil),
+            ("transport_belt_animation", nil),
 
             // Advanced Belts
             ("underground_belt", nil),

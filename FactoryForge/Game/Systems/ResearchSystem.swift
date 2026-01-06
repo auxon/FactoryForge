@@ -51,60 +51,88 @@ final class ResearchSystem: System {
     
     func update(deltaTime: Float) {
         guard currentResearch != nil else { return }
-        
+
+        print("ResearchSystem: Update called, current research: \(currentResearch?.name ?? "none")")
+
         // Collect updates to apply after iteration
         var pendingUpdates: [(Entity, LabComponent, InventoryComponent)] = []
-        
+
         // Process labs
+        var activeLabCount = 0
         world.forEach(LabComponent.self) { [self] entity, lab in
             guard lab.isResearching else { return }
+            activeLabCount += 1
+
             guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
-            
+
             // Check power
             var speedMultiplier: Float = 1.0
             if let power = world.get(PowerConsumerComponent.self, for: entity) {
                 speedMultiplier = power.satisfaction
-                if speedMultiplier <= 0 { return }
+                if speedMultiplier <= 0 {
+                    print("ResearchSystem: Lab \(entity) has no power")
+                    return
+                }
             }
-            
+
+            print("ResearchSystem: Processing lab \(entity), has power multiplier: \(speedMultiplier)")
+
             // Try to consume science packs
             var mutableLab = lab
             if let updated = consumeSciencePacks(lab: &mutableLab, inventory: &inventory, entity: entity, speedMultiplier: speedMultiplier, deltaTime: deltaTime) {
                 pendingUpdates.append((entity, updated.0, updated.1))
             }
         }
-        
+
+        print("ResearchSystem: Found \(activeLabCount) active labs, \(pendingUpdates.count) updates to apply")
+
         // Apply updates after iteration completes
         for (entity, lab, inventory) in pendingUpdates {
             world.add(lab, to: entity)
             world.add(inventory, to: entity)
         }
-        
+
         // Check if research is complete
-        if let tech = currentResearch, isResearchComplete(tech) {
-            completeResearch(tech)
+        if let tech = currentResearch {
+            let progress = getResearchProgress()
+            print("ResearchSystem: Research progress: \(progress * 100)%")
+
+            if isResearchComplete(tech) {
+                print("ResearchSystem: Research completed!")
+                completeResearch(tech)
+            }
         }
     }
     
     private func consumeSciencePacks(lab: inout LabComponent, inventory: inout InventoryComponent, entity: Entity, speedMultiplier: Float, deltaTime: Float) -> (LabComponent, InventoryComponent)? {
         guard let tech = currentResearch else { return nil }
-        
+
         var inventoryUpdated = false
-        
+
+        print("ResearchSystem: Consuming science packs for tech '\(tech.name)'")
+        print("ResearchSystem: Required: \(tech.cost)")
+        print("ResearchSystem: Current progress: \(researchProgress)")
+
         // Try to consume each required science pack type
         for cost in tech.cost {
             let currentCount = researchProgress[cost.packId] ?? 0
+            print("ResearchSystem: Pack '\(cost.packId)': have \(currentCount)/\(cost.count)")
+
             if currentCount < cost.count {
                 // Try to consume a pack
-                if inventory.has(itemId: cost.packId) {
+                let hasPack = inventory.has(itemId: cost.packId)
+                print("ResearchSystem: Lab inventory has '\(cost.packId)': \(hasPack)")
+
+                if hasPack {
                     inventory.remove(itemId: cost.packId, count: 1)
                     researchProgress[cost.packId, default: 0] += 1
                     inventoryUpdated = true
                     lab.isResearching = true
+                    print("ResearchSystem: Consumed 1 '\(cost.packId)', progress now: \(researchProgress[cost.packId] ?? 0)/\(cost.count)")
                 }
             }
         }
-        
+
         // Return updated components if changes were made
         return inventoryUpdated ? (lab, inventory) : nil
     }
@@ -156,27 +184,44 @@ final class ResearchSystem: System {
     // MARK: - Public Interface
     
     func selectResearch(_ techId: String) -> Bool {
-        guard let tech = technologyRegistry.get(techId) else { return false }
-        guard canResearch(tech) else { return false }
-        
+        guard let tech = technologyRegistry.get(techId) else {
+            print("ResearchSystem: Tech '\(techId)' not found in registry")
+            return false
+        }
+        guard canResearch(tech) else {
+            print("ResearchSystem: Tech '\(tech.name)' cannot be researched")
+            return false
+        }
+
+        print("ResearchSystem: Starting research on '\(tech.name)'")
+        print("ResearchSystem: Research cost: \(tech.cost)")
         currentResearch = tech
         researchProgress.removeAll()
-        
+
+        // Count available labs
+        var labCount = 0
+        world.forEach(LabComponent.self) { entity, lab in
+            labCount += 1
+        }
+        print("ResearchSystem: Found \(labCount) labs in the world")
+
         // Collect lab updates to apply after iteration
         var pendingLabUpdates: [(Entity, LabComponent)] = []
-        
+
         // Activate labs
         world.forEach(LabComponent.self) { entity, lab in
             var updatedLab = lab
             updatedLab.isResearching = true
             pendingLabUpdates.append((entity, updatedLab))
         }
-        
+
+        print("ResearchSystem: Activated \(pendingLabUpdates.count) labs for research")
+
         // Apply updates after iteration completes
         for (entity, lab) in pendingLabUpdates {
             world.add(lab, to: entity)
         }
-        
+
         return true
     }
     

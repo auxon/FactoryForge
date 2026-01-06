@@ -135,6 +135,21 @@ final class TechnologyRegistry {
             order: "c",
             tier: 2
         ))
+
+        register(Technology(
+            id: "advanced-logistics",
+            name: "Advanced Logistics",
+            description: "Unlocks underground belts, splitters, and mergers",
+            prerequisites: ["logistics-2"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 75),
+                ScienceCost("logistic-science-pack", count: 75)
+            ],
+            researchTime: 45,
+            unlocks: TechnologyUnlocks(recipes: ["underground-belt", "splitter", "merger"]),
+            order: "d",
+            tier: 3
+        ))
         
         register(Technology(
             id: "advanced-material-processing",

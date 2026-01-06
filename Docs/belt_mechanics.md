@@ -147,7 +147,28 @@ Ore Input → Splitter → Furnace 1 → Merger → Plate Processing
              → Furnace 4 →       ↑
 ```
 
+## Research Requirements
+
+Advanced belt mechanics require research to unlock:
+
+### Logistics Research Path
+1. **Logistics** (Tier 1)
+   - Cost: 20 Automation Science Packs
+   - Unlocks: Fast Inserter, Long Handed Inserter
+
+2. **Logistics 2** (Tier 2)
+   - Prerequisites: Logistics, Logistic Science Pack
+   - Cost: 40 Automation + 40 Logistic Science Packs
+   - Unlocks: Fast Transport Belt
+
+3. **Advanced Logistics** (Tier 3)
+   - Prerequisites: Logistics 2
+   - Cost: 75 Automation + 75 Logistic Science Packs
+   - Unlocks: Underground Belts, Splitters, Mergers
+
 ## Crafting Recipes
+
+Once researched, craft advanced belts at any assembler:
 
 ### Underground Belt
 - **Requirements**: 10 Iron Plates + 5 Transport Belts
