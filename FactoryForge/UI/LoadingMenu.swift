@@ -7,6 +7,7 @@ final class LoadingMenu: UIPanel_Base {
     private var screenSize: Vector2 // Store screen size for coordinate conversion
     private var newGameButton: UIButton!
     private var saveGameButton: UIButton!
+    private var autoplayButton: UIButton!
     private var audioToggleButton: UIButton!
     private var saveSlotButtons: [SaveSlotButton] = []
     private var slotLabels: [UILabel] = [] // Labels for save slot information
@@ -16,6 +17,7 @@ final class LoadingMenu: UIPanel_Base {
     var onSaveSlotSelected: ((String) -> Void)? // Called when a save slot is selected to load
     var onSaveSlotDelete: ((String) -> Void)? // Called when delete button is pressed for a save slot
     var onSaveGameRequested: (() -> Void)? // Called when save button is pressed
+    var onAutoplayTapped: (() -> Void)? // Called when autoplay button is tapped
     var onCloseTapped: (() -> Void)? // Called when close button (X) is tapped
     
     init(screenSize: Vector2) {
@@ -80,6 +82,22 @@ final class LoadingMenu: UIPanel_Base {
         saveGameButton.onTap = { [weak self] in
             AudioManager.shared.playClickSound()
             self?.onSaveGameRequested?()
+        }
+
+        // Autoplay button (left of audio toggle)
+        let autoplayButtonSize: Float = 50 * UIScale
+        let autoplayButtonX = frame.maxX - 120 * UIScale
+        let autoplayButtonY = frame.maxY - 60 * UIScale
+        autoplayButton = UIButton(
+            frame: Rect(
+                center: Vector2(autoplayButtonX, autoplayButtonY),
+                size: Vector2(autoplayButtonSize, autoplayButtonSize)
+            ),
+            textureId: "menu"  // Use menu texture for now, could be replaced with autoplay icon
+        )
+        autoplayButton.onTap = { [weak self] in
+            AudioManager.shared.playClickSound()
+            self?.onAutoplayTapped?()
         }
 
         // Audio Toggle button (bottom right)
@@ -294,6 +312,9 @@ final class LoadingMenu: UIPanel_Base {
             renderSaveGameButton(renderer: renderer)
         }
 
+        // Render Autoplay button
+        renderAutoplayButton(renderer: renderer)
+
         // Render Audio Toggle button
         renderAudioToggleButton(renderer: renderer)
 
@@ -325,6 +346,12 @@ final class LoadingMenu: UIPanel_Base {
         button.render(renderer: renderer)
     }
 
+    private func renderAutoplayButton(renderer: MetalRenderer) {
+        guard let button = autoplayButton else { return }
+        // Use the button's built-in render method
+        button.render(renderer: renderer)
+    }
+
     private func renderAudioToggleButton(renderer: MetalRenderer) {
         guard let button = audioToggleButton else { return }
         // Use the button's built-in render method
@@ -351,6 +378,11 @@ final class LoadingMenu: UIPanel_Base {
         
         // Check Save Game button (if visible)
         if onSaveGameRequested != nil, saveGameButton?.handleTap(at: position) == true {
+            return true
+        }
+
+        // Check Autoplay button
+        if autoplayButton?.handleTap(at: position) == true {
             return true
         }
 

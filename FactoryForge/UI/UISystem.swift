@@ -18,6 +18,7 @@ final class UISystem {
     private var researchUI: ResearchUI
     private var machineUI: MachineUI
     private var loadingMenu: LoadingMenu
+    private var autoplayMenu: AutoPlayMenu
     private var entitySelectionDialog: EntitySelectionDialog?
     private var inserterConnectionDialog: InserterConnectionDialog?
     
@@ -35,6 +36,7 @@ final class UISystem {
         let screenSize = renderer?.screenSize ?? Vector2(800, 600)
         
         loadingMenu = LoadingMenu(screenSize: screenSize)
+        autoplayMenu = AutoPlayMenu(screenSize: screenSize)
         hud = HUD(screenSize: screenSize, gameLoop: gameLoop, inputManager: nil)
         inventoryUI = InventoryUI(screenSize: screenSize, gameLoop: gameLoop)
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
@@ -76,6 +78,10 @@ final class UISystem {
     
     func getLoadingMenu() -> LoadingMenu {
         return loadingMenu
+    }
+
+    func getAutoplayMenu() -> AutoPlayMenu {
+        return autoplayMenu
     }
 
     func getInventoryUI() -> InventoryUI {
@@ -164,9 +170,13 @@ final class UISystem {
     // MARK: - Update
     
     func update(deltaTime: Float) {
-        if let panel = activePanel, panel == .loadingMenu {
-            loadingMenu.update(deltaTime: deltaTime)
-            return // Don't update game UI if loading menu is open
+        if let panel = activePanel, panel == .loadingMenu || panel == .autoplayMenu {
+            if panel == .loadingMenu {
+                loadingMenu.update(deltaTime: deltaTime)
+            } else if panel == .autoplayMenu {
+                autoplayMenu.update(deltaTime: deltaTime)
+            }
+            return // Don't update game UI if menus are open
         }
         
         hud.update(deltaTime: deltaTime)
@@ -175,6 +185,8 @@ final class UISystem {
             switch panel {
             case .loadingMenu:
                 loadingMenu.update(deltaTime: deltaTime)
+            case .autoplayMenu:
+                autoplayMenu.update(deltaTime: deltaTime)
             case .inventory:
                 inventoryUI.update(deltaTime: deltaTime)
             case .crafting:
@@ -303,6 +315,8 @@ final class UISystem {
             switch panel {
             case .loadingMenu:
                 loadingMenu.render(renderer: renderer)
+            case .autoplayMenu:
+                autoplayMenu.render(renderer: renderer)
             case .inventory:
                 inventoryUI.render(renderer: renderer)
             case .crafting:
@@ -344,6 +358,8 @@ final class UISystem {
         switch panel {
         case .loadingMenu:
             loadingMenu.open()
+        case .autoplayMenu:
+            autoplayMenu.open()
         case .inventory:
             inventoryUI.open()
         case .crafting:
@@ -366,6 +382,8 @@ final class UISystem {
             switch panel {
             case .loadingMenu:
                 loadingMenu.close()
+            case .autoplayMenu:
+                autoplayMenu.close()
             case .inventory:
                 inventoryUI.close()
             case .crafting:
@@ -440,6 +458,8 @@ final class UISystem {
             switch panel {
             case .loadingMenu:
                 return loadingMenu.handleTap(at: screenPos)
+            case .autoplayMenu:
+                return autoplayMenu.handleTap(at: screenPos)
             case .inventory:
                 if inventoryUI.handleTap(at: screenPos) { return true }
             case .crafting:
@@ -485,6 +505,8 @@ final class UISystem {
             switch panel {
             case .loadingMenu:
                 return nil
+            case .autoplayMenu:
+                return nil  // AutoPlayMenu doesn't have detailed tooltips
             case .inventory:
                 return inventoryUI.getTooltip(at: screenPos)
             case .crafting:
@@ -525,6 +547,7 @@ final class UISystem {
 
 enum UIPanel {
     case loadingMenu
+    case autoplayMenu
     case inventory
     case crafting
     case build

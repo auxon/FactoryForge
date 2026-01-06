@@ -290,6 +290,51 @@ class GameViewController: UIViewController {
         gameLoop?.returnToMenu()
     }
 
+
+    private func showAutoplayMenu() {
+        guard let uiSystem = uiSystem else { return }
+
+        uiSystem.openPanel(.autoplayMenu)
+
+        let autoplayMenu = uiSystem.getAutoplayMenu()
+        print("GameViewController: Setting up AutoPlayMenu callbacks")
+
+        autoplayMenu.onScenarioSelected = { [weak self] (scenarioId: String) in
+            print("GameViewController: Selected scenario: \(scenarioId)")
+        }
+
+        autoplayMenu.onStartAutoplay = { [weak self] (scenarioId: String, speed: Double) in
+            guard let self = self, let gameLoop = self.gameLoop else { return }
+
+            // Set the game speed first
+            gameLoop.setGameSpeed(speed)
+
+            // Start the scenario
+            if let scenario = AutoPlaySystem.builtInScenario(name: scenarioId) {
+                gameLoop.startAutoPlayScenario(scenario)
+                showTooltip("Started: \(scenario.name)", duration: 2.0)
+                uiSystem.closeAllPanels()
+            }
+        }
+
+        autoplayMenu.onStopAutoplay = { [weak self] in
+            self?.gameLoop?.stopAutoPlay()
+            self?.showTooltip("Auto-play stopped", duration: 2.0)
+        }
+
+        autoplayMenu.onCloseTapped = { [weak self] in
+            self?.uiSystem?.closeAllPanels()
+            // Force redraws like the loading menu
+            self?.metalView.setNeedsDisplay()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
+                self?.metalView.setNeedsDisplay()
+            }
+        }
+
+        // Setup text labels
+        autoplayMenu.setupLabels(in: view)
+    }
+
     func showGameOverScreen() {
         gameOverLabel.isHidden = false
         menuButtonLabel.isHidden = false
@@ -446,7 +491,11 @@ class GameViewController: UIViewController {
                 self?.metalView.setNeedsDisplay()
             }
         }
-        
+
+        loadingMenu.onAutoplayTapped = { [weak self] in
+            self?.showAutoplayMenu()
+        }
+
         // Setup UILabel overlays for save slot information
         loadingMenu.setupLabels(in: view)
         

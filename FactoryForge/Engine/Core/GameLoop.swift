@@ -12,6 +12,10 @@ final class GameLoop {
     
     // Game systems
     private var systems: [System] = []
+
+    // Time controls for auto-play
+    private(set) var gameSpeed: Double = 1.0  // 1.0 = normal speed
+
     private let miningSystem: MiningSystem
     let beltSystem: BeltSystem  // Internal access for save system to register belts after loading
     private let inserterSystem: InserterSystem
@@ -21,6 +25,7 @@ final class GameLoop {
     private let pollutionSystem: PollutionSystem
     private let enemyAISystem: EnemyAISystem
     private let combatSystem: CombatSystem
+    let autoPlaySystem: AutoPlaySystem
     
     // Player
     let player: Player
@@ -75,7 +80,10 @@ final class GameLoop {
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
         combatSystem = CombatSystem(world: world)
         combatSystem.setRenderer(renderer)
-        
+
+        // Auto-play system for automated testing
+        autoPlaySystem = AutoPlaySystem()
+
         // Register systems in update order
         systems = [
             miningSystem,
@@ -86,7 +94,8 @@ final class GameLoop {
             researchSystem,
             pollutionSystem,
             enemyAISystem,
-            combatSystem
+            combatSystem,
+            autoPlaySystem
         ]
         
         // Initialize save system
@@ -102,6 +111,9 @@ final class GameLoop {
         // 1. For saved games: After saveSystem.load() sets the save slot and loads chunks from disk
         // 2. For new games: When GameLoop.update() is first called (which calls chunkManager.update())
         // This prevents chunks from being regenerated before the save slot is set when loading a game
+
+        // Set up auto-play system reference (after all properties are initialized)
+        autoPlaySystem.setGameLoop(self)
     }
     
     private func loadGameData() {
@@ -116,9 +128,10 @@ final class GameLoop {
         guard isRunning else { return }
         
         Time.shared.update()
-        let deltaTime = Time.shared.deltaTime
-        
-        playTime += Double(deltaTime)
+        let realDeltaTime = Time.shared.deltaTime
+        let deltaTime = Float(realDeltaTime * Float(gameSpeed))
+
+        playTime += Double(realDeltaTime)  // Track real time, not scaled time
 
         // Check for player death
         if !isPlayerDead && player.isDead {
@@ -155,7 +168,58 @@ final class GameLoop {
         // Call update callback
         onUpdate?()
     }
-    
+
+    // MARK: - Time Controls (Auto-Play)
+
+    /// Set the game speed multiplier
+    /// - Parameter speed: Speed multiplier (0.0 = paused, 1.0 = normal, 2.0 = 2x speed, etc.)
+    func setGameSpeed(_ speed: Double) {
+        gameSpeed = max(0.0, speed)  // Prevent negative speeds
+        print("🎮 Game speed set to \(gameSpeed)x")
+    }
+
+    /// Pause the game (speed = 0)
+    func pauseGame() {
+        setGameSpeed(0.0)
+    }
+
+    /// Resume normal speed (speed = 1)
+    func resumeGame() {
+        setGameSpeed(1.0)
+    }
+
+    /// Speed up game by a multiplier
+    func speedUp(by multiplier: Double = 2.0) {
+        setGameSpeed(gameSpeed * multiplier)
+    }
+
+    /// Slow down game by a divisor
+    func slowDown(by divisor: Double = 2.0) {
+        setGameSpeed(gameSpeed / divisor)
+    }
+
+    // MARK: - Auto-Play Interface
+
+    /// Start an auto-play scenario
+    func startAutoPlayScenario(_ scenario: GameScenario) {
+        autoPlaySystem.startScenario(scenario)
+    }
+
+    /// Stop auto-play
+    func stopAutoPlay() {
+        autoPlaySystem.stopAutoPlay()
+    }
+
+    /// Check if auto-play is currently active
+    var isAutoPlaying: Bool {
+        return autoPlaySystem.isAutoPlaying
+    }
+
+    /// Get the name of the current scenario
+    var currentScenarioName: String? {
+        return autoPlaySystem.currentScenarioName
+    }
+
     // Input manager reference (set by GameViewController)
     weak var inputManager: InputManager?
     
@@ -437,7 +501,7 @@ final class GameLoop {
                     let actualFrame = ((frameIndex - 1) % 4) + 1  // Cycle through frames 1-4
                     return "transport_belt_north_\(String(format: "%03d", actualFrame))"
                 }
-                var beltAnimation = SpriteAnimation(
+                let beltAnimation = SpriteAnimation(
                     frames: beltFrames,
                     frameTime: 0.1,  // 16 frames × 0.1s = 1.6 seconds per loop
                     isLooping: true
@@ -850,7 +914,7 @@ final class GameLoop {
                 let actualFrame = ((frameIndex - 1) % 4) + 1  // Cycle through frames 1-4
                 return "transport_belt_north_\(String(format: "%03d", actualFrame))"
             }
-            var beltAnimation = SpriteAnimation(
+            let beltAnimation = SpriteAnimation(
                 frames: beltFrames,
                 frameTime: 0.1,  // 16 frames × 0.1s = 1.6 seconds per loop
                 isLooping: true

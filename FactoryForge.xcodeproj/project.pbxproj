@@ -16,6 +16,9 @@
 		0D18B55C2F0CD0D5006B70A5 /* splitter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B55B2F0CD0D5006B70A5 /* splitter.png */; };
 		0D18B55E2F0CD0FF006B70A5 /* merger.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B55D2F0CD0FF006B70A5 /* merger.png */; };
 		0D18B5602F0D6AE9006B70A5 /* transport_belt_animation.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B55F2F0D6AE9006B70A5 /* transport_belt_animation.png */; };
+		0D18B5632F0D9219006B70A5 /* AutoPlayTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5622F0D9219006B70A5 /* AutoPlayTypes.swift */; };
+		0D18B5642F0D9219006B70A5 /* AutoPlaySystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5612F0D9219006B70A5 /* AutoPlaySystem.swift */; };
+		0D18B5662F0D96A4006B70A5 /* AutoPlayMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */; };
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
 		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
 		0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371D2F0485C900941686 /* inserters_sheet.png */; };
@@ -262,6 +265,9 @@
 		0D18B55B2F0CD0D5006B70A5 /* splitter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = splitter.png; sourceTree = "<group>"; };
 		0D18B55D2F0CD0FF006B70A5 /* merger.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = merger.png; sourceTree = "<group>"; };
 		0D18B55F2F0D6AE9006B70A5 /* transport_belt_animation.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_animation.png; sourceTree = "<group>"; };
+		0D18B5612F0D9219006B70A5 /* AutoPlaySystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPlaySystem.swift; sourceTree = "<group>"; };
+		0D18B5622F0D9219006B70A5 /* AutoPlayTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPlayTypes.swift; sourceTree = "<group>"; };
+		0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPlayMenu.swift; sourceTree = "<group>"; };
 		0D3A37192F044AC200941686 /* recycle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = recycle.png; sourceTree = "<group>"; };
 		0D3A371B2F047F7700941686 /* move.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = move.png; sourceTree = "<group>"; };
 		0D3A371D2F0485C900941686 /* inserters_sheet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserters_sheet.png; sourceTree = "<group>"; };
@@ -1027,6 +1033,8 @@
 		A0000200035 /* Systems */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B5612F0D9219006B70A5 /* AutoPlaySystem.swift */,
+				0D18B5622F0D9219006B70A5 /* AutoPlayTypes.swift */,
 				A1011001000 /* MiningSystem.swift */,
 				A1011002000 /* BeltSystem.swift */,
 				A1011003000 /* InserterSystem.swift */,
@@ -1060,6 +1068,7 @@
 		A0000200040 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */,
 				0D6FDC622EFEDB6100576EC3 /* LoadingMenu.swift */,
 				A1014001000 /* UISystem.swift */,
 				A1014002000 /* HUD.swift */,
@@ -1381,6 +1390,7 @@
 				A1011009001 /* CombatSystem.swift in Sources */,
 				A1012001001 /* Technology.swift in Sources */,
 				A1012002001 /* TechTree.swift in Sources */,
+				0D18B5662F0D96A4006B70A5 /* AutoPlayMenu.swift in Sources */,
 				A1013001001 /* Player.swift in Sources */,
 				A1014001001 /* UISystem.swift in Sources */,
 				A1014002001 /* HUD.swift in Sources */,
@@ -1389,6 +1399,8 @@
 				A1014005001 /* BuildMenu.swift in Sources */,
 				A1014006001 /* ResearchUI.swift in Sources */,
 				0D6FDC632EFEDB6100576EC3 /* LoadingMenu.swift in Sources */,
+				0D18B5632F0D9219006B70A5 /* AutoPlayTypes.swift in Sources */,
+				0D18B5642F0D9219006B70A5 /* AutoPlaySystem.swift in Sources */,
 				A1014007001 /* MachineUI.swift in Sources */,
 				A1014008001 /* VirtualJoystick.swift in Sources */,
 				A1015001001 /* SaveSystem.swift in Sources */,

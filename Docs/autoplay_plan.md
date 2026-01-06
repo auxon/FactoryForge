@@ -123,11 +123,13 @@ struct PerformanceMetrics {
 
 ## Implementation Phases
 
-### Phase 1: Basic Auto-Play 🚧
+### Phase 1: Basic Auto-Play ✅
 
-- [ ] Time controls (speed up/slow down)
-- [ ] Simple scenario playback
-- [ ] Basic automated building placement
+- [x] Time controls (speed up/slow down)
+- [x] Simple scenario playback
+- [x] Basic automated building placement
+- [x] iPhone-compatible UI (LoadingMenu + AutoPlayMenu)
+- [x] Text-based configuration interface
 
 ### Phase 2: Advanced Scenarios
 
