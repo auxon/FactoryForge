@@ -10,6 +10,11 @@ final class AutoPlayMenu: UIPanel_Base {
     private var stopButton: UIButton!
     private var speedButtons: [UIButton] = []
     private var textLabels: [UILabel] = []
+    private var scrollView: UIScrollView?
+    private var contentOffset: Float = 0
+    private var maxContentOffset: Float = 0
+    private var lastTouchY: Float = 0
+    private var isDragging = false
 
     // Current selection
     private var selectedScenario: String?
@@ -41,11 +46,39 @@ final class AutoPlayMenu: UIPanel_Base {
     /// Must be called from GameViewController after AutoPlayMenu is created
     func setupLabels(in parentView: UIView) {
         self.parentView = parentView
+
+        // Create scroll view
+        setupScrollView(in: parentView)
         updateLabels()
     }
 
+    private func setupScrollView(in parentView: UIView) {
+        // Remove existing scroll view if any
+        scrollView?.removeFromSuperview()
+
+        let screenScale = CGFloat(UIScreen.main.scale)
+
+        // Scroll view covers most of the screen, leaving space for close button
+        let scrollViewFrame = CGRect(
+            x: 0,
+            y: 60 / screenScale, // Leave space at top for close button
+            width: CGFloat(screenSize.x) / screenScale,
+            height: (CGFloat(screenSize.y) - 120) / screenScale // Leave space at bottom
+        )
+
+        scrollView = UIScrollView(frame: scrollViewFrame)
+        scrollView?.backgroundColor = .clear
+        scrollView?.showsVerticalScrollIndicator = true
+        scrollView?.showsHorizontalScrollIndicator = false
+        scrollView?.alwaysBounceVertical = true
+
+        if let scrollView = scrollView {
+            parentView.addSubview(scrollView)
+        }
+    }
+
     private func updateLabels() {
-        guard let parentView = parentView else { return }
+        guard let scrollView = scrollView else { return }
 
         // Remove old labels
         for label in textLabels {
@@ -55,23 +88,59 @@ final class AutoPlayMenu: UIPanel_Base {
 
         let screenScale = CGFloat(UIScreen.main.scale)
 
-        // Button texts
-        let buttonTexts = [
-            ("Select Scenario:", frame.minY + 60 * UIScale, 20),
-            ("Basic Test - Speed changes", frame.minY + 100 * UIScale, 16),
-            ("Speed Demo - Auto speed cycling", frame.minY + 140 * UIScale, 16),
-            ("Basic Mining - Place electric miner", frame.minY + 180 * UIScale, 16),
-            ("Smelting Setup - Miner + Furnace", frame.minY + 220 * UIScale, 16),
-            ("Production Line - Complete chain", frame.minY + 260 * UIScale, 16),
-            ("Select Speed:", frame.minY + 320 * UIScale, 20),
-            ("0.5x Slow", frame.minY + 360 * UIScale, 16),
-            ("1x Normal", frame.minY + 400 * UIScale, 16),
-            ("2x Fast", frame.minY + 440 * UIScale, 16),
-            ("4x Faster", frame.minY + 480 * UIScale, 16),
-            ("8x Fastest", frame.minY + 520 * UIScale, 16),
-            ("Start Auto-Play", frame.maxY - 100 * UIScale, 18),
-            ("Stop Auto-Play", frame.maxY - 100 * UIScale, 18)
+        // Calculate content positions relative to scroll view
+        let buttonHeight: Float = 40 * UIScale
+        let buttonSpacing: Float = 15 * UIScale
+        var contentY: Float = 20 * UIScale  // Start a bit down from top of scroll view
+
+        // Title
+        var buttonTexts: [(String, Float, Int)] = [
+            ("Select Scenario:", contentY, 20)
         ]
+        contentY += buttonHeight
+
+        // Scenario buttons
+        let scenarios = [
+            "Basic Test - Speed changes",
+            "Speed Demo - Auto speed cycling",
+            "Basic Mining - Place electric miner",
+            "Smelting Setup - Miner + Furnace",
+            "Production Line - Complete chain"
+        ]
+
+        for scenarioName in scenarios {
+            buttonTexts.append((scenarioName, contentY + buttonHeight / 2, 16))
+            contentY += buttonHeight + buttonSpacing
+        }
+
+        // Speed section
+        contentY += buttonSpacing * 2
+        buttonTexts.append(("Select Speed:", contentY, 20))
+        contentY += buttonHeight
+
+        let speeds = [
+            "0.5x Slow",
+            "1x Normal",
+            "2x Fast",
+            "4x Faster",
+            "8x Fastest"
+        ]
+
+        for speedName in speeds {
+            buttonTexts.append((speedName, contentY + buttonHeight / 2, 16))
+            contentY += buttonHeight + buttonSpacing
+        }
+
+        // Control buttons - positioned near bottom of scroll view
+        contentY += buttonSpacing * 2
+        buttonTexts.append(("Start Auto-Play", contentY, 18))
+        buttonTexts.append(("Stop Auto-Play", contentY, 18))
+        contentY += buttonHeight + 20 * UIScale  // Add some bottom padding
+
+        // Set scroll view content size
+        let contentWidth = scrollView.frame.width
+        let contentHeight = CGFloat(contentY) / screenScale
+        scrollView.contentSize = CGSize(width: contentWidth, height: contentHeight)
 
         for (text, yPos, fontSize) in buttonTexts {
             let label = UILabel()
@@ -83,19 +152,24 @@ final class AutoPlayMenu: UIPanel_Base {
 
             let labelWidth: CGFloat = 250
             let labelHeight: CGFloat = 30
-            let labelX = (CGFloat(frame.center.x) - labelWidth/2) / screenScale
+            // Position relative to scroll view content
+            let labelX = (scrollView.frame.width - labelWidth) / 2  // Center horizontally in scroll view
             let labelY = CGFloat(yPos) / screenScale - labelHeight/2
 
             label.frame = CGRect(x: labelX, y: labelY, width: labelWidth, height: labelHeight)
 
             // Special positioning for start/stop buttons
             if text == "Start Auto-Play" {
-                label.frame.origin.x = (CGFloat(frame.center.x - 110 * UIScale) - labelWidth/2) / screenScale
+                let offsetX = CGFloat(110 * UIScale) / screenScale
+                let centerX = scrollView.frame.width / 2 - offsetX
+                label.frame.origin.x = centerX - labelWidth/2
             } else if text == "Stop Auto-Play" {
-                label.frame.origin.x = (CGFloat(frame.center.x + 110 * UIScale) - labelWidth/2) / screenScale
+                let offsetX = CGFloat(110 * UIScale) / screenScale
+                let centerX = scrollView.frame.width / 2 + offsetX
+                label.frame.origin.x = centerX - labelWidth/2
             }
 
-            parentView.addSubview(label)
+            scrollView.addSubview(label)
             textLabels.append(label)
         }
     }
@@ -134,7 +208,7 @@ final class AutoPlayMenu: UIPanel_Base {
             ("production_line", "Production Line - Complete chain")
         ]
 
-        for (scenarioId, scenarioName) in scenarios {
+        for (scenarioId, _) in scenarios {
             let button = UIButton(
                 frame: Rect(
                     center: Vector2(frame.center.x, currentY + buttonHeight / 2),
@@ -146,7 +220,6 @@ final class AutoPlayMenu: UIPanel_Base {
                 AudioManager.shared.playClickSound()
                 self?.selectedScenario = scenarioId
                 self?.onScenarioSelected?(scenarioId)
-                print("Selected scenario: \(scenarioId)")
             }
             scenarioButtons.append(button)
             currentY += buttonHeight + buttonSpacing
@@ -166,7 +239,7 @@ final class AutoPlayMenu: UIPanel_Base {
             ("8x Fastest", 8.0)
         ]
 
-        for (speedName, speedValue) in speeds {
+        for (_, speedValue) in speeds {
             let button = UIButton(
                 frame: Rect(
                     center: Vector2(frame.center.x, currentY + buttonHeight / 2),
@@ -177,7 +250,6 @@ final class AutoPlayMenu: UIPanel_Base {
             button.onTap = { [weak self] in
                 AudioManager.shared.playClickSound()
                 self?.selectedSpeed = speedValue
-                print("Selected speed: \(speedValue)x")
             }
             speedButtons.append(button)
             currentY += buttonHeight + buttonSpacing
@@ -199,7 +271,6 @@ final class AutoPlayMenu: UIPanel_Base {
         startButton.onTap = { [weak self] in
             guard let self = self,
                   let scenario = self.selectedScenario else {
-                print("No scenario selected!")
                 return
             }
             AudioManager.shared.playClickSound()
@@ -227,7 +298,8 @@ final class AutoPlayMenu: UIPanel_Base {
 
     override func open() {
         super.open()
-        // Show labels when menu opens
+        // Show scroll view and labels when menu opens
+        scrollView?.isHidden = false
         for label in textLabels {
             label.isHidden = false
         }
@@ -235,7 +307,8 @@ final class AutoPlayMenu: UIPanel_Base {
 
     override func close() {
         super.close()
-        // Hide labels when menu closes
+        // Hide scroll view and labels when menu closes
+        scrollView?.isHidden = true
         for label in textLabels {
             label.isHidden = true
         }

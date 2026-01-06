@@ -300,7 +300,7 @@ class GameViewController: UIViewController {
         print("GameViewController: Setting up AutoPlayMenu callbacks")
 
         autoplayMenu.onScenarioSelected = { [weak self] (scenarioId: String) in
-            print("GameViewController: Selected scenario: \(scenarioId)")
+            // Scenario selection handled - will be used when starting auto-play
         }
 
         autoplayMenu.onStartAutoplay = { [weak self] (scenarioId: String, speed: Double) in

@@ -324,7 +324,7 @@ extension AutoPlaySystem {
                 name: "Basic Mining",
                 description: "Places a miner and lets it run",
                 steps: [
-                    .placeBuilding(type: "electric_miner", position: IntVector2(x: 5, y: 5), direction: .north),
+                    .placeBuilding(type: "electric-mining-drill", position: IntVector2(x: 5, y: 5), direction: .north),
                     .wait(seconds: 10.0),
                     .setGameSpeed(.normal)
                 ],
@@ -337,9 +337,9 @@ extension AutoPlaySystem {
                 name: "Smelting Setup",
                 description: "Miner + Furnace production chain",
                 steps: [
-                    .placeBuilding(type: "electric_miner", position: IntVector2(x: 5, y: 5), direction: .north),
+                    .placeBuilding(type: "electric-mining-drill", position: IntVector2(x: 5, y: 5), direction: .north),
                     .wait(seconds: 2.0),
-                    .placeBuilding(type: "electric_furnace", position: IntVector2(x: 8, y: 5), direction: .north),
+                    .placeBuilding(type: "electric-furnace", position: IntVector2(x: 8, y: 5), direction: .north),
                     .wait(seconds: 2.0),
                     .connectBuildings(from: IntVector2(x: 5, y: 5), to: IntVector2(x: 8, y: 5)),
                     .wait(seconds: 10.0)
@@ -353,11 +353,11 @@ extension AutoPlaySystem {
                 name: "Production Line",
                 description: "Complete miner → furnace → assembler chain",
                 steps: [
-                    .placeBuilding(type: "electric_miner", position: IntVector2(x: 5, y: 5), direction: .north),
+                    .placeBuilding(type: "electric-mining-drill", position: IntVector2(x: 5, y: 5), direction: .north),
                     .wait(seconds: 1.0),
-                    .placeBuilding(type: "electric_furnace", position: IntVector2(x: 8, y: 5), direction: .north),
+                    .placeBuilding(type: "electric-furnace", position: IntVector2(x: 8, y: 5), direction: .north),
                     .wait(seconds: 1.0),
-                    .placeBuilding(type: "assembling_machine_1", position: IntVector2(x: 11, y: 5), direction: .north),
+                    .placeBuilding(type: "assembling-machine-1", position: IntVector2(x: 11, y: 5), direction: .north),
                     .wait(seconds: 1.0),
                     .connectBuildings(from: IntVector2(x: 5, y: 5), to: IntVector2(x: 8, y: 5)),
                     .wait(seconds: 1.0),
