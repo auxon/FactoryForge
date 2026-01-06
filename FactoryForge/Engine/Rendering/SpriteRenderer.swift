@@ -68,6 +68,9 @@ final class SpriteRenderer {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
 
+            // Check if this is a belt entity for rotation
+            let belt = world.get(BeltComponent.self, for: entity)
+
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
             spritesCollected += 1
@@ -100,17 +103,24 @@ final class SpriteRenderer {
             // Animated belts are rendered as sprites, non-animated belts are rendered as shapes
             let beltTypes = ["transport_belt", "fast_transport_belt", "express_transport_belt"]
             if beltTypes.contains(sprite.textureId) && sprite.animation == nil {
+                print("🔄 Skipping non-animated belt \(sprite.textureId) from sprite rendering")
                 continue  // Skip non-animated belt sprites - they'll be drawn as shapes in renderBelts
+            }
+
+            // Debug: show when belts are being rendered as sprites
+            if sprite.textureId.contains("transport_belt") {
+                print("🎨 Rendering belt \(sprite.textureId) as sprite (has animation: \(sprite.animation != nil))")
             }
 
             // Update animation if present (use a mutable copy for rendering)
             var renderSprite = sprite
             
-            let textureRect = textureAtlas.getTextureRect(for: renderSprite.textureId)
+            let finalTextureId = renderSprite.textureId
+            let textureRect = textureAtlas.getTextureRect(for: finalTextureId)
 
             // Debug: check texture rect for belts
-            if renderSprite.textureId.contains("transport_belt") {
-                print("🖼️ Belt texture '\(renderSprite.textureId)' rect: \(textureRect)")
+            if finalTextureId.contains("transport_belt") {
+                print("🖼️ Belt texture '\(finalTextureId)' rect: \(textureRect)")
             }
 
             if var animation = renderSprite.animation {
@@ -130,9 +140,17 @@ final class SpriteRenderer {
             // For non-centered sprites (buildings), offset by half size to align with tile origin
             let renderPos = renderSprite.centered ? worldPos : worldPos + Vector2(renderSprite.size.x / 2, renderSprite.size.y / 2)
 
-            // Only apply rotation to centered sprites (like player), not buildings
-            // Buildings use directional sprites or don't need rotation
-            let rotation = renderSprite.centered ? position.direction.angle : 0
+            // Apply rotation based on entity type
+            var rotation: Float = 0
+            if let belt = belt {
+                // Belts use their transport direction (even if centered)
+                rotation = belt.direction.angle
+                print("🔄 Belt at \(worldPos) using belt direction \(belt.direction) -> rotation \(rotation) radians (\(rotation * 180 / .pi)°)")
+            } else if renderSprite.centered {
+                // Centered sprites (like player) use position direction
+                rotation = position.direction.angle
+            }
+            // Other sprites (buildings) don't rotate
 
             // Check if this entity is selected for highlighting
             let isSelected = selectedEntity != nil && entity.id == selectedEntity!.id && entity.generation == selectedEntity!.generation
@@ -144,7 +162,8 @@ final class SpriteRenderer {
             if renderSprite.textureId.contains("transport_belt") {
                 print("📦 Queuing belt sprite: \(renderSprite.textureId) at \(renderPos) size \(renderSprite.size)")
                 if let anim = renderSprite.animation {
-                    print("   Animation: frame \(anim.currentFrame)/\(anim.frames.count), elapsed: \(anim.elapsedTime)")
+                    let currentAnimTexture = anim.frames[anim.currentFrame]
+                    print("   Animation: frame \(anim.currentFrame)/\(anim.frames.count), elapsed: \(anim.elapsedTime), current texture: \(currentAnimTexture)")
                 }
             }
 
@@ -288,6 +307,7 @@ final class SpriteRenderer {
 
             // Skip belts with animations - they are rendered as sprites in the main loop
             if sprite.animation != nil {
+                print("🔄 Skipping animated belt \(sprite.textureId) from shape rendering")
                 continue
             }
 
@@ -313,9 +333,12 @@ final class SpriteRenderer {
     }
 
     private func renderNormalBelt(worldPos: Vector2, belt: BeltComponent, beltColor: Color, solidRect: Rect, sprite: SpriteComponent) {
-        // Use animated belt texture instead of solid rectangle
+        // Use animated belt texture with rotation based on direction
         let currentTextureId = sprite.textureId
         let textureRect = textureAtlas.getTextureRect(for: currentTextureId)
+
+        // Rotate sprite based on belt direction (north=0°, east=90°, south=180°, west=270°)
+        let rotation = belt.direction.angle
 
         // Draw belt as a sprite with the animated texture
         let beltSize = Vector2(1.0, 1.0)  // Full tile size
@@ -323,7 +346,7 @@ final class SpriteRenderer {
         queuedSprites.append(SpriteInstance(
             position: worldPos,
             size: beltSize,
-            rotation: 0,  // No rotation - directional textures handle orientation
+            rotation: rotation,  // Rotate to match belt direction
             textureRect: textureRect,
             color: beltColor,
             layer: sprite.layer
