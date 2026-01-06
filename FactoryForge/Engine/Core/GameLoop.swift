@@ -487,14 +487,12 @@ final class GameLoop {
                             let tree = world.get(TreeComponent.self, for: entity)!
                             // Only allow placement on trees that have wood left
                             if tree.woodYield > 0 {
-                                print("GameLoop: Found harvestable tree entity \(entity) at \(checkPos) (wood: \(tree.woodYield))")
                                 return true
                             }
                         }
                     }
                 }
             }
-            print("GameLoop: No harvestable trees found near mining drill position \(position)")
             // No trees found in the expanded search area
         }
 

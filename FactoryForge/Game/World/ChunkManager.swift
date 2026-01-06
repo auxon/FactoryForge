@@ -80,14 +80,11 @@ final class ChunkManager {
         // Try to load from disk first
         if let savedChunk = loadChunkFromDisk(coord) {
             chunks[coord] = savedChunk
-            print("ChunkManager: Loaded chunk at (\(coord.x), \(coord.y)) from disk, biome: \(savedChunk.biome)")
         } else {
             // Generate new chunk (chunk file doesn't exist or failed to load)
-            print("ChunkManager: WARNING - Could not load chunk at (\(coord.x), \(coord.y)) from disk (slot: \(currentSaveSlot ?? "nil")). Generating new chunk.")
             let biome = biomeGenerator.getBiome(at: coord)
             let chunk = worldGenerator.generateChunk(at: coord, biome: biome)
             chunks[coord] = chunk
-            print("ChunkManager: Generated new chunk at (\(coord.x), \(coord.y)) with biome: \(biome)")
         }
 
         loadedChunks.insert(coord)
@@ -278,7 +275,6 @@ final class ChunkManager {
             let data = try Data(contentsOf: url)
             let chunkData = try JSONDecoder().decode(ChunkData.self, from: data)
             let chunk = Chunk.deserialize(chunkData)
-            print("ChunkManager: Loaded chunk at (\(coord.x), \(coord.y)) from slot: \(slotName), biome: \(chunk.biome), path: \(url.path)")
             return chunk
         } catch {
             print("ChunkManager: ERROR - Failed to load chunk at (\(coord.x), \(coord.y)) from slot: \(slotName), path: \(url.path), error: \(error)")
