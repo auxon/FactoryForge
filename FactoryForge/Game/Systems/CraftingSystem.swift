@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 /// System that handles crafting in assemblers and furnaces
 final class CraftingSystem: System {
@@ -15,11 +16,20 @@ final class CraftingSystem: System {
     }
     
     func update(deltaTime: Float) {
+        let startTime = CACurrentMediaTime()
+
         // Update assemblers
         updateAssemblers(deltaTime: deltaTime)
-        
+
         // Update furnaces
         updateFurnaces(deltaTime: deltaTime)
+
+        // Profile crafting system performance
+        let endTime = CACurrentMediaTime()
+        let duration = Float(endTime - startTime)
+        if Int(Time.shared.frameCount) % 60 == 0 {
+            print(String(format: "CraftingSystem: %.2fms", duration*1000))
+        }
     }
     
     private func updateAssemblers(deltaTime: Float) {

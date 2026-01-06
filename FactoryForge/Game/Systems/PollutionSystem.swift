@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 /// System that handles pollution generation and spread
 final class PollutionSystem: System {
@@ -30,6 +31,8 @@ final class PollutionSystem: System {
     }
     
     func update(deltaTime: Float) {
+        let startTime = CACurrentMediaTime()
+
         // Update pollution entity cache periodically
         let currentTime = Time.shared.totalTime
         if Double(currentTime) - lastCacheUpdate > cacheUpdateInterval {
@@ -42,6 +45,13 @@ final class PollutionSystem: System {
 
         // Spread pollution between chunks
         chunkManager.spreadPollution(deltaTime: deltaTime)
+
+        // Profile pollution system performance
+        let endTime = CACurrentMediaTime()
+        let duration = Float(endTime - startTime)
+        if Int(Time.shared.frameCount) % 60 == 0 {
+            print(String(format: "PollutionSystem: %.2fms", duration*1000))
+        }
     }
     
     private func updatePollutionEntityCache() {

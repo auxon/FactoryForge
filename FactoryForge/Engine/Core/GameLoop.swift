@@ -189,6 +189,9 @@ final class GameLoop {
             chunkManager.update(playerPosition: playerPos)
             lastChunkUpdatePosition = playerPos
 
+            // Invalidate mining system cache when chunks change
+            miningSystem.invalidateResourceCache()
+
             // Spawn trees for newly loaded forest chunks (only when chunks updated)
             let treesSpawned = spawnTreesForNewChunks()
             if treesSpawned > 0 {

@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 /// System that handles mining drills extracting resources
 final class MiningSystem: System {
@@ -6,13 +7,36 @@ final class MiningSystem: System {
     
     private let world: World
     private let chunkManager: ChunkManager
-    
+
+    // Cache for performance optimization
+    private var resourceCache: [IntVector2: ResourceDeposit] = [:]
+    private var treeCache: [IntVector2: Entity] = [:]
+    private var cacheValid: Bool = false
+    private let cacheUpdateInterval: TimeInterval = 0.5  // Update cache every 0.5 seconds
+    private var lastCacheUpdate: TimeInterval = 0
+
     init(world: World, chunkManager: ChunkManager) {
         self.world = world
         self.chunkManager = chunkManager
     }
+
+    /// Called when chunks are loaded/unloaded to invalidate resource cache
+    func invalidateResourceCache() {
+        cacheValid = false
+        resourceCache.removeAll(keepingCapacity: true)
+        treeCache.removeAll(keepingCapacity: true)
+    }
     
     func update(deltaTime: Float) {
+        let startTime = CACurrentMediaTime()
+        let currentTime = Time.shared.totalTime
+
+        // Update resource/tree cache periodically for performance
+        if !cacheValid || Double(currentTime) - lastCacheUpdate > cacheUpdateInterval {
+            updateResourceCache()
+            lastCacheUpdate = Double(currentTime)
+        }
+
         // Collect all modifications to apply after iteration
         var minerModifications: [(Entity, MinerComponent)] = []
         var inventoryModifications: [(Entity, InventoryComponent)] = []
@@ -171,15 +195,58 @@ final class MiningSystem: System {
         for entity in treesToRemove {
             world.despawn(entity)
         }
-        
+
+        // Profile mining system performance
+        let endTime = CACurrentMediaTime()
+        let duration = Float(endTime - startTime)
+        if Int(Time.shared.frameCount) % 60 == 0 {
+            print(String(format: "MiningSystem: %.2fms", duration*1000))
+        }
     }
     
+    private func updateResourceCache() {
+        resourceCache.removeAll(keepingCapacity: true)
+        treeCache.removeAll(keepingCapacity: true)
+
+        // Only cache resources and trees near active miners to save performance
+        world.forEach(MinerComponent.self) { [self] entity, miner in
+            guard let position = world.get(PositionComponent.self, for: entity)?.tilePosition else { return }
+
+            // Cache resources in 3x3 area around this miner
+            for dy in -1...1 {
+                for dx in -1...1 {
+                    let checkPos = IntVector2(x: position.x + Int32(dx), y: position.y + Int32(dy))
+                    if let resource = chunkManager.getResource(at: checkPos), !resource.isEmpty {
+                        resourceCache[checkPos] = resource
+                    }
+                }
+            }
+
+            // Cache trees in 2x2 area around this miner (reduced from 5x5 for performance)
+            let treeRadius: Int32 = 1  // Reduced from 2 for performance
+            for dy in -treeRadius...treeRadius {
+                for dx in -treeRadius...treeRadius {
+                    let checkPos = IntVector2(x: position.x + dx, y: position.y + dy)
+                    let entitiesAtPos = world.getAllEntitiesAt(position: checkPos)
+                    for entity in entitiesAtPos {
+                        if let tree = world.get(TreeComponent.self, for: entity), tree.woodYield > 0 {
+                            treeCache[checkPos] = entity
+                            break  // Only cache one tree per position
+                        }
+                    }
+                }
+            }
+        }
+
+        cacheValid = true
+    }
+
     private func findResource(at position: IntVector2) -> ResourceDeposit? {
-        // Check the tile and surrounding tiles for resource
+        // Use cached resources for better performance
         for dy in -1...1 {
             for dx in -1...1 {
                 let checkPos = IntVector2(x: position.x + Int32(dx), y: position.y + Int32(dy))
-                if let resource = chunkManager.getResource(at: checkPos), !resource.isEmpty {
+                if let resource = resourceCache[checkPos], !resource.isEmpty {
                     return resource
                 }
             }
@@ -188,20 +255,16 @@ final class MiningSystem: System {
     }
 
     private func findTree(at position: IntVector2) -> Entity? {
-        // Look for tree entities in the mining area
-        let miningRadius: Int32 = 2  // Mining drills can reach 2 tiles away
+        // Use cached trees for better performance (reduced radius from 2 to 1)
+        let miningRadius: Int32 = 1  // Reduced from 2 for performance
 
-        // Find all tree entities within mining radius
         for dy in -miningRadius...miningRadius {
             for dx in -miningRadius...miningRadius {
                 let checkPos = IntVector2(x: position.x + dx, y: position.y + dy)
-
-                // Find entities at this position
-                let entitiesAtPos = world.getAllEntitiesAt(position: checkPos)
-                for entity in entitiesAtPos {
-                    if let tree = world.get(TreeComponent.self, for: entity), tree.woodYield > 0 {
-                        // Found a harvestable tree entity
-                        return entity
+                if let treeEntity = treeCache[checkPos] {
+                    // Double-check tree is still valid and has wood
+                    if let tree = world.get(TreeComponent.self, for: treeEntity), tree.woodYield > 0 {
+                        return treeEntity
                     }
                 }
             }
