@@ -1,14 +1,39 @@
 import Foundation
 import UIKit
 
+/// Clickable label that can respond to tap events
+class ClickableLabel: UILabel {
+    var onTap: (() -> Void)?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupTapGesture()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupTapGesture()
+    }
+
+    private func setupTapGesture() {
+        isUserInteractionEnabled = true
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+        addGestureRecognizer(tapGesture)
+    }
+
+    @objc private func handleTap() {
+        onTap?()
+    }
+}
+
 /// Auto-play configuration menu for selecting scenarios and starting automated testing
 final class AutoPlayMenu: UIPanel_Base {
     private var screenSize: Vector2
     private var closeButton: CloseButton!
-    private var scenarioButtons: [UIButton] = []
-    private var startButton: UIButton!
-    private var stopButton: UIButton!
-    private var speedButtons: [UIButton] = []
+    private var scenarioLabels: [ClickableLabel] = []
+    private var startLabel: ClickableLabel!
+    private var stopLabel: ClickableLabel!
+    private var speedLabels: [ClickableLabel] = []
     private var textLabels: [UILabel] = []
     private var scrollView: UIScrollView?
     private var contentOffset: Float = 0
@@ -142,13 +167,19 @@ final class AutoPlayMenu: UIPanel_Base {
         let contentHeight = CGFloat(contentY) / screenScale
         scrollView.contentSize = CGSize(width: contentWidth, height: contentHeight)
 
+        var scenarioIndex = 0
+        var speedIndex = 0
+
         for (text, yPos, fontSize) in buttonTexts {
-            let label = UILabel()
+            let label = ClickableLabel()
             label.text = text
             label.font = UIFont.systemFont(ofSize: CGFloat(fontSize), weight: .medium)
             label.textColor = .white
             label.textAlignment = .center
-            label.backgroundColor = .clear
+            label.backgroundColor = UIColor.gray.withAlphaComponent(0.3)
+            label.layer.borderColor = UIColor.white.cgColor
+            label.layer.borderWidth = 1.0
+            label.layer.cornerRadius = 5.0
 
             let labelWidth: CGFloat = 250
             let labelHeight: CGFloat = 30
@@ -158,19 +189,81 @@ final class AutoPlayMenu: UIPanel_Base {
 
             label.frame = CGRect(x: labelX, y: labelY, width: labelWidth, height: labelHeight)
 
-            // Special positioning for start/stop buttons
-            if text == "Start Auto-Play" {
+            // Set up tap callbacks based on label type
+            if text == "Select Scenario:" || text == "Select Speed:" {
+                // Header labels - no tap action
+            } else if text == "Start Auto-Play" {
                 let offsetX = CGFloat(110 * UIScale) / screenScale
                 let centerX = scrollView.frame.width / 2 - offsetX
                 label.frame.origin.x = centerX - labelWidth/2
+                startLabel = label
+                label.onTap = { [weak self] in
+                    guard let self = self,
+                          let scenario = self.selectedScenario else {
+                        return
+                    }
+                    AudioManager.shared.playClickSound()
+                    self.onStartAutoplay?(scenario, self.selectedSpeed)
+                }
             } else if text == "Stop Auto-Play" {
                 let offsetX = CGFloat(110 * UIScale) / screenScale
                 let centerX = scrollView.frame.width / 2 + offsetX
                 label.frame.origin.x = centerX - labelWidth/2
+                stopLabel = label
+                label.onTap = { [weak self] in
+                    AudioManager.shared.playClickSound()
+                    self?.onStopAutoplay?()
+                }
+            } else if scenarioIndex < 5 && ["Basic Test", "Speed Demo", "Basic Mining", "Smelting Setup", "Production Line"].contains(where: { text.contains($0) }) {
+                // Scenario selection labels
+                let scenarioId = ["basic_test", "speed_demo", "basic_mining", "smelting_setup", "production_line"][scenarioIndex]
+                scenarioLabels.append(label)
+                label.onTap = { [weak self] in
+                    AudioManager.shared.playClickSound()
+                    self?.selectedScenario = scenarioId
+                    self?.onScenarioSelected?(scenarioId)
+                    self?.updateLabelSelection()
+                }
+                scenarioIndex += 1
+            } else if speedIndex < 5 {
+                // Speed selection labels
+                let speedValue = [0.5, 1.0, 2.0, 4.0, 8.0][speedIndex]
+                speedLabels.append(label)
+                label.onTap = { [weak self] in
+                    AudioManager.shared.playClickSound()
+                    self?.selectedSpeed = speedValue
+                    self?.updateLabelSelection()
+                }
+                speedIndex += 1
             }
 
             scrollView.addSubview(label)
             textLabels.append(label)
+        }
+    }
+
+    private func updateLabelSelection() {
+        // Reset all labels to default appearance
+        for label in scenarioLabels + speedLabels {
+            label.backgroundColor = UIColor.gray.withAlphaComponent(0.3)
+        }
+
+        // Debug: Check array sizes
+        print("AutoPlayMenu: Updating selection - scenarios: \(scenarioLabels.count), speeds: \(speedLabels.count), selectedScenario: \(selectedScenario ?? "none"), selectedSpeed: \(selectedSpeed)")
+
+        // Highlight selected scenario
+        if let selectedScenario = selectedScenario,
+           let index = ["basic_test", "speed_demo", "basic_mining", "smelting_setup", "production_line"].firstIndex(of: selectedScenario),
+           index < scenarioLabels.count {
+            scenarioLabels[index].backgroundColor = UIColor.blue.withAlphaComponent(0.5)
+            print("AutoPlayMenu: Highlighted scenario at index \(index)")
+        }
+
+        // Highlight selected speed - map speed values to indices
+        let speedToIndex: [Double: Int] = [0.5: 0, 1.0: 1, 2.0: 2, 4.0: 3, 8.0: 4]
+        if let index = speedToIndex[selectedSpeed], index < speedLabels.count {
+            speedLabels[index].backgroundColor = UIColor.green.withAlphaComponent(0.5)
+            print("AutoPlayMenu: Highlighted speed at index \(index)")
         }
     }
 
@@ -187,107 +280,9 @@ final class AutoPlayMenu: UIPanel_Base {
     }
 
     private func setupButtons() {
-        let buttonWidth: Float = 200 * UIScale
-        let buttonHeight: Float = 40 * UIScale
-        let buttonSpacing: Float = 15 * UIScale
-
-        var currentY = frame.minY + 80 * UIScale
-
-        // Title area (just spacing for now)
-        currentY += 20 * UIScale
-
-        // Scenario selection
-        addSectionTitle("Select Scenario:", at: currentY)
-        currentY += buttonHeight
-
-        let scenarios = [
-            ("basic_test", "Basic Test - Speed changes"),
-            ("speed_demo", "Speed Demo - Auto speed cycling"),
-            ("basic_mining", "Basic Mining - Place electric miner"),
-            ("smelting_setup", "Smelting Setup - Miner + Furnace"),
-            ("production_line", "Production Line - Complete chain")
-        ]
-
-        for (scenarioId, _) in scenarios {
-            let button = UIButton(
-                frame: Rect(
-                    center: Vector2(frame.center.x, currentY + buttonHeight / 2),
-                    size: Vector2(buttonWidth, buttonHeight)
-                ),
-                textureId: "solid_white"  // Invisible button - text labels provide visual interface
-            )
-            button.onTap = { [weak self] in
-                AudioManager.shared.playClickSound()
-                self?.selectedScenario = scenarioId
-                self?.onScenarioSelected?(scenarioId)
-            }
-            scenarioButtons.append(button)
-            currentY += buttonHeight + buttonSpacing
-        }
-
-        currentY += buttonSpacing * 2
-
-        // Speed selection
-        addSectionTitle("Select Speed:", at: currentY)
-        currentY += buttonHeight
-
-        let speeds: [(String, Double)] = [
-            ("0.5x Slow", 0.5),
-            ("1x Normal", 1.0),
-            ("2x Fast", 2.0),
-            ("4x Faster", 4.0),
-            ("8x Fastest", 8.0)
-        ]
-
-        for (_, speedValue) in speeds {
-            let button = UIButton(
-                frame: Rect(
-                    center: Vector2(frame.center.x, currentY + buttonHeight / 2),
-                    size: Vector2(buttonWidth, buttonHeight)
-                ),
-                textureId: "solid_white"  // Invisible button - text labels provide visual interface
-            )
-            button.onTap = { [weak self] in
-                AudioManager.shared.playClickSound()
-                self?.selectedSpeed = speedValue
-            }
-            speedButtons.append(button)
-            currentY += buttonHeight + buttonSpacing
-        }
-
-        currentY += buttonSpacing * 2
-
-        // Control buttons
-        let controlButtonY = frame.maxY - 100 * UIScale
-        let controlSpacing: Float = 20 * UIScale
-
-        startButton = UIButton(
-            frame: Rect(
-                center: Vector2(frame.center.x - buttonWidth/2 - controlSpacing/2, controlButtonY),
-                size: Vector2(buttonWidth, buttonHeight)
-            ),
-            textureId: "solid_white"  // Use solid color for text buttons
-        )
-        startButton.onTap = { [weak self] in
-            guard let self = self,
-                  let scenario = self.selectedScenario else {
-                return
-            }
-            AudioManager.shared.playClickSound()
-            self.onStartAutoplay?(scenario, self.selectedSpeed)
-        }
-
-        stopButton = UIButton(
-            frame: Rect(
-                center: Vector2(frame.center.x + buttonWidth/2 + controlSpacing/2, controlButtonY),
-                size: Vector2(buttonWidth, buttonHeight)
-            ),
-            textureId: "solid_white"  // Use solid color for text buttons
-        )
-        stopButton.onTap = { [weak self] in
-            AudioManager.shared.playClickSound()
-            self?.onStopAutoplay?()
-        }
+        // Labels are created in updateLabels() and are already clickable
+        // Just set up initial selection state
+        updateLabelSelection()
     }
 
     private func addSectionTitle(_ title: String, at y: Float) {
@@ -322,8 +317,7 @@ final class AutoPlayMenu: UIPanel_Base {
         // Render close button
         closeButton.render(renderer: renderer)
 
-        // Note: Buttons are not rendered - text labels provide the visual interface
-        // Buttons exist only for touch handling
+        // Labels are rendered via UIKit, not Metal
     }
 
     override func handleTap(at position: Vector2) -> Bool {
@@ -334,27 +328,8 @@ final class AutoPlayMenu: UIPanel_Base {
             return true
         }
 
-        // Check scenario buttons
-        for button in scenarioButtons {
-            if button.handleTap(at: position) == true {
-                return true
-            }
-        }
-
-        // Check speed buttons
-        for button in speedButtons {
-            if button.handleTap(at: position) == true {
-                return true
-            }
-        }
-
-        // Check control buttons
-        if startButton?.handleTap(at: position) == true {
-            return true
-        }
-        if stopButton?.handleTap(at: position) == true {
-            return true
-        }
+        // Labels handle their own tap events via gesture recognizers
+        // No need to check individual buttons since labels are clickable
 
         return true // Consume tap within panel bounds
     }
