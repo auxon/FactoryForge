@@ -137,6 +137,14 @@ final class SpriteRenderer {
                 Color(r: renderSprite.tint.r * 1.5, g: renderSprite.tint.g * 1.5, b: renderSprite.tint.b * 1.0, a: renderSprite.tint.a) :
                 renderSprite.tint  // Brighten selected entities
 
+            // Debug: check belt queuing
+            if renderSprite.textureId.contains("transport_belt") {
+                print("📦 Queuing belt sprite: \(renderSprite.textureId) at \(renderPos) size \(renderSprite.size), layer: \(renderSprite.layer)")
+                if let anim = renderSprite.animation {
+                    let currentAnimTexture = anim.frames[anim.currentFrame]
+                    print("   Animation: frame \(anim.currentFrame)/\(anim.frames.count), elapsed: \(anim.elapsedTime), current texture: \(currentAnimTexture)")
+                }
+            }
 
             queuedSprites.append(SpriteInstance(
                 position: renderPos,
@@ -183,13 +191,14 @@ final class SpriteRenderer {
 
         guard !queuedSprites.isEmpty else { return }
 
-        // Sort by texture first (for better batching), then by layer
+        // Sort by layer first (for correct z-ordering), then by texture within each layer (for batching)
         queuedSprites.sort { (a, b) -> Bool in
-            if a.textureRect.origin != b.textureRect.origin {
-                return a.textureRect.origin.x < b.textureRect.origin.x ||
-                       (a.textureRect.origin.x == b.textureRect.origin.x && a.textureRect.origin.y < b.textureRect.origin.y)
+            if a.layer != b.layer {
+                return a.layer < b.layer
             }
-            return a.layer < b.layer
+            // Within the same layer, sort by texture for better batching
+            return a.textureRect.origin.x < b.textureRect.origin.x ||
+                   (a.textureRect.origin.x == b.textureRect.origin.x && a.textureRect.origin.y < b.textureRect.origin.y)
         }
 
         // Generate vertices for all sprites
@@ -467,6 +476,8 @@ final class SpriteRenderer {
                 let itemPos = calculateBeltItemPosition(basePos: basePos, beltDirection: belt.direction, laneOffset: -0.25, progress: item.progress)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
 
+                print("📦 Queuing belt item: \(item.itemId) at \(itemPos), layer: .item (\(RenderLayer.item.rawValue))")
+
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,
                     size: Vector2(0.4, 0.4),
@@ -481,6 +492,8 @@ final class SpriteRenderer {
             for item in belt.rightLane {
                 let itemPos = calculateBeltItemPosition(basePos: basePos, beltDirection: belt.direction, laneOffset: 0.25, progress: item.progress)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
+
+                print("📦 Queuing belt item: \(item.itemId) at \(itemPos), layer: .item (\(RenderLayer.item.rawValue))")
 
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,

@@ -34,10 +34,10 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     // Game loop reference
     weak var gameLoop: GameLoop?
-
+    
     // UI system reference (needed for loading menu)
     weak var uiSystem: UISystem?
-
+    
     // Selected entity for highlighting
     var selectedEntity: Entity?
     
@@ -524,8 +524,9 @@ enum RenderLayer: Int, Comparable, Codable {
     case groundDecoration = 1
     case shadow = 2
     case building = 3
-    case item = 4
-    case entity = 5
+  
+    case entity = 4
+    case item = 5
     case enemy = 6
     case projectile = 7
     case particle = 8
