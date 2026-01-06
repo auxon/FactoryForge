@@ -144,11 +144,15 @@ final class AutoPlaySystem: System {
         // Temporarily give player unlimited resources for auto-play
         let originalInventory = gameLoop.player.inventory
         var unlimitedInventory = originalInventory
-        // Add plenty of all required resources
-        unlimitedInventory.add(ItemStack(itemId: "iron_plate", count: 1000))
-        unlimitedInventory.add(ItemStack(itemId: "copper_plate", count: 1000))
-        unlimitedInventory.add(ItemStack(itemId: "steel_plate", count: 1000))
-        unlimitedInventory.add(ItemStack(itemId: "electronic_circuit", count: 1000))
+        // Add plenty of all required resources - use correct item IDs (with hyphens)
+        unlimitedInventory.add(ItemStack(itemId: "iron-plate", count: 100))
+        unlimitedInventory.add(ItemStack(itemId: "copper-plate", count: 100))
+        unlimitedInventory.add(ItemStack(itemId: "steel-plate", count: 100))
+        unlimitedInventory.add(ItemStack(itemId: "electronic-circuit", count: 100))
+        unlimitedInventory.add(ItemStack(itemId: "advanced-circuit", count: 100))
+        unlimitedInventory.add(ItemStack(itemId: "processing-unit", count: 100))
+        unlimitedInventory.add(ItemStack(itemId: "iron-gear-wheel", count: 100))
+        unlimitedInventory.add(ItemStack(itemId: "copper-cable", count: 100))
         gameLoop.player.inventory = unlimitedInventory
 
         // Place the building
@@ -161,6 +165,22 @@ final class AutoPlaySystem: System {
             print("✅ Building \(type) placed at \(position)")
         } else {
             print("❌ Failed to place building \(type) at \(position)")
+            // Debug: Check why placement failed
+            let canPlace = gameLoop.canPlaceBuilding(type, at: position, direction: direction)
+            print("   Can place building: \(canPlace)")
+            if !canPlace {
+                print("   Checking building definition...")
+                if let buildingDef = gameLoop.buildingRegistry.get(type) {
+                    print("   Building \(type) exists: \(buildingDef.name)")
+                    print("   Cost: \(buildingDef.cost)")
+                    print("   Has required items: \(unlimitedInventory.has(items: buildingDef.cost))")
+                    // Check if position is valid
+                    let canPlaceAtPos = gameLoop.canPlaceBuilding(type, at: position, direction: direction)
+                    print("   Can place at position \(position): \(canPlaceAtPos)")
+                } else {
+                    print("   Building \(type) not found in registry!")
+                }
+            }
         }
     }
 

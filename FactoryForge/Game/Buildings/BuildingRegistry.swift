@@ -51,7 +51,11 @@ final class BuildingRegistry {
             width: 3,
             height: 3,
             maxHealth: 300,
-            cost: [ItemStack(itemId: "electric-mining-drill", count: 1)]
+            cost: [
+                ItemStack(itemId: "electronic-circuit", count: 3),
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "iron-plate", count: 10)
+            ]
         )
         electricMiner.miningSpeed = 0.75
         electricMiner.powerConsumption = 90
