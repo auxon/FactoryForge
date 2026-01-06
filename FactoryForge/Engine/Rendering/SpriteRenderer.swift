@@ -472,13 +472,6 @@ final class SpriteRenderer {
                 let itemPos = calculateBeltItemPosition(basePos: basePos, beltDirection: belt.direction, laneOffset: -0.25, progress: item.progress)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
 
-                // Debug: queuing belt item (only in debug builds and infrequently)
-                #if DEBUG
-                if frameCount % 120 == 0 {  // Only log every 120 frames
-                    print("📦 Queuing belt item: \(item.itemId) at \(itemPos), layer: .item (\(RenderLayer.item.rawValue))")
-                }
-                #endif
-
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,
                     size: Vector2(0.4, 0.4),
@@ -493,13 +486,6 @@ final class SpriteRenderer {
             for item in belt.rightLane {
                 let itemPos = calculateBeltItemPosition(basePos: basePos, beltDirection: belt.direction, laneOffset: 0.25, progress: item.progress)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
-
-                // Debug: queuing belt item (only in debug builds and infrequently)
-                #if DEBUG
-                if frameCount % 120 == 0 {  // Only log every 120 frames
-                    print("📦 Queuing belt item: \(item.itemId) at \(itemPos), layer: .item (\(RenderLayer.item.rawValue))")
-                }
-                #endif
 
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,

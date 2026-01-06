@@ -53,6 +53,10 @@ final class GameLoop {
 
     // Chunks that have had trees spawned
     private var treeSpawnedChunks: Set<ChunkCoord> = []
+
+    // Chunk loading optimization
+    private var lastChunkUpdatePosition: Vector2 = .zero
+    private let chunkUpdateThreshold: Float = 2.0  // Only update chunks if player moved more than 2 units
     
     init(renderer: MetalRenderer, seed: UInt64? = nil) {
         self.renderer = renderer
@@ -137,9 +141,10 @@ final class GameLoop {
         
         Time.shared.update()
         let realDeltaTime = Time.shared.deltaTime
-        let deltaTime = Float(realDeltaTime * Float(gameSpeed))
+        let gameSpeedFloat = Float(gameSpeed)
+        let deltaTime = realDeltaTime * gameSpeedFloat
 
-        playTime += Double(realDeltaTime)  // Track real time, not scaled time
+        playTime += Double(realDeltaTime)  // Track real time, not scaled time (no conversion needed)
 
         // Check for player death
         if !isPlayerDead && player.isDead {
@@ -154,25 +159,41 @@ final class GameLoop {
         // Update player
         player.update(deltaTime: deltaTime)
 
-        // Update chunk loading based on player position
-        chunkManager.update(playerPosition: player.position)
+        // Update chunk loading based on player position (only if moved significantly)
+        let playerPos = player.position
+        let distanceMoved = (playerPos - lastChunkUpdatePosition).lengthSquared
+        if distanceMoved > chunkUpdateThreshold * chunkUpdateThreshold {
+            chunkManager.update(playerPosition: playerPos)
+            lastChunkUpdatePosition = playerPos
 
-        // Spawn trees for newly loaded forest chunks
-        let _ = spawnTreesForNewChunks()
+            // Spawn trees for newly loaded forest chunks (only when chunks updated)
+            let treesSpawned = spawnTreesForNewChunks()
+            if treesSpawned > 0 {
+                print("GameLoop: Spawned \(treesSpawned) trees this frame")
+            }
+        }
 
-        // Fixed timestep updates for game systems
-        while Time.shared.consumeFixedUpdate() {
+        // Fixed timestep updates for game systems (limit to prevent spiral of death)
+        var fixedUpdateCount = 0
+        let maxFixedUpdates = 5  // Maximum fixed updates per frame
+        while Time.shared.consumeFixedUpdate() && fixedUpdateCount < maxFixedUpdates {
             for system in systems {
                 system.update(deltaTime: Time.shared.fixedDeltaTime)
             }
+            fixedUpdateCount += 1
         }
         
-        // Update UI
-        uiSystem?.update(deltaTime: deltaTime)
+        // Update UI (skip if game is effectively paused to save performance)
+        if gameSpeed > 0.01 {
+            uiSystem?.update(deltaTime: deltaTime)
+        }
 
         // Update renderer camera to follow player (only if not manually panning and player is alive)
-        if let inputManager = inputManager, !inputManager.isDragging && !isPlayerDead {
-            renderer?.camera.target = player.position
+        if !isPlayerDead {
+            let shouldFollowPlayer = inputManager?.isDragging == false
+            if shouldFollowPlayer {
+                renderer?.camera.target = player.position
+            }
         }
         renderer?.camera.update(deltaTime: deltaTime)
 
@@ -347,7 +368,7 @@ final class GameLoop {
             let shouldSpawnTrees = chunk.biome != .volcanic
             if shouldSpawnTrees && !treeSpawnedChunks.contains(chunk.coord) {
                 print("GameLoop: Spawning trees for initial chunk (\(chunk.coord.x), \(chunk.coord.y))")
-                spawnTreesForChunk(chunk)
+                let _ = spawnTreesForChunk(chunk)
                 treeSpawnedChunks.insert(chunk.coord)
 
                 // Special case: spawn extra trees near player in chunk (0,0)
