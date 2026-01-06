@@ -14,8 +14,8 @@ final class ChunkManager {
     /// Biome generator
     private var biomeGenerator: BiomeGenerator
     
-    /// Load radius in chunks
-    let loadRadius: Int = 3
+    /// Load radius in chunks (reduced for performance)
+    let loadRadius: Int = 1
     
     /// Currently loaded chunk coordinates
     private var loadedChunks: Set<ChunkCoord> = []

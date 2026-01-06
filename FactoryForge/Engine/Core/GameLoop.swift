@@ -57,6 +57,11 @@ final class GameLoop {
     // Chunk loading optimization
     private var lastChunkUpdatePosition: Vector2 = .zero
     private let chunkUpdateThreshold: Float = 2.0  // Only update chunks if player moved more than 2 units
+
+    // Performance profiling
+    private var frameCount: Int = 0
+    private var lastProfileTime: TimeInterval = 0
+    private let profileInterval: TimeInterval = 5.0  // Profile every 5 seconds
     
     init(renderer: MetalRenderer, seed: UInt64? = nil) {
         self.renderer = renderer
@@ -145,6 +150,15 @@ final class GameLoop {
         let deltaTime = realDeltaTime * gameSpeedFloat
 
         playTime += Double(realDeltaTime)  // Track real time, not scaled time (no conversion needed)
+
+        frameCount += 1
+
+        // Performance profiling (every 5 seconds)
+        if Double(Time.shared.totalTime) - lastProfileTime > profileInterval {
+            let fps = 1.0 / realDeltaTime
+            print(String(format: "Performance: %.1f FPS, %d chunks loaded", fps, chunkManager.allLoadedChunks.count))
+            lastProfileTime = Double(Time.shared.totalTime)
+        }
 
         // Check for player death
         if !isPlayerDead && player.isDead {

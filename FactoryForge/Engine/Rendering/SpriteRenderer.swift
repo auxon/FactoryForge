@@ -59,9 +59,9 @@ final class SpriteRenderer {
         frameCount += 1
 
         // Collect sprites from world entities
-        let visibleRect = camera.visibleRect.expanded(by: 5)
+        let visibleRect = camera.visibleRect.expanded(by: 3)  // Reduced from 5 for performance
         let cameraCenter = camera.position
-        let maxRenderDistance = camera.zoom * 15.0  // Adjust based on zoom level
+        let maxRenderDistance = camera.zoom * 20.0  // Increased slightly but still conservative
 
         var spritesCollected = 0
         var spritesCulledDistance = 0
@@ -187,14 +187,9 @@ final class SpriteRenderer {
 
         guard !queuedSprites.isEmpty else { return }
 
-        // Sort by layer first (for correct z-ordering), then by texture within each layer (for batching)
+        // Sort by layer for correct z-ordering (texture batching is less critical than correct layering)
         queuedSprites.sort { (a, b) -> Bool in
-            if a.layer != b.layer {
-                return a.layer < b.layer
-            }
-            // Within the same layer, sort by texture for better batching
-            return a.textureRect.origin.x < b.textureRect.origin.x ||
-                   (a.textureRect.origin.x == b.textureRect.origin.x && a.textureRect.origin.y < b.textureRect.origin.y)
+            return a.layer.rawValue < b.layer.rawValue
         }
 
         // Generate vertices for all sprites

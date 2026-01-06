@@ -18,6 +18,12 @@ final class EnemyAISystem: System {
     private var attackWaveCooldown: Float = 0
     private let attackWaveInterval: Float = 300  // 5 minutes
 
+    // Throttling for performance
+    private var lastEnemyUpdate: TimeInterval = 0
+    private var lastEvolutionUpdate: TimeInterval = 0
+    private let enemyUpdateInterval: TimeInterval = 0.1  // Update enemies every 100ms
+    private let evolutionUpdateInterval: TimeInterval = 1.0  // Update evolution every second
+
     /// Active biter objects for animation management
     private var activeBiters: [Entity: Biter] = [:]
 
@@ -85,6 +91,8 @@ final class EnemyAISystem: System {
     }
     
     func update(deltaTime: Float) {
+        let currentTime = Time.shared.totalTime
+
         // Register any existing enemies that don't have Biter objects
         registerExistingEnemies()
 
@@ -94,17 +102,23 @@ final class EnemyAISystem: System {
         // Create spawners for newly loaded chunks
         createSpawnersForLoadedChunks()
 
-        // Update spawners
+        // Update spawners (runs every frame for responsiveness)
         updateSpawners(deltaTime: deltaTime)
 
-        // Update enemy AI
-        updateEnemies(deltaTime: deltaTime)
-
-        // Check for attack waves
+        // Check for attack waves (runs every frame for timing)
         updateAttackWaves(deltaTime: deltaTime)
 
-        // Update evolution
-        updateEvolution(deltaTime: deltaTime)
+        // Update enemy AI (throttled for performance)
+        if Double(currentTime) - lastEnemyUpdate > enemyUpdateInterval {
+            updateEnemies(deltaTime: deltaTime * Float(enemyUpdateInterval / (Double(currentTime) - lastEnemyUpdate)))
+            lastEnemyUpdate = Double(currentTime)
+        }
+
+        // Update evolution (throttled for performance)
+        if Double(currentTime) - lastEvolutionUpdate > evolutionUpdateInterval {
+            updateEvolution(deltaTime: deltaTime * Float(evolutionUpdateInterval / (Double(currentTime) - lastEvolutionUpdate)))
+            lastEvolutionUpdate = Double(currentTime)
+        }
     }
     
     // Track which chunks have had spawners created

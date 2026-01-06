@@ -12,7 +12,7 @@ final class ParticleRenderer {
     // Instance buffer for particle data
     private var instanceBuffer: MTLBuffer?
     private var instanceCount: Int = 0
-    private let maxParticles = 10000
+    private let maxParticles = 2000  // Reduced for performance
     
     // Active particle emitters
     private var emitters: [ParticleEmitter] = []

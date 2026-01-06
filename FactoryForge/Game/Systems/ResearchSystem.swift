@@ -52,7 +52,12 @@ final class ResearchSystem: System {
     func update(deltaTime: Float) {
         guard currentResearch != nil else { return }
 
-        print("ResearchSystem: Update called, current research: \(currentResearch?.name ?? "none")")
+        // Throttle debug output for performance
+        #if DEBUG
+        if Int(Time.shared.frameCount) % 60 == 0 {  // Only log every 60 frames
+            print("ResearchSystem: Update called, current research: \(currentResearch?.name ?? "none")")
+        }
+        #endif
 
         // Collect updates to apply after iteration
         var pendingUpdates: [(Entity, LabComponent, InventoryComponent)] = []
@@ -70,12 +75,20 @@ final class ResearchSystem: System {
             if let power = world.get(PowerConsumerComponent.self, for: entity) {
                 speedMultiplier = power.satisfaction
                 if speedMultiplier <= 0 {
-                    print("ResearchSystem: Lab \(entity) has no power")
+                    #if DEBUG
+                    if Int(Time.shared.frameCount) % 60 == 0 {  // Only log every 60 frames
+                        print("ResearchSystem: Lab \(entity) has no power")
+                    }
+                    #endif
                     return
                 }
             }
 
-            print("ResearchSystem: Processing lab \(entity), has power multiplier: \(speedMultiplier)")
+            #if DEBUG
+            if Int(Time.shared.frameCount) % 60 == 0 {  // Only log every 60 frames
+                print("ResearchSystem: Processing lab \(entity), has power multiplier: \(speedMultiplier)")
+            }
+            #endif
 
             // Try to consume science packs
             var mutableLab = lab

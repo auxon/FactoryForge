@@ -55,15 +55,21 @@ final class TileMapRenderer {
         guard !queuedTiles.isEmpty else { return }
         guard let instanceBuffer = instanceBuffer else { return }
 
-        // Expand visible rect generously to ensure all visible tiles are included
-        let visibleRect = camera.visibleRect.expanded(by: 5)
+        // Expand visible rect modestly (reduced from 5 to 2 for performance)
+        let visibleRect = camera.visibleRect.expanded(by: 2)
+        let cameraCenter = camera.position
+        let maxTileDistance = camera.zoom * 25.0  // Reduced render distance based on zoom
 
-        // Frustum cull first
+        // Frustum cull with distance culling for performance
         var visibleTiles: [TileInstance] = []
         for tile in queuedTiles {
             let worldPos = tile.position.toVector2
             if visibleRect.contains(worldPos) {
-                visibleTiles.append(tile)
+                // Additional distance culling to reduce load
+                let distanceFromCamera = (worldPos - cameraCenter).length
+                if distanceFromCamera <= maxTileDistance {
+                    visibleTiles.append(tile)
+                }
             }
         }
 
