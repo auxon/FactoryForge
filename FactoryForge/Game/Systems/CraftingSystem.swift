@@ -198,19 +198,16 @@ final class CraftingSystem: System {
         // Also check inventory size as fallback - machines have 8 slots, others have fewer
         let inventorySizeIndicatesMachine = inventory.slots.count >= 8
         let treatAsMachine = isMachine || inventorySizeIndicatesMachine
-        print("CraftingSystem: consumeInputsFromInputSlots for entity \(entity.id) - hasFurnace: \(hasFurnace), hasAssembler: \(hasAssembler), isMachine: \(isMachine), inventorySize: \(inventory.slots.count), treatAsMachine: \(treatAsMachine)")
 
         if treatAsMachine {
             // For machines, only consume from input slots (first half)
             let inputSlotCount = inventory.slots.count / 2
-            print("CraftingSystem: 🔧 Starting craft '\(recipe.name)' - consuming from input slots 0-\(inputSlotCount-1)")
             for input in recipe.inputs {
                 var remaining = input.count
                 for i in 0..<inputSlotCount {
                     if remaining <= 0 { break }
                     if var slot = inventory.slots[i], slot.itemId == input.itemId {
                         let toRemove = min(remaining, slot.count)
-                        print("CraftingSystem:   📥 Consumed \(toRemove) \(input.itemId) from slot \(i)")
                         slot.count -= toRemove
                         remaining -= toRemove
                         inventory.slots[i] = slot.count > 0 ? slot : nil
@@ -219,7 +216,6 @@ final class CraftingSystem: System {
             }
         } else {
             // For non-machines, consume from anywhere
-            print("CraftingSystem: Consuming inputs from anywhere (non-machine) for recipe \(recipe.name)")
             for input in recipe.inputs {
                 inventory.remove(itemId: input.itemId, count: input.count)
             }
@@ -237,21 +233,16 @@ final class CraftingSystem: System {
         // Different machines have different output slot starts
         let outputStartIndex = treatAsMachine ? (hasFurnace ? 2 : inventory.slots.count / 2) : 0
 
-        print("CraftingSystem: completeRecipe for entity \(entity.id) - recipe: \(recipe.name)")
-
         for var output in recipe.outputs {
-            print("CraftingSystem: Processing output \(output.itemId) x\(output.count)")
             if treatAsMachine {
                 // For machines (furnaces and assemblers), ONLY add to output slots (second half) - never to input slots
                 var added = false
                 for i in outputStartIndex..<inventory.slots.count {
-                    print("CraftingSystem: Checking output slot \(i) - existing: \(inventory.slots[i] != nil ? "\(inventory.slots[i]!.itemId) x\(inventory.slots[i]!.count)/\(inventory.slots[i]!.maxStack)" : "empty")")
                     if let existing = inventory.slots[i], existing.itemId == output.itemId {
                         // Check if maxStack needs updating
                         let item = itemRegistry.get(output.itemId)
                         let correctMaxStack = item?.stackSize ?? existing.maxStack
                         if existing.maxStack != correctMaxStack {
-                            print("CraftingSystem: Updating maxStack for slot \(i) from \(existing.maxStack) to \(correctMaxStack)")
                             var updated = existing
                             updated.maxStack = correctMaxStack
                             inventory.slots[i] = updated
@@ -262,33 +253,24 @@ final class CraftingSystem: System {
                             let spaceAvailable = correctMaxStack - existing.count
                             let amountToAdd = min(output.count, spaceAvailable)
                             let oldCount = existing.count
-                            print("CraftingSystem: Adding \(amountToAdd) to existing stack in slot \(i) (was \(oldCount), maxStack: \(correctMaxStack), will be \(oldCount + amountToAdd))")
                             inventory.slots[i]?.count += amountToAdd
                             output.count -= amountToAdd
                             if output.count == 0 {
                                 added = true
-                                print("CraftingSystem: All output placed in existing stack")
                                 break
                             }
                             // Continue to next slot if there's remaining output
-                            print("CraftingSystem: Remaining output: \(output.count), continuing to next slot")
-                        } else {
-                            print("CraftingSystem: Slot \(i) has full stack of \(existing.itemId) (count: \(existing.count), maxStack: \(correctMaxStack))")
                         }
                     } else if inventory.slots[i] == nil {
                         // Add to empty slot
-                        print("CraftingSystem: Adding \(output.count) to empty slot \(i)")
                         let item = itemRegistry.get(output.itemId)
                         let correctMaxStack = item?.stackSize ?? output.maxStack
-                        print("CraftingSystem: ItemRegistry.get(\(output.itemId)) = \(item != nil ? "found, stackSize: \(item!.stackSize)" : "nil"), using maxStack: \(correctMaxStack)")
                         inventory.slots[i] = ItemStack(itemId: output.itemId, count: output.count, maxStack: correctMaxStack)
                         added = true
                         break
                     } else if let existing = inventory.slots[i], existing.itemId == output.itemId && existing.count >= existing.maxStack {
-                        print("CraftingSystem: Slot \(i) has full stack of \(existing.itemId), skipping")
                         // Skip full stacks of the same item
                     } else if let existing = inventory.slots[i], existing.itemId != output.itemId {
-                        print("CraftingSystem: Slot \(i) has different item \(existing.itemId), skipping")
                         // Skip slots with different items
                     }
                 }
@@ -306,19 +288,6 @@ final class CraftingSystem: System {
             } else {
                 // For non-machines, use regular add
                 inventory.add(output)
-            }
-        }
-
-        // Debug: Log final output slots for machines
-        if treatAsMachine {
-            let outputStartIndex = inventory.slots.count / 2
-            let outputEndIndex = hasFurnace ? 3 : (hasAssembler ? 7 : 0)
-        print("CraftingSystem: ✅ Recipe '\(recipe.name)' completed - outputs added to slots \(outputStartIndex)-\(outputEndIndex)")
-            for i in outputStartIndex..<inventory.slots.count {
-                let slot = inventory.slots[i]
-                if slot != nil {
-                    print("CraftingSystem:   📦 Slot \(i): \(slot!.itemId) x\(slot!.count)")
-                }
             }
         }
 
@@ -340,11 +309,7 @@ final class CraftingSystem: System {
                         inventory.count(of: input.itemId) >= input.count
                     }
                     if hasAllInputs {
-                        print("CraftingSystem: autoSelectSmeltingRecipe selected recipe \(recipe.id) for item \(itemId), has all inputs")
                         return recipe
-                    } else {
-                        let missing = recipe.inputs.filter { inventory.count(of: $0.itemId) < $0.count }
-                        print("CraftingSystem: autoSelectSmeltingRecipe found recipe \(recipe.id) for item \(itemId), but missing inputs: \(missing.map { "\($0.count) \($0.itemId)" }.joined(separator: ", "))")
                     }
                 }
             }

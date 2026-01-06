@@ -158,10 +158,7 @@ final class GameLoop {
         chunkManager.update(playerPosition: player.position)
 
         // Spawn trees for newly loaded forest chunks
-        let treesSpawned = spawnTreesForNewChunks()
-        if treesSpawned > 0 {
-            print("GameLoop: Spawned \(treesSpawned) trees this frame")
-        }
+        let _ = spawnTreesForNewChunks()
 
         // Fixed timestep updates for game systems
         while Time.shared.consumeFixedUpdate() {
@@ -385,7 +382,6 @@ final class GameLoop {
             if localX >= 0 && localX < Chunk.size && localY >= 0 && localY < Chunk.size {
                 if let tile = chunkManager.getTile(at: position), tile.type == .grass {
                     spawnTree(at: position)
-                    print("GameLoop: Spawned tree near player at \(position)")
                 }
             }
         }
@@ -395,7 +391,7 @@ final class GameLoop {
         var totalTreesSpawned = 0
         // Check for newly loaded chunks that need trees
         for chunk in chunkManager.allLoadedChunks {
-            print("GameLoop: Checking chunk (\(chunk.coord.x), \(chunk.coord.y)) biome: \(chunk.biome)")
+            // print("GameLoop: Checking chunk (\(chunk.coord.x), \(chunk.coord.y)) biome: \(chunk.biome)")
             // Spawn trees in biomes that can support trees (most biomes except volcanic)
             let shouldSpawnTrees = chunk.biome != .volcanic
             if shouldSpawnTrees && !treeSpawnedChunks.contains(chunk.coord) {
@@ -427,10 +423,6 @@ final class GameLoop {
                 treesSpawned += 1
             }
         }
-
-        if treesSpawned > 0 {
-            print("GameLoop: Spawned \(treesSpawned) trees in forest chunk at (\(chunk.coord.x), \(chunk.coord.y))")
-        }
         return treesSpawned
     }
 
@@ -449,18 +441,6 @@ final class GameLoop {
 
         // Sprite component for rendering
         world.add(SpriteComponent(textureId: "tree", size: Vector2(1, 1), layer: .entity, centered: true), to: entity)
-
-        let hasTree = world.has(TreeComponent.self, for: entity)
-        let hasPos = world.has(PositionComponent.self, for: entity)
-        let hasHealth = world.has(HealthComponent.self, for: entity)
-        let hasSprite = world.has(SpriteComponent.self, for: entity)
-
-        print("Spawned tree at \(position) with entity \(entity)")
-        print("  Components: Tree=\(hasTree), Position=\(hasPos), Health=\(hasHealth), Sprite=\(hasSprite)")
-
-        if !hasTree || !hasPos || !hasHealth || !hasSprite {
-            print("  ERROR: Tree missing required components!")
-        }
     }
 
     func canPlaceBuilding(_ buildingId: String, at position: IntVector2, direction: Direction, ignoringEntity: Entity? = nil) -> Bool {

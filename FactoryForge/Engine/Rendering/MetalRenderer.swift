@@ -227,7 +227,8 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
                 viewProjection: viewProjection,
                 world: gameLoop.world,
                 camera: camera,
-                selectedEntity: selectedEntity
+                selectedEntity: selectedEntity,
+                deltaTime: Time.shared.deltaTime
             )
         }
         

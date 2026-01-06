@@ -64,7 +64,6 @@ final class InputManager: NSObject {
     private func validateSelectedEntity() {
         if let entity = selectedEntity, let gameLoop = gameLoop {
             if !gameLoop.world.isAlive(entity) {
-                print("InputManager: Selected entity \(entity) is no longer alive, clearing selection")
                 selectedEntity = nil
             }
         }
@@ -143,18 +142,13 @@ final class InputManager: NSObject {
     
     @objc private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
         guard recognizer.state == .ended else { return }
-
-        print("InputManager: DOUBLE TAP GESTURE DETECTED")
         let screenPos = screenPosition(from: recognizer)
-        print("InputManager: Double tap screen position: \(screenPos)")
 
         // If no game loop exists, we're done (loading menu should have handled it)
         guard let gameLoop = gameLoop else {
-            print("InputManager: Double tap - no game loop available")
             // Still check UI system if game loop doesn't exist
             let uiSystem = renderer?.uiSystem
             if let uiSystem = uiSystem, uiSystem.handleTap(at: screenPos) {
-                print("InputManager: Double tap handled by UI system (no game loop)")
                 return
             }
             return
@@ -163,12 +157,10 @@ final class InputManager: NSObject {
         // Get world position for game world checks
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
-        print("InputManager: Double tap - world position: \(worldPos), tile position: (\(tilePos.x), \(tilePos.y))")
 
         // If we're in placing mode, prioritize game world placement over UI interaction
         // This allows double-tap to place items/buildings even if the tap position overlaps with UI
         if buildMode == .placing {
-            print("InputManager: Double tap in placing mode, prioritizing game world placement")
             // Update build preview position for tap placement
             buildPreviewPosition = tilePos
             // Continue to placement logic below
@@ -184,14 +176,11 @@ final class InputManager: NSObject {
                 // Check if a UI panel is open that should consume the tap
                 // If entitySelection dialog is open, let it handle double taps specially
                 if uiSystem.isPanelOpen(.entitySelection) {
-                    print("InputManager: Double tap - entitySelection dialog is open, checking if dialog handles it")
                     // Check if the dialog handles the double tap (e.g., on a button)
                     if uiSystem.handleDoubleTap(at: screenPos) {
-                        print("InputManager: Double tap handled by entitySelection dialog")
                         return
                     }
                     // If tap wasn't on a button, don't process game world interaction
-                    print("InputManager: Double tap not on dialog button, skipping game world interaction")
                     return
                 }
                 
@@ -199,7 +188,6 @@ final class InputManager: NSObject {
                 // Check if UI system handles the tap (e.g., HUD buttons)
                 // Only check this if not in placing mode (we already handled placing mode above)
                 if uiSystem.handleTap(at: screenPos) {
-                    print("InputManager: Double tap handled by UI system (HUD or panel)")
                     return
                 }
             }
@@ -252,27 +240,16 @@ final class InputManager: NSObject {
             // Check if player is attacking an enemy (prioritize combat)
             // Use a larger radius for double taps to make it easier to hit enemies
             let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 5.0)
-            print("InputManager: Double tap - found \(nearbyEnemies.count) entities near position \(worldPos)")
             var attacked = false
 
             for enemy in nearbyEnemies {
                 if gameLoop.world.has(EnemyComponent.self, for: enemy) {
-                    print("InputManager: Double tapping on enemy \(enemy)")
                     // Try to attack the enemy directly
                     if gameLoop.player.attackEnemy(enemy: enemy) {
                         attacked = true
-                        print("InputManager: Player double attack initiated successfully")
                         break
-                    } else {
-                        print("InputManager: Player double attack failed")
                     }
-                } else {
-                    print("InputManager: Entity \(enemy) is not an enemy")
                 }
-            }
-
-            if !attacked {
-                print("InputManager: Double tap - no enemy attacked, found \(nearbyEnemies.count) nearby entities")
             }
 
             if attacked {
@@ -367,26 +344,19 @@ final class InputManager: NSObject {
 
     @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
         guard recognizer.state == .ended else { return }
-
-        print("InputManager: TAP GESTURE DETECTED")
         let screenPos = screenPosition(from: recognizer)
-        print("InputManager: Screen position: \(screenPos)")
 
         // Check for UI tooltips first (before UI system consumes the tap)
         let uiSystem = gameLoop?.uiSystem ?? renderer?.uiSystem
-        print("InputManager: UI system available: \(uiSystem != nil)")
         if let uiSystem = uiSystem {
             if let tooltip = uiSystem.getTooltip(at: screenPos) {
                 // Show tooltip for UI element
-                print("InputManager: Showing tooltip: \(tooltip)")
                 onTooltip?(tooltip)
             }
 
             // Then check UI system for actual functionality
             let uiHandled = uiSystem.handleTap(at: screenPos)
-            print("InputManager: UI system handled tap: \(uiHandled)")
             if uiHandled == true {
-                print("InputManager: Tap consumed by UI system")
                 return
             }
             
@@ -395,7 +365,6 @@ final class InputManager: NSObject {
 
         // If no game loop exists, we're done (loading menu should have handled it)
         guard let gameLoop = gameLoop else {
-            print("InputManager: No game loop available")
             return
         }
 
@@ -405,8 +374,7 @@ final class InputManager: NSObject {
         // Check for entities/resources BEFORE UI system check, so tooltips always work
         let worldPos = gameLoop.renderer?.screenToWorld(screenPos) ?? renderer?.screenToWorld(screenPos) ?? .zero
         let tilePos = IntVector2(from: worldPos)
-        print("InputManager: World position: \(worldPos), tile position: (\(tilePos.x), \(tilePos.y))")
-
+ 
         // Update build preview position for tap placement
         if buildMode == .placing {
             buildPreviewPosition = tilePos
@@ -452,30 +420,19 @@ final class InputManager: NSObject {
         case .none:
             // Check if player is attacking an enemy (prioritize combat)
             let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 5.0)
-            print("InputManager: Found \(nearbyEnemies.count) entities near tap position")
             var attacked = false
 
             for enemy in nearbyEnemies {
                 if gameLoop.world.has(EnemyComponent.self, for: enemy) {
-                    print("InputManager: Tapping on enemy \(enemy)")
                     // Try to attack the enemy directly by its entity ID instead of position
                     // This avoids precision issues with position conversion
                     if gameLoop.player.attackEnemy(enemy: enemy) {
                         attacked = true
-                        print("InputManager: Player attack on enemy \(enemy) initiated successfully")
                         break
-                    } else {
-                        print("InputManager: Player attack on enemy \(enemy) failed")
                     }
-                } else {
-                    print("InputManager: Entity \(enemy) is not an enemy")
                 }
             }
 
-            if !attacked {
-                print("InputManager: No enemy attacked, processing other tap logic")
-            }
-            
             if !attacked {
                 // Try to select an entity at this position using the same logic as double tap
                 handleEntitySelection(at: screenPos, worldPos: worldPos, tilePos: tilePos, gameLoop: gameLoop)
@@ -948,14 +905,11 @@ final class InputManager: NSObject {
         // Debug: log what entity was selected
         let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
         let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
-        print("InputManager: Selected entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt)")
-
+        
         // Select the entity (normal behavior)
         // First set InputManager's selectedEntity, then notify via callback (which updates HUD)
         // This ensures both are in sync
         selectedEntity = entity
-        print("InputManager: Setting selectedEntity to \(entity) and calling onEntitySelected callback")
-        onEntitySelected?(entity)
         
         // Show tooltip with entity icon
         if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
@@ -965,8 +919,6 @@ final class InputManager: NSObject {
         // Double-check that HUD got the same entity (safety check)
         if let hudEntity = gameLoop.uiSystem?.hud.selectedEntity {
             if hudEntity.id != entity.id || hudEntity.generation != entity.generation {
-                print("InputManager: WARNING - HUD selectedEntity doesn't match InputManager after callback!")
-                print("InputManager: Expected \(entity), but HUD has \(hudEntity)")
                 // Force update HUD to match InputManager
                 gameLoop.uiSystem?.hud.selectedEntity = entity
             }
@@ -976,13 +928,10 @@ final class InputManager: NSObject {
     private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop, isDoubleTap: Bool = false) {
         // Get all entities at this position
         let allEntities = gameLoop.world.getAllEntitiesAt(position: tilePos)
-        
-        print("InputManager: getAllEntitiesAt returned \(allEntities.count) entities at \(tilePos)")
         for entity in allEntities {
             let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
             let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
-            print("InputManager: Entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt), Furnace: \(hasFurnace)")
         }
         
         // Filter to only interactable entities
@@ -998,17 +947,12 @@ final class InputManager: NSObject {
             let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
             
             let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter
-            if isInteractable {
-                print("InputManager: Entity \(entity) is interactable - Inserter: \(hasInserter), Belt: \(hasBelt), Building: \(hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator)")
-            }
+
             return isInteractable
         }
         
-        print("InputManager: Filtered to \(interactableEntities.count) interactable entities")
-        
         // If multiple interactable entities, show selection dialog
         if interactableEntities.count > 1 {
-            print("InputManager: Showing entity selection dialog with \(interactableEntities.count) entities")
             gameLoop.uiSystem?.showEntitySelectionDialog(entities: interactableEntities) { [weak self] selectedEntity in
                 self?.selectEntity(selectedEntity, gameLoop: gameLoop, isDoubleTap: isDoubleTap)
             }
@@ -1050,8 +994,6 @@ final class InputManager: NSObject {
             // Check if any of these entities are inserters
             for entity in allEntitiesAtPosition {
                 if gameLoop.world.has(InserterComponent.self, for: entity) {
-                    print("InputManager: Found inserter at \(tilePos) that wasn't returned by getEntityAt, prioritizing inserter over mining")
-                    
                     // Select the inserter (normal behavior)
                     selectedEntity = entity
                     onEntitySelected?(entity)
@@ -1097,8 +1039,6 @@ final class InputManager: NSObject {
             
             // If multiple entities contain the tap, prefer the smallest sprite (most specific)
             if let nearest = entitiesInBounds.min(by: { $0.1 < $1.1 })?.0 {
-                print("InputManager: No entity at exact position, selected entity \(nearest) whose sprite bounds contain tap position")
-                
                 // Select the nearest entity
                 selectedEntity = nearest
                 onEntitySelected?(nearest)
@@ -1109,7 +1049,6 @@ final class InputManager: NSObject {
             if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                 // Check if player can accept the item
                 if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
-                    print("Mining resource at (\(tilePos.x), \(tilePos.y)): \(resource.type) with \(resource.amount) remaining")
                     // Manual mining - mine 1 unit
                     let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
                     if mined > 0 {
@@ -1124,15 +1063,6 @@ final class InputManager: NSObject {
                         // Add to player inventory (after a delay to match animation)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
                             gameLoop?.player.inventory.add(itemId: itemId, count: mined)
-                        }
-                        
-                        print("Manually mined \(mined) \(itemId), \(resource.amount - mined) remaining")
-
-                        // Check if resource is now depleted
-                        if let updatedResource = gameLoop.chunkManager.getResource(at: tilePos) {
-                            print("Resource now has \(updatedResource.amount) remaining")
-                        } else {
-                            print("Resource depleted, tile should now be normal")
                         }
                     }
                 } else {
@@ -1474,7 +1404,6 @@ final class InputManager: NSObject {
     }
     
     func exitBuildMode() {
-        print("InputManager: exitBuildMode called - clearing build mode state")
         buildMode = .none
         selectedBuildingId = nil
         buildPreviewPosition = nil
@@ -1489,7 +1418,6 @@ final class InputManager: NSObject {
         isSelecting = false
         selectionStartScreenPos = nil
         selectionRect = nil
-        print("InputManager: exitBuildMode completed - buildMode: \(buildMode), selectedBuildingId: \(selectedBuildingId ?? "nil")")
     }
     
     func enterInserterConnectionMode(inserter: Entity, isInput: Bool) {

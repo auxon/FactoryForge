@@ -17,6 +17,9 @@ final class SpriteRenderer {
 
     // Queued sprites for current frame
     private var queuedSprites: [SpriteInstance] = []
+
+    // Frame counter for debug throttling
+    private var frameCount: UInt64 = 0
     
     init(device: MTLDevice, library: MTLLibrary, textureAtlas: TextureAtlas) {
         self.device = device
@@ -52,7 +55,9 @@ final class SpriteRenderer {
         queuedSprites.append(sprite)
     }
     
-    func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, world: World, camera: Camera2D, selectedEntity: Entity?) {
+    func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, world: World, camera: Camera2D, selectedEntity: Entity?, deltaTime: Float) {
+        frameCount += 1
+
         // Collect sprites from world entities
         let visibleRect = camera.visibleRect.expanded(by: 5)
         let cameraCenter = camera.position
@@ -104,7 +109,7 @@ final class SpriteRenderer {
             let textureRect = textureAtlas.getTextureRect(for: renderSprite.textureId)
 
             if var animation = renderSprite.animation {
-                if let newTextureId = animation.update(deltaTime: 1.0/60.0) {  // Assume 60 FPS for now
+                if let newTextureId = animation.update(deltaTime: deltaTime) {  // Use actual delta time
                     renderSprite.textureId = newTextureId
                 }
                 renderSprite.animation = animation
@@ -136,15 +141,6 @@ final class SpriteRenderer {
             let tintColor = isSelected ?
                 Color(r: renderSprite.tint.r * 1.5, g: renderSprite.tint.g * 1.5, b: renderSprite.tint.b * 1.0, a: renderSprite.tint.a) :
                 renderSprite.tint  // Brighten selected entities
-
-            // Debug: check belt queuing
-            if renderSprite.textureId.contains("transport_belt") {
-                print("📦 Queuing belt sprite: \(renderSprite.textureId) at \(renderPos) size \(renderSprite.size), layer: \(renderSprite.layer)")
-                if let anim = renderSprite.animation {
-                    let currentAnimTexture = anim.frames[anim.currentFrame]
-                    print("   Animation: frame \(anim.currentFrame)/\(anim.frames.count), elapsed: \(anim.elapsedTime), current texture: \(currentAnimTexture)")
-                }
-            }
 
             queuedSprites.append(SpriteInstance(
                 position: renderPos,
@@ -248,10 +244,10 @@ final class SpriteRenderer {
 
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
 
-        // Debug performance info (only in debug builds)
+        // Debug performance info (only in debug builds and infrequently)
         #if DEBUG
         let totalSprites = spritesCollected + spritesCulledDistance + spritesCulledSize
-        if totalSprites > 50 {  // Only log when there are many sprites
+        if totalSprites > 50 && frameCount % 60 == 0 {  // Only log every 60 frames when there are many sprites
             print("SpriteRenderer: Rendered \(spritesToRender) sprites (\(spritesCollected) collected, \(spritesCulledDistance) culled by distance, \(spritesCulledSize) culled by size)")
         }
         #endif
@@ -476,7 +472,12 @@ final class SpriteRenderer {
                 let itemPos = calculateBeltItemPosition(basePos: basePos, beltDirection: belt.direction, laneOffset: -0.25, progress: item.progress)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
 
-                print("📦 Queuing belt item: \(item.itemId) at \(itemPos), layer: .item (\(RenderLayer.item.rawValue))")
+                // Debug: queuing belt item (only in debug builds and infrequently)
+                #if DEBUG
+                if frameCount % 120 == 0 {  // Only log every 120 frames
+                    print("📦 Queuing belt item: \(item.itemId) at \(itemPos), layer: .item (\(RenderLayer.item.rawValue))")
+                }
+                #endif
 
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,
@@ -493,7 +494,12 @@ final class SpriteRenderer {
                 let itemPos = calculateBeltItemPosition(basePos: basePos, beltDirection: belt.direction, laneOffset: 0.25, progress: item.progress)
                 let textureRect = textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
 
-                print("📦 Queuing belt item: \(item.itemId) at \(itemPos), layer: .item (\(RenderLayer.item.rawValue))")
+                // Debug: queuing belt item (only in debug builds and infrequently)
+                #if DEBUG
+                if frameCount % 120 == 0 {  // Only log every 120 frames
+                    print("📦 Queuing belt item: \(item.itemId) at \(itemPos), layer: .item (\(RenderLayer.item.rawValue))")
+                }
+                #endif
 
                 queuedSprites.append(SpriteInstance(
                     position: itemPos,

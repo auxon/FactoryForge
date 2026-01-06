@@ -171,13 +171,6 @@ final class MiningSystem: System {
         for entity in treesToRemove {
             world.despawn(entity)
         }
-
-        // Debug: Count remaining trees
-        var treeCount = 0
-        world.forEach(TreeComponent.self) { _, _ in treeCount += 1 }
-        if treeCount > 0 {
-            print("MiningSystem: \(treeCount) trees remaining in world")
-        }
         
     }
     
