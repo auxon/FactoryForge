@@ -29,6 +29,9 @@ final class VirtualJoystick {
     // State
     private(set) var isActive: Bool = false
     private(set) var direction: Vector2 = .zero
+
+    // Cache last direction to avoid unnecessary callbacks
+    private var lastDirection: Vector2 = .zero
     
     // Dead zone (percentage of base radius)
     private let deadZone: Float = 0.1
@@ -124,6 +127,7 @@ final class VirtualJoystick {
         isActive = false
         stickCenter = _baseCenter
         direction = .zero
+        lastDirection = .zero
         onDirectionChanged?(.zero)
     }
     
@@ -131,30 +135,33 @@ final class VirtualJoystick {
         let offset = stickCenter - _baseCenter
         let distance = offset.length
         let maxDistance = baseRadius
-        
+
+        var newDirection: Vector2 = .zero
+
         if distance > 0.001 {
             let normalizedDistance = min(distance / maxDistance, 1.0)
-            
+
             if normalizedDistance > deadZone {
                 let magnitude = (normalizedDistance - deadZone) / (1.0 - deadZone)
-                
+
                 // Normalize offset to get direction vector
                 let normalizedX = offset.x / distance
                 let normalizedY = offset.y / distance
-                
+
                 // Convert from screen coordinates to world coordinates
                 // Screen: (0,0) top-left, Y increases downward
                 // World: Y increases upward, X increases right
                 // X is correct as-is, Y needs negation (screen Y down -> world Y up)
-                direction = Vector2(normalizedX, -normalizedY) * magnitude
-            } else {
-                direction = .zero
+                newDirection = Vector2(normalizedX, -normalizedY) * magnitude
             }
-        } else {
-            direction = .zero
         }
-        
-        onDirectionChanged?(direction)
+
+        // Only call callback if direction actually changed
+        if newDirection != lastDirection {
+            direction = newDirection
+            lastDirection = newDirection
+            onDirectionChanged?(direction)
+        }
     }
     
     // MARK: - Rendering

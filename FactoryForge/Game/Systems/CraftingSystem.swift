@@ -26,15 +26,6 @@ final class CraftingSystem: System {
         world.forEach(AssemblerComponent.self) { [self] entity, assembler in
             guard let recipe = assembler.recipe else { return }
             guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
-
-            // Debug: Log current inventory state
-            print("AssemblerSystem: Entity \(entity.id) inventory at update start:")
-            for i in 0..<inventory.slots.count {
-                let slot = inventory.slots[i]
-                if slot != nil {
-                    print("AssemblerSystem:   Slot \(i): \(slot!.itemId) x\(slot!.count) (maxStack: \(slot!.maxStack))")
-                }
-            }
             
             // Check power
             var speedMultiplier: Float = 1.0
