@@ -182,6 +182,11 @@ final class UISystem {
             self?.openPanel(.inventory)
         }
 
+        // Machine UI callback for opening research menu
+        machineUI.onOpenResearchMenu = { [weak self] in
+            self?.togglePanel(.research)
+        }
+
         // Quick bar slot callback
     }
     

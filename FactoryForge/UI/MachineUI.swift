@@ -21,6 +21,7 @@ final class MachineUI: UIPanel_Base {
     var onRemoveLabels: (([UILabel]) -> Void)?
 
     var onOpenInventoryForMachine: ((Entity, Int) -> Void)?
+    var onOpenResearchMenu: (() -> Void)?
 
     // Helper to check if current machine is a lab
     private var isLab: Bool {
@@ -605,9 +606,9 @@ final class MachineUI: UIPanel_Base {
                 }
             }
         } else {
-            // No active research
+            // No active research - show clickable "Open Research Menu" label
             if researchProgressLabels.count >= 1 {
-                researchProgressLabels[0].text = "No Active Research"
+                researchProgressLabels[0].text = "Open Research Menu"
                 researchProgressLabels[0].isHidden = false
 
                 for i in 1..<researchProgressLabels.count {
@@ -706,6 +707,32 @@ final class MachineUI: UIPanel_Base {
         for slot in outputSlots {
             if slot.handleTap(at: position) {
                 handleSlotTap(slot: slot, isInput: false)
+                return true
+            }
+        }
+
+        // Check for research menu label tap (when no active research)
+        if isLab && researchProgressLabels.count > 0 && !researchProgressLabels[0].isHidden &&
+           researchProgressLabels[0].text == "Open Research Menu" {
+            let screenScale = Float(UIScreen.main.scale)
+            // Label position in Metal coordinates (matching updateLabProgressLabelPositions)
+            let labelCenterX = frame.center.x
+            let labelStartY = frame.center.y - 60 * UIScale
+            let lineHeight: Float = 25 * UIScale
+            let labelCenterY = labelStartY + lineHeight / 2  // Center of the label
+
+            // Label size in Metal coordinates
+            let labelWidth: Float = 300 * screenScale  // Convert UIKit pixels to Metal units
+            let labelHeight: Float = 40 * screenScale
+
+            let labelRect = Rect(
+                center: Vector2(labelCenterX, labelCenterY),
+                size: Vector2(labelWidth, labelHeight)
+            )
+
+            if labelRect.contains(position) {
+                print("MachineUI: Tapped on 'Open Research Menu' label, calling callback")
+                onOpenResearchMenu?()
                 return true
             }
         }
