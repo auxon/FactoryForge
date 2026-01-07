@@ -953,7 +953,6 @@ class GameViewController: UIViewController {
             guard let gameLoop = self.gameLoop else { return }
 
             // Update HUD with selected entity first (before any UI operations)
-            print("GameViewController: onEntitySelected called with entity: \(entity?.id ?? 0) generation \(entity?.generation ?? 0)")
             self.uiSystem?.hud.selectedEntity = entity
 
             // Update renderer with selected entity for highlighting

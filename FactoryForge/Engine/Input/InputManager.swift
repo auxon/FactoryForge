@@ -568,8 +568,6 @@ final class InputManager: NSObject {
         let worldPos = renderer.screenToWorld(screenPos)
         currentTouchPosition = worldPos
 
-        print("InputManager handlePan: state=\(recognizer.state.rawValue), screenPos=\(screenPos)")
-
         // Get joystick from HUD
         let joystick = gameLoop.uiSystem?.hud.joystick
 
@@ -662,7 +660,6 @@ final class InputManager: NSObject {
             
             // Check if a UI panel is open - if so, don't process game world interactions
             if let uiSystem = gameLoop.uiSystem, uiSystem.isAnyPanelOpen {
-                print("InputManager: UI panel is open, checking for drag, buildMode=\(buildMode), isJoystickActive=\(isJoystickActive), isUIDragging=\(isUIDragging)")
                 // Check for UI drag gesture
                 if !isUIDragging && !isJoystickActive {
                     let dragDistance = (screenPos - dragStartPosition).length
@@ -905,16 +902,10 @@ final class InputManager: NSObject {
 
 
     private func selectEntity(_ entity: Entity, gameLoop: GameLoop, isDoubleTap: Bool) {
-        // Debug: log what entity was selected
-        let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
-        let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
-        print("InputManager: selectEntity called with entity \(entity.id) generation \(entity.generation), hasInserter=\(hasInserter), hasBelt=\(hasBelt)")
-
         // Select the entity (normal behavior)
         // First set InputManager's selectedEntity, then notify via callback (which updates HUD)
         // This ensures both are in sync
         selectedEntity = entity
-        print("InputManager: set selectedEntity to \(entity.id)")
 
         // Show tooltip with entity icon
         if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
@@ -923,17 +914,10 @@ final class InputManager: NSObject {
 
         // Double-check that HUD got the same entity (safety check)
         if let hudEntity = gameLoop.uiSystem?.hud.selectedEntity {
-            print("InputManager: HUD has entity \(hudEntity.id) generation \(hudEntity.generation)")
             if hudEntity.id != entity.id || hudEntity.generation != entity.generation {
-                print("InputManager: HUD entity doesn't match, updating HUD")
                 // Force update HUD to match InputManager
                 gameLoop.uiSystem?.hud.selectedEntity = entity
-            } else {
-                print("InputManager: HUD entity matches")
             }
-        } else {
-            print("InputManager: HUD has no selected entity, setting it")
-            gameLoop.uiSystem?.hud.selectedEntity = entity
         }
     }
 

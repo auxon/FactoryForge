@@ -34,7 +34,6 @@ final class HUD {
     // Selected building
     var selectedEntity: Entity? {
         didSet {
-            print("HUD: selectedEntity set to \(selectedEntity?.id ?? 0) generation \(selectedEntity?.generation ?? 0)")
             // Validate that the selected entity is still alive
             validateSelectedEntity()
             // Notify about selection change
@@ -636,7 +635,6 @@ final class HUD {
         
         // Check inventory button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
-            print("HUD: Inventory button tapped, calling callback")
             onInventoryPressed?()
             return true
         }
@@ -684,29 +682,23 @@ final class HUD {
             let rightMargin: Float = bottomMargin + buttonSize / 2
             let startY: Float = screenSize.y * 0.33
             let spacing: Float = buttonSize + buttonSpacing
-            
+
             // Move button
             let moveButtonX = screenSize.x - rightMargin
             let moveButtonY = startY
-            print("HUD: Checking move button - tap at \(position), button at (\(moveButtonX), \(moveButtonY)), screenSize: \(screenSize)")
             if checkButtonTap(at: position, buttonPos: Vector2(moveButtonX, moveButtonY)) {
-                print("HUD: Move button tapped, selectedEntity: \(selectedEntity != nil ? "exists" : "nil")")
-                print("HUD: onMoveBuildingPressed callback: \(onMoveBuildingPressed != nil ? "set" : "nil")")
                 onMoveBuildingPressed?()
                 return true
             }
-            
+
             // Delete button
             let deleteButtonX = screenSize.x - rightMargin
             let deleteButtonY = startY + spacing
-            print("HUD: Checking delete button - tap at \(position), button at (\(deleteButtonX), \(deleteButtonY))")
             if checkButtonTap(at: position, buttonPos: Vector2(deleteButtonX, deleteButtonY)) {
-                print("HUD: Delete button tapped, selectedEntity: \(selectedEntity != nil ? "exists" : "nil")")
-                print("HUD: onDeleteBuildingPressed callback: \(onDeleteBuildingPressed != nil ? "set" : "nil")")
                 onDeleteBuildingPressed?()
                 return true
             }
-            
+
             // Rotate button (only for belts)
             var nextButtonY = startY + spacing * 2
             if let selectedEntity = selectedEntity,
@@ -714,40 +706,34 @@ final class HUD {
                 let rotateButtonX = screenSize.x - rightMargin
                 let rotateButtonY = nextButtonY
                 if checkButtonTap(at: position, buttonPos: Vector2(rotateButtonX, rotateButtonY)) {
-                    print("HUD: Rotate button tapped")
                     onRotateBuildingPressed?()
                     return true
                 }
                 nextButtonY += spacing
             }
-            
+
             // Configure button (only for inserters)
             if let selectedEntity = selectedEntity,
                gameLoop?.world.has(InserterComponent.self, for: selectedEntity) ?? false {
                 let configureButtonX = screenSize.x - rightMargin
                 let configureButtonY = nextButtonY
-                print("HUD: Checking configure button - tap at \(position), button at (\(configureButtonX), \(configureButtonY))")
                 if checkButtonTap(at: position, buttonPos: Vector2(configureButtonX, configureButtonY)) {
-                    print("HUD: Configure button tapped")
                     onConfigureInserterPressed?()
                     return true
                 }
                 nextButtonY += spacing
             }
-            
+
             // Open button (only for entities with machine UI that aren't inserters)
             if let selectedEntity = selectedEntity,
                hasMachineUI(for: selectedEntity) && !(gameLoop?.world.has(InserterComponent.self, for: selectedEntity) ?? false) {
                 let openButtonX = screenSize.x - rightMargin
                 let openButtonY = nextButtonY
                 if checkButtonTap(at: position, buttonPos: Vector2(openButtonX, openButtonY)) {
-                    print("HUD: Open button tapped")
                     onOpenMachinePressed?()
                     return true
                 }
             }
-        } else {
-            print("HUD: No selected entity, skipping move/delete button checks")
         }
 
         return false
