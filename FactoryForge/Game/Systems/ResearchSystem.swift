@@ -38,7 +38,7 @@ final class ResearchSystem: System {
         let defaultRecipes = [
             "iron-plate", "copper-plate", "stone-brick", "steel-plate",
             "iron-gear-wheel", "copper-cable", "pipe", "electronic-circuit",
-            "transport-belt", "inserter", "wooden-chest", "iron-chest",
+            "transport-belt", "belt-bridge", "inserter", "wooden-chest", "iron-chest",
             "burner-mining-drill", "electric-mining-drill", "stone-furnace",
             "boiler", "steam-engine", "small-electric-pole",
             "firearm-magazine", "automation-science-pack", "lab", "radar"
@@ -323,7 +323,7 @@ final class ResearchSystem: System {
         let defaultRecipes = [
             "iron-plate", "copper-plate", "stone-brick", "steel-plate",
             "iron-gear-wheel", "copper-cable", "pipe", "electronic-circuit",
-            "transport-belt", "inserter", "wooden-chest", "iron-chest",
+            "transport-belt", "belt-bridge", "inserter", "wooden-chest", "iron-chest",
             "burner-mining-drill", "electric-mining-drill", "stone-furnace",
             "boiler", "steam-engine", "small-electric-pole",
             "firearm-magazine", "automation-science-pack", "lab", "radar"

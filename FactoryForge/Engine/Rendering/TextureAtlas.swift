@@ -146,6 +146,7 @@ final class TextureAtlas {
             ("underground_belt", nil),
             ("splitter", nil),
             ("merger", nil),
+            ("belt_bridge", nil),
             
             // Buildings - Inserters
             ("inserter", nil),

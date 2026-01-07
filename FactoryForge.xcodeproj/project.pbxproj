@@ -27,6 +27,7 @@
 		0D18B5742F0DD8E2006B70A5 /* DocumentViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */; };
 		0D18B5752F0DD8E2006B70A5 /* HelpMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */; };
 		0D18B5772F0DE412006B70A5 /* help.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5762F0DE412006B70A5 /* help.png */; };
+		0D18B5792F0E10AA006B70A5 /* belt_bridge.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5782F0E10AA006B70A5 /* belt_bridge.png */; };
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
 		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
 		0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371D2F0485C900941686 /* inserters_sheet.png */; };
@@ -284,6 +285,7 @@
 		0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentViewer.swift; sourceTree = "<group>"; };
 		0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpMenu.swift; sourceTree = "<group>"; };
 		0D18B5762F0DE412006B70A5 /* help.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = help.png; sourceTree = "<group>"; };
+		0D18B5782F0E10AA006B70A5 /* belt_bridge.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = belt_bridge.png; sourceTree = "<group>"; };
 		0D3A37192F044AC200941686 /* recycle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = recycle.png; sourceTree = "<group>"; };
 		0D3A371B2F047F7700941686 /* move.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = move.png; sourceTree = "<group>"; };
 		0D3A371D2F0485C900941686 /* inserters_sheet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserters_sheet.png; sourceTree = "<group>"; };
@@ -548,6 +550,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B5782F0E10AA006B70A5 /* belt_bridge.png */,
 				0D18B5762F0DE412006B70A5 /* help.png */,
 				0D18B55F2F0D6AE9006B70A5 /* transport_belt_animation.png */,
 				0D18B55D2F0CD0FF006B70A5 /* merger.png */,
@@ -1305,6 +1308,7 @@
 				0DFF59FD2F02CAD900A8699D /* transport_belt_west_014.png in Resources */,
 				0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */,
 				0DFF59FE2F02CAD900A8699D /* transport_belt_west_011.png in Resources */,
+				0D18B5792F0E10AA006B70A5 /* belt_bridge.png in Resources */,
 				0DFF59FF2F02CAD900A8699D /* transport_belt_west_005.png in Resources */,
 				0DFF5A002F02CAD900A8699D /* transport_belt_west_006.png in Resources */,
 				0D18B55A2F0CD086006B70A5 /* underground_belt.png in Resources */,
