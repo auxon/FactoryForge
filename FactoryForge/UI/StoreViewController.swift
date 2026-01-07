@@ -8,26 +8,14 @@ struct StoreViewRepresentable: View {
     let productIds: [String]
     let onPurchaseCompleted: () -> Void
     let onClose: () -> Void
-
+    
     var body: some View {
         ZStack {
-            StoreView(ids: productIds) { product in
-                ProductView(id: product.id) {
-                    VStack {
-                        Text(product.displayName)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-
-                        if !product.description.isEmpty {
-                            Text(product.description)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                        }
-                    }
-                }
-                .productViewStyle(.compact)
+            StoreView(ids: productIds)
+                .productViewStyle(.large)
+                .storeButton(.visible, for: .restorePurchases)
+                .storeButton(.hidden, for: .cancellation)
+                .tint(.blue)
                 .onInAppPurchaseCompletion { product, result in
                     switch result {
                     case .success(let purchaseResult):
@@ -56,11 +44,7 @@ struct StoreViewRepresentable: View {
                         print("Unknown result: \(result)")
                     }
                 }
-            }
-            .storeButton(.visible, for: .restorePurchases)
-            .storeButton(.hidden, for: .cancellation)
-            .tint(.blue)
-
+            
             // Close button overlay
             VStack {
                 HStack {
@@ -83,7 +67,7 @@ struct StoreViewRepresentable: View {
             }
         }
     }
-
+    
     private func handlePurchaseSuccess(for productId: String) {
         // Extract item information from product ID and deliver to inventory
         if let itemInfo = IAPManager.shared.parseProductId(productId) {
@@ -132,3 +116,4 @@ class StoreViewController: UIHostingController<StoreViewRepresentable> {
         fatalError("init(coder:) has not been implemented")
     }
 }
+

@@ -77,7 +77,10 @@ final class AudioManager {
             musicPlayer?.volume = musicVolume
             musicPlayer?.numberOfLoops = loop ? -1 : 0
             musicPlayer?.prepareToPlay()
-            musicPlayer?.play()
+            // Play music on background thread to avoid main thread blocking
+            DispatchQueue.global(qos: .userInitiated).async {
+                self.musicPlayer?.play()
+            }
         } catch {
             print("Failed to play music: \(error)")
         }
@@ -93,7 +96,10 @@ final class AudioManager {
     }
     
     func resumeMusic() {
-        musicPlayer?.play()
+        // Resume music on background thread to avoid main thread blocking
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.musicPlayer?.play()
+        }
     }
     
     // MARK: - Sound Effects
@@ -109,7 +115,10 @@ final class AudioManager {
                 if !player.isPlaying {
                     player.volume = effectiveVolume
                     player.currentTime = 0
-                    player.play()
+                    // Play audio on background thread to avoid main thread blocking
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        player.play()
+                    }
                     return
                 }
             }
@@ -127,7 +136,10 @@ final class AudioManager {
             // First time playing this sound
             if let player = createPlayer(for: filename) {
                 player.volume = effectiveVolume
-                player.play()
+                // Play audio on background thread to avoid main thread blocking
+                DispatchQueue.global(qos: .userInitiated).async {
+                    player.play()
+                }
                 soundPool[filename] = [player]
             }
         }
