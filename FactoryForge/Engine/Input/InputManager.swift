@@ -605,6 +605,9 @@ final class InputManager: NSObject {
                     // This is a joystick touch - handle it and prevent camera pan
                     if joystick.handleTouchBegan(at: screenPos, touchId: 0) {
                         isJoystickActive = true
+                        // Exit build mode and clear selection when joystick is engaged
+                        exitBuildMode()
+                        gameLoop.uiSystem?.hud.selectedEntity = nil
                         return  // Prevent camera pan, but gesture continues for .changed/.ended
                     }
                 } else {
