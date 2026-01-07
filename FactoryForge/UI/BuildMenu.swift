@@ -89,7 +89,7 @@ final class BuildMenu: UIPanel_Base {
               let registry = gameLoop?.buildingRegistry else { return }
         
         let buildings = registry.buildings(ofType: category)
-        
+
         let buttonSize: Float = 60 * UIScale
         let buttonSpacing: Float = 10 * UIScale
         let buttonsPerRow = 4

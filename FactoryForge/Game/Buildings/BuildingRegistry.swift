@@ -220,8 +220,7 @@ final class BuildingRegistry {
             name: "Belt Bridge",
             type: .belt,
             maxHealth: 50,
-            textureId: "transport_belt",  // Use transport belt texture for now
-            cost: [ItemStack(itemId: "iron-plate", count: 1)]
+            cost: [ItemStack(itemId: "belt-bridge", count: 1)]
         )
         beltBridge.beltSpeed = 1.875  // Same speed as transport belt
         register(beltBridge)
