@@ -314,36 +314,25 @@ final class CraftingMenu: UIPanel_Base {
     }
     
     override func handleTap(at position: Vector2) -> Bool {
-        print("CraftingMenu: handleTap called at (\(position.x), \(position.y)), isOpen: \(isOpen), frame: (\(frame.minX), \(frame.minY)) to (\(frame.maxX), \(frame.maxY))")
-        guard isOpen else {
-            print("CraftingMenu: Not open, returning false")
-            return false
-        }
+        guard isOpen else { return false }
 
         // Check if the tap is within our frame
         if !frame.contains(position) {
-            print("CraftingMenu: Tap at (\(position.x), \(position.y)) is outside frame (\(frame.minX), \(frame.minY)) to (\(frame.maxX), \(frame.maxY))")
             return false
         }
-        print("CraftingMenu: Tap is within frame bounds")
 
         // Check close button first
         if closeButton.handleTap(at: position) {
-            print("CraftingMenu: Close button handled tap")
             return true
         }
 
-        print("CraftingMenu: Checking \(recipeButtons.count) recipe buttons")
-        for (index, button) in recipeButtons.enumerated() {
-            print("CraftingMenu: Checking recipe button \(index) at (\(button.frame.center.x), \(button.frame.center.y)), size (\(button.frame.size.x), \(button.frame.size.y))")
+        for button in recipeButtons {
             if button.handleTap(at: position) {
-                print("CraftingMenu: Recipe button \(index) handled tap")
                 return true
             }
         }
 
         // If the crafting menu is open and tap is within bounds, consume all taps to prevent them from passing through
-        print("CraftingMenu: Consuming tap at (\(position.x), \(position.y)) within bounds - no specific handler")
         return true
     }
 

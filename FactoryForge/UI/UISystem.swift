@@ -134,12 +134,10 @@ final class UISystem {
             if self?.activePanel == .machine {
                 self?.closeAllPanels()
             }
-            // Only toggle if not already the active panel, or if clicking outside the menu
-            // For now, keep the toggle behavior but don't close when clicking the button while menu is open
+            // Only toggle if not already the active panel
             if self?.activePanel != .crafting {
                 self?.togglePanel(.crafting)
             }
-            // If crafting is already active, don't close it when pressing the button
         }
         
         hud.onBuildPressed = { [weak self] in
@@ -380,32 +378,13 @@ final class UISystem {
     
     // MARK: - Panel Management
     
-    private func panelName(_ panel: UIPanel) -> String {
-        switch panel {
-        case .loadingMenu: return "loadingMenu"
-        case .autoplayMenu: return "autoplayMenu"
-        case .helpMenu: return "helpMenu"
-        case .documentViewer: return "documentViewer"
-        case .inventory: return "inventory"
-        case .crafting: return "crafting"
-        case .build: return "build"
-        case .research: return "research"
-        case .machine: return "machine"
-        case .entitySelection: return "entitySelection"
-        case .inserterConnection: return "inserterConnection"
-        }
-    }
 
     func togglePanel(_ panel: UIPanel) {
-        print("UISystem: togglePanel called with \(panelName(panel)), current activePanel: \(activePanel != nil ? panelName(activePanel!) : "nil")")
         if activePanel == panel {
-            print("UISystem: Panel already active, closing all panels")
             closeAllPanels()
         } else {
-            print("UISystem: Opening panel \(panelName(panel))")
             openPanel(panel)
         }
-        print("UISystem: After togglePanel, activePanel: \(activePanel != nil ? panelName(activePanel!) : "nil")")
     }
     
     func openPanel(_ panel: UIPanel) {
@@ -516,25 +495,6 @@ final class UISystem {
     // MARK: - Touch Handling
     
     func handleTap(at screenPos: Vector2) -> Bool {
-        let panelNameString: String
-        if let panel = activePanel {
-            switch panel {
-            case .loadingMenu: panelNameString = "loadingMenu"
-            case .autoplayMenu: panelNameString = "autoplayMenu"
-            case .helpMenu: panelNameString = "helpMenu"
-            case .documentViewer: panelNameString = "documentViewer"
-            case .inventory: panelNameString = "inventory"
-            case .crafting: panelNameString = "crafting"
-            case .build: panelNameString = "build"
-            case .research: panelNameString = "research"
-            case .machine: panelNameString = "machine"
-            case .entitySelection: panelNameString = "entitySelection"
-            case .inserterConnection: panelNameString = "inserterConnection"
-            }
-        } else {
-            panelNameString = "nil"
-        }
-        print("UISystem: handleTap called, activePanel: \(panelNameString)")
 
         // If these menus are active, handle taps only for them
         if let panel = activePanel, panel == .loadingMenu || panel == .helpMenu || panel == .documentViewer {
@@ -553,53 +513,29 @@ final class UISystem {
 
         // Check active panel first (so panels can override HUD buttons)
         if let panel = activePanel {
-            print("UISystem: Active panel is \(panelName(panel)), checking for tap handling")
             switch panel {
             case .loadingMenu:
-                let result = loadingMenu.handleTap(at: screenPos)
-                print("UISystem: loadingMenu.handleTap returned \(result)")
-                return result
+                return loadingMenu.handleTap(at: screenPos)
             case .autoplayMenu:
-                let result = autoplayMenu.handleTap(at: screenPos)
-                print("UISystem: autoplayMenu.handleTap returned \(result)")
-                return result
+                return autoplayMenu.handleTap(at: screenPos)
             case .helpMenu:
-                let result = helpMenu.handleTap(at: screenPos)
-                print("UISystem: helpMenu.handleTap returned \(result)")
-                return result
+                return helpMenu.handleTap(at: screenPos)
             case .documentViewer:
-                let result = documentViewer?.handleTap(at: screenPos) ?? false
-                print("UISystem: documentViewer.handleTap returned \(result)")
-                return result
+                return documentViewer?.handleTap(at: screenPos) ?? false
             case .inventory:
-                let result = inventoryUI.handleTap(at: screenPos)
-                print("UISystem: inventoryUI.handleTap returned \(result)")
-                if result { return true }
+                if inventoryUI.handleTap(at: screenPos) { return true }
             case .crafting:
-                print("UISystem: Calling craftingMenu.handleTap")
-                let result = craftingMenu.handleTap(at: screenPos)
-                print("UISystem: craftingMenu.handleTap returned \(result)")
-                if result { return true }
+                if craftingMenu.handleTap(at: screenPos) { return true }
             case .build:
-                let result = buildMenu.handleTap(at: screenPos)
-                print("UISystem: buildMenu.handleTap returned \(result)")
-                if result { return true }
+                if buildMenu.handleTap(at: screenPos) { return true }
             case .research:
-                let result = researchUI.handleTap(at: screenPos)
-                print("UISystem: researchUI.handleTap returned \(result)")
-                if result { return true }
+                if researchUI.handleTap(at: screenPos) { return true }
             case .machine:
-                let result = machineUI.handleTap(at: screenPos)
-                print("UISystem: machineUI.handleTap returned \(result)")
-                if result { return true }
+                if machineUI.handleTap(at: screenPos) { return true }
             case .entitySelection:
-                let result = entitySelectionDialog?.handleTap(at: screenPos) ?? false
-                print("UISystem: entitySelectionDialog.handleTap returned \(result)")
-                if result { return true }
+                if entitySelectionDialog?.handleTap(at: screenPos) ?? false { return true }
             case .inserterConnection:
-                let result = inserterConnectionDialog?.handleTap(at: screenPos) ?? false
-                print("UISystem: inserterConnectionDialog.handleTap returned \(result)")
-                if result { return true }
+                if inserterConnectionDialog?.handleTap(at: screenPos) ?? false { return true }
             }
 
             // If we reach here, the panel's handleTap returned false,
@@ -610,11 +546,7 @@ final class UISystem {
         }
 
         // Check HUD (only when no panel is active)
-        print("UISystem: Checking HUD handleTap")
-        let hudResult = hud.handleTap(at: screenPos, screenSize: currentScreenSize)
-        print("UISystem: HUD handleTap returned \(hudResult)")
-        if hudResult {
-            print("UISystem: HUD handled tap, returning true")
+        if hud.handleTap(at: screenPos, screenSize: currentScreenSize) {
             return true
         }
 
@@ -678,47 +610,11 @@ final class UISystem {
 
         // If no active panel handled the tap, check if any other panels that might be open can handle it
         // This handles cases where panels have isOpen = true but activePanel is nil
-        print("UISystem: No active panel handled tap, checking other open panels")
-
-        // Check crafting menu if it's open
-        if craftingMenu.isOpen {
-            print("UISystem: Crafting menu is open, checking handleTap")
-            let result = craftingMenu.handleTap(at: screenPos)
-            print("UISystem: craftingMenu.handleTap returned \(result)")
-            if result { return true }
-        }
-
-        // Check machine UI if it's open
-        if machineUI.isOpen {
-            print("UISystem: Machine UI is open, checking handleTap")
-            let result = machineUI.handleTap(at: screenPos)
-            print("UISystem: machineUI.handleTap returned \(result)")
-            if result { return true }
-        }
-
-        // Check research UI if it's open
-        if researchUI.isOpen {
-            print("UISystem: Research UI is open, checking handleTap")
-            let result = researchUI.handleTap(at: screenPos)
-            print("UISystem: researchUI.handleTap returned \(result)")
-            if result { return true }
-        }
-
-        // Check build menu if it's open
-        if buildMenu.isOpen {
-            print("UISystem: Build menu is open, checking handleTap")
-            let result = buildMenu.handleTap(at: screenPos)
-            print("UISystem: buildMenu.handleTap returned \(result)")
-            if result { return true }
-        }
-
-        // Check inventory UI if it's open
-        if inventoryUI.isOpen {
-            print("UISystem: Inventory UI is open, checking handleTap")
-            let result = inventoryUI.handleTap(at: screenPos)
-            print("UISystem: inventoryUI.handleTap returned \(result)")
-            if result { return true }
-        }
+        if craftingMenu.isOpen && craftingMenu.handleTap(at: screenPos) { return true }
+        if machineUI.isOpen && machineUI.handleTap(at: screenPos) { return true }
+        if researchUI.isOpen && researchUI.handleTap(at: screenPos) { return true }
+        if buildMenu.isOpen && buildMenu.handleTap(at: screenPos) { return true }
+        if inventoryUI.isOpen && inventoryUI.handleTap(at: screenPos) { return true }
 
         return false
     }
