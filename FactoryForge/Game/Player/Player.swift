@@ -142,9 +142,16 @@ final class Player {
         // Update crafting
         updateCrafting(deltaTime: deltaTime)
         
-        // Update health immunity
+        // Update health immunity and regeneration
         if var health = world.get(HealthComponent.self, for: entity) {
             health.update(deltaTime: deltaTime)
+
+            // Regenerate health if not at full health
+            if health.current < health.max {
+                let regenRate: Float = 1.0  // Health per second
+                health.heal(regenRate * deltaTime)
+            }
+
             world.add(health, to: entity)
         }
         
