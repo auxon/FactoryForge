@@ -129,7 +129,8 @@ final class SpriteRenderer {
             var rotation: Float = 0
             if let belt = belt {
                 // Belts use their transport direction (even if centered)
-                rotation = belt.direction.angle
+                // Negate angle for clockwise rotation to match texture orientation
+                rotation = -belt.direction.angle
             } else if renderSprite.centered {
                 // Centered sprites (like player) use position direction
                 rotation = position.direction.angle
@@ -308,7 +309,7 @@ final class SpriteRenderer {
         let textureRect = textureAtlas.getTextureRect(for: currentTextureId)
 
         // Rotate sprite based on belt direction (north=0°, east=90°, south=180°, west=270°)
-        let rotation = belt.direction.angle
+        let rotation = -belt.direction.angle
 
         // Draw belt as a sprite with the animated texture
         let beltSize = Vector2(1.0, 1.0)  // Full tile size
@@ -423,7 +424,7 @@ final class SpriteRenderer {
         // Bridge belts are elevated - render slightly higher and with a shadow
         let beltWidth: Float = 0.7
         let beltLength: Float = 1.0
-        let angle = belt.direction.angle
+        let angle = -belt.direction.angle
         let beltSize = Vector2(beltWidth, beltLength)
 
         // Shadow underneath (darker, slightly offset)
