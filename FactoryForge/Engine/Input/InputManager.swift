@@ -356,7 +356,9 @@ final class InputManager: NSObject {
 
             // Then check UI system for actual functionality
             let uiHandled = uiSystem.handleTap(at: screenPos)
+            print("InputManager: UI system handleTap returned: \(uiHandled)")
             if uiHandled == true {
+                print("InputManager: UI system handled tap, stopping further processing")
                 return
             }
             
