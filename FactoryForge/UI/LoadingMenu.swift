@@ -8,9 +8,11 @@ final class LoadingMenu: UIPanel_Base {
     private var newGameButton: UIButton!
     private var saveGameButton: UIButton!
     private var autoplayButton: UIButton!
+    private var helpButton: UIButton!
     private var audioToggleButton: UIButton!
     private var saveSlotButtons: [SaveSlotButton] = []
     private var slotLabels: [UILabel] = [] // Labels for save slot information
+    private var helpButtonLabel: UILabel? // Label for help button question mark
     private var closeButton: CloseButton!
     
     var onNewGameSelected: (() -> Void)?
@@ -18,6 +20,7 @@ final class LoadingMenu: UIPanel_Base {
     var onSaveSlotDelete: ((String) -> Void)? // Called when delete button is pressed for a save slot
     var onSaveGameRequested: (() -> Void)? // Called when save button is pressed
     var onAutoplayTapped: (() -> Void)? // Called when autoplay button is tapped
+    var onHelpTapped: (() -> Void)? // Called when help button is tapped
     var onCloseTapped: (() -> Void)? // Called when close button (X) is tapped
     
     init(screenSize: Vector2) {
@@ -82,6 +85,22 @@ final class LoadingMenu: UIPanel_Base {
         saveGameButton.onTap = { [weak self] in
             AudioManager.shared.playClickSound()
             self?.onSaveGameRequested?()
+        }
+
+        // Help button (left of autoplay button)
+        let helpButtonSize: Float = 50 * UIScale
+        let helpButtonX = frame.maxX - 180 * UIScale
+        let helpButtonY = frame.maxY - 60 * UIScale
+        helpButton = UIButton(
+            frame: Rect(
+                center: Vector2(helpButtonX, helpButtonY),
+                size: Vector2(helpButtonSize, helpButtonSize)
+            ),
+            textureId: "solid_white"  // Will render question mark emoji as overlay
+        )
+        helpButton.onTap = { [weak self] in
+            AudioManager.shared.playClickSound()
+            self?.onHelpTapped?()
         }
 
         // Autoplay button (left of audio toggle)
@@ -169,6 +188,7 @@ final class LoadingMenu: UIPanel_Base {
         
         // Update labels (will be created in setupLabels if parent view is set)
         updateSlotLabels()
+        setupHelpButtonLabel()
     }
     
     private weak var parentView: UIView?
@@ -268,6 +288,50 @@ final class LoadingMenu: UIPanel_Base {
             slotLabels.removeLast()
         }
     }
+
+    private func setupHelpButtonLabel() {
+        guard let parentView = parentView else { return }
+
+        // Remove existing label if any
+        helpButtonLabel?.removeFromSuperview()
+
+        // Create new label
+        let label = UILabel()
+        label.text = "?"
+        label.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        label.textColor = .white
+        label.textAlignment = .center
+        label.backgroundColor = .clear
+        parentView.addSubview(label)
+        helpButtonLabel = label
+
+        // Position the label to center it on the help button
+        updateHelpButtonLabelPosition()
+    }
+
+    private func updateHelpButtonLabelPosition() {
+        guard let label = helpButtonLabel, let button = helpButton else { return }
+
+        let screenScale = CGFloat(UIScreen.main.scale)
+
+        // Convert button center from Metal coordinates to UIKit points
+        let buttonCenterXPixels = CGFloat(button.frame.center.x)
+        let buttonCenterYPixels = CGFloat(button.frame.center.y)
+
+        let buttonCenterXPoints = buttonCenterXPixels / screenScale
+        let buttonCenterYPoints = buttonCenterYPixels / screenScale
+
+        // Size the label to fit the button
+        let buttonSizePoints = CGFloat(button.frame.size.x) / screenScale
+        label.frame = CGRect(
+            x: buttonCenterXPoints - buttonSizePoints / 2,
+            y: buttonCenterYPoints - buttonSizePoints / 2,
+            width: buttonSizePoints,
+            height: buttonSizePoints
+        )
+
+        label.isHidden = !isOpen
+    }
     
     private func removeSlotLabels() {
         for label in slotLabels {
@@ -283,6 +347,7 @@ final class LoadingMenu: UIPanel_Base {
         for label in slotLabels {
             label.isHidden = false
         }
+        helpButtonLabel?.isHidden = false
     }
     
     override func close() {
@@ -291,6 +356,7 @@ final class LoadingMenu: UIPanel_Base {
         for label in slotLabels {
             label.isHidden = true
         }
+        helpButtonLabel?.isHidden = true
     }
     
     override func render(renderer: MetalRenderer) {
@@ -311,6 +377,9 @@ final class LoadingMenu: UIPanel_Base {
         if onSaveGameRequested != nil {
             renderSaveGameButton(renderer: renderer)
         }
+
+        // Render Help button
+        renderHelpButton(renderer: renderer)
 
         // Render Autoplay button
         renderAutoplayButton(renderer: renderer)
@@ -352,6 +421,12 @@ final class LoadingMenu: UIPanel_Base {
         button.render(renderer: renderer)
     }
 
+    private func renderHelpButton(renderer: MetalRenderer) {
+        guard let button = helpButton else { return }
+        // Use the button's built-in render method
+        button.render(renderer: renderer)
+    }
+
     private func renderAudioToggleButton(renderer: MetalRenderer) {
         guard let button = audioToggleButton else { return }
         // Use the button's built-in render method
@@ -378,6 +453,11 @@ final class LoadingMenu: UIPanel_Base {
         
         // Check Save Game button (if visible)
         if onSaveGameRequested != nil, saveGameButton?.handleTap(at: position) == true {
+            return true
+        }
+
+        // Check Help button
+        if helpButton?.handleTap(at: position) == true {
             return true
         }
 

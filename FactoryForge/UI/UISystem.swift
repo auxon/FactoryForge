@@ -19,6 +19,8 @@ final class UISystem {
     private var machineUI: MachineUI
     private var loadingMenu: LoadingMenu
     private var autoplayMenu: AutoPlayMenu
+    private var helpMenu: HelpMenu
+    private var documentViewer: DocumentViewer?
     private var entitySelectionDialog: EntitySelectionDialog?
     private var inserterConnectionDialog: InserterConnectionDialog?
     
@@ -37,6 +39,7 @@ final class UISystem {
         
         loadingMenu = LoadingMenu(screenSize: screenSize)
         autoplayMenu = AutoPlayMenu(screenSize: screenSize)
+        helpMenu = HelpMenu(screenSize: screenSize)
         hud = HUD(screenSize: screenSize, gameLoop: gameLoop, inputManager: nil)
         inventoryUI = InventoryUI(screenSize: screenSize, gameLoop: gameLoop)
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
@@ -60,6 +63,10 @@ final class UISystem {
         buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
         researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
+
+        // Recreate help menu and document viewer with new screen size
+        helpMenu = HelpMenu(screenSize: screenSize)
+        documentViewer = nil
         
         // Reinitialize entity selection dialog with gameLoop
         entitySelectionDialog = EntitySelectionDialog(screenSize: screenSize, gameLoop: gameLoop, renderer: renderer)
@@ -82,6 +89,14 @@ final class UISystem {
 
     func getAutoplayMenu() -> AutoPlayMenu {
         return autoplayMenu
+    }
+
+    func getHelpMenu() -> HelpMenu {
+        return helpMenu
+    }
+
+    func getDocumentViewer() -> DocumentViewer? {
+        return documentViewer
     }
 
     func getInventoryUI() -> InventoryUI {
@@ -170,11 +185,15 @@ final class UISystem {
     // MARK: - Update
     
     func update(deltaTime: Float) {
-        if let panel = activePanel, panel == .loadingMenu || panel == .autoplayMenu {
+        if let panel = activePanel, panel == .loadingMenu || panel == .autoplayMenu || panel == .helpMenu || panel == .documentViewer {
             if panel == .loadingMenu {
                 loadingMenu.update(deltaTime: deltaTime)
             } else if panel == .autoplayMenu {
                 autoplayMenu.update(deltaTime: deltaTime)
+            } else if panel == .helpMenu {
+                helpMenu.update(deltaTime: deltaTime)
+            } else if panel == .documentViewer {
+                documentViewer?.update(deltaTime: deltaTime)
             }
             return // Don't update game UI if menus are open
         }
@@ -187,6 +206,10 @@ final class UISystem {
                 loadingMenu.update(deltaTime: deltaTime)
             case .autoplayMenu:
                 autoplayMenu.update(deltaTime: deltaTime)
+            case .helpMenu:
+                helpMenu.update(deltaTime: deltaTime)
+            case .documentViewer:
+                documentViewer?.update(deltaTime: deltaTime)
             case .inventory:
                 inventoryUI.update(deltaTime: deltaTime)
             case .crafting:
@@ -301,9 +324,15 @@ final class UISystem {
     // MARK: - Rendering
     
     func render(renderer: MetalRenderer) {
-        if let panel = activePanel, panel == .loadingMenu {
-            // Only render loading menu if it's active (replaces entire view)
-            loadingMenu.render(renderer: renderer)
+        if let panel = activePanel, panel == .loadingMenu || panel == .helpMenu || panel == .documentViewer {
+            // Only render these menus if they're active (replace entire view)
+            if panel == .loadingMenu {
+                loadingMenu.render(renderer: renderer)
+            } else if panel == .helpMenu {
+                helpMenu.render(renderer: renderer)
+            } else if panel == .documentViewer {
+                documentViewer?.render(renderer: renderer)
+            }
             return
         }
         
@@ -317,6 +346,10 @@ final class UISystem {
                 loadingMenu.render(renderer: renderer)
             case .autoplayMenu:
                 autoplayMenu.render(renderer: renderer)
+            case .helpMenu:
+                helpMenu.render(renderer: renderer)
+            case .documentViewer:
+                documentViewer?.render(renderer: renderer)
             case .inventory:
                 inventoryUI.render(renderer: renderer)
             case .crafting:
@@ -360,6 +393,10 @@ final class UISystem {
             loadingMenu.open()
         case .autoplayMenu:
             autoplayMenu.open()
+        case .helpMenu:
+            helpMenu.open()
+        case .documentViewer:
+            documentViewer?.open()
         case .inventory:
             inventoryUI.open()
         case .crafting:
@@ -384,6 +421,10 @@ final class UISystem {
                 loadingMenu.close()
             case .autoplayMenu:
                 autoplayMenu.close()
+            case .helpMenu:
+                helpMenu.close()
+            case .documentViewer:
+                documentViewer?.close()
             case .inventory:
                 inventoryUI.close()
             case .crafting:
@@ -414,6 +455,18 @@ final class UISystem {
         inventoryUI.enterChestMode(entity: entity)
         openPanel(.inventory)
     }
+
+    func openHelpMenu() {
+        openPanel(.helpMenu)
+    }
+
+    func openDocumentViewer(documentName: String) {
+        let screenSize = renderer?.screenSize ?? Vector2(800, 600)
+        documentViewer = DocumentViewer(screenSize: screenSize, documentName: documentName)
+        print("UISystem: opening document viewer, screenSize=\(screenSize)")
+        openPanel(.documentViewer)
+        print("UISystem: activePanel is now \(activePanel)")
+    }
     
     func isPanelOpen(_ panel: UIPanel) -> Bool {
         return activePanel == panel
@@ -440,9 +493,15 @@ final class UISystem {
     // MARK: - Touch Handling
     
     func handleTap(at screenPos: Vector2) -> Bool {
-        // If loading menu is active, handle taps only for it
-        if let panel = activePanel, panel == .loadingMenu {
-            return loadingMenu.handleTap(at: screenPos)
+        // If these menus are active, handle taps only for them
+        if let panel = activePanel, panel == .loadingMenu || panel == .helpMenu || panel == .documentViewer {
+            if panel == .loadingMenu {
+                return loadingMenu.handleTap(at: screenPos)
+            } else if panel == .helpMenu {
+                return helpMenu.handleTap(at: screenPos)
+            } else if panel == .documentViewer {
+                return documentViewer?.handleTap(at: screenPos) ?? false
+            }
         }
         
         // Get current screen size from renderer
@@ -460,6 +519,10 @@ final class UISystem {
                 return loadingMenu.handleTap(at: screenPos)
             case .autoplayMenu:
                 return autoplayMenu.handleTap(at: screenPos)
+            case .helpMenu:
+                return helpMenu.handleTap(at: screenPos)
+            case .documentViewer:
+                return documentViewer?.handleTap(at: screenPos) ?? false
             case .inventory:
                 if inventoryUI.handleTap(at: screenPos) { return true }
             case .crafting:
@@ -507,6 +570,10 @@ final class UISystem {
                 return nil
             case .autoplayMenu:
                 return nil  // AutoPlayMenu doesn't have detailed tooltips
+            case .helpMenu:
+                return nil  // HelpMenu doesn't have detailed tooltips
+            case .documentViewer:
+                return nil  // DocumentViewer doesn't have detailed tooltips
             case .inventory:
                 return inventoryUI.getTooltip(at: screenPos)
             case .crafting:
@@ -528,6 +595,7 @@ final class UISystem {
     }
 
     func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
+        print("UISystem handleDrag: activePanel=\(activePanel), startPos=\(startPos), endPos=\(endPos)")
         // Check active panels
         if let panel = activePanel {
             switch panel {
@@ -535,6 +603,8 @@ final class UISystem {
                 return inventoryUI.handleDrag(from: startPos, to: endPos)
             case .machine:
                 return machineUI.handleDrag(from: startPos, to: endPos)
+            case .documentViewer:
+                return documentViewer?.handleDrag(from: startPos, to: endPos) ?? false
             default:
                 return false
             }
@@ -548,6 +618,8 @@ final class UISystem {
 enum UIPanel {
     case loadingMenu
     case autoplayMenu
+    case helpMenu
+    case documentViewer
     case inventory
     case crafting
     case build

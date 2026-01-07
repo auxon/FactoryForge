@@ -335,6 +335,49 @@ class GameViewController: UIViewController {
         autoplayMenu.setupLabels(in: view)
     }
 
+    private func showHelpMenu() {
+        guard let uiSystem = uiSystem else { return }
+
+        uiSystem.openPanel(.helpMenu)
+
+        let helpMenu = uiSystem.getHelpMenu()
+        print("GameViewController: Setting up HelpMenu callbacks")
+
+        helpMenu.onDocumentSelected = { [weak self] (documentName: String) in
+            self?.showDocumentViewer(documentName: documentName)
+        }
+
+        helpMenu.onCloseTapped = { [weak self] in
+            self?.uiSystem?.closeAllPanels()
+            // Force redraws like other menus
+            self?.metalView.setNeedsDisplay()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
+                self?.metalView.setNeedsDisplay()
+            }
+        }
+
+        // Setup text labels
+        helpMenu.setupLabels(in: view)
+    }
+
+    private func showDocumentViewer(documentName: String) {
+        guard let uiSystem = uiSystem else { return }
+
+        uiSystem.openDocumentViewer(documentName: documentName)
+
+        if let documentViewer = uiSystem.getDocumentViewer() {
+            print("GameViewController: Setting up DocumentViewer callbacks")
+
+            documentViewer.onCloseTapped = { [weak self] in
+                // Go back to help menu instead of closing all panels
+                self?.showHelpMenu()
+            }
+
+            // Setup text labels
+            documentViewer.setupLabels(in: view)
+        }
+    }
+
     func showGameOverScreen() {
         gameOverLabel.isHidden = false
         menuButtonLabel.isHidden = false
@@ -494,6 +537,10 @@ class GameViewController: UIViewController {
 
         loadingMenu.onAutoplayTapped = { [weak self] in
             self?.showAutoplayMenu()
+        }
+
+        loadingMenu.onHelpTapped = { [weak self] in
+            self?.showHelpMenu()
         }
 
         // Setup UILabel overlays for save slot information
@@ -867,7 +914,7 @@ class GameViewController: UIViewController {
         
         // If InputManager doesn't exist yet, create it
         if inputManager == nil {
-            inputManager = InputManager(view: metalView, gameLoop: gameLoop, renderer: renderer)
+            inputManager = InputManager(view: view, gameLoop: gameLoop, renderer: renderer)
         } else {
             // Update existing InputManager with gameLoop
             inputManager?.setGameLoop(gameLoop)

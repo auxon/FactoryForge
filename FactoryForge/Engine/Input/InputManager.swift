@@ -563,10 +563,12 @@ final class InputManager: NSObject {
     
     @objc private func handlePan(_ recognizer: UIPanGestureRecognizer) {
         guard let gameLoop = gameLoop, let renderer = gameLoop.renderer ?? self.renderer else { return }
-        
+
         let screenPos = screenPosition(from: recognizer)
         let worldPos = renderer.screenToWorld(screenPos)
         currentTouchPosition = worldPos
+
+        print("InputManager handlePan: state=\(recognizer.state.rawValue), screenPos=\(screenPos)")
 
         // Get joystick from HUD
         let joystick = gameLoop.uiSystem?.hud.joystick
@@ -660,6 +662,7 @@ final class InputManager: NSObject {
             
             // Check if a UI panel is open - if so, don't process game world interactions
             if let uiSystem = gameLoop.uiSystem, uiSystem.isAnyPanelOpen {
+                print("InputManager: UI panel is open, checking for drag, buildMode=\(buildMode), isJoystickActive=\(isJoystickActive), isUIDragging=\(isUIDragging)")
                 // Check for UI drag gesture
                 if !isUIDragging && !isJoystickActive {
                     let dragDistance = (screenPos - dragStartPosition).length

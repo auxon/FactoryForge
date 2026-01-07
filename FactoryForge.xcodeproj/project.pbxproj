@@ -19,6 +19,13 @@
 		0D18B5632F0D9219006B70A5 /* AutoPlayTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5622F0D9219006B70A5 /* AutoPlayTypes.swift */; };
 		0D18B5642F0D9219006B70A5 /* AutoPlaySystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5612F0D9219006B70A5 /* AutoPlaySystem.swift */; };
 		0D18B5662F0D96A4006B70A5 /* AutoPlayMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */; };
+		0D18B56D2F0DD7DE006B70A5 /* Research.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B56B2F0DD7DE006B70A5 /* Research.md */; };
+		0D18B56E2F0DD7DE006B70A5 /* How to Use a Furnace.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5692F0DD7DE006B70A5 /* How to Use a Furnace.md */; };
+		0D18B56F2F0DD7DE006B70A5 /* INSTRUCTIONS.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B56A2F0DD7DE006B70A5 /* INSTRUCTIONS.md */; };
+		0D18B5702F0DD7DE006B70A5 /* autoplay_plan.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5672F0DD7DE006B70A5 /* autoplay_plan.md */; };
+		0D18B5712F0DD7DE006B70A5 /* Belt Mechanics.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5682F0DD7DE006B70A5 /* Belt Mechanics.md */; };
+		0D18B5742F0DD8E2006B70A5 /* DocumentViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */; };
+		0D18B5752F0DD8E2006B70A5 /* HelpMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */; };
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
 		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
 		0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371D2F0485C900941686 /* inserters_sheet.png */; };
@@ -268,6 +275,13 @@
 		0D18B5612F0D9219006B70A5 /* AutoPlaySystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPlaySystem.swift; sourceTree = "<group>"; };
 		0D18B5622F0D9219006B70A5 /* AutoPlayTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPlayTypes.swift; sourceTree = "<group>"; };
 		0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPlayMenu.swift; sourceTree = "<group>"; };
+		0D18B5672F0DD7DE006B70A5 /* autoplay_plan.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = autoplay_plan.md; sourceTree = "<group>"; };
+		0D18B5682F0DD7DE006B70A5 /* Belt Mechanics.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Belt Mechanics.md"; sourceTree = "<group>"; };
+		0D18B5692F0DD7DE006B70A5 /* How to Use a Furnace.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "How to Use a Furnace.md"; sourceTree = "<group>"; };
+		0D18B56A2F0DD7DE006B70A5 /* INSTRUCTIONS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTRUCTIONS.md; sourceTree = "<group>"; };
+		0D18B56B2F0DD7DE006B70A5 /* Research.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Research.md; sourceTree = "<group>"; };
+		0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentViewer.swift; sourceTree = "<group>"; };
+		0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpMenu.swift; sourceTree = "<group>"; };
 		0D3A37192F044AC200941686 /* recycle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = recycle.png; sourceTree = "<group>"; };
 		0D3A371B2F047F7700941686 /* move.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = move.png; sourceTree = "<group>"; };
 		0D3A371D2F0485C900941686 /* inserters_sheet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserters_sheet.png; sourceTree = "<group>"; };
@@ -517,6 +531,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0D18B56C2F0DD7DE006B70A5 /* Docs */ = {
+			isa = PBXGroup;
+			children = (
+				0D18B5672F0DD7DE006B70A5 /* autoplay_plan.md */,
+				0D18B5682F0DD7DE006B70A5 /* Belt Mechanics.md */,
+				0D18B5692F0DD7DE006B70A5 /* How to Use a Furnace.md */,
+				0D18B56A2F0DD7DE006B70A5 /* INSTRUCTIONS.md */,
+				0D18B56B2F0DD7DE006B70A5 /* Research.md */,
+			);
+			path = Docs;
+			sourceTree = "<group>";
+		};
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
@@ -860,6 +886,7 @@
 		A0000200001 /* FactoryForge */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B56C2F0DD7DE006B70A5 /* Docs */,
 				0D18B5552F0C64BE006B70A5 /* Assets.xcassets */,
 				0D6FDBD12EFDC7E900576EC3 /* Assets */,
 				A0000200010 /* App */,
@@ -1068,6 +1095,8 @@
 		A0000200040 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */,
+				0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */,
 				0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */,
 				0D6FDC622EFEDB6100576EC3 /* LoadingMenu.swift */,
 				A1014001000 /* UISystem.swift */,
@@ -1174,6 +1203,11 @@
 				0DFF59BD2F02CAC000A8699D /* transport_belt_east_004.png in Resources */,
 				0DFF59BE2F02CAC000A8699D /* transport_belt_east_010.png in Resources */,
 				0DFF59BF2F02CAC000A8699D /* transport_belt_east_007.png in Resources */,
+				0D18B56D2F0DD7DE006B70A5 /* Research.md in Resources */,
+				0D18B56E2F0DD7DE006B70A5 /* How to Use a Furnace.md in Resources */,
+				0D18B56F2F0DD7DE006B70A5 /* INSTRUCTIONS.md in Resources */,
+				0D18B5702F0DD7DE006B70A5 /* autoplay_plan.md in Resources */,
+				0D18B5712F0DD7DE006B70A5 /* Belt Mechanics.md in Resources */,
 				0DFF59C02F02CAC000A8699D /* transport_belt_east_008.png in Resources */,
 				0DFF59C12F02CAC000A8699D /* transport_belt_east_016.png in Resources */,
 				0DFF59C22F02CAC000A8699D /* transport_belt_east_014.png in Resources */,
@@ -1362,6 +1396,8 @@
 				A1004002001 /* TextureAtlas.swift in Sources */,
 				A1004003001 /* TileMapRenderer.swift in Sources */,
 				A1004004001 /* SpriteRenderer.swift in Sources */,
+				0D18B5742F0DD8E2006B70A5 /* DocumentViewer.swift in Sources */,
+				0D18B5752F0DD8E2006B70A5 /* HelpMenu.swift in Sources */,
 				A1004005001 /* ParticleRenderer.swift in Sources */,
 				A1004006001 /* Shaders.metal in Sources */,
 				A1005001001 /* InputManager.swift in Sources */,
