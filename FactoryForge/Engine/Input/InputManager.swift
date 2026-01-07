@@ -922,6 +922,9 @@ final class InputManager: NSObject {
                 gameLoop.uiSystem?.hud.selectedEntity = entity
             }
         }
+
+        // Notify listeners about entity selection
+        onEntitySelected?(entity)
     }
 
     private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop, isDoubleTap: Bool = false) {

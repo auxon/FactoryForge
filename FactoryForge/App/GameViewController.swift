@@ -964,21 +964,7 @@ class GameViewController: UIViewController {
             } else {
                 self.updateSelectedEntityTooltip(entity: nil, text: nil)
             }
-            
-            // Verify the entity was set correctly in HUD
-            if let entity = entity {
-                if let hudEntity = self.uiSystem?.hud.selectedEntity {
-                    if hudEntity.id != entity.id || hudEntity.generation != entity.generation {
-                        print("GameViewController: ERROR - Failed to set HUD selectedEntity correctly!")
-                        print("GameViewController: Expected \(entity), but got \(hudEntity)")
-                        // Force set it again
-                        self.uiSystem?.hud.selectedEntity = entity
-                    } else {
-                        print("GameViewController: HUD selectedEntity set correctly to \(entity)")
-                    }
-                }
-            }
-            
+
             // If no entity selected, clear selection
             guard let entity = entity else { return }
 
