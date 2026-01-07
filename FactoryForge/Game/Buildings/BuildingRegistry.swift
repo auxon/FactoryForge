@@ -161,7 +161,10 @@ final class BuildingRegistry {
             name: "Fast Transport Belt",
             type: .belt,
             maxHealth: 50,
-            cost: [ItemStack(itemId: "fast-transport-belt", count: 1)]
+            cost: [
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "iron-plate", count: 1)
+            ]
         )
         fastBelt.beltSpeed = 3.75  // 30 items/s per lane
         register(fastBelt)
@@ -171,7 +174,11 @@ final class BuildingRegistry {
             name: "Express Transport Belt",
             type: .belt,
             maxHealth: 50,
-            cost: [ItemStack(itemId: "express-transport-belt", count: 1)]
+            cost: [
+                ItemStack(itemId: "iron-gear-wheel", count: 10),
+                ItemStack(itemId: "advanced-circuit", count: 2),
+                ItemStack(itemId: "steel-plate", count: 1)
+            ]
         )
         expressBelt.beltSpeed = 5.625  // 45 items/s per lane
         register(expressBelt)

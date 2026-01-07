@@ -302,16 +302,15 @@ final class InventoryUI: UIPanel_Base {
                     // Chest inventory mode - transfer items between player and chest
                     handleChestTransfer(slot: slot)
                 } else {
-                    // Normal inventory mode - check if item is a building
+                    // Normal inventory mode - check if item can be placed as a building
                     if let itemStack = slot.item,
                        let gameLoop = gameLoop,
-                       gameLoop.buildingRegistry.get(itemStack.itemId) != nil {
-                        // It's a building - enter build mode
-                        gameLoop.inputManager?.enterBuildMode(buildingId: itemStack.itemId)
+                       let itemDef = gameLoop.itemRegistry.get(itemStack.itemId),
+                       let buildingId = itemDef.placedAs,
+                       gameLoop.buildingRegistry.get(buildingId) != nil {
+                        // It's a placeable building - enter build mode
+                        gameLoop.inputManager?.enterBuildMode(buildingId: buildingId)
                         close() // Close inventory when entering build mode
-                    } else {
-                        // Not a building - just select the slot
-                        // Handle slot selection (could add visual feedback here)
                     }
                 }
                 return true
