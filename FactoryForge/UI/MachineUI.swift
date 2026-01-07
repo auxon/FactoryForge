@@ -623,22 +623,37 @@ final class MachineUI: UIPanel_Base {
 
     private func updateLabProgressLabelPositions() {
         let screenScale = CGFloat(UIScreen.main.scale)
-        let centerX = frame.center.x
-        let startY = frame.center.y - 60 * UIScale
-        let lineHeight: Float = 25 * UIScale
 
         for (index, label) in researchProgressLabels.enumerated() {
             if !label.isHidden {
-                let y = startY + Float(index) * lineHeight
-                let uiX = CGFloat(centerX) / screenScale - 150 // Center horizontally
-                let uiY = CGFloat(y) / screenScale - 10 // Slight offset
+                // For the "Open Research Menu" text (index 0 when no research), center it in the panel
+                if index == 0 && label.text == "Open Research Menu" {
+                    // Center both horizontally and vertically in the entire panel
+                    let uiX = CGFloat(frame.center.x) / screenScale - 150  // Center horizontally
+                    let uiY = CGFloat(frame.center.y) / screenScale - 20  // Center vertically
 
-                label.frame = CGRect(
-                    x: uiX,
-                    y: uiY,
-                    width: 300, // Fixed width
-                    height: 40  // Allow for multiple lines
-                )
+                    label.frame = CGRect(
+                        x: uiX,
+                        y: uiY,
+                        width: 300,
+                        height: 40
+                    )
+                } else {
+                    // Normal positioning for other labels (research progress, etc.)
+                    let centerX = frame.center.x
+                    let startY = frame.center.y - 60 * UIScale
+                    let lineHeight: Float = 25 * UIScale
+                    let y = startY + Float(index) * lineHeight
+                    let uiX = CGFloat(centerX) / screenScale - 150 // Center horizontally
+                    let uiY = CGFloat(y) / screenScale - 10 // Slight offset
+
+                    label.frame = CGRect(
+                        x: uiX,
+                        y: uiY,
+                        width: 300, // Fixed width
+                        height: 40  // Allow for multiple lines
+                    )
+                }
             }
         }
     }
@@ -715,11 +730,10 @@ final class MachineUI: UIPanel_Base {
         if isLab && researchProgressLabels.count > 0 && !researchProgressLabels[0].isHidden &&
            researchProgressLabels[0].text == "Open Research Menu" {
             let screenScale = Float(UIScreen.main.scale)
-            // Label position in Metal coordinates (matching updateLabProgressLabelPositions)
+
+            // Label is now centered in the entire panel
             let labelCenterX = frame.center.x
-            let labelStartY = frame.center.y - 60 * UIScale
-            let lineHeight: Float = 25 * UIScale
-            let labelCenterY = labelStartY + lineHeight / 2  // Center of the label
+            let labelCenterY = frame.center.y
 
             // Label size in Metal coordinates
             let labelWidth: Float = 300 * screenScale  // Convert UIKit pixels to Metal units
