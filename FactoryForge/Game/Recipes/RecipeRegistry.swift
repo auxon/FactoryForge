@@ -191,6 +191,33 @@ final class RecipeRegistry {
         ))
 
         register(Recipe(
+            id: "fast-transport-belt",
+            name: "Fast Transport Belt",
+            inputs: [
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "iron-plate", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "fast-transport-belt", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "g1"
+        ))
+
+        register(Recipe(
+            id: "express-transport-belt",
+            name: "Express Transport Belt",
+            inputs: [
+                ItemStack(itemId: "iron-gear-wheel", count: 10),
+                ItemStack(itemId: "advanced-circuit", count: 2),
+                ItemStack(itemId: "steel-plate", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "express-transport-belt", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "g2"
+        ))
+
+        register(Recipe(
             id: "underground-belt",
             name: "Underground Belt",
             inputs: [
@@ -230,7 +257,20 @@ final class RecipeRegistry {
             category: .crafting,
             order: "g3"
         ))
-        
+
+        register(Recipe(
+            id: "belt-bridge",
+            name: "Belt Bridge",
+            inputs: [
+                ItemStack(itemId: "iron-plate", count: 1),
+                ItemStack(itemId: "iron-gear-wheel", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "belt-bridge", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "g4"
+        ))
+
         register(Recipe(
             id: "inserter",
             name: "Inserter",

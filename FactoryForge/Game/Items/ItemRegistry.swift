@@ -69,6 +69,7 @@ final class ItemRegistry {
         register(Item(id: "underground-belt", name: "Underground Belt", stackSize: 50, category: .logistics, order: "d", placedAs: "underground-belt"))
         register(Item(id: "splitter", name: "Splitter", stackSize: 50, category: .logistics, order: "e", placedAs: "splitter"))
         register(Item(id: "merger", name: "Merger", stackSize: 50, category: .logistics, order: "f", placedAs: "merger"))
+        register(Item(id: "belt-bridge", name: "Belt Bridge", stackSize: 50, category: .logistics, order: "g", placedAs: "belt-bridge"))
         register(Item(id: "inserter", name: "Inserter", stackSize: 50, category: .logistics, order: "d", placedAs: "inserter"))
         register(Item(id: "long-handed-inserter", name: "Long Handed Inserter", stackSize: 50, category: .logistics, order: "e", placedAs: "long-handed-inserter"))
         register(Item(id: "fast-inserter", name: "Fast Inserter", stackSize: 50, category: .logistics, order: "f", placedAs: "fast-inserter"))

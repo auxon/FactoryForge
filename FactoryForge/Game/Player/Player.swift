@@ -131,6 +131,9 @@ final class Player {
         inventory.add(itemId: "automation-science-pack", count: 10)  // Automation science pack for testing
         inventory.add(itemId: "lab", count: 1)  // Lab for testing
         inventory.add(itemId: "assembling-machine-1", count: 1)  // Assembling machine 1 for testing
+        // add splitters and mergers for testing
+        inventory.add(itemId: "splitter", count: 10)
+        inventory.add(itemId: "merger", count: 10)
     }
     
     // MARK: - Update

@@ -587,6 +587,10 @@ final class GameLoop {
                     switch building.type {
                     case .belt:
                         // Belts can be placed on top of buildings
+                        // Belt bridges can also be placed on top of belts and buildings
+                        if building.id == "belt-bridge" {
+                            continue  // Allow belt bridges over anything
+                        }
                         continue
 
                     case .inserter, .powerPole:
@@ -631,7 +635,15 @@ final class GameLoop {
     
     private func addBuildingComponents(entity: Entity, buildingDef: BuildingDefinition, position: IntVector2, direction: Direction) {
         // Add render component - belts should appear above ground but below buildings
-        let renderLayer: RenderLayer = (buildingDef.type == .belt) ? .groundDecoration : .building
+        // Belt bridges should appear elevated above other belts
+        let renderLayer: RenderLayer
+        if buildingDef.type == .belt && buildingDef.id == "belt-bridge" {
+            renderLayer = .building  // Belt bridges appear above other belts
+        } else if buildingDef.type == .belt {
+            renderLayer = .groundDecoration
+        } else {
+            renderLayer = .building
+        }
         // Belts and inserters should be centered on the tile where they're placed
         // This ensures they appear exactly where the user taps
         let isBelt = buildingDef.type == .belt
@@ -684,6 +696,8 @@ final class GameLoop {
                 beltType = .splitter
             case "merger":
                 beltType = .merger
+            case "belt-bridge":
+                beltType = .bridge
             default:
                 beltType = .normal
             }

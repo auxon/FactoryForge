@@ -213,7 +213,19 @@ final class BuildingRegistry {
         )
         merger.beltSpeed = 1.875
         register(merger)
-        
+
+        // Belt Bridges
+        var beltBridge = BuildingDefinition(
+            id: "belt-bridge",
+            name: "Belt Bridge",
+            type: .belt,
+            maxHealth: 50,
+            textureId: "transport_belt",  // Use transport belt texture for now
+            cost: [ItemStack(itemId: "iron-plate", count: 1)]
+        )
+        beltBridge.beltSpeed = 1.875  // Same speed as transport belt
+        register(beltBridge)
+
         // Inserters
         var inserter = BuildingDefinition(
             id: "inserter",
