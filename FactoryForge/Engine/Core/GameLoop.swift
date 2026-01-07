@@ -806,6 +806,15 @@ final class GameLoop {
                 extractionRate: buildingDef.extractionRate
             ), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+
+        case .oilRefinery:
+            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+
+        case .chemicalPlant:
+            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
         }
     }
 

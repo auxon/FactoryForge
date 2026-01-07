@@ -475,6 +475,205 @@ final class RecipeRegistry {
             category: .crafting,
             order: "w"
         ))
+
+        // Oil processing buildings
+        register(Recipe(
+            id: "oil-well",
+            name: "Oil Well",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 5),
+                ItemStack(itemId: "iron-gear-wheel", count: 10),
+                ItemStack(itemId: "electronic-circuit", count: 5),
+                ItemStack(itemId: "pipe", count: 10)
+            ],
+            outputs: [ItemStack(itemId: "oil-well", count: 1)],
+            craftTime: 10,
+            category: .crafting,
+            order: "x"
+        ))
+
+        register(Recipe(
+            id: "oil-refinery",
+            name: "Oil Refinery",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 15),
+                ItemStack(itemId: "iron-gear-wheel", count: 10),
+                ItemStack(itemId: "electronic-circuit", count: 10),
+                ItemStack(itemId: "pipe", count: 10),
+                ItemStack(itemId: "stone-brick", count: 10)
+            ],
+            outputs: [ItemStack(itemId: "oil-refinery", count: 1)],
+            craftTime: 20,
+            category: .crafting,
+            order: "y"
+        ))
+
+        register(Recipe(
+            id: "chemical-plant",
+            name: "Chemical Plant",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 5),
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "electronic-circuit", count: 5),
+                ItemStack(itemId: "pipe", count: 5)
+            ],
+            outputs: [ItemStack(itemId: "chemical-plant", count: 1)],
+            craftTime: 5,
+            category: .crafting,
+            order: "z"
+        ))
+
+        // Oil processing recipes
+        register(Recipe(
+            id: "basic-oil-processing",
+            name: "Basic Oil Processing",
+            inputs: [ItemStack(itemId: "crude-oil", count: 100)],
+            outputs: [
+                ItemStack(itemId: "petroleum-gas", count: 45),
+                ItemStack(itemId: "light-oil", count: 30),
+                ItemStack(itemId: "heavy-oil", count: 25)
+            ],
+            craftTime: 5,
+            category: .oilProcessing,
+            order: "a"
+        ))
+
+        register(Recipe(
+            id: "advanced-oil-processing",
+            name: "Advanced Oil Processing",
+            inputs: [
+                ItemStack(itemId: "crude-oil", count: 100),
+                ItemStack(itemId: "water", count: 50)
+            ],
+            outputs: [
+                ItemStack(itemId: "petroleum-gas", count: 55),
+                ItemStack(itemId: "light-oil", count: 45),
+                ItemStack(itemId: "heavy-oil", count: 25)
+            ],
+            craftTime: 5,
+            category: .oilProcessing,
+            order: "b"
+        ))
+
+        register(Recipe(
+            id: "light-oil-cracking",
+            name: "Light Oil Cracking",
+            inputs: [
+                ItemStack(itemId: "light-oil", count: 30),
+                ItemStack(itemId: "water", count: 30)
+            ],
+            outputs: [ItemStack(itemId: "petroleum-gas", count: 20)],
+            craftTime: 5,
+            category: .chemistry,
+            order: "c"
+        ))
+
+        register(Recipe(
+            id: "heavy-oil-cracking",
+            name: "Heavy Oil Cracking",
+            inputs: [
+                ItemStack(itemId: "heavy-oil", count: 40),
+                ItemStack(itemId: "water", count: 30)
+            ],
+            outputs: [ItemStack(itemId: "light-oil", count: 30)],
+            craftTime: 5,
+            category: .chemistry,
+            order: "d"
+        ))
+
+        // Chemical products
+        register(Recipe(
+            id: "plastic-bar",
+            name: "Plastic Bar",
+            inputs: [
+                ItemStack(itemId: "petroleum-gas", count: 20),
+                ItemStack(itemId: "coal", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "plastic-bar", count: 2)],
+            craftTime: 1,
+            category: .chemistry,
+            order: "e"
+        ))
+
+        register(Recipe(
+            id: "sulfur",
+            name: "Sulfur",
+            inputs: [
+                ItemStack(itemId: "petroleum-gas", count: 30),
+                ItemStack(itemId: "water", count: 30)
+            ],
+            outputs: [ItemStack(itemId: "sulfur", count: 2)],
+            craftTime: 1,
+            category: .chemistry,
+            order: "f"
+        ))
+
+        register(Recipe(
+            id: "sulfuric-acid",
+            name: "Sulfuric Acid",
+            inputs: [
+                ItemStack(itemId: "sulfur", count: 5),
+                ItemStack(itemId: "iron-plate", count: 1),
+                ItemStack(itemId: "water", count: 100)
+            ],
+            outputs: [ItemStack(itemId: "sulfuric-acid", count: 50)],
+            craftTime: 1,
+            category: .chemistry,
+            order: "g"
+        ))
+
+        register(Recipe(
+            id: "lubricant",
+            name: "Lubricant",
+            inputs: [ItemStack(itemId: "heavy-oil", count: 10)],
+            outputs: [ItemStack(itemId: "lubricant", count: 10)],
+            craftTime: 1,
+            category: .chemistry,
+            order: "h"
+        ))
+
+        register(Recipe(
+            id: "battery",
+            name: "Battery",
+            inputs: [
+                ItemStack(itemId: "iron-plate", count: 1),
+                ItemStack(itemId: "copper-plate", count: 1),
+                ItemStack(itemId: "sulfuric-acid", count: 20)
+            ],
+            outputs: [ItemStack(itemId: "battery", count: 1)],
+            craftTime: 5,
+            category: .chemistry,
+            order: "i"
+        ))
+
+        register(Recipe(
+            id: "explosives",
+            name: "Explosives",
+            inputs: [
+                ItemStack(itemId: "coal", count: 1),
+                ItemStack(itemId: "sulfur", count: 1),
+                ItemStack(itemId: "water", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "explosives", count: 2)],
+            craftTime: 5,
+            category: .chemistry,
+            order: "j"
+        ))
+
+        // Chemical science pack
+        register(Recipe(
+            id: "chemical-science-pack",
+            name: "Chemical Science Pack",
+            inputs: [
+                ItemStack(itemId: "advanced-circuit", count: 3),
+                ItemStack(itemId: "engine-unit", count: 2),
+                ItemStack(itemId: "sulfuric-acid", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "chemical-science-pack", count: 1)],
+            craftTime: 24,
+            category: .crafting,
+            order: "aa"
+        ))
     }
 }
 

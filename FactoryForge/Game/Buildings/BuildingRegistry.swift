@@ -431,6 +431,51 @@ final class BuildingRegistry {
         )
         steelChest.inventorySlots = 48
         register(steelChest)
+
+        // Oil processing buildings
+        var oilWell = BuildingDefinition(
+            id: "oil-well",
+            name: "Oil Well",
+            type: .pumpjack,
+            maxHealth: 200,
+            cost: [ItemStack(itemId: "steel-plate", count: 5),
+                   ItemStack(itemId: "iron-gear-wheel", count: 10),
+                   ItemStack(itemId: "electronic-circuit", count: 5),
+                   ItemStack(itemId: "pipe", count: 10)]
+        )
+        oilWell.powerConsumption = 90  // kW
+        oilWell.extractionRate = 1.0   // 1 crude oil per second at full power
+        oilWell.inventorySlots = 1     // Output slot for crude oil
+        register(oilWell)
+
+        var oilRefinery = BuildingDefinition(
+            id: "oil-refinery",
+            name: "Oil Refinery",
+            type: .oilRefinery,
+            maxHealth: 300,
+            cost: [ItemStack(itemId: "steel-plate", count: 15),
+                   ItemStack(itemId: "iron-gear-wheel", count: 10),
+                   ItemStack(itemId: "electronic-circuit", count: 10),
+                   ItemStack(itemId: "pipe", count: 10),
+                   ItemStack(itemId: "stone-brick", count: 10)]
+        )
+        oilRefinery.powerConsumption = 420  // kW
+        oilRefinery.inventorySlots = 6      // Input + outputs for various fluids
+        register(oilRefinery)
+
+        var chemicalPlant = BuildingDefinition(
+            id: "chemical-plant",
+            name: "Chemical Plant",
+            type: .chemicalPlant,
+            maxHealth: 300,
+            cost: [ItemStack(itemId: "steel-plate", count: 5),
+                   ItemStack(itemId: "iron-gear-wheel", count: 5),
+                   ItemStack(itemId: "electronic-circuit", count: 5),
+                   ItemStack(itemId: "pipe", count: 5)]
+        )
+        chemicalPlant.powerConsumption = 210  // kW
+        chemicalPlant.inventorySlots = 6      // Multiple inputs and outputs
+        register(chemicalPlant)
     }
 }
 

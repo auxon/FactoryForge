@@ -39,8 +39,10 @@ final class MiningSystem: System {
 
         // Collect all modifications to apply after iteration
         var minerModifications: [(Entity, MinerComponent)] = []
+        var pumpjackModifications: [(Entity, PumpjackComponent)] = []
         var inventoryModifications: [(Entity, InventoryComponent)] = []
-        
+
+        // Process regular miners
         world.forEach(MinerComponent.self) { [self] entity, miner in
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
             guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
@@ -175,10 +177,78 @@ final class MiningSystem: System {
             // Save miner component (progress, isActive, etc. need to persist)
             minerModifications.append((entity, updatedMiner))
         }
-        
+
+        // Process pumpjacks (oil wells)
+        world.forEach(PumpjackComponent.self) { [self] entity, pumpjack in
+            guard let position = world.get(PositionComponent.self, for: entity) else { return }
+            guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
+
+            var updatedPumpjack = pumpjack
+
+            // Check power for pumpjacks
+            if let power = world.get(PowerConsumerComponent.self, for: entity) {
+                if power.satisfaction <= 0 {
+                    updatedPumpjack.isActive = false
+                    pumpjackModifications.append((entity, updatedPumpjack))
+                    return
+                } else {
+                    updatedPumpjack.isActive = true
+                }
+            }
+
+            guard updatedPumpjack.isActive else {
+                pumpjackModifications.append((entity, updatedPumpjack))
+                return
+            }
+
+            // Check if pumpjack is on an oil deposit
+            let tilePos = position.tilePosition
+            guard let oilDeposit = chunkManager.getResource(at: tilePos),
+                  oilDeposit.type.outputItem == "crude-oil",
+                  oilDeposit.amount > 0 else {
+                updatedPumpjack.isActive = false
+                pumpjackModifications.append((entity, updatedPumpjack))
+                return
+            }
+
+            updatedPumpjack.isActive = true
+
+            // Check if output inventory has space for crude oil
+            guard inventory.canAccept(itemId: "crude-oil") else {
+                pumpjackModifications.append((entity, updatedPumpjack))
+                return
+            }
+
+            // Calculate extraction time based on extraction rate
+            let extractionTime = 1.0 / updatedPumpjack.extractionRate
+
+            // Get power satisfaction multiplier
+            var speedMultiplier: Float = 1.0
+            if let power = world.get(PowerConsumerComponent.self, for: entity) {
+                speedMultiplier = power.satisfaction
+            }
+
+            // Progress oil extraction
+            updatedPumpjack.progress += deltaTime / extractionTime * speedMultiplier
+
+            // Complete extraction
+            if updatedPumpjack.progress >= 1.0 {
+                updatedPumpjack.progress = 0
+
+                // Extract oil (oil deposits are infinite in Factorio, so we don't reduce the deposit amount)
+                inventory.add(itemId: "crude-oil", count: 1)
+                inventoryModifications.append((entity, inventory))
+            }
+
+            pumpjackModifications.append((entity, updatedPumpjack))
+        }
+
         // Apply all modifications after iteration completes
         for (entity, miner) in minerModifications {
             world.add(miner, to: entity)
+        }
+        for (entity, pumpjack) in pumpjackModifications {
+            world.add(pumpjack, to: entity)
         }
         for (entity, inventory) in inventoryModifications {
             world.add(inventory, to: entity)

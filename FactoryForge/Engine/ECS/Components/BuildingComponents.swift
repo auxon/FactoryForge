@@ -377,10 +377,18 @@ struct PipeComponent: Component {
 struct PumpjackComponent: Component {
     var extractionRate: Float
     var oilRemaining: Float
-    
+
+    /// Extraction progress (0-1)
+    var progress: Float
+
+    /// Whether the pumpjack is currently active
+    var isActive: Bool
+
     init(extractionRate: Float = 1.0, oilRemaining: Float = 0) {
         self.extractionRate = extractionRate
         self.oilRemaining = oilRemaining
+        self.progress = 0
+        self.isActive = true
     }
 }
 

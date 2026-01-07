@@ -41,7 +41,8 @@ final class ResearchSystem: System {
             "transport-belt", "belt-bridge", "inserter", "wooden-chest", "iron-chest",
             "burner-mining-drill", "electric-mining-drill", "stone-furnace",
             "boiler", "steam-engine", "small-electric-pole",
-            "firearm-magazine", "automation-science-pack", "lab", "radar"
+            "firearm-magazine", "automation-science-pack", "lab", "radar",
+            "oil-well", "oil-refinery", "chemical-plant"
         ]
         
         for recipe in defaultRecipes {
@@ -348,7 +349,8 @@ final class ResearchSystem: System {
             "transport-belt", "belt-bridge", "inserter", "wooden-chest", "iron-chest",
             "burner-mining-drill", "electric-mining-drill", "stone-furnace",
             "boiler", "steam-engine", "small-electric-pole",
-            "firearm-magazine", "automation-science-pack", "lab", "radar"
+            "firearm-magazine", "automation-science-pack", "lab", "radar",
+            "oil-well", "oil-refinery", "chemical-plant"
         ]
         for recipe in defaultRecipes {
             unlockedRecipes.insert(recipe)

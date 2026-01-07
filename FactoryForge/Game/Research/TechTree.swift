@@ -242,6 +242,135 @@ final class TechnologyRegistry {
             order: "z-b",
             tier: 2
         ))
+
+        // Tier 3 - Oil Processing
+        register(Technology(
+            id: "oil-processing",
+            name: "Oil Processing",
+            description: "Unlocks oil wells and basic oil refining",
+            prerequisites: ["advanced-electronics"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 50),
+                ScienceCost("logistic-science-pack", count: 50),
+                ScienceCost("chemical-science-pack", count: 50)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["oil-well", "basic-oil-processing"]),
+            order: "a",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "advanced-oil-processing",
+            name: "Advanced Oil Processing",
+            description: "Unlocks advanced oil refining techniques",
+            prerequisites: ["oil-processing"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 50),
+                ScienceCost("logistic-science-pack", count: 50),
+                ScienceCost("chemical-science-pack", count: 50)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["oil-refinery", "advanced-oil-processing"]),
+            order: "b",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "chemistry",
+            name: "Chemistry",
+            description: "Unlocks chemical plants and basic chemical production",
+            prerequisites: ["advanced-oil-processing"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 100),
+                ScienceCost("logistic-science-pack", count: 100),
+                ScienceCost("chemical-science-pack", count: 100)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["chemical-plant", "sulfur", "plastic-bar", "chemical-science-pack"]),
+            order: "c",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "sulfur-processing",
+            name: "Sulfur Processing",
+            description: "Unlocks sulfuric acid production",
+            prerequisites: ["chemistry"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 100),
+                ScienceCost("logistic-science-pack", count: 100),
+                ScienceCost("chemical-science-pack", count: 100)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["sulfuric-acid"]),
+            order: "d",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "oil-cracking",
+            name: "Oil Cracking",
+            description: "Unlocks oil cracking for better yields",
+            prerequisites: ["chemistry"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 100),
+                ScienceCost("logistic-science-pack", count: 100),
+                ScienceCost("chemical-science-pack", count: 100)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["light-oil-cracking", "heavy-oil-cracking"]),
+            order: "e",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "battery",
+            name: "Battery",
+            description: "Unlocks battery production",
+            prerequisites: ["sulfur-processing"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 100),
+                ScienceCost("logistic-science-pack", count: 100),
+                ScienceCost("chemical-science-pack", count: 100)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["battery"]),
+            order: "f",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "explosives",
+            name: "Explosives",
+            description: "Unlocks explosive production",
+            prerequisites: ["sulfur-processing"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 100),
+                ScienceCost("logistic-science-pack", count: 100),
+                ScienceCost("chemical-science-pack", count: 100)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["explosives"]),
+            order: "g",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "lubricant",
+            name: "Lubricant",
+            description: "Unlocks lubricant production",
+            prerequisites: ["oil-cracking"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 100),
+                ScienceCost("logistic-science-pack", count: 100),
+                ScienceCost("chemical-science-pack", count: 100)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["lubricant"]),
+            order: "h",
+            tier: 3
+        ))
     }
     
     /// Gets prerequisites for a technology
