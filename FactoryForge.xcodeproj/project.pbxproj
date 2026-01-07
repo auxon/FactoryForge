@@ -26,6 +26,7 @@
 		0D18B5712F0DD7DE006B70A5 /* Belt Mechanics.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5682F0DD7DE006B70A5 /* Belt Mechanics.md */; };
 		0D18B5742F0DD8E2006B70A5 /* DocumentViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */; };
 		0D18B5752F0DD8E2006B70A5 /* HelpMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */; };
+		0D18B5772F0DE412006B70A5 /* help.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5762F0DE412006B70A5 /* help.png */; };
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
 		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
 		0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371D2F0485C900941686 /* inserters_sheet.png */; };
@@ -282,6 +283,7 @@
 		0D18B56B2F0DD7DE006B70A5 /* Research.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Research.md; sourceTree = "<group>"; };
 		0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentViewer.swift; sourceTree = "<group>"; };
 		0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpMenu.swift; sourceTree = "<group>"; };
+		0D18B5762F0DE412006B70A5 /* help.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = help.png; sourceTree = "<group>"; };
 		0D3A37192F044AC200941686 /* recycle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = recycle.png; sourceTree = "<group>"; };
 		0D3A371B2F047F7700941686 /* move.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = move.png; sourceTree = "<group>"; };
 		0D3A371D2F0485C900941686 /* inserters_sheet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserters_sheet.png; sourceTree = "<group>"; };
@@ -546,6 +548,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B5762F0DE412006B70A5 /* help.png */,
 				0D18B55F2F0D6AE9006B70A5 /* transport_belt_animation.png */,
 				0D18B55D2F0CD0FF006B70A5 /* merger.png */,
 				0D18B55B2F0CD0D5006B70A5 /* splitter.png */,
@@ -1214,6 +1217,7 @@
 				0DFF59C32F02CAC000A8699D /* transport_belt_east_006.png in Resources */,
 				0DFF59C42F02CAC000A8699D /* transport_belt_east_013.png in Resources */,
 				0DFF59C52F02CAC000A8699D /* transport_belt_east_001.png in Resources */,
+				0D18B5772F0DE412006B70A5 /* help.png in Resources */,
 				0DFF59C62F02CAC000A8699D /* transport_belt_east_011.png in Resources */,
 				0DFF59C72F02CAC000A8699D /* transport_belt_east_009.png in Resources */,
 				0DFF59C82F02CAC000A8699D /* transport_belt_east_012.png in Resources */,

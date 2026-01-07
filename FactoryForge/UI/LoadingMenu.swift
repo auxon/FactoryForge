@@ -96,7 +96,7 @@ final class LoadingMenu: UIPanel_Base {
                 center: Vector2(helpButtonX, helpButtonY),
                 size: Vector2(helpButtonSize, helpButtonSize)
             ),
-            textureId: "solid_white"  // Will render question mark emoji as overlay
+            textureId: "help"  // Will render question mark emoji as overlay
         )
         helpButton.onTap = { [weak self] in
             AudioManager.shared.playClickSound()
