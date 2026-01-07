@@ -7,52 +7,81 @@ import StoreKit
 struct StoreViewRepresentable: View {
     let productIds: [String]
     let onPurchaseCompleted: () -> Void
+    let onClose: () -> Void
 
     var body: some View {
-        StoreView(ids: productIds) { product in
-            ProductView(id: product.id) {
-                VStack {
-                    Text(product.displayName)
-                        .font(.headline)
-                        .foregroundColor(.primary)
+        ZStack {
+            StoreView(ids: productIds) { product in
+                ProductView(id: product.id) {
+                    VStack {
+                        Text(product.displayName)
+                            .font(.headline)
+                            .foregroundColor(.primary)
 
-                    if !product.description.isEmpty {
-                        Text(product.description)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
+                        if !product.description.isEmpty {
+                            Text(product.description)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                    }
+                }
+                .productViewStyle(.compact)
+                .onInAppPurchaseCompletion { product, result in
+                    switch result {
+                    case .success(let purchaseResult):
+                        switch purchaseResult {
+                        case .success:
+                            // Purchase completed successfully - deliver items
+                            handlePurchaseSuccess(for: product.id)
+                            onPurchaseCompleted()
+                            // Clean up callback after successful purchase
+                            IAPManager.shared.onPurchaseDelivered = nil
+                        case .userCancelled:
+                            // User cancelled the purchase
+                            print("Purchase cancelled by user")
+                        case .pending:
+                            // Transaction is pending (e.g., waiting for parental approval)
+                            print("Purchase pending")
+                        @unknown default:
+                            // Handle future cases
+                            print("Unknown purchase result: \(purchaseResult)")
+                        }
+                    case .failure(let error):
+                        // Purchase failed
+                        print("Purchase failed: \(error)")
+                    @unknown default:
+                        // Handle any future Result cases
+                        print("Unknown result: \(result)")
                     }
                 }
             }
-            .productViewStyle(.compact)
-            .onInAppPurchaseCompletion { product, result in
-                switch result {
-                case .success(let purchaseResult):
-                    switch purchaseResult {
-                    case .success:
-                        // Purchase completed successfully - deliver items
-                        handlePurchaseSuccess(for: product.id)
-                        onPurchaseCompleted()
-                    case .userCancelled:
-                        // User cancelled the purchase
-                        print("Purchase cancelled by user")
-                    @unknown default:
-                        // Handle future cases
-                        print("Unknown purchase result: \(purchaseResult)")
+            .storeButton(.visible, for: .restorePurchases)
+            .storeButton(.hidden, for: .cancellation)
+            .tint(.blue)
+
+            // Close button overlay
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: onClose) {
+                        ZStack {
+                            Circle()
+                                .fill(SwiftUI.Color.black)
+                                .opacity(0.7)
+                                .frame(width: 40, height: 40)
+                            Text("✕")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(SwiftUI.Color.white)
+                        }
                     }
-                case .failure(let error):
-                    // Purchase failed
-                    print("Purchase failed: \(error)")
-                @unknown default:
-                    // Handle any future Result cases
-                    print("Unknown result: \(result)")
+                    .padding(.top, 50)
+                    .padding(.trailing, 20)
                 }
+                Spacer()
             }
         }
-        .storeButton(.visible, for: .restorePurchases)
-        .storeButton(.hidden, for: .cancellation)
-        .tint(.blue)
     }
 
     private func handlePurchaseSuccess(for productId: String) {
@@ -73,16 +102,30 @@ class StoreViewController: UIHostingController<StoreViewRepresentable> {
         self.productIds = productIds
         self.onPurchaseCompleted = onPurchaseCompleted
 
+        // Create initial view without self-capturing closure
         let storeView = StoreViewRepresentable(
             productIds: productIds,
-            onPurchaseCompleted: onPurchaseCompleted
+            onPurchaseCompleted: onPurchaseCompleted,
+            onClose: {}  // Empty closure initially
         )
 
         super.init(rootView: storeView)
 
         // Configure the hosting controller
-        self.view.backgroundColor = .systemBackground
+        self.view.backgroundColor = UIKit.UIColor.systemBackground
         self.modalPresentationStyle = .fullScreen
+
+        // Now update the rootView with the proper closure
+        self.rootView = StoreViewRepresentable(
+            productIds: productIds,
+            onPurchaseCompleted: onPurchaseCompleted,
+            onClose: { [weak self] in
+                self?.dismiss(animated: true) {
+                    // Clean up IAPManager callback when dismissed
+                    IAPManager.shared.onPurchaseDelivered = nil
+                }
+            }
+        )
     }
 
     @MainActor required dynamic init?(coder aDecoder: NSCoder) {

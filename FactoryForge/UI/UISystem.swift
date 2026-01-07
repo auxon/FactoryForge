@@ -18,7 +18,6 @@ final class UISystem {
     private var craftingMenu: CraftingMenu
     private var buildMenu: BuildMenu
     private var researchUI: ResearchUI
-    private var buyUI: BuyUI
     private var machineUI: MachineUI
     private var loadingMenu: LoadingMenu
     private var autoplayMenu: AutoPlayMenu
@@ -48,13 +47,7 @@ final class UISystem {
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
         buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
         researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
-        buyUI = BuyUI(screenSize: screenSize, gameLoop: gameLoop, iapManager: IAPManager.shared)
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
-
-        // Set up callbacks after all properties are initialized
-        buyUI.presentStoreViewController = { [weak self] viewController in
-            self?.presentStoreViewController(viewController)
-        }
 
         // Initialize entity selection dialog
         entitySelectionDialog = EntitySelectionDialog(screenSize: screenSize, gameLoop: gameLoop, renderer: renderer)
@@ -72,13 +65,7 @@ final class UISystem {
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
         buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
         researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
-        buyUI = BuyUI(screenSize: screenSize, gameLoop: gameLoop, iapManager: IAPManager.shared)
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
-
-        // Set up callbacks after all properties are initialized
-        buyUI.presentStoreViewController = { [weak self] viewController in
-            self?.presentStoreViewController(viewController)
-        }
 
         // Recreate help menu and document viewer with new screen size
         helpMenu = HelpMenu(screenSize: screenSize)
@@ -177,7 +164,8 @@ final class UISystem {
             if self?.activePanel == .machine {
                 self?.closeAllPanels()
             }
-            self?.togglePanel(.buy)
+            // Directly present the StoreViewController modal
+            self?.presentStoreViewControllerModal()
         }
 
         hud.onMenuPressed = { [weak self] in
@@ -215,6 +203,25 @@ final class UISystem {
     }
 
     // MARK: - StoreKit Integration
+
+    private func presentStoreViewControllerModal() {
+        // Set up IAPManager callback for inventory delivery
+        IAPManager.shared.onPurchaseDelivered = { [weak self] itemId, quantity in
+            self?.gameLoop?.addItemToInventory(itemId: itemId, quantity: quantity)
+        }
+
+        // Get all product IDs from IAPManager
+        let productIds = IAPManager.shared.productIds
+
+        // Create the StoreViewController
+        let storeVC = StoreViewController(productIds: productIds) { [weak self] in
+            // Purchase completed - items are automatically added to inventory via IAPManager
+            // No additional UI action needed
+        }
+
+        // Present the StoreViewController directly
+        presentStoreViewController(storeVC)
+    }
 
     func presentStoreViewController(_ viewController: UIViewController) {
         // Find the root view controller to present the StoreView
@@ -261,8 +268,6 @@ final class UISystem {
                 buildMenu.update(deltaTime: deltaTime)
             case .research:
                 researchUI.update(deltaTime: deltaTime)
-            case .buy:
-                buyUI.update(deltaTime: deltaTime)
             case .machine:
                 machineUI.update(deltaTime: deltaTime)
             case .entitySelection:
@@ -403,8 +408,6 @@ final class UISystem {
                 buildMenu.render(renderer: renderer)
             case .research:
                 researchUI.render(renderer: renderer)
-            case .buy:
-                buyUI.render(renderer: renderer)
             case .machine:
                 machineUI.render(renderer: renderer)
             case .entitySelection:
@@ -453,8 +456,6 @@ final class UISystem {
             buildMenu.open()
         case .research:
             researchUI.open()
-        case .buy:
-            buyUI.open()
         case .machine:
             machineUI.open()
             case .entitySelection:
@@ -483,8 +484,6 @@ final class UISystem {
                 buildMenu.close()
             case .research:
                 researchUI.close()
-            case .buy:
-                buyUI.close()
             case .machine:
                 machineUI.close()
             case .entitySelection:
@@ -578,8 +577,6 @@ final class UISystem {
                 if buildMenu.handleTap(at: screenPos) { return true }
             case .research:
                 if researchUI.handleTap(at: screenPos) { return true }
-            case .buy:
-                if buyUI.handleTap(at: screenPos) { return true }
             case .machine:
                 if machineUI.handleTap(at: screenPos) { return true }
             case .entitySelection:
@@ -636,10 +633,6 @@ final class UISystem {
             case .research:
                 let result = researchUI.handleTap(at: screenPos)
                 print("UISystem: researchUI.handleTap returned \(result)")
-                if result { return true }
-            case .buy:
-                let result = buyUI.handleTap(at: screenPos)
-                print("UISystem: buyUI.handleTap returned \(result)")
                 if result { return true }
             case .machine:
                 let result = machineUI.handleTap(at: screenPos)
@@ -706,8 +699,6 @@ final class UISystem {
                 return buildMenu.getTooltip(at: screenPos)
             case .research:
                 return researchUI.getTooltip(at: screenPos)
-            case .buy:
-                return "Buy Items" // Simple tooltip for buy UI
             case .machine:
                 return nil // MachineUI doesn't need tooltips yet
             case .entitySelection:
@@ -749,7 +740,6 @@ enum UIPanel {
     case crafting
     case build
     case research
-    case buy
     case machine
     case entitySelection
     case inserterConnection

@@ -89,6 +89,7 @@ final class TextureAtlas {
             ("new_game", nil),
             ("save_game", nil),
             ("help", nil),
+            ("buy", nil),
             ("recycle", nil),
             ("move", nil),
             ("disable_audio", nil),

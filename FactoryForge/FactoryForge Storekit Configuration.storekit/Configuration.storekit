@@ -1,0 +1,369 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "7F862AAC",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "CF9D2286",
+      "localizations" : [
+        {
+          "description" : "100 units of Iron Ore - Essential for early game production",
+          "displayName" : "Iron Ore Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.iron_ore_pack",
+      "referenceName" : "Iron Ore Pack (100)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "COPPER_ORE",
+      "localizations" : [
+        {
+          "description" : "100 units of Copper Ore - Essential for electronics and wiring",
+          "displayName" : "Copper Ore Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.copper_ore_pack",
+      "referenceName" : "Copper Ore Pack (100)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "COAL_PACK",
+      "localizations" : [
+        {
+          "description" : "100 units of Coal - Fuel for furnaces and power generation",
+          "displayName" : "Coal Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.coal_pack",
+      "referenceName" : "Coal Pack (100)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "STONE_PACK",
+      "localizations" : [
+        {
+          "description" : "100 units of Stone - Used for construction and furnaces",
+          "displayName" : "Stone Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.stone_pack",
+      "referenceName" : "Stone Pack (100)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "WOOD_PACK",
+      "localizations" : [
+        {
+          "description" : "100 units of Wood - Fuel and basic construction material",
+          "displayName" : "Wood Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.wood_pack",
+      "referenceName" : "Wood Pack (100)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "AUTO_SCIENCE",
+      "localizations" : [
+        {
+          "description" : "10 Automation Science Packs - Unlock basic research",
+          "displayName" : "Automation Science Pack (10)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.automation_science_pack",
+      "referenceName" : "Automation Science Pack (10)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "LOGISTIC_SCIENCE",
+      "localizations" : [
+        {
+          "description" : "10 Logistic Science Packs - Unlock logistics research",
+          "displayName" : "Logistic Science Pack (10)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.logistic_science_pack",
+      "referenceName" : "Logistic Science Pack (10)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "CHEMICAL_SCIENCE",
+      "localizations" : [
+        {
+          "description" : "10 Chemical Science Packs - Unlock advanced research",
+          "displayName" : "Chemical Science Pack (10)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.chemical_science_pack",
+      "referenceName" : "Chemical Science Pack (10)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "PRODUCTION_SCIENCE",
+      "localizations" : [
+        {
+          "description" : "10 Production Science Packs - Unlock production research",
+          "displayName" : "Production Science Pack (10)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.production_science_pack",
+      "referenceName" : "Production Science Pack (10)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "UTILITY_SCIENCE",
+      "localizations" : [
+        {
+          "description" : "10 Utility Science Packs - Unlock utility research",
+          "displayName" : "Utility Science Pack (10)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.utility_science_pack",
+      "referenceName" : "Utility Science Pack (10)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "MINING_DRILL",
+      "localizations" : [
+        {
+          "description" : "Fast and efficient mining drill - Boost your resource production",
+          "displayName" : "Electric Mining Drill",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.electric_mining_drill",
+      "referenceName" : "Electric Mining Drill",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "ASSEMBLER_1",
+      "localizations" : [
+        {
+          "description" : "Automated production machine - Speed up your crafting",
+          "displayName" : "Assembling Machine 1",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.assembling_machine_1",
+      "referenceName" : "Assembling Machine 1",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "LAB",
+      "localizations" : [
+        {
+          "description" : "Research facility - Accelerate technological progress",
+          "displayName" : "Lab",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.lab",
+      "referenceName" : "Lab",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "SOLAR_PANEL",
+      "localizations" : [
+        {
+          "description" : "Clean energy generation - Power your factory sustainably",
+          "displayName" : "Solar Panel",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.solar_panel",
+      "referenceName" : "Solar Panel",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "ACCUMULATOR",
+      "localizations" : [
+        {
+          "description" : "Energy storage device - Store power for when you need it",
+          "displayName" : "Accumulator",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.accumulator",
+      "referenceName" : "Accumulator",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "EXPRESS_BELT",
+      "localizations" : [
+        {
+          "description" : "Ultra-fast transport belt - Maximize your factory throughput",
+          "displayName" : "Express Transport Belt",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.express_transport_belt",
+      "referenceName" : "Express Transport Belt",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "FAST_INSERTER",
+      "localizations" : [
+        {
+          "description" : "High-speed inserter - Move items quickly and efficiently",
+          "displayName" : "Fast Inserter",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.fast_inserter",
+      "referenceName" : "Fast Inserter",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "STEEL_CHEST",
+      "localizations" : [
+        {
+          "description" : "Large storage container - Store more items efficiently",
+          "displayName" : "Steel Chest",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.steel_chest",
+      "referenceName" : "Steel Chest",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "GUN_TURRET",
+      "localizations" : [
+        {
+          "description" : "Automated defense turret - Protect your factory",
+          "displayName" : "Gun Turret",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.gun_turret",
+      "referenceName" : "Gun Turret",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "WALL_PACK",
+      "localizations" : [
+        {
+          "description" : "10 Stone Walls - Fortify your base defenses",
+          "displayName" : "Wall (10)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.wall",
+      "referenceName" : "Wall (10)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "AMMO_PACK",
+      "localizations" : [
+        {
+          "description" : "100 Firearm Magazines - Ammunition for your turrets",
+          "displayName" : "Firearm Magazine Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.firearm_magazine_pack",
+      "referenceName" : "Firearm Magazine Pack (100)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "CRUDE_OIL",
+      "localizations" : [
+        {
+          "description" : "1000 units of Crude Oil - Fuel for advanced production",
+          "displayName" : "Crude Oil Pack (1000)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.crude_oil_pack",
+      "referenceName" : "Crude Oil Pack (1000)",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
