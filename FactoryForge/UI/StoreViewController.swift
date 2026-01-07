@@ -13,6 +13,7 @@ struct StoreViewRepresentable: View {
         ZStack {
             StoreView(ids: productIds)
                 .productViewStyle(.large)
+                .imageScale(.large)
                 .storeButton(.visible, for: .restorePurchases)
                 .storeButton(.hidden, for: .cancellation)
                 .tint(.blue)

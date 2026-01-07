@@ -26,6 +26,7 @@
         }
       ],
       "productID" : "com.factoryforge.items.iron_ore_pack",
+      "promotionalImageID" : "79715020",
       "referenceName" : "Iron Ore Pack (100)",
       "type" : "Consumable"
     },
@@ -41,6 +42,7 @@
         }
       ],
       "productID" : "com.factoryforge.items.copper_ore_pack",
+      "promotionalImageID" : "375466EB",
       "referenceName" : "Copper Ore Pack (100)",
       "type" : "Consumable"
     },
