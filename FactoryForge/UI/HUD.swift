@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 
 /// Heads-up display showing vital game info
+@available(iOS 17.0, *)
 final class HUD {
     private var screenSize: Vector2
     private weak var gameLoop: GameLoop?
@@ -23,6 +24,7 @@ final class HUD {
     var onCraftingPressed: (() -> Void)?
     var onBuildPressed: (() -> Void)?
     var onResearchPressed: (() -> Void)?
+    var onBuyPressed: (() -> Void)? // Called when buy button is pressed
     var onMenuPressed: (() -> Void)? // Called when menu button is pressed
     var onMoveBuildingPressed: (() -> Void)? // Called when move button is pressed
     var onDeleteBuildingPressed: (() -> Void)? // Called when delete button is pressed
@@ -178,7 +180,8 @@ final class HUD {
 
         // Calculate toolbar positions
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
-        var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
+        // Center 5 buttons: inventory, crafting, build, research, buy
+        var currentX = screenSize.x / 2 - (buttonSize * 2.5 + buttonSpacing * 2)
 
         // Check inventory button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
@@ -199,6 +202,11 @@ final class HUD {
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
             return "Research"
         }
+        currentX += buttonSize + buttonSpacing
+
+        if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
+            return "Buy"
+        }
 
         return nil
     }
@@ -214,23 +222,28 @@ final class HUD {
 
         // Calculate toolbar positions
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
-        var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
+        // Center 5 buttons: inventory, crafting, build, research, buy
+        var currentX = screenSize.x / 2 - (buttonSize * 2.5 + buttonSpacing * 2)
 
         // Render inventory button
         // print("Rendering inventory button at Metal position (\(currentX), \(toolbarY))")
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "inventory", callback: onInventoryPressed)
         currentX += buttonSize + buttonSpacing
-        
+
         // Render crafting button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "gear", callback: onCraftingPressed)
         currentX += buttonSize + buttonSpacing
-        
+
         // Render build button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "assembler", callback: onBuildPressed)
         currentX += buttonSize + buttonSpacing
-        
+
         // Render research button
         renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "lab", callback: onResearchPressed)
+        currentX += buttonSize + buttonSpacing
+
+        // Render buy button
+        renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "buy", callback: onBuyPressed)
 
         // Render virtual joystick
             joystick.updateScreenSize(screenSize)
@@ -631,8 +644,9 @@ final class HUD {
 
         // Calculate toolbar positions (same as render)
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
-        var currentX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
-        
+        // Center 5 buttons: inventory, crafting, build, research, buy
+        var currentX = screenSize.x / 2 - (buttonSize * 2.5 + buttonSpacing * 2)
+
         // Check inventory button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
             onInventoryPressed?()
@@ -657,6 +671,13 @@ final class HUD {
         // Check research button
         if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
             onResearchPressed?()
+            return true
+        }
+        currentX += buttonSize + buttonSpacing
+
+        // Check buy button
+        if checkButtonTap(at: position, buttonPos: Vector2(currentX, toolbarY)) {
+            onBuyPressed?()
             return true
         }
         

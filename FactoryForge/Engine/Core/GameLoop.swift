@@ -2,6 +2,7 @@ import Foundation
 import QuartzCore
 
 /// Main game loop that coordinates all game systems
+@available(iOS 17.0, *)
 final class GameLoop {
     // Core systems
     let world: World
@@ -1354,6 +1355,13 @@ final class GameLoop {
     
     func isTechnologyResearched(_ techId: String) -> Bool {
         return researchSystem.completedTechnologies.contains(techId)
+    }
+
+    // MARK: - IAP Integration
+
+    /// Adds items to the player's inventory (used for IAP deliveries)
+    func addItemToInventory(itemId: String, quantity: Int) {
+        player.inventory.add(itemId: itemId, count: quantity)
     }
 }
 

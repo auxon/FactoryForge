@@ -28,6 +28,11 @@
 		0D18B5752F0DD8E2006B70A5 /* HelpMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */; };
 		0D18B5772F0DE412006B70A5 /* help.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5762F0DE412006B70A5 /* help.png */; };
 		0D18B5792F0E10AA006B70A5 /* belt_bridge.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5782F0E10AA006B70A5 /* belt_bridge.png */; };
+		0D18B57B2F0EECE4006B70A5 /* buy.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B57A2F0EECE4006B70A5 /* buy.png */; };
+		0D18B57D2F0EECFF006B70A5 /* BuyUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B57C2F0EECFF006B70A5 /* BuyUI.swift */; };
+		0D18B57F2F0EEDD1006B70A5 /* StoreKit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B57E2F0EEDD1006B70A5 /* StoreKit Configuration.storekit */; };
+		0D18B5842F0EEF92006B70A5 /* IAPManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5822F0EEF92006B70A5 /* IAPManager.swift */; };
+		0D18B5862F0EF07B006B70A5 /* StoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5852F0EF07B006B70A5 /* StoreViewController.swift */; };
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
 		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
 		0D3A371E2F0485C900941686 /* inserters_sheet.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371D2F0485C900941686 /* inserters_sheet.png */; };
@@ -286,6 +291,11 @@
 		0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpMenu.swift; sourceTree = "<group>"; };
 		0D18B5762F0DE412006B70A5 /* help.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = help.png; sourceTree = "<group>"; };
 		0D18B5782F0E10AA006B70A5 /* belt_bridge.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = belt_bridge.png; sourceTree = "<group>"; };
+		0D18B57A2F0EECE4006B70A5 /* buy.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = buy.png; sourceTree = "<group>"; };
+		0D18B57C2F0EECFF006B70A5 /* BuyUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuyUI.swift; sourceTree = "<group>"; };
+		0D18B57E2F0EEDD1006B70A5 /* StoreKit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "StoreKit Configuration.storekit"; sourceTree = "<group>"; };
+		0D18B5822F0EEF92006B70A5 /* IAPManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IAPManager.swift; sourceTree = "<group>"; };
+		0D18B5852F0EF07B006B70A5 /* StoreViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreViewController.swift; sourceTree = "<group>"; };
 		0D3A37192F044AC200941686 /* recycle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = recycle.png; sourceTree = "<group>"; };
 		0D3A371B2F047F7700941686 /* move.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = move.png; sourceTree = "<group>"; };
 		0D3A371D2F0485C900941686 /* inserters_sheet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserters_sheet.png; sourceTree = "<group>"; };
@@ -547,9 +557,18 @@
 			path = Docs;
 			sourceTree = "<group>";
 		};
+		0D18B5832F0EEF92006B70A5 /* IAP */ = {
+			isa = PBXGroup;
+			children = (
+				0D18B5822F0EEF92006B70A5 /* IAPManager.swift */,
+			);
+			path = IAP;
+			sourceTree = "<group>";
+		};
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B57A2F0EECE4006B70A5 /* buy.png */,
 				0D18B5782F0E10AA006B70A5 /* belt_bridge.png */,
 				0D18B5762F0DE412006B70A5 /* help.png */,
 				0D18B55F2F0D6AE9006B70A5 /* transport_belt_animation.png */,
@@ -892,6 +911,8 @@
 		A0000200001 /* FactoryForge */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B5832F0EEF92006B70A5 /* IAP */,
+				0D18B57E2F0EEDD1006B70A5 /* StoreKit Configuration.storekit */,
 				0D18B56C2F0DD7DE006B70A5 /* Docs */,
 				0D18B5552F0C64BE006B70A5 /* Assets.xcassets */,
 				0D6FDBD12EFDC7E900576EC3 /* Assets */,
@@ -1101,6 +1122,8 @@
 		A0000200040 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				0D18B5852F0EF07B006B70A5 /* StoreViewController.swift */,
+				0D18B57C2F0EECFF006B70A5 /* BuyUI.swift */,
 				0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */,
 				0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */,
 				0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */,
@@ -1278,6 +1301,7 @@
 				0DE2297F2F0177B900BD619D /* miner.png in Resources */,
 				0D6FDC3A2EFDE1B500576EC3 /* production_science_pack.png in Resources */,
 				0DE229792F0173B500BD619D /* inventory.png in Resources */,
+				0D18B57B2F0EECE4006B70A5 /* buy.png in Resources */,
 				0D6FDC3B2EFDE1B500576EC3 /* assembling_machine_1.png in Resources */,
 				0D6FDC672EFEE36A00576EC3 /* save_game.png in Resources */,
 				0D6FDC3C2EFDE1B500576EC3 /* fast_transport_belt.png in Resources */,
@@ -1345,6 +1369,7 @@
 				0DFF59DD2F02CACD00A8699D /* transport_belt_south_011.png in Resources */,
 				0DFF59DE2F02CACD00A8699D /* transport_belt_south_012.png in Resources */,
 				0DFF59DF2F02CACD00A8699D /* transport_belt_south_003.png in Resources */,
+				0D18B57F2F0EEDD1006B70A5 /* StoreKit Configuration.storekit in Resources */,
 				0DFF59E02F02CACD00A8699D /* transport_belt_south_002.png in Resources */,
 				0DFF59E12F02CACD00A8699D /* transport_belt_south_004.png in Resources */,
 				0DFF59E22F02CACD00A8699D /* transport_belt_south_006.png in Resources */,
@@ -1383,6 +1408,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0D18B5842F0EEF92006B70A5 /* IAPManager.swift in Sources */,
 				A1000001001 /* AppDelegate.swift in Sources */,
 				A1000002001 /* GameViewController.swift in Sources */,
 				A1001001001 /* GameLoop.swift in Sources */,
@@ -1402,6 +1428,7 @@
 				A1003007001 /* CombatComponents.swift in Sources */,
 				A1004001001 /* MetalRenderer.swift in Sources */,
 				A1004002001 /* TextureAtlas.swift in Sources */,
+				0D18B5862F0EF07B006B70A5 /* StoreViewController.swift in Sources */,
 				A1004003001 /* TileMapRenderer.swift in Sources */,
 				A1004004001 /* SpriteRenderer.swift in Sources */,
 				0D18B5742F0DD8E2006B70A5 /* DocumentViewer.swift in Sources */,
@@ -1442,6 +1469,7 @@
 				A1014004001 /* CraftingMenu.swift in Sources */,
 				A1014005001 /* BuildMenu.swift in Sources */,
 				A1014006001 /* ResearchUI.swift in Sources */,
+				0D18B57D2F0EECFF006B70A5 /* BuyUI.swift in Sources */,
 				0D6FDC632EFEDB6100576EC3 /* LoadingMenu.swift in Sources */,
 				0D18B5632F0D9219006B70A5 /* AutoPlayTypes.swift in Sources */,
 				0D18B5642F0D9219006B70A5 /* AutoPlaySystem.swift in Sources */,
@@ -1588,6 +1616,7 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1614,6 +1643,7 @@
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

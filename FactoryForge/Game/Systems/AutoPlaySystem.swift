@@ -1,6 +1,7 @@
 import Foundation
 
 /// System that handles automated gameplay for testing and demos
+@available(iOS 17.0, *)
 final class AutoPlaySystem: System {
     private var isEnabled = false
 
@@ -445,6 +446,7 @@ final class AutoPlaySystem: System {
 
 // MARK: - Built-in Scenarios
 
+@available(iOS 17.0, *)
 extension AutoPlaySystem {
     /// Get a built-in test scenario
     static func builtInScenario(name: String) -> GameScenario? {

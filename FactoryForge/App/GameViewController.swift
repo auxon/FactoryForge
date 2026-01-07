@@ -3,6 +3,7 @@ import MetalKit
 import Security
 import Darwin
 
+@available(iOS 17.0, *)
 class GameViewController: UIViewController {
     private var metalView: MTKView!
     private var renderer: MetalRenderer!

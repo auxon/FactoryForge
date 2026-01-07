@@ -1,6 +1,7 @@
 import UIKit
 
 /// Manages all touch input for the game
+@available(iOS 17.0, *)
 final class InputManager: NSObject {
     private weak var view: UIView?
     private weak var gameLoop: GameLoop?
@@ -1743,6 +1744,7 @@ enum BuildMode {
 
 // MARK: - UIGestureRecognizerDelegate
 
+@available(iOS 17.0, *)
 extension InputManager: UIGestureRecognizerDelegate {
     // Don't prevent pan gesture - we'll handle joystick in the pan handler
     // This allows us to get .changed and .ended events

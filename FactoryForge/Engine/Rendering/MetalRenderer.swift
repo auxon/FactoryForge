@@ -2,6 +2,7 @@ import MetalKit
 import simd
 
 /// Core Metal renderer for the game
+@available(iOS 17.0, *)
 final class MetalRenderer: NSObject, MTKViewDelegate {
     // Metal objects
     let device: MTLDevice

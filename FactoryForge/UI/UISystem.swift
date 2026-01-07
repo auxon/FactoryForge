@@ -5,6 +5,8 @@ import Metal
 let UIScale: Float = Float(UIScreen.main.scale)
 
 /// Main UI system that manages all UI elements
+@available(iOS 17.0, *)
+@available(iOS 17.0, *)
 final class UISystem {
     private weak var gameLoop: GameLoop?
     private weak var renderer: MetalRenderer?
@@ -16,6 +18,7 @@ final class UISystem {
     private var craftingMenu: CraftingMenu
     private var buildMenu: BuildMenu
     private var researchUI: ResearchUI
+    private var buyUI: BuyUI
     private var machineUI: MachineUI
     private var loadingMenu: LoadingMenu
     private var autoplayMenu: AutoPlayMenu
@@ -45,7 +48,14 @@ final class UISystem {
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
         buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
         researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
+        buyUI = BuyUI(screenSize: screenSize, gameLoop: gameLoop, iapManager: IAPManager.shared)
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
+
+        // Set up callbacks after all properties are initialized
+        buyUI.presentStoreViewController = { [weak self] viewController in
+            self?.presentStoreViewController(viewController)
+        }
+
         // Initialize entity selection dialog
         entitySelectionDialog = EntitySelectionDialog(screenSize: screenSize, gameLoop: gameLoop, renderer: renderer)
 
@@ -62,7 +72,13 @@ final class UISystem {
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
         buildMenu = BuildMenu(screenSize: screenSize, gameLoop: gameLoop)
         researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
+        buyUI = BuyUI(screenSize: screenSize, gameLoop: gameLoop, iapManager: IAPManager.shared)
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
+
+        // Set up callbacks after all properties are initialized
+        buyUI.presentStoreViewController = { [weak self] viewController in
+            self?.presentStoreViewController(viewController)
+        }
 
         // Recreate help menu and document viewer with new screen size
         helpMenu = HelpMenu(screenSize: screenSize)
@@ -155,7 +171,15 @@ final class UISystem {
             }
             self?.togglePanel(.research)
         }
-        
+
+        hud.onBuyPressed = { [weak self] in
+            // Close machine UI if open when clicking any HUD button
+            if self?.activePanel == .machine {
+                self?.closeAllPanels()
+            }
+            self?.togglePanel(.buy)
+        }
+
         hud.onMenuPressed = { [weak self] in
             // Close machine UI if open when clicking any HUD button
             if self?.activePanel == .machine {
@@ -189,7 +213,18 @@ final class UISystem {
 
         // Quick bar slot callback
     }
-    
+
+    // MARK: - StoreKit Integration
+
+    func presentStoreViewController(_ viewController: UIViewController) {
+        // Find the root view controller to present the StoreView
+        // Use iOS 15+ API for window access
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            rootVC.present(viewController, animated: true)
+        }
+    }
+
     // MARK: - Update
     
     func update(deltaTime: Float) {
@@ -226,6 +261,8 @@ final class UISystem {
                 buildMenu.update(deltaTime: deltaTime)
             case .research:
                 researchUI.update(deltaTime: deltaTime)
+            case .buy:
+                buyUI.update(deltaTime: deltaTime)
             case .machine:
                 machineUI.update(deltaTime: deltaTime)
             case .entitySelection:
@@ -366,6 +403,8 @@ final class UISystem {
                 buildMenu.render(renderer: renderer)
             case .research:
                 researchUI.render(renderer: renderer)
+            case .buy:
+                buyUI.render(renderer: renderer)
             case .machine:
                 machineUI.render(renderer: renderer)
             case .entitySelection:
@@ -414,6 +453,8 @@ final class UISystem {
             buildMenu.open()
         case .research:
             researchUI.open()
+        case .buy:
+            buyUI.open()
         case .machine:
             machineUI.open()
             case .entitySelection:
@@ -442,6 +483,8 @@ final class UISystem {
                 buildMenu.close()
             case .research:
                 researchUI.close()
+            case .buy:
+                buyUI.close()
             case .machine:
                 machineUI.close()
             case .entitySelection:
@@ -535,6 +578,8 @@ final class UISystem {
                 if buildMenu.handleTap(at: screenPos) { return true }
             case .research:
                 if researchUI.handleTap(at: screenPos) { return true }
+            case .buy:
+                if buyUI.handleTap(at: screenPos) { return true }
             case .machine:
                 if machineUI.handleTap(at: screenPos) { return true }
             case .entitySelection:
@@ -591,6 +636,10 @@ final class UISystem {
             case .research:
                 let result = researchUI.handleTap(at: screenPos)
                 print("UISystem: researchUI.handleTap returned \(result)")
+                if result { return true }
+            case .buy:
+                let result = buyUI.handleTap(at: screenPos)
+                print("UISystem: buyUI.handleTap returned \(result)")
                 if result { return true }
             case .machine:
                 let result = machineUI.handleTap(at: screenPos)
@@ -657,6 +706,8 @@ final class UISystem {
                 return buildMenu.getTooltip(at: screenPos)
             case .research:
                 return researchUI.getTooltip(at: screenPos)
+            case .buy:
+                return "Buy Items" // Simple tooltip for buy UI
             case .machine:
                 return nil // MachineUI doesn't need tooltips yet
             case .entitySelection:
@@ -698,6 +749,7 @@ enum UIPanel {
     case crafting
     case build
     case research
+    case buy
     case machine
     case entitySelection
     case inserterConnection
@@ -705,6 +757,7 @@ enum UIPanel {
 
 // MARK: - Entity Selection Dialog
 
+@available(iOS 17.0, *)
 class EntitySelectionDialog {
     private weak var gameLoop: GameLoop?
     private weak var renderer: MetalRenderer?
@@ -978,6 +1031,7 @@ protocol UIElement {
 
 // MARK: - Base UI Components
 
+@available(iOS 17.0, *)
 class UIButton: UIElement {
     var frame: Rect
     var textureId: String
@@ -1016,6 +1070,7 @@ class UIButton: UIElement {
     }
 }
 
+@available(iOS 17.0, *)
 class UIPanel_Base {
     var frame: Rect
     var isOpen: Bool = false
@@ -1058,6 +1113,7 @@ class UIPanel_Base {
     }
 }
 
+@available(iOS 17.0, *)
 class CloseButton: UIElement {
     var frame: Rect
     var onTap: (() -> Void)?
@@ -1118,6 +1174,7 @@ class CloseButton: UIElement {
 
 // MARK: - Inserter Connection Dialog
 
+@available(iOS 17.0, *)
 class InserterConnectionDialog {
     private weak var gameLoop: GameLoop?
     private weak var renderer: MetalRenderer?
@@ -1554,5 +1611,6 @@ class InserterConnectionDialog {
         }
     }
 }
+
 
 

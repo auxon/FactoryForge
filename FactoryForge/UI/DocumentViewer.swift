@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 
 /// Document viewer that displays markdown content
+@available(iOS 17.0, *)
 final class DocumentViewer: UIPanel_Base {
     private var screenSize: Vector2 // Store screen size for coordinate conversion
     private var documentName: String

@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>identifier</key>
+	<string>$(TeamIdentifierPrefix)com.factoryforge.app</string>
+	<key>localizations</key>
+	<array>
+		<dict>
+			<key>language</key>
+			<string>en</string>
+			<key>storeKitConfiguration</key>
+			<dict>
+				<key>products</key>
+				<array>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.iron_ore_pack</string>
+						<key>productName</key>
+						<string>Iron Ore Pack (100)</string>
+						<key>productDescription</key>
+						<string>100 units of Iron Ore - Essential for early game production</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>0.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.copper_ore_pack</string>
+						<key>productName</key>
+						<string>Copper Ore Pack (100)</string>
+						<key>productDescription</key>
+						<string>100 units of Copper Ore - Essential for electronics and wiring</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>0.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.coal_pack</string>
+						<key>productName</key>
+						<string>Coal Pack (100)</string>
+						<key>productDescription</key>
+						<string>100 units of Coal - Fuel for furnaces and power generation</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>0.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.stone_pack</string>
+						<key>productName</key>
+						<string>Stone Pack (100)</string>
+						<key>productDescription</key>
+						<string>100 units of Stone - Used for construction and furnaces</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>0.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.wood_pack</string>
+						<key>productName</key>
+						<string>Wood Pack (100)</string>
+						<key>productDescription</key>
+						<string>100 units of Wood - Fuel and basic construction material</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>0.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.automation_science_pack</string>
+						<key>productName</key>
+						<string>Automation Science Pack (10)</string>
+						<key>productDescription</key>
+						<string>10 Automation Science Packs - Unlock basic research</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>1.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.logistic_science_pack</string>
+						<key>productName</key>
+						<string>Logistic Science Pack (10)</string>
+						<key>productDescription</key>
+						<string>10 Logistic Science Packs - Unlock logistics research</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>2.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.chemical_science_pack</string>
+						<key>productName</key>
+						<string>Chemical Science Pack (10)</string>
+						<key>productDescription</key>
+						<string>10 Chemical Science Packs - Unlock advanced research</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>4.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.production_science_pack</string>
+						<key>productName</key>
+						<string>Production Science Pack (10)</string>
+						<key>productDescription</key>
+						<string>10 Production Science Packs - Unlock production research</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>4.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.utility_science_pack</string>
+						<key>productName</key>
+						<string>Utility Science Pack (10)</string>
+						<key>productDescription</key>
+						<string>10 Utility Science Packs - Unlock utility research</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>4.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.electric_mining_drill</string>
+						<key>productName</key>
+						<string>Electric Mining Drill</string>
+						<key>productDescription</key>
+						<string>Fast and efficient mining drill - Boost your resource production</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>2.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.assembling_machine_1</string>
+						<key>productName</key>
+						<string>Assembling Machine 1</string>
+						<key>productDescription</key>
+						<string>Automated production machine - Speed up your crafting</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>3.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.lab</string>
+						<key>productName</key>
+						<string>Lab</string>
+						<key>productDescription</key>
+						<string>Research facility - Accelerate technological progress</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>4.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.solar_panel</string>
+						<key>productName</key>
+						<string>Solar Panel</string>
+						<key>productDescription</key>
+						<string>Clean energy generation - Power your factory sustainably</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>3.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.accumulator</string>
+						<key>productName</key>
+						<string>Accumulator</string>
+						<key>productDescription</key>
+						<string>Energy storage device - Store power for when you need it</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>2.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.express_transport_belt</string>
+						<key>productName</key>
+						<string>Express Transport Belt</string>
+						<key>productDescription</key>
+						<string>Ultra-fast transport belt - Maximize your factory throughput</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>1.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.fast_inserter</string>
+						<key>productName</key>
+						<string>Fast Inserter</string>
+						<key>productDescription</key>
+						<string>High-speed inserter - Move items quickly and efficiently</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>1.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.steel_chest</string>
+						<key>productName</key>
+						<string>Steel Chest</string>
+						<key>productDescription</key>
+						<string>Large storage container - Store more items efficiently</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>1.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.gun_turret</string>
+						<key>productName</key>
+						<string>Gun Turret</string>
+						<key>productDescription</key>
+						<string>Automated defense turret - Protect your factory</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>2.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.wall</string>
+						<key>productName</key>
+						<string>Wall (10)</string>
+						<key>productDescription</key>
+						<string>10 Stone Walls - Fortify your base defenses</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>1.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.firearm_magazine_pack</string>
+						<key>productName</key>
+						<string>Firearm Magazine Pack (100)</string>
+						<key>productDescription</key>
+						<string>100 Firearm Magazines - Ammunition for your turrets</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>1.99</string>
+							</dict>
+						</array>
+					</dict>
+					<dict>
+						<key>productIdentifier</key>
+						<string>com.factoryforge.items.crude_oil_pack</string>
+						<key>productName</key>
+						<string>Crude Oil Pack (1000)</string>
+						<key>productDescription</key>
+						<string>1000 units of Crude Oil - Fuel for advanced production</string>
+						<key>productType</key>
+						<string>consumable</string>
+						<key>pricePoints</key>
+						<array>
+							<dict>
+								<key>currency</key>
+								<string>USD</string>
+								<key>price</key>
+								<string>2.99</string>
+							</dict>
+						</array>
+					</dict>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>version</key>
+	<string>2.0</string>
+</dict>
+</plist>
