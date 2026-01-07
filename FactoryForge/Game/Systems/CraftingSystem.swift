@@ -262,7 +262,6 @@ final class CraftingSystem: System {
                             // Add to existing stack (up to maxStack)
                             let spaceAvailable = correctMaxStack - existing.count
                             let amountToAdd = min(output.count, spaceAvailable)
-                            let oldCount = existing.count
                             inventory.slots[i]?.count += amountToAdd
                             output.count -= amountToAdd
                             if output.count == 0 {

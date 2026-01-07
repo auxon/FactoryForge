@@ -247,7 +247,6 @@ final class DocumentViewer: UIPanel_Base {
     private func updateContentLabelPosition() {
         guard let label = contentLabel, let scrollView = scrollView else { return }
 
-        let screenScale = CGFloat(UIScreen.main.scale)
         let margin: CGFloat = 20 // Margin within scroll view
 
         // Content area within scroll view

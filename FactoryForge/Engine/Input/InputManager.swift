@@ -930,11 +930,6 @@ final class InputManager: NSObject {
     private func handleEntitySelection(at screenPos: Vector2, worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop, isDoubleTap: Bool = false) {
         // Get all entities at this position
         let allEntities = gameLoop.world.getAllEntitiesAt(position: tilePos)
-        for entity in allEntities {
-            let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
-            let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
-            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
-        }
         
         // Filter to only interactable entities
         let interactableEntities = allEntities.filter { entity in

@@ -463,9 +463,7 @@ final class UISystem {
     func openDocumentViewer(documentName: String) {
         let screenSize = renderer?.screenSize ?? Vector2(800, 600)
         documentViewer = DocumentViewer(screenSize: screenSize, documentName: documentName)
-        print("UISystem: opening document viewer, screenSize=\(screenSize)")
         openPanel(.documentViewer)
-        print("UISystem: activePanel is now \(activePanel)")
     }
     
     func isPanelOpen(_ panel: UIPanel) -> Bool {
@@ -595,7 +593,6 @@ final class UISystem {
     }
 
     func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
-        print("UISystem handleDrag: activePanel=\(activePanel), startPos=\(startPos), endPos=\(endPos)")
         // Check active panels
         if let panel = activePanel {
             switch panel {

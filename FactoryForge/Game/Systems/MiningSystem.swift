@@ -131,7 +131,7 @@ final class MiningSystem: System {
             if updatedMiner.progress >= 1.0 {
                 updatedMiner.progress = 0
 
-                if let resource = targetResource {
+                if let _ = targetResource {
                     // Extract from tile resource
                     let mined = chunkManager.mineResource(at: position.tilePosition)
                     if mined > 0 {
