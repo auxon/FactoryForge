@@ -34,6 +34,7 @@ final class HUD {
     // Selected building
     var selectedEntity: Entity? {
         didSet {
+            print("HUD: selectedEntity set to \(selectedEntity?.id ?? 0) generation \(selectedEntity?.generation ?? 0)")
             // Validate that the selected entity is still alive
             validateSelectedEntity()
             // Notify about selection change
@@ -47,8 +48,8 @@ final class HUD {
     /// Validates that the currently selected entity is still alive
     private func validateSelectedEntity() {
         if let entity = selectedEntity, let gameLoop = gameLoop {
-            if !gameLoop.world.isAlive(entity) {
-                print("HUD: Selected entity \(entity) is no longer alive, clearing selection")
+            let isAlive = gameLoop.world.isAlive(entity)
+            if !isAlive {
                 selectedEntity = nil
             }
         }
@@ -313,15 +314,14 @@ final class HUD {
         validateSelectedEntity()
 
         // Only render if a building is selected
-        guard let selectedEntity = selectedEntity else { return }
+        guard let selectedEntity = selectedEntity else {
+            return
+        }
         
         // Check if selected entity is a belt or inserter
         let isBelt = gameLoop?.world.has(BeltComponent.self, for: selectedEntity) ?? false
         let isInserter = gameLoop?.world.has(InserterComponent.self, for: selectedEntity) ?? false
         let hasMachine = hasMachineUI(for: selectedEntity)
-        
-        // Debug logging
-        // print("HUD: renderBuildingActionButtons - selectedEntity: \(selectedEntity), isBelt: \(isBelt), isInserter: \(isInserter), hasMachine: \(hasMachine)")
         
         // Position buttons on the right side for thumb accessibility
         // Place them vertically stacked, starting from about 1/3 down the screen

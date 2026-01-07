@@ -908,23 +908,32 @@ final class InputManager: NSObject {
         // Debug: log what entity was selected
         let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
         let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
-        
+        print("InputManager: selectEntity called with entity \(entity.id) generation \(entity.generation), hasInserter=\(hasInserter), hasBelt=\(hasBelt)")
+
         // Select the entity (normal behavior)
         // First set InputManager's selectedEntity, then notify via callback (which updates HUD)
         // This ensures both are in sync
         selectedEntity = entity
-        
+        print("InputManager: set selectedEntity to \(entity.id)")
+
         // Show tooltip with entity icon
         if let tooltipText = getEntityTooltipText(entity: entity, gameLoop: gameLoop) {
             onTooltipWithEntity?(tooltipText, entity)
         }
-        
+
         // Double-check that HUD got the same entity (safety check)
         if let hudEntity = gameLoop.uiSystem?.hud.selectedEntity {
+            print("InputManager: HUD has entity \(hudEntity.id) generation \(hudEntity.generation)")
             if hudEntity.id != entity.id || hudEntity.generation != entity.generation {
+                print("InputManager: HUD entity doesn't match, updating HUD")
                 // Force update HUD to match InputManager
                 gameLoop.uiSystem?.hud.selectedEntity = entity
+            } else {
+                print("InputManager: HUD entity matches")
             }
+        } else {
+            print("InputManager: HUD has no selected entity, setting it")
+            gameLoop.uiSystem?.hud.selectedEntity = entity
         }
     }
 
