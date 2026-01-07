@@ -157,7 +157,7 @@ final class RecipeRegistry {
                 ItemStack(itemId: "copper-plate", count: 1),
                 ItemStack(itemId: "iron-gear-wheel", count: 1)
             ],
-            outputs: [ItemStack(itemId: "automation-science-pack", count: 1)],
+            outputs: [ItemStack(itemId: "automation-science-pack", count: 5)],
             craftTime: 5,
             category: .crafting,
             order: "e"
@@ -170,7 +170,7 @@ final class RecipeRegistry {
                 ItemStack(itemId: "inserter", count: 1),
                 ItemStack(itemId: "transport-belt", count: 1)
             ],
-            outputs: [ItemStack(itemId: "logistic-science-pack", count: 1)],
+            outputs: [ItemStack(itemId: "logistic-science-pack", count: 5)],
             craftTime: 6,
             category: .crafting,
             order: "f"
