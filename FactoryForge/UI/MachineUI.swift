@@ -13,11 +13,20 @@ final class MachineUI: UIPanel_Base {
     private var inputCountLabels: [UILabel] = []
     private var outputCountLabels: [UILabel] = []
 
+    // Research progress labels for labs
+    private var researchProgressLabels: [UILabel] = []
+
     // Callbacks for managing UIKit labels
     var onAddLabels: (([UILabel]) -> Void)?
     var onRemoveLabels: (([UILabel]) -> Void)?
 
     var onOpenInventoryForMachine: ((Entity, Int) -> Void)?
+
+    // Helper to check if current machine is a lab
+    private var isLab: Bool {
+        guard let entity = currentEntity, let gameLoop = gameLoop else { return false }
+        return gameLoop.world.has(LabComponent.self, for: entity)
+    }
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         let panelWidth: Float = 600 * UIScale
@@ -62,12 +71,13 @@ final class MachineUI: UIPanel_Base {
 
     private func setupCountLabels() {
         // Remove existing labels from view before clearing arrays
-        let oldLabels = inputCountLabels + outputCountLabels
+        let oldLabels = inputCountLabels + outputCountLabels + researchProgressLabels
         onRemoveLabels?(oldLabels)
-        
+
         // Clear existing labels
         inputCountLabels.removeAll()
         outputCountLabels.removeAll()
+        researchProgressLabels.removeAll()
 
         // Create labels for input slots
         for _ in inputSlots {
@@ -98,6 +108,22 @@ final class MachineUI: UIPanel_Base {
             label.isHidden = true
             outputCountLabels.append(label)
         }
+
+        // Create research progress labels for labs
+        for _ in 0..<4 { // Create 4 labels for research progress info
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+            label.textColor = UIColor.white
+            label.textAlignment = .left
+            label.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            label.layer.cornerRadius = 3
+            label.layer.masksToBounds = true
+            label.translatesAutoresizingMaskIntoConstraints = true
+            label.text = ""
+            label.isHidden = true
+            label.numberOfLines = 0
+            researchProgressLabels.append(label)
+        }
     }
 
     private func setupSlotsForMachine(_ entity: Entity) {
@@ -110,7 +136,18 @@ final class MachineUI: UIPanel_Base {
         let slotSize: Float = 40 * UIScale
 
         // Setup slots based on machine type
-        if gameLoop.world.has(MinerComponent.self, for: entity) {
+        if gameLoop.world.has(LabComponent.self, for: entity) {
+            // Labs: 6 input slots for science packs, no output slots
+            for i in 0..<6 {
+                let slotX = frame.minX + 50 * UIScale + Float(i % 3) * (slotSize + 5 * UIScale)
+                let slotY = frame.minY + 80 * UIScale + Float(i / 3) * (slotSize + 5 * UIScale)
+                inputSlots.append(InventorySlot(
+                    frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
+                    index: i
+                ))
+            }
+            // Labs have no output slots
+        } else if gameLoop.world.has(MinerComponent.self, for: entity) {
             // Mining drills: 1 centered output slot
             let slotX = frame.center.x
             let slotY = frame.minY + 80 * UIScale + slotSize / 2
@@ -186,22 +223,25 @@ final class MachineUI: UIPanel_Base {
 
     override func open() {
         super.open()
-        // Add all count labels to the view
-        let allLabels = inputCountLabels + outputCountLabels
+        // Add appropriate labels to the view
+        var allLabels = inputCountLabels + outputCountLabels
+        if isLab {
+            allLabels += researchProgressLabels
+        }
         onAddLabels?(allLabels)
     }
 
     override func close() {
         // Remove all count labels from the view
-        let allLabels = inputCountLabels + outputCountLabels
+        let allLabels = inputCountLabels + outputCountLabels + researchProgressLabels
         onRemoveLabels?(allLabels)
-        
+
         // Clear label text to ensure they're properly reset
         for label in allLabels {
             label.text = ""
             label.isHidden = true
         }
-        
+
         super.close()
     }
     
@@ -227,6 +267,9 @@ final class MachineUI: UIPanel_Base {
             availableRecipes = []
         } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
             print("MachineUI: Machine is generator/boiler (no recipes needed)")
+            availableRecipes = []
+        } else if gameLoop.world.has(LabComponent.self, for: entity) {
+            print("MachineUI: Machine is lab (no recipes needed)")
             availableRecipes = []
         } else {
             print("MachineUI: Machine type not recognized")
@@ -349,6 +392,12 @@ final class MachineUI: UIPanel_Base {
     override func update(deltaTime: Float) {
         guard isOpen, let entity = currentEntity, let world = gameLoop?.world else { return }
 
+        // Handle labs differently - show research progress but also update input slots
+        if world.has(LabComponent.self, for: entity) {
+            updateLabProgress()
+            // Continue to update input slots for labs (science packs)
+        }
+
         // Update inventory slots from machine inventory
         if let inventory = world.get(InventoryComponent.self, for: entity) {
             if world.has(MinerComponent.self, for: entity) {
@@ -439,26 +488,160 @@ final class MachineUI: UIPanel_Base {
     
     override func render(renderer: MetalRenderer) {
         guard isOpen else { return }
-        
+
         super.render(renderer: renderer)
-        
-        // Render slots
-        for slot in inputSlots {
-            slot.render(renderer: renderer)
-        }
-        for slot in outputSlots {
-            slot.render(renderer: renderer)
-        }
-        
-        // Render progress bar
-        renderProgressBar(renderer: renderer)
-        
-        // Render recipe buttons
-        for button in recipeButtons {
-            button.render(renderer: renderer)
+
+        // Check if this is a lab
+        if let entity = currentEntity, let gameLoop = gameLoop, gameLoop.world.has(LabComponent.self, for: entity) {
+            // Render lab research progress
+            renderLabProgress(renderer: renderer)
+
+            // Also render input slots for science packs
+            for slot in inputSlots {
+                slot.render(renderer: renderer)
+            }
+        } else {
+            // Render normal machine UI
+            // Render slots
+            for slot in inputSlots {
+                slot.render(renderer: renderer)
+            }
+            for slot in outputSlots {
+                slot.render(renderer: renderer)
+            }
+
+            // Render progress bar
+            renderProgressBar(renderer: renderer)
+
+            // Render recipe buttons
+            for button in recipeButtons {
+                button.render(renderer: renderer)
+            }
         }
     }
     
+    private func renderLabProgress(renderer: MetalRenderer) {
+        guard let gameLoop = gameLoop,
+              let progressDetails = gameLoop.researchSystem.getResearchProgressDetails() else {
+            // No active research
+            renderLabStatus("No Active Research", renderer: renderer)
+            return
+        }
+
+        let centerX = frame.center.x
+        let startY = frame.center.y - 60 * UIScale
+        let lineHeight: Float = 25 * UIScale
+
+        // Title
+        renderLabText("Research Progress", at: Vector2(centerX, startY), renderer: renderer)
+
+        // Technology name
+        renderLabText("Technology: \(progressDetails.technologyName)",
+                     at: Vector2(centerX, startY + lineHeight), renderer: renderer)
+
+        // Overall progress
+        let percent = Int(progressDetails.overallProgress * 100)
+        renderLabText("Progress: \(percent)%",
+                     at: Vector2(centerX, startY + lineHeight * 2), renderer: renderer)
+
+        // Science pack details
+        var yOffset = lineHeight * 3
+        for (packId, packProgress) in progressDetails.packProgress {
+            let packName = packId.replacingOccurrences(of: "-", with: " ").capitalized
+            renderLabText("\(packName): \(packProgress.contributed)/\(packProgress.required)",
+                         at: Vector2(centerX, startY + yOffset), renderer: renderer)
+            yOffset += lineHeight
+        }
+
+        // Research speed bonus
+        if progressDetails.researchSpeedBonus > 0 {
+            renderLabText("Speed Bonus: +\(Int(progressDetails.researchSpeedBonus * 100))%",
+                         at: Vector2(centerX, startY + yOffset), renderer: renderer)
+        }
+    }
+
+    private func renderLabText(_ text: String, at position: Vector2, renderer: MetalRenderer) {
+        // This will be handled by the UIKit labels we set up earlier
+        // The actual text rendering is done in update() method
+    }
+
+    private func renderLabStatus(_ status: String, renderer: MetalRenderer) {
+        let centerX = frame.center.x
+        let centerY = frame.center.y
+        renderLabText(status, at: Vector2(centerX, centerY), renderer: renderer)
+    }
+
+    private func updateLabProgress() {
+        guard let gameLoop = gameLoop else { return }
+
+        if let progressDetails = gameLoop.researchSystem.getResearchProgressDetails() {
+            // Update research progress labels
+            if researchProgressLabels.count >= 4 {
+                let percent = Int(progressDetails.overallProgress * 100)
+                researchProgressLabels[0].text = "Researching: \(progressDetails.technologyName)"
+                researchProgressLabels[1].text = "Progress: \(percent)%"
+                researchProgressLabels[2].text = ""
+
+                // Show science pack progress
+                var packText = ""
+                for (packId, packProgress) in progressDetails.packProgress {
+                    let packName = packId.replacingOccurrences(of: "-", with: " ").capitalized
+                    packText += "\(packName): \(packProgress.contributed)/\(packProgress.required)\n"
+                }
+                researchProgressLabels[2].text = packText.trimmingCharacters(in: .whitespacesAndNewlines)
+                researchProgressLabels[2].numberOfLines = 0
+
+                // Show research speed bonus
+                if progressDetails.researchSpeedBonus > 0 {
+                    researchProgressLabels[3].text = "Speed: +\(Int(progressDetails.researchSpeedBonus * 100))%"
+                } else {
+                    researchProgressLabels[3].text = ""
+                }
+
+                // Position and show labels
+                updateLabProgressLabelPositions()
+                for label in researchProgressLabels {
+                    label.isHidden = false
+                }
+            }
+        } else {
+            // No active research
+            if researchProgressLabels.count >= 1 {
+                researchProgressLabels[0].text = "No Active Research"
+                researchProgressLabels[0].isHidden = false
+
+                for i in 1..<researchProgressLabels.count {
+                    researchProgressLabels[i].text = ""
+                    researchProgressLabels[i].isHidden = true
+                }
+
+                updateLabProgressLabelPositions()
+            }
+        }
+    }
+
+    private func updateLabProgressLabelPositions() {
+        let screenScale = CGFloat(UIScreen.main.scale)
+        let centerX = frame.center.x
+        let startY = frame.center.y - 60 * UIScale
+        let lineHeight: Float = 25 * UIScale
+
+        for (index, label) in researchProgressLabels.enumerated() {
+            if !label.isHidden {
+                let y = startY + Float(index) * lineHeight
+                let uiX = CGFloat(centerX) / screenScale - 150 // Center horizontally
+                let uiY = CGFloat(y) / screenScale - 10 // Slight offset
+
+                label.frame = CGRect(
+                    x: uiX,
+                    y: uiY,
+                    width: 300, // Fixed width
+                    height: 40  // Allow for multiple lines
+                )
+            }
+        }
+    }
+
     private func renderProgressBar(renderer: MetalRenderer) {
         guard let entity = currentEntity, let world = gameLoop?.world else { return }
         

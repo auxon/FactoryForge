@@ -275,16 +275,38 @@ final class ResearchSystem: System {
     
     func getResearchProgress() -> Float {
         guard let tech = currentResearch else { return 0 }
-        
+
         var totalRequired = 0
         var totalContributed = 0
-        
+
         for cost in tech.cost {
             totalRequired += cost.count
             totalContributed += researchProgress[cost.packId] ?? 0
         }
-        
+
         return totalRequired > 0 ? Float(totalContributed) / Float(totalRequired) : 0
+    }
+
+    /// Gets detailed progress information for the current research
+    func getResearchProgressDetails() -> ResearchProgressDetails? {
+        guard let tech = currentResearch else { return nil }
+
+        var packProgress: [String: SciencePackProgress] = [:]
+
+        for cost in tech.cost {
+            let contributed = researchProgress[cost.packId] ?? 0
+            packProgress[cost.packId] = SciencePackProgress(
+                contributed: contributed,
+                required: cost.count
+            )
+        }
+
+        return ResearchProgressDetails(
+            technologyName: tech.name,
+            overallProgress: getResearchProgress(),
+            packProgress: packProgress,
+            researchSpeedBonus: getBonus(.researchSpeed)
+        )
     }
     
     func isRecipeUnlocked(_ recipeId: String) -> Bool {
@@ -341,6 +363,28 @@ final class ResearchSystem: System {
                 }
             }
         }
+    }
+}
+
+/// Detailed research progress information
+struct ResearchProgressDetails {
+    let technologyName: String
+    let overallProgress: Float
+    let packProgress: [String: SciencePackProgress]
+    let researchSpeedBonus: Float
+}
+
+/// Progress for a specific science pack type
+struct SciencePackProgress {
+    let contributed: Int
+    let required: Int
+
+    var progress: Float {
+        return required > 0 ? Float(contributed) / Float(required) : 0
+    }
+
+    var isComplete: Bool {
+        return contributed >= required
     }
 }
 

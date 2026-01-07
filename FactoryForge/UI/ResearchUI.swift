@@ -227,22 +227,37 @@ final class ResearchUI: UIPanel_Base {
 
         // Update progress label
         if let researchSystem = gameLoop?.researchSystem,
-           researchSystem.currentResearch != nil {
-            let progress = researchSystem.getResearchProgress()
-            let percent = Int(progress * 100)
-            progressLabel?.text = "\(percent)% complete"
+           let progressDetails = researchSystem.getResearchProgressDetails() {
             progressLabel?.isHidden = !isOpen
 
             if isOpen {
-                // Position the progress label with padding
+                // Create detailed progress text
+                var progressText = "\(Int(progressDetails.overallProgress * 100))% complete\n"
+
+                // Add science pack progress
+                for (packId, packProgress) in progressDetails.packProgress {
+                    let packName = packId.replacingOccurrences(of: "-", with: " ").capitalized
+                    progressText += "\(packProgress.contributed)/\(packProgress.required) \(packName)\n"
+                }
+
+                // Add research speed bonus if any
+                if progressDetails.researchSpeedBonus > 0 {
+                    progressText += "Speed: +\(Int(progressDetails.researchSpeedBonus * 100))%"
+                }
+
+                progressLabel?.text = progressText.trimmingCharacters(in: .whitespacesAndNewlines)
+                progressLabel?.numberOfLines = 0  // Allow multiple lines
+
+                // Position the progress label with padding (wider and taller for detailed info)
                 let progressY = frame.maxY - 50 * UIScale
-                let labelHeight = progressLabel?.font.lineHeight ?? 16
+                let lineCount = progressDetails.packProgress.count + 1 + (progressDetails.researchSpeedBonus > 0 ? 1 : 0)
+                let labelHeight = (progressLabel?.font.lineHeight ?? 16) * CGFloat(lineCount)
                 let padding: CGFloat = 8
                 let labelY = (CGFloat(progressY) / screenScale) - (labelHeight + padding) / 2
                 progressLabel?.frame = CGRect(
-                    x: CGFloat(frame.center.x) - 150, // Center horizontally
+                    x: CGFloat(frame.center.x) - 200, // Center horizontally, wider
                     y: labelY,
-                    width: 300, // Fixed width
+                    width: 400, // Wider for detailed text
                     height: labelHeight + padding
                 )
             }
