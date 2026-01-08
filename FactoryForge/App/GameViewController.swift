@@ -513,10 +513,23 @@ class GameViewController: UIViewController {
         }
         
         loadingMenu.onSaveSlotSelected = { [weak self] slotName in
+            // Slot selection - just for UI feedback, actual actions come from buttons
+            print("Selected save slot: \(slotName)")
+        }
+
+        loadingMenu.onSaveGameRequested = { [weak self] in
+            self?.saveCurrentGame()
+        }
+
+        loadingMenu.onLoadGameRequested = { [weak self] slotName in
             self?.loadGame(from: slotName)
         }
-        
-        loadingMenu.onSaveSlotDelete = { [weak self] slotName in
+
+        loadingMenu.onRenameSlotRequested = { [weak self] slotName in
+            self?.showRenameDialog(for: slotName)
+        }
+
+        loadingMenu.onDeleteSlotRequested = { [weak self] slotName in
             self?.deleteSave(slotName: slotName)
         }
 
@@ -880,6 +893,47 @@ class GameViewController: UIViewController {
 
         // Refresh the loading menu to update the save slot list
         uiSystem?.getLoadingMenu().refreshSaveSlots()
+    }
+
+    private func showRenameDialog(for slotName: String) {
+        let saveSystem = SaveSystem()
+
+        // Get the current display name for this slot
+        let slots = saveSystem.getSaveSlots()
+        guard let slot = slots.first(where: { $0.name == slotName }) else { return }
+
+        let alertController = UIAlertController(
+            title: "Rename Save Slot",
+            message: "Enter a new name for this save slot",
+            preferredStyle: .alert
+        )
+
+        alertController.addTextField { textField in
+            textField.text = slot.effectiveDisplayName
+            textField.placeholder = "Save name"
+        }
+
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+
+        let saveAction = UIAlertAction(title: "Save", style: .default) { [weak self] _ in
+            guard let textField = alertController.textFields?.first,
+                  let newName = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !newName.isEmpty else {
+                return
+            }
+
+            // Update the display name
+            saveSystem.setDisplayName(newName, for: slotName)
+
+            // Refresh the loading menu to show the updated name
+            self?.uiSystem?.getLoadingMenu().refreshSaveSlots()
+        }
+
+        alertController.addAction(cancelAction)
+        alertController.addAction(saveAction)
+
+        // Present the alert
+        present(alertController, animated: true, completion: nil)
     }
 
     private func returnToMainMenu() {

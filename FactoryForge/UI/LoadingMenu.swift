@@ -14,10 +14,22 @@ final class LoadingMenu: UIPanel_Base {
     // Save slot scrolling with UIKit
     private var scrollView: UIScrollView?
     private var saveSlotLabels: [UILabel] = [] // Clickable labels for save slots
+
+    // Action buttons
+    private var saveButtonLabel: UILabel?
+    private var loadButtonLabel: UILabel?
+    private var renameButtonLabel: UILabel?
+    private var deleteButtonLabel: UILabel?
+
+    // Selected save slot
+    private var selectedSaveSlot: String?
     
     var onNewGameSelected: (() -> Void)?
-    var onSaveSlotSelected: ((String) -> Void)? // Called when a save slot label is tapped to load
-    var onSaveSlotDelete: ((String) -> Void)? // Called when delete button is pressed for a save slot
+    var onSaveSlotSelected: ((String) -> Void)? // Called when a save slot is selected (highlighted)
+    var onSaveGameRequested: (() -> Void)? // Called when save button is tapped
+    var onLoadGameRequested: ((String) -> Void)? // Called when load button is tapped with selected slot
+    var onRenameSlotRequested: ((String) -> Void)? // Called when rename button is tapped with selected slot
+    var onDeleteSlotRequested: ((String) -> Void)? // Called when delete button is tapped with selected slot
     var onAutoplayTapped: (() -> Void)? // Called when autoplay button is tapped
     var onHelpTapped: (() -> Void)? // Called when help button is tapped
     var onCloseTapped: (() -> Void)? // Called when close button (X) is tapped
@@ -181,16 +193,141 @@ final class LoadingMenu: UIPanel_Base {
 
         scrollView.isHidden = !isOpen
 
+        // Setup action buttons underneath the scroll view
+        setupActionButtons()
+
+        // Setup action buttons underneath the scroll view
+        setupActionButtons()
+
         // Setup help button label
         setupHelpButtonLabel()
+    }
+
+    private func setupActionButtons() {
+        guard let parentView = parentView else { return }
+
+        let buttonHeight: CGFloat = 40
+        let buttonWidth: CGFloat = 80
+        let buttonSpacing: CGFloat = 20
+        let buttonsY = scrollView!.frame.maxY + 20
+
+        // Save button
+        saveButtonLabel = createActionButton(
+            title: "Save",
+            frame: CGRect(x: parentView.bounds.width * 0.1, y: buttonsY, width: buttonWidth, height: buttonHeight),
+            parentView: parentView
+        )
+        let saveTap = UITapGestureRecognizer(target: self, action: #selector(saveButtonTapped))
+        saveButtonLabel?.addGestureRecognizer(saveTap)
+
+        // Load button
+        loadButtonLabel = createActionButton(
+            title: "Load",
+            frame: CGRect(x: parentView.bounds.width * 0.1 + buttonWidth + buttonSpacing, y: buttonsY, width: buttonWidth, height: buttonHeight),
+            parentView: parentView
+        )
+        let loadTap = UITapGestureRecognizer(target: self, action: #selector(loadButtonTapped))
+        loadButtonLabel?.addGestureRecognizer(loadTap)
+
+        // Rename button
+        renameButtonLabel = createActionButton(
+            title: "Rename",
+            frame: CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 2, y: buttonsY, width: buttonWidth, height: buttonHeight),
+            parentView: parentView
+        )
+        let renameTap = UITapGestureRecognizer(target: self, action: #selector(renameButtonTapped))
+        renameButtonLabel?.addGestureRecognizer(renameTap)
+
+        // Delete button
+        deleteButtonLabel = createActionButton(
+            title: "Delete",
+            frame: CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 3, y: buttonsY, width: buttonWidth, height: buttonHeight),
+            parentView: parentView
+        )
+        let deleteTap = UITapGestureRecognizer(target: self, action: #selector(deleteButtonTapped))
+        deleteButtonLabel?.addGestureRecognizer(deleteTap)
+
+        // Initially disable action buttons (no selection)
+        updateActionButtonStates()
+    }
+
+    private func createActionButton(title: String, frame: CGRect, parentView: UIView) -> UILabel {
+        let label = UILabel(frame: frame)
+        label.text = title
+        label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        label.textColor = .white
+        label.backgroundColor = UIColor(white: 0.15, alpha: 0.8)
+        label.textAlignment = .center
+        label.layer.borderColor = UIColor(white: 0.3, alpha: 1).cgColor
+        label.layer.borderWidth = 1
+        label.layer.cornerRadius = 6
+        label.isUserInteractionEnabled = true
+
+        parentView.addSubview(label)
+        return label
+    }
+
+    private func updateActionButtonStates() {
+        let hasSelection = selectedSaveSlot != nil
+        let alpha: CGFloat = hasSelection ? 1.0 : 0.5
+
+        loadButtonLabel?.alpha = alpha
+        renameButtonLabel?.alpha = alpha
+        deleteButtonLabel?.alpha = alpha
+
+        loadButtonLabel?.isUserInteractionEnabled = hasSelection
+        renameButtonLabel?.isUserInteractionEnabled = hasSelection
+        deleteButtonLabel?.isUserInteractionEnabled = hasSelection
     }
     
     @objc private func saveSlotLabelTapped(_ gesture: UITapGestureRecognizer) {
         guard let label = gesture.view as? UILabel,
               let slotName = label.accessibilityIdentifier else { return }
 
+        // Select this save slot (highlight it)
+        selectSaveSlot(slotName)
         AudioManager.shared.playClickSound()
+    }
+
+    private func selectSaveSlot(_ slotName: String) {
+        selectedSaveSlot = slotName
+
+        // Update visual selection - highlight the selected label
+        for label in saveSlotLabels {
+            if label.accessibilityIdentifier == slotName {
+                label.backgroundColor = UIColor(white: 0.4, alpha: 0.8) // Highlighted color
+                label.layer.borderColor = UIColor.white.cgColor
+            } else {
+                label.backgroundColor = UIColor(white: 0.2, alpha: 0.8) // Normal color
+                label.layer.borderColor = UIColor(white: 0.4, alpha: 1).cgColor
+            }
+        }
+
         onSaveSlotSelected?(slotName)
+        updateActionButtonStates()
+    }
+
+    @objc private func saveButtonTapped() {
+        AudioManager.shared.playClickSound()
+        onSaveGameRequested?()
+    }
+
+    @objc private func loadButtonTapped() {
+        guard let selectedSlot = selectedSaveSlot else { return }
+        AudioManager.shared.playClickSound()
+        onLoadGameRequested?(selectedSlot)
+    }
+
+    @objc private func renameButtonTapped() {
+        guard let selectedSlot = selectedSaveSlot else { return }
+        AudioManager.shared.playClickSound()
+        onRenameSlotRequested?(selectedSlot)
+    }
+
+    @objc private func deleteButtonTapped() {
+        guard let selectedSlot = selectedSaveSlot else { return }
+        AudioManager.shared.playClickSound()
+        onDeleteSlotRequested?(selectedSlot)
     }
 
     private func removeSaveSlotLabels() {
@@ -199,9 +336,23 @@ final class LoadingMenu: UIPanel_Base {
         scrollView = nil
         saveSlotLabels.removeAll()
 
+        // Remove action buttons
+        saveButtonLabel?.removeFromSuperview()
+        loadButtonLabel?.removeFromSuperview()
+        renameButtonLabel?.removeFromSuperview()
+        deleteButtonLabel?.removeFromSuperview()
+
+        saveButtonLabel = nil
+        loadButtonLabel = nil
+        renameButtonLabel = nil
+        deleteButtonLabel = nil
+
         // Also remove help button label
         helpButtonLabel?.removeFromSuperview()
         helpButtonLabel = nil
+
+        // Clear selection
+        selectedSaveSlot = nil
     }
 
     private func setupHelpButtonLabel() {
@@ -252,15 +403,23 @@ final class LoadingMenu: UIPanel_Base {
     override func open() {
         super.open()
         refreshSaveSlots()
-        // Show scroll view and help button label when menu opens
+        // Show scroll view, action buttons, and help button label when menu opens
         scrollView?.isHidden = false
+        saveButtonLabel?.isHidden = false
+        loadButtonLabel?.isHidden = false
+        renameButtonLabel?.isHidden = false
+        deleteButtonLabel?.isHidden = false
         helpButtonLabel?.isHidden = false
     }
 
     override func close() {
         super.close()
-        // Hide scroll view and help button label when menu closes
+        // Hide scroll view, action buttons, and help button label when menu closes
         scrollView?.isHidden = true
+        saveButtonLabel?.isHidden = true
+        loadButtonLabel?.isHidden = true
+        renameButtonLabel?.isHidden = true
+        deleteButtonLabel?.isHidden = true
         helpButtonLabel?.isHidden = true
     }
     
