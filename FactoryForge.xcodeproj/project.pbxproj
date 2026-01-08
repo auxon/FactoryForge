@@ -40,6 +40,7 @@
 		0D3A37242F060B2B00941686 /* inserter_input_button.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37222F060B2B00941686 /* inserter_input_button.png */; };
 		0D3A37252F060B2B00941686 /* inserter_cancel_button.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37212F060B2B00941686 /* inserter_cancel_button.png */; };
 		0D3A37262F060B2B00941686 /* inserter_output_button.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37232F060B2B00941686 /* inserter_output_button.png */; };
+		0D45A98F2F0F4D37006B346C /* research.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D45A98E2F0F4D37006B346C /* research.png */; };
 		0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD42EFDD03C00576EC3 /* player.png */; };
 		0D6FDC1B2EFDE1B500576EC3 /* small_electric_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC092EFDE1B500576EC3 /* small_electric_pole.png */; };
 		0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE72EFDE1B500576EC3 /* copper_ore _2.png */; };
@@ -318,6 +319,7 @@
 		0D3A37212F060B2B00941686 /* inserter_cancel_button.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserter_cancel_button.png; sourceTree = "<group>"; };
 		0D3A37222F060B2B00941686 /* inserter_input_button.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserter_input_button.png; sourceTree = "<group>"; };
 		0D3A37232F060B2B00941686 /* inserter_output_button.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserter_output_button.png; sourceTree = "<group>"; };
+		0D45A98E2F0F4D37006B346C /* research.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = research.png; sourceTree = "<group>"; };
 		0D6FDBD42EFDD03C00576EC3 /* player.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player.png; sourceTree = "<group>"; };
 		0D6FDBD62EFDE1B500576EC3 /* accumulator.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = accumulator.png; sourceTree = "<group>"; };
 		0D6FDBD72EFDE1B500576EC3 /* advanced_circuit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = advanced_circuit.png; sourceTree = "<group>"; };
@@ -594,6 +596,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D45A98E2F0F4D37006B346C /* research.png */,
 				0D841AD52F0F2FE600F499B6 /* wall.png */,
 				0D18B57A2F0EECE4006B70A5 /* buy.png */,
 				0D18B5782F0E10AA006B70A5 /* belt_bridge.png */,
@@ -1285,6 +1288,7 @@
 				0D18B5602F0D6AE9006B70A5 /* transport_belt_animation.png in Resources */,
 				0D6FDC2B2EFDE1B500576EC3 /* military_science_pack.png in Resources */,
 				0D6FDC2C2EFDE1B500576EC3 /* wooden_chest.png in Resources */,
+				0D45A98F2F0F4D37006B346C /* research.png in Resources */,
 				0D6FDC2D2EFDE1B500576EC3 /* transport_belt.png in Resources */,
 				0D6FDC2E2EFDE1B500576EC3 /* coal.png in Resources */,
 				0D6FDC2F2EFDE1B500576EC3 /* stone_2.png in Resources */,

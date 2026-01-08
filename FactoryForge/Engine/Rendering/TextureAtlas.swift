@@ -11,7 +11,7 @@ final class TextureAtlas {
     
     // Main atlas texture
     private(set) var atlasTexture: MTLTexture?
-    private let atlasSize: Int = 2048
+    private let atlasSize: Int = 8192
     
     // Default sampler
     let sampler: MTLSamplerState
@@ -86,6 +86,7 @@ final class TextureAtlas {
             ("load_game", nil),
             ("menu", nil),
             ("build", nil),
+            ("research", nil),
             ("new_game", nil),
             ("save_game", nil),
             ("help", nil),
@@ -261,9 +262,14 @@ final class TextureAtlas {
                     "gun_turret", "laser_turret", "radar"
                 ]
                 let buttonSpriteSize = uiButtonNames.contains(textureId) ? 256 : spriteSize
-                let useActualSize = bulletNames.contains(textureId) || multiTileBuildings.contains(textureId)
+                let useActualSize = bulletNames.contains(textureId)
+                let scaleDownMultiTile = multiTileBuildings.contains(textureId)
 
-                if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: buttonSpriteSize, useActualSize: useActualSize) {
+                if scaleDownMultiTile {
+                    // Processing multi-tile building
+                }
+
+                if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: buttonSpriteSize, useActualSize: useActualSize, scaleDownMultiTile: scaleDownMultiTile) {
                     if textureId == "transport_belt_animation" {
                         print("✓ Successfully processed transport_belt_animation.png")
                     } else {
@@ -296,7 +302,7 @@ final class TextureAtlas {
         return image
     }
     
-    private func packSpriteIntoAtlas(image: UIImage, name: String, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int, skipBorderCrop: Bool = false, useActualSize: Bool = false) -> Bool {
+    private func packSpriteIntoAtlas(image: UIImage, name: String, into atlasData: inout [UInt8], atlasX: inout Int, atlasY: inout Int, spriteSize: Int, skipBorderCrop: Bool = false, useActualSize: Bool = false, scaleDownMultiTile: Bool = false) -> Bool {
         if name.contains("transport_belt") {
             print("🎨 Packing belt texture: \(name), size: \(image.size), skipBorderCrop: \(skipBorderCrop), useActualSize: \(useActualSize)")
         }
@@ -339,7 +345,7 @@ final class TextureAtlas {
                     let frameName = "\(prefix)_\(frameIndex)"
 
                     // Pack this frame into the atlas (skip border crop since it's already extracted)
-                    if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
+                    if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true, useActualSize: false, scaleDownMultiTile: false) {
                     }
                 }
             }
@@ -379,7 +385,7 @@ final class TextureAtlas {
 
                                 print("    Processing frame \(frameCount) at (\(frameX),\(frameY)) -> \(frameName) (direction: \(direction), frame: \(frameIndex))")
 
-                                if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
+                                if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true, useActualSize: false, scaleDownMultiTile: false) {
                                     print("    ✓ Loaded \(frameName)")
                                 } else {
                                     print("    ✗ Failed to load \(frameName)")
@@ -430,7 +436,7 @@ final class TextureAtlas {
                     let frameName = "\(prefix)_\(frameIndex)"
 
                     // Pack this frame into the atlas (skip border crop since it's already extracted)
-                    if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
+                    if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true, useActualSize: false, scaleDownMultiTile: false) {
                     }
                 }
             }
@@ -455,7 +461,7 @@ final class TextureAtlas {
                     let frameName = "\(prefix)_\(frameIndex)"
 
                     // Pack this frame into the atlas (skip border crop since it's already extracted)
-                    if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true) {
+                    if packSpriteIntoAtlas(image: frameImage, name: frameName, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: spriteSize, skipBorderCrop: true, useActualSize: false, scaleDownMultiTile: false) {
                     }
                 }
             }
@@ -474,13 +480,28 @@ final class TextureAtlas {
                 image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
                 processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
                 UIGraphicsEndImageContext()
+            } else if scaleDownMultiTile {
+                // Multi-tile buildings: use optimized scaling for space efficiency
+                let multiTileSize = 384  // Use 384x384 to balance quality and space
+                let scale = min(Float(multiTileSize) / Float(imageWidth), Float(multiTileSize) / Float(imageHeight))
+                let scaledWidth = Int(Float(imageWidth) * scale)
+                let scaledHeight = Int(Float(imageHeight) * scale)
+
+                // Use higher quality scaling
+                UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
+                let context = UIGraphicsGetCurrentContext()
+                context?.interpolationQuality = .high
+                context?.setShouldAntialias(true)
+                image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
+                processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+                UIGraphicsEndImageContext()
             } else if useActualSize {
                 // Bullet images: use actual size, only scale down if too large
                 if imageWidth > targetSize || imageHeight > targetSize {
                     let scale = min(Float(targetSize) / Float(imageWidth), Float(targetSize) / Float(imageHeight))
                     let scaledWidth = Int(Float(imageWidth) * scale)
                     let scaledHeight = Int(Float(imageHeight) * scale)
-                    
+
                     UIGraphicsBeginImageContextWithOptions(CGSize(width: scaledWidth, height: scaledHeight), false, 1.0)
                     image.draw(in: CGRect(x: 0, y: 0, width: scaledWidth, height: scaledHeight))
                     processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
@@ -551,6 +572,9 @@ final class TextureAtlas {
         let finalImage: UIImage
         if uiButtonNames.contains(name) {
             // UI buttons: keep aspect ratio, use actual processed size
+            finalImage = processedImage
+        } else if scaleDownMultiTile {
+            // Multi-tile buildings: already scaled appropriately, use as-is
             finalImage = processedImage
         } else if useActualSize {
             // Bullet images: use actual size without scaling
@@ -627,10 +651,6 @@ final class TextureAtlas {
         textureRects[name] = uvRect
         textureSizes[name] = (width: copyWidth, height: copyHeight)
 
-        // Debug UV coordinates for UI textures and bullets
-        if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder", "bullet", "bullet_up", "bullet_down", "bullet_left", "bullet_right"].contains(name) {
-            print("DEBUG: \(name) UV rect: x=\(uvRect.origin.x), y=\(uvRect.origin.y), w=\(uvRect.size.x), h=\(uvRect.size.y), actual size: \(copyWidth)x\(copyHeight)")
-        }
         
         // Move to next position in atlas (UI buttons and bullets use actual size)
         if uiButtonNames.contains(name) {
@@ -645,13 +665,17 @@ final class TextureAtlas {
                 atlasX = 0
                 atlasY += max(spriteSize, ((copyHeight + 3) / 4) * 4)  // Round up height too
             }
+        } else if scaleDownMultiTile {
+            // Multi-tile buildings: take entire rows exclusively to prevent any overlap
+            atlasX = 0
+            atlasY += 384  // Match the 384x384 texture size
         } else {
             // Regular sprites: advance by spriteSize
             atlasX += spriteSize
-        }
-        if atlasX + spriteSize > atlasSize {
-            atlasX = 0
-            atlasY += spriteSize
+            if atlasX + spriteSize > atlasSize {
+                atlasX = 0
+                atlasY += spriteSize
+            }
         }
 
         if name.contains("transport_belt") {
@@ -1509,16 +1533,26 @@ final class TextureAtlas {
             // Generate the tile
             var tileData = [UInt8](repeating: 0, count: tileSize * tileSize * 4)
             generator(tileSize, tileSize, &tileData)
-            
+
+            // Check bounds before copying
+            if currentY + tileSize > atlasSize {
+                print("Warning: Procedural texture \(name) would exceed atlas bounds vertically")
+                continue
+            }
+
             // Copy to atlas
             for y in 0..<tileSize {
                 for x in 0..<tileSize {
                     let srcIdx = (y * tileSize + x) * 4
                     let dstIdx = ((currentY + y) * atlasSize + (currentX + x)) * 4
-                    atlasData[dstIdx] = tileData[srcIdx]
-                    atlasData[dstIdx + 1] = tileData[srcIdx + 1]
-                    atlasData[dstIdx + 2] = tileData[srcIdx + 2]
-                    atlasData[dstIdx + 3] = tileData[srcIdx + 3]
+
+                    // Double-check bounds
+                    if dstIdx + 3 < atlasData.count {
+                        atlasData[dstIdx] = tileData[srcIdx]
+                        atlasData[dstIdx + 1] = tileData[srcIdx + 1]
+                        atlasData[dstIdx + 2] = tileData[srcIdx + 2]
+                        atlasData[dstIdx + 3] = tileData[srcIdx + 3]
+                    }
                 }
             }
             

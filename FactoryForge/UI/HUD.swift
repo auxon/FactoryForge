@@ -239,7 +239,7 @@ final class HUD {
         currentX += buttonSize + buttonSpacing
 
         // Render research button
-        renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "lab", callback: onResearchPressed)
+        renderButton(renderer: renderer, position: Vector2(currentX, toolbarY), textureId: "research", callback: onResearchPressed)
         currentX += buttonSize + buttonSpacing
 
         // Render buy button

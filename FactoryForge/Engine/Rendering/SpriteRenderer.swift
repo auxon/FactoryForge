@@ -87,16 +87,6 @@ final class SpriteRenderer {
                 continue
             }
 
-            // Skip very small sprites when zoomed out (performance optimization)
-            // Convert world size to screen size: worldSize * zoom * 32.0 (pixels per world unit)
-            let screenSize = sprite.size * camera.zoom * Float(32.0)
-            let minScreenSize = camera.zoom > 2.0 ? Float(4.0) : Float(2.0)  // Minimum screen pixels for sprite to be worth rendering
-            guard screenSize.x >= minScreenSize || screenSize.y >= minScreenSize else {
-                spritesCulledSize += 1
-                continue
-            }
-
-
             // Animated belts are rendered as sprites, non-animated belts are rendered as shapes
             let beltTypes = ["transport_belt", "fast_transport_belt", "express_transport_belt"]
             if beltTypes.contains(sprite.textureId) && sprite.animation == nil {
@@ -107,6 +97,28 @@ final class SpriteRenderer {
             var renderSprite = sprite
             
             let textureRect = textureAtlas.getTextureRect(for: renderSprite.textureId)
+
+            // For multi-tile buildings with large textures, scale the effective size to prevent distortion
+            let multiTileBuildings = [
+                "assembling_machine_1", "assembling_machine_2", "assembling_machine_3",
+                "electric_mining_drill", "electric_furnace", "burner_miner_drill",
+                "burner_mining_drill", "stone_furnace", "steel_furnace",
+                "lab", "solar_panel", "boiler", "steam_engine",
+                "gun_turret", "laser_turret", "radar"
+            ]
+            let isMultiTileBuilding = multiTileBuildings.contains(renderSprite.textureId)
+
+            // Use sprite size as defined in the building/component
+            let effectiveSize = renderSprite.size
+
+            // Skip very small sprites when zoomed out (performance optimization)
+            // Convert world size to screen size: worldSize * zoom * 32.0 (pixels per world unit)
+            let screenSize = effectiveSize * camera.zoom * Float(32.0)
+            let minScreenSize = camera.zoom > 2.0 ? Float(4.0) : Float(2.0)  // Minimum screen pixels for sprite to be worth rendering
+            guard screenSize.x >= minScreenSize || screenSize.y >= minScreenSize else {
+                spritesCulledSize += 1
+                continue
+            }
 
             if var animation = renderSprite.animation {
                 if let newTextureId = animation.update(deltaTime: deltaTime) {  // Use actual delta time
@@ -123,7 +135,9 @@ final class SpriteRenderer {
 
             // For centered sprites (like player), use position directly
             // For non-centered sprites (buildings), offset by half size to align with tile origin
-            let renderPos = renderSprite.centered ? worldPos : worldPos + Vector2(renderSprite.size.x / 2, renderSprite.size.y / 2)
+            let centeringSize = isMultiTileBuilding ? Vector2(3, 3) : renderSprite.size  // Use 3x3 for centering multi-tile buildings
+
+            let renderPos = renderSprite.centered ? worldPos : worldPos + Vector2(centeringSize.x / 2, centeringSize.y / 2)
 
             // Apply rotation based on entity type
             var rotation: Float = 0
@@ -145,7 +159,7 @@ final class SpriteRenderer {
 
             queuedSprites.append(SpriteInstance(
                 position: renderPos,
-                size: renderSprite.size,
+                size: effectiveSize,
                 rotation: rotation,
                 textureRect: textureRect,
                 color: tintColor,
