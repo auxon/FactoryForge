@@ -196,9 +196,6 @@ final class LoadingMenu: UIPanel_Base {
         // Setup action buttons underneath the scroll view
         setupActionButtons()
 
-        // Setup action buttons underneath the scroll view
-        setupActionButtons()
-
         // Setup help button label
         setupHelpButtonLabel()
     }
@@ -403,24 +400,31 @@ final class LoadingMenu: UIPanel_Base {
     override func open() {
         super.open()
         refreshSaveSlots()
-        // Show scroll view, action buttons, and help button label when menu opens
+        // Show scroll view and help button label when menu opens
+        // Action buttons are created fresh by setupLabels()
         scrollView?.isHidden = false
-        saveButtonLabel?.isHidden = false
-        loadButtonLabel?.isHidden = false
-        renameButtonLabel?.isHidden = false
-        deleteButtonLabel?.isHidden = false
         helpButtonLabel?.isHidden = false
     }
 
     override func close() {
         super.close()
-        // Hide scroll view, action buttons, and help button label when menu closes
+        // Hide scroll view and help button label when menu closes
         scrollView?.isHidden = true
-        saveButtonLabel?.isHidden = true
-        loadButtonLabel?.isHidden = true
-        renameButtonLabel?.isHidden = true
-        deleteButtonLabel?.isHidden = true
         helpButtonLabel?.isHidden = true
+
+        // Remove action buttons from view hierarchy when closing
+        saveButtonLabel?.removeFromSuperview()
+        loadButtonLabel?.removeFromSuperview()
+        renameButtonLabel?.removeFromSuperview()
+        deleteButtonLabel?.removeFromSuperview()
+
+        saveButtonLabel = nil
+        loadButtonLabel = nil
+        renameButtonLabel = nil
+        deleteButtonLabel = nil
+
+        // Clear selection
+        selectedSaveSlot = nil
     }
     
     override func render(renderer: MetalRenderer) {

@@ -253,24 +253,28 @@ final class SaveSystem {
     // MARK: - Save Slots
     
     func getSaveSlots() -> [SaveSlotInfo] {
+        // Reload display names to ensure we have the latest changes
+        loadDisplayNames()
+
         guard let directory = saveDirectory else { return [] }
-        
+
         var slots: [SaveSlotInfo] = []
-        
+
         do {
             let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey])
-            
+
             for file in files where file.pathExtension == "json" {
                 let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
                 let modDate = attributes[.modificationDate] as? Date ?? Date()
-                
+
                 // Try to read save info
                 if let data = try? Data(contentsOf: file),
                    let save = try? JSONDecoder().decode(GameSave.self, from: data) {
                     let slotName = file.deletingPathExtension().lastPathComponent
+                    let displayName = displayNames[slotName]
                     slots.append(SaveSlotInfo(
                         name: slotName,
-                        displayName: displayNames[slotName],
+                        displayName: displayName,
                         playTime: save.playTime,
                         timestamp: save.timestamp,
                         modificationDate: modDate
@@ -280,7 +284,7 @@ final class SaveSystem {
         } catch {
             print("Failed to list saves: \(error)")
         }
-        
+
         return slots.sorted { $0.modificationDate > $1.modificationDate }
     }
     
