@@ -21,6 +21,13 @@ final class BeltSystem: System {
     // MARK: - Belt Registration
     
     func registerBelt(entity: Entity, at position: IntVector2, direction: Direction, type: BeltType = .normal) {
+        // Remove any existing entries for this entity to prevent duplicates
+        for (pos, node) in beltGraph {
+            if node.entity == entity {
+                beltGraph.removeValue(forKey: pos)
+            }
+        }
+
         let node = BeltNode(entity: entity, position: position, direction: direction, type: type)
         beltGraph[position] = node
         updateConnections(for: position)
@@ -108,7 +115,7 @@ final class BeltSystem: System {
         }
 
         switch node.type {
-        case .normal, .bridge:
+        case .normal, .bridge, .fast, .express:
             updateNormalBeltConnections(for: position, node: &node)
         case .underground:
             updateUndergroundBeltConnections(for: position, node: &node)
@@ -200,20 +207,22 @@ final class BeltSystem: System {
             }
         }
 
-        // Find outputs (belts in front of us and to the sides)
-        var outputEntities: [Entity] = []
-        for offset in [IntVector2(1, 0), IntVector2(-1, 0), IntVector2(0, 1), IntVector2(0, -1)] {
-            let outputPos = position + offset
-            if let outputNode = beltGraph[outputPos] {
-                // Connect to any adjacent belt (splitters output in all directions)
-                outputEntities.append(outputNode.entity)
+        // Find adjacent belts in cardinal directions (north, south, east, west)
+        // Splitters connect to belts adjacent in the 4 cardinal directions, like normal belts
+        var adjacentBelts: [Entity] = []
+
+        // Check cardinal directions in priority order: north, east, south, west
+        for offset in [IntVector2(0, 1), IntVector2(1, 0), IntVector2(0, -1), IntVector2(-1, 0)] {
+            let adjacentPos = position + offset
+            if let outputNode = beltGraph[adjacentPos] {
+                adjacentBelts.append(outputNode.entity)
             }
         }
 
-        // Update belt component with multiple connections
+        // Update belt component with all adjacent belt connections
         if var belt = world.get(BeltComponent.self, for: node.entity) {
             belt.inputConnection = node.inputEntities.first
-            belt.outputConnections = outputEntities
+            belt.outputConnections = adjacentBelts
             world.add(belt, to: node.entity)
         }
     }
@@ -305,7 +314,7 @@ final class BeltSystem: System {
 
             // Handle different belt types
             switch belt.type {
-            case .normal, .bridge:
+            case .normal, .bridge, .fast, .express:
                 // Standard belt behavior
                 moveItemsOnLane(lane: &belt.leftLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .left)
                 moveItemsOnLane(lane: &belt.rightLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .right)
@@ -324,14 +333,6 @@ final class BeltSystem: System {
             }
 
             world.add(belt, to: entity)
-        }
-
-        // Profile belt system performance
-        let endTime = CACurrentMediaTime()
-        let duration = Float(endTime - startTime)
-        if sortedBelts.count > 0 && Int(Time.shared.frameCount) % 60 == 0 {
-            print(String(format: "BeltSystem: %.2fms for %d belts (%.3fms per belt)",
-                         duration*1000, sortedBelts.count, (duration*1000)/Float(sortedBelts.count)))
         }
     }
     
@@ -411,44 +412,114 @@ final class BeltSystem: System {
     }
 
     private func moveSplitterItems(belt: inout BeltComponent, speed: Float, entity: Entity) {
-        // Splitters take items from input and distribute to multiple outputs
+        // Factorio-style splitter: collect items and distribute evenly to all adjacent belts
+        guard let position = world.get(PositionComponent.self, for: entity)?.tilePosition else { return }
 
-        // First, try to get items from input connections
-        if let inputEntity = belt.inputConnection {
-            if var inputBelt = world.get(BeltComponent.self, for: inputEntity) {
-                // Try to take items from input belt
-                if let item = inputBelt.takeItemFromMerger() { // Reusing merger method for taking from input
-                    // Add to splitter's distribution logic
-                    _ = belt.addItemToSplitter(item.itemId)
-                    // Update the input belt
-                    world.add(inputBelt, to: inputEntity)
-                }
+        // Get all items currently on splitter
+        var splitterItems: [BeltItem] = []
+        splitterItems.append(contentsOf: belt.leftLane)
+        splitterItems.append(contentsOf: belt.rightLane)
+
+        // Clear splitter immediately (like Factorio)
+        belt.leftLane.removeAll()
+        belt.rightLane.removeAll()
+
+        if splitterItems.isEmpty { return }
+
+        // Find output belts (exclude the input direction)
+        var outputBelts: [Entity] = []
+        var foundEntities = Set<Entity>() // Prevent duplicates from beltGraph bugs
+
+        // Splitter outputs to all directions except the input direction (opposite of facing direction)
+        let inputDirection = belt.direction.opposite // Items come from the opposite direction
+        let inputOffset = inputDirection.intVector
+        let inputPos = position + inputOffset
+
+        // print("BeltSystem: Splitter at \(position), direction: \(belt.direction), inputDirection: \(inputDirection), inputPos: \(inputPos)")
+
+        let directions = [
+            IntVector2(0, 1),  // North
+            IntVector2(1, 0),  // East
+            IntVector2(0, -1), // South
+            IntVector2(-1, 0)  // West
+        ]
+
+        for offset in directions {
+            let checkPos = position + offset
+            // Skip the input position - splitter doesn't output to its input direction
+            if checkPos == inputPos {
+                // print("BeltSystem: Skipping input position: \(checkPos)")
+                continue
+            }
+
+            print("BeltSystem: Checking output position: \(checkPos)")
+            // Check beltGraph for belts at exact adjacent positions
+            if let beltNode = beltGraph[checkPos],
+               beltNode.type == .normal || beltNode.type == .fast || beltNode.type == .express,
+               !foundEntities.contains(beltNode.entity) {
+                outputBelts.append(beltNode.entity)
+                foundEntities.insert(beltNode.entity)
+                // print("BeltSystem: Found output belt \(beltNode.entity) at \(checkPos)")
             }
         }
 
-        // Move items along splitter and distribute to outputs
-        moveItemsOnLane(lane: &belt.leftLane, speed: speed, outputBelt: belt.outputConnections.first, outputLane: .left)
-        moveItemsOnLane(lane: &belt.rightLane, speed: speed, outputBelt: belt.outputConnections.last, outputLane: .right)
+        if outputBelts.isEmpty { return }
+
+        // Distribute items randomly across output belts (1/3 chance each)
+        for item in splitterItems {
+            var itemPlaced = false
+
+            // Randomly select one output belt for this item
+            if !outputBelts.isEmpty {
+                let randomIndex = Int.random(in: 0..<outputBelts.count)
+                let targetBeltEntity = outputBelts[randomIndex]
+
+                if var targetBelt = world.get(BeltComponent.self, for: targetBeltEntity) {
+                    // Try left lane first, then right lane
+                    if targetBelt.addItem(item.itemId, lane: .left, position: 0) ||
+                       targetBelt.addItem(item.itemId, lane: .right, position: 0) {
+                        world.add(targetBelt, to: targetBeltEntity)
+                        itemPlaced = true
+                        // print("BeltSystem: Added item to belt \(targetBeltEntity) (random)")
+                    } else {
+                        // print("BeltSystem: Selected belt \(targetBeltEntity) full, item lost")
+                    }
+                }
+            }
+
+            // If no belt can accept the item, it's lost (Factorio behavior)
+            if !itemPlaced {
+                print("BeltSystem: Item lost - no valid output belts")
+            }
+        }
     }
 
     private func moveMergerItems(belt: inout BeltComponent, speed: Float, entity: Entity) {
-        // Mergers combine items from multiple inputs into one output
+        // Mergers collect items from multiple inputs and combine them into a single output stream
 
-        // Try to get items from all input connections
+        // Collect items from all input connections that have items ready
+        var collectedItems: [BeltItem] = []
         for inputEntity in belt.inputConnections {
             if var inputBelt = world.get(BeltComponent.self, for: inputEntity) {
-                if let item = inputBelt.takeItemFromMerger() {
-                    // Add to merger's combined output
-                    _ = belt.addItemToSplitter(item.itemId) // Reusing splitter method for distribution
-                    // Update the input belt
+                // Take any items ready from input belt
+                while let item = inputBelt.takeItem(from: .left) ?? inputBelt.takeItem(from: .right) {
+                    collectedItems.append(item)
+                }
+                if !collectedItems.isEmpty {
                     world.add(inputBelt, to: inputEntity)
                 }
             }
         }
 
-        // Move combined items to output
-        moveItemsOnLane(lane: &belt.leftLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .left)
-        moveItemsOnLane(lane: &belt.rightLane, speed: speed, outputBelt: getOutputBelt(for: entity), outputLane: .right)
+        // Add collected items to merger lanes for output
+        for item in collectedItems {
+            _ = belt.addItemToSplitter(item.itemId)
+        }
+
+        // Send combined items to the single output
+        let outputBelt = getOutputBelt(for: entity)
+        moveItemsOnLane(lane: &belt.leftLane, speed: speed, outputBelt: outputBelt, outputLane: .left)
+        moveItemsOnLane(lane: &belt.rightLane, speed: speed, outputBelt: outputBelt, outputLane: .right)
     }
     
     // MARK: - Public Interface

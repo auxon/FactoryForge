@@ -23,13 +23,6 @@ final class CraftingSystem: System {
 
         // Update furnaces
         updateFurnaces(deltaTime: deltaTime)
-
-        // Profile crafting system performance
-        let endTime = CACurrentMediaTime()
-        let duration = Float(endTime - startTime)
-        if Int(Time.shared.frameCount) % 60 == 0 {
-            print(String(format: "CraftingSystem: %.2fms", duration*1000))
-        }
     }
     
     private func updateAssemblers(deltaTime: Float) {

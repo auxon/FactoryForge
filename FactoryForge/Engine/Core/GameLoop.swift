@@ -1201,20 +1201,39 @@ final class GameLoop {
         // Update belt system with new direction
         beltSystem.updateBeltDirection(entity: entity, newDirection: newDirection)
 
-        // Update sprite animation (keep using north frames, rotation handles direction)
+        // Update sprite animation/texture based on belt type
         if var sprite = world.get(SpriteComponent.self, for: entity) {
-            // Create animation frames using north direction for all belts, cycling through 4 frames
-            let beltFrames = (1...16).map { frameIndex in
-                let actualFrame = ((frameIndex - 1) % 4) + 1  // Cycle through frames 1-4
-                return "transport_belt_north_\(String(format: "%03d", actualFrame))"
+            if belt.type == .normal {
+                // Transport belts: use animated frames
+                let beltFrames = (1...16).map { frameIndex in
+                    let actualFrame = ((frameIndex - 1) % 4) + 1  // Cycle through frames 1-4
+                    return "transport_belt_north_\(String(format: "%03d", actualFrame))"
+                }
+                let beltAnimation = SpriteAnimation(
+                    frames: beltFrames,
+                    frameTime: 0.1,  // 16 frames × 0.1s = 1.6 seconds per loop
+                    isLooping: true
+                )
+                sprite.animation = beltAnimation
+                sprite.textureId = beltFrames[0]  // Start with first frame
+            } else {
+                // Splitters, mergers, underground belts: keep original static texture
+                // Just ensure the textureId matches the belt type
+                switch belt.type {
+                case .splitter:
+                    sprite.textureId = "splitter"
+                case .merger:
+                    sprite.textureId = "merger"
+                case .underground:
+                    sprite.textureId = "underground_belt"
+                case .bridge:
+                    sprite.textureId = "belt_bridge"
+                default:
+                    break
+                }
+                // Remove any animation for static belt types
+                sprite.animation = nil
             }
-            let beltAnimation = SpriteAnimation(
-                frames: beltFrames,
-                frameTime: 0.1,  // 16 frames × 0.1s = 1.6 seconds per loop
-                isLooping: true
-            )
-            sprite.animation = beltAnimation
-            sprite.textureId = beltFrames[0]  // Start with first frame
             world.add(sprite, to: entity)
         } else {
             print("⚠️ No sprite component found for belt entity during rotation")

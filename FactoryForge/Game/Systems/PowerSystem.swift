@@ -33,13 +33,6 @@ final class PowerSystem: System {
         for i in 0..<networks.count {
             updateNetwork(&networks[i], deltaTime: deltaTime)
         }
-
-        // Profile power system performance
-        let endTime = CACurrentMediaTime()
-        let duration = Float(endTime - startTime)
-        if Int(Time.shared.frameCount) % 60 == 0 {
-            print(String(format: "PowerSystem: %.2fms for %d networks", duration*1000, networks.count))
-        }
     }
     
     // MARK: - Network Building

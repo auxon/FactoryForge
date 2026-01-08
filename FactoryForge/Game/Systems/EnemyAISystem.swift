@@ -121,13 +121,6 @@ final class EnemyAISystem: System {
             updateEvolution(deltaTime: deltaTime * Float(evolutionUpdateInterval / (Double(currentTime) - lastEvolutionUpdate)))
             lastEvolutionUpdate = Double(currentTime)
         }
-
-        // Profile enemy AI performance
-        let endTime = CACurrentMediaTime()
-        let duration = endTime - startTime
-        if Int(Time.shared.frameCount) % 60 == 0 {
-            print(String(format: "EnemyAISystem: %.2fms", duration*1000))
-        }
     }
     
     // Track which chunks have had spawners created

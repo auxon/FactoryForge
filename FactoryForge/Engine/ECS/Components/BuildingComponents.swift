@@ -82,6 +82,8 @@ struct AssemblerComponent: Component {
 /// Different types of belt entities
 enum BeltType: Codable {
     case normal
+    case fast
+    case express
     case underground
     case splitter
     case merger

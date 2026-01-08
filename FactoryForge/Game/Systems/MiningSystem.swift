@@ -265,13 +265,6 @@ final class MiningSystem: System {
         for entity in treesToRemove {
             world.despawn(entity)
         }
-
-        // Profile mining system performance
-        let endTime = CACurrentMediaTime()
-        let duration = Float(endTime - startTime)
-        if Int(Time.shared.frameCount) % 60 == 0 {
-            print(String(format: "MiningSystem: %.2fms", duration*1000))
-        }
     }
     
     private func updateResourceCache() {

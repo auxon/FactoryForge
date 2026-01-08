@@ -45,13 +45,6 @@ final class PollutionSystem: System {
 
         // Spread pollution between chunks
         chunkManager.spreadPollution(deltaTime: deltaTime)
-
-        // Profile pollution system performance
-        let endTime = CACurrentMediaTime()
-        let duration = Float(endTime - startTime)
-        if Int(Time.shared.frameCount) % 60 == 0 {
-            print(String(format: "PollutionSystem: %.2fms", duration*1000))
-        }
     }
     
     private func updatePollutionEntityCache() {
