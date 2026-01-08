@@ -8,7 +8,7 @@ final class InventoryUI: UIPanel_Base {
     private var countLabels: [UILabel] = []
     private var closeButton: CloseButton!
     private let slotsPerRow = 8
-    private let maxSlots = 48  // Maximum slots for steel chest
+    private let maxSlots = 64  // Maximum slots for player inventory (supports expansion)
     private let screenSize: Vector2
 
     // Machine input mode

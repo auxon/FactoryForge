@@ -853,6 +853,21 @@
       "productID" : "com.factoryforge.items.laser_turret",
       "referenceName" : "Laser Turret",
       "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "INVENTORY_EXPANSION",
+      "localizations" : [
+        {
+          "description" : "Increase your inventory capacity by 8 slots - Carry more resources and items",
+          "displayName" : "Inventory Expansion",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.upgrade.inventory_expansion",
+      "referenceName" : "Inventory Expansion",
+      "type" : "Consumable"
     }
   ],
   "settings" : {

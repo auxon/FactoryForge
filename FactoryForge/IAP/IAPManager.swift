@@ -22,6 +22,9 @@ final class IAPManager: NSObject, ObservableObject {
     /// Callback for delivering purchased items to inventory
     var onPurchaseDelivered: ((String, Int) -> Void)?
 
+    /// Callback for handling upgrade purchases
+    var onUpgradePurchased: ((String) -> Void)?
+
     // MARK: - Initialization
 
     override init() {
@@ -112,6 +115,9 @@ final class IAPManager: NSObject, ObservableObject {
         productIdsSet.insert("com.factoryforge.items.laser_turret")
         productIdsSet.insert("com.factoryforge.items.wall")
         productIdsSet.insert("com.factoryforge.items.firearm_magazine_pack")
+
+        // Upgrades
+        productIdsSet.insert("com.factoryforge.upgrade.inventory_expansion")
     }
 
     /// Load products from the App Store
@@ -121,11 +127,20 @@ final class IAPManager: NSObject, ObservableObject {
         isLoadingProducts = true
         defer { isLoadingProducts = false }
 
+        print("🛒 IAPManager: Loading \(productIdsSet.count) products from App Store...")
+        for productId in productIdsSet {
+            print("📦 IAPManager: Product ID: \(productId)")
+        }
+
         do {
             products = try await Product.products(for: productIdsSet)
                 .sorted { $0.displayPrice < $1.displayPrice }
+            print("✅ IAPManager: Successfully loaded \(products.count) products")
+            for product in products {
+                print("📦 IAPManager: Loaded product: \(product.id) - \(product.displayName)")
+            }
         } catch {
-            print("Failed to load products: \(error)")
+            print("❌ IAPManager: Failed to load products: \(error)")
             throw error
         }
     }
@@ -195,22 +210,28 @@ final class IAPManager: NSObject, ObservableObject {
     }
 
     private func handleTransaction(_ transaction: Transaction) async {
-        // Only handle transactions that are NOT initiated through StoreView
-        // StoreView handles its own transaction processing to avoid double delivery
         let productId = transaction.productID
 
-        // Check if this product ID is one of our store products
-        guard productIdsSet.contains(productId) else {
-            // Not one of our products, handle normally
-            if let itemInfo = self.parseProductId(productId) {
-                await self.deliverPurchase(itemId: itemInfo.itemId, quantity: itemInfo.quantity * transaction.purchasedQuantity)
-            }
+        // Handle upgrade purchases regardless of how they were initiated
+        if self.isUpgradeProduct(productId) {
+            await self.deliverUpgrade(productId: productId)
             return
         }
 
-        // For store products, only deliver if not using StoreView
-        // StoreView handles delivery through its completion handler
-        // This prevents double delivery when StoreView is used
+        // Only deliver items for purchases NOT initiated through StoreView
+        // StoreView handles its own purchases to prevent double delivery
+        guard !productIdsSet.contains(productId) else {
+            return
+        }
+
+        // External item purchases (not through our store)
+        if let itemInfo = self.parseProductId(productId) {
+            await self.deliverPurchase(itemId: itemInfo.itemId, quantity: itemInfo.quantity * transaction.purchasedQuantity)
+        }
+    }
+
+    func isUpgradeProduct(_ productId: String) -> Bool {
+        return productId.hasPrefix("com.factoryforge.upgrade.")
     }
 
     func parseProductId(_ productId: String) -> (itemId: String, quantity: Int)? {
@@ -322,6 +343,29 @@ final class IAPManager: NSObject, ObservableObject {
         }
     }
 
+    func deliverUpgrade(productId: String) async {
+        // Handle upgrade deliveries
+        let upgradeType = productId.components(separatedBy: ".").last ?? ""
+        print("⬆️ IAPManager: Delivering upgrade type: \(upgradeType)")
+
+        // Capture the callback to avoid Sendable issues
+        let callback = self.onUpgradePurchased
+
+        // Deliver upgrade via callback
+        DispatchQueue.main.async {
+            print("📞 IAPManager: Calling upgrade callback with type: \(upgradeType)")
+            callback?(upgradeType)
+
+            // Show notification to player
+            NotificationCenter.default.post(
+                name: .upgradePurchased,
+                object: nil,
+                userInfo: ["upgradeType": upgradeType]
+            )
+            print("🔔 IAPManager: Posted upgrade notification")
+        }
+    }
+
     // MARK: - Verification
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
@@ -338,4 +382,6 @@ final class IAPManager: NSObject, ObservableObject {
 
 extension Notification.Name {
     static let purchaseDelivered = Notification.Name("purchaseDelivered")
+    static let upgradePurchased = Notification.Name("upgradePurchased")
+    static let inventoryExpanded = Notification.Name("inventoryExpanded")
 }

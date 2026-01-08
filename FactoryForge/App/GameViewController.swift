@@ -9,7 +9,7 @@ class GameViewController: UIViewController {
     private var renderer: MetalRenderer!
     private var gameLoop: GameLoop?
     private var inputManager: InputManager?
-    private var uiSystem: UISystem?
+    var uiSystem: UISystem?
     
     // Tooltip label
     private var tooltipLabel: UILabel!

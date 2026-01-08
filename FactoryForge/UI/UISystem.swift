@@ -215,8 +215,25 @@ final class UISystem {
             }
         }
 
+        // Set up IAPManager callback for upgrade delivery
+        print("🎮 UISystem: Setting up upgrade purchase callback")
+        IAPManager.shared.onUpgradePurchased = { [weak self] upgradeType in
+            print("📞 UISystem: Received upgrade callback for type: \(upgradeType)")
+            self?.handleUpgradePurchase(upgradeType)
+        }
+
+        // Debug: Add a way to manually test inventory expansion
+        #if DEBUG
+        // You can call this method programmatically to test inventory expansion
+        // Example: Add a temporary debug button in the UI that calls this
+        #endif
+
         // Get all product IDs from IAPManager
         let productIds = IAPManager.shared.productIds
+        print("🛍️ UISystem: Opening store with \(productIds.count) products:")
+        for id in productIds {
+            print("📦 UISystem: - \(id)")
+        }
 
         // Create the StoreViewController
         let storeVC = StoreViewController(productIds: productIds) { [weak self] in
@@ -226,6 +243,64 @@ final class UISystem {
 
         // Present the StoreViewController directly
         presentStoreViewController(storeVC)
+    }
+
+    private func handleUpgradePurchase(_ upgradeType: String) {
+        print("🎮 UISystem: Handling upgrade purchase of type: \(upgradeType)")
+        switch upgradeType {
+        case "inventory_expansion":
+            print("📦 UISystem: Calling expandPlayerInventory()")
+            expandPlayerInventory()
+        default:
+            print("❓ UISystem: Unknown upgrade type: \(upgradeType)")
+        }
+    }
+
+    private func expandPlayerInventory() {
+        print("🎒 expandPlayerInventory: Starting inventory expansion")
+        guard let gameLoop = gameLoop else {
+            print("❌ expandPlayerInventory: No gameLoop available")
+            return
+        }
+
+        // Increase player inventory by 8 slots
+        let currentSlots = gameLoop.player.inventory.slotCount
+        let newSlots = currentSlots + 8
+        print("📊 expandPlayerInventory: Expanding from \(currentSlots) to \(newSlots) slots")
+
+        // Create new inventory with expanded slots
+        var newInventory = InventoryComponent(slots: newSlots, allowedItems: nil)
+        print("🆕 expandPlayerInventory: Created new inventory with \(newInventory.slotCount) slots")
+
+        // Copy existing items to the new inventory
+        var copiedItems = 0
+        for i in 0..<min(currentSlots, newInventory.slotCount) {
+            if gameLoop.player.inventory.slots[i] != nil {
+                newInventory.slots[i] = gameLoop.player.inventory.slots[i]
+                copiedItems += 1
+            }
+        }
+        print("📦 expandPlayerInventory: Copied \(copiedItems) item stacks to new inventory")
+
+        // Update player's inventory
+        gameLoop.player.inventory = newInventory
+        print("✅ expandPlayerInventory: Player inventory updated successfully")
+
+        // Autosave after upgrade
+        if let autosaveSlot = gameLoop.saveSystem.currentAutosaveSlot {
+            gameLoop.saveSystem.save(gameLoop: gameLoop, slotName: autosaveSlot)
+            print("💾 expandPlayerInventory: Autosaved to slot: \(autosaveSlot)")
+        } else {
+            print("⚠️ expandPlayerInventory: No autosave slot available")
+        }
+
+        // Show notification
+        NotificationCenter.default.post(
+            name: .inventoryExpanded,
+            object: nil,
+            userInfo: ["newSlotCount": newSlots]
+        )
+        print("🔔 expandPlayerInventory: Posted inventory expanded notification")
     }
 
     func presentStoreViewController(_ viewController: UIViewController) {
@@ -732,6 +807,15 @@ final class UISystem {
         }
         return false
     }
+
+    #if DEBUG
+    /// Debug method to manually test inventory expansion
+    /// Call this to test if the upgrade logic works without StoreKit
+    func debugExpandInventory() {
+        print("🐛 DEBUG: Manually triggering inventory expansion")
+        handleUpgradePurchase("inventory_expansion")
+    }
+    #endif
 }
 
 // MARK: - UI Types

@@ -58,7 +58,7 @@ final class Player {
     init(world: World) {
         self.world = world
         self.entity = world.spawn()
-        self.inventory = InventoryComponent(slots: 40, allowedItems: nil)
+        self.inventory = InventoryComponent(slots: 56, allowedItems: nil)
         
         // Set up player entity
         setupPlayerEntity()
@@ -116,24 +116,61 @@ final class Player {
     }
     
     private func giveStartingItems() {
-        inventory.add(itemId: "iron-plate", count: 40)  // Enough to build both burner miner and stone furnace
-        inventory.add(itemId: "iron-gear-wheel", count: 40)  // for testing
-        inventory.add(itemId: "copper-plate", count: 40)  // for testing
-        inventory.add(itemId: "electronic-circuit", count: 40)  // for testing
-        inventory.add(itemId: "copper-cable", count: 40)  // for testing
-        inventory.add(itemId: "burner-mining-drill", count: 2)
-        inventory.add(itemId: "stone-furnace", count: 2)
-        inventory.add(itemId: "firearm-magazine", count: 10)  // Starting ammo for self-defense
-        inventory.add(itemId: "transport-belt", count: 20)  // Starting belts
-        inventory.add(itemId: "inserter", count: 4)  // Starting inserters
-        inventory.add(itemId: "boiler", count: 1)  // Boiler for testing
-        inventory.add(itemId: "small-electric-pole", count: 20)  // Small electric pole for testing
-        inventory.add(itemId: "automation-science-pack", count: 10)  // Automation science pack for testing
-        inventory.add(itemId: "lab", count: 1)  // Lab for testing
-        inventory.add(itemId: "assembling-machine-1", count: 1)  // Assembling machine 1 for testing
-        // add splitters and mergers for testing
-        inventory.add(itemId: "splitter", count: 10)
-        inventory.add(itemId: "merger", count: 10)
+        inventory.add(itemId: "iron-plate", count: 100)  // Enough to build lots of stuff
+        inventory.add(itemId: "iron-gear-wheel", count: 100)  // for testing
+        inventory.add(itemId: "copper-plate", count: 100)  // for testing
+        inventory.add(itemId: "electronic-circuit", count: 100)  // for testing
+        inventory.add(itemId: "copper-cable", count: 100)  // for testing
+        inventory.add(itemId: "burner-mining-drill", count: 100)
+        inventory.add(itemId: "stone-furnace", count: 100)
+        inventory.add(itemId: "steel-furnace", count: 100)
+        inventory.add(itemId: "electric-mining-drill", count: 100)
+        inventory.add(itemId: "electric-furnace", count: 100)
+        inventory.add(itemId: "assembling-machine-1", count: 100)
+        inventory.add(itemId: "assembling-machine-2", count: 100)
+        inventory.add(itemId: "assembling-machine-3", count: 100)
+        inventory.add(itemId: "lab", count: 100)
+        inventory.add(itemId: "oil-well", count: 100)
+        inventory.add(itemId: "oil-refinery", count: 100)
+        inventory.add(itemId: "chemical-plant", count: 100)
+        inventory.add(itemId: "boiler", count: 100)
+        inventory.add(itemId: "steam-engine", count: 100)
+        inventory.add(itemId: "solar-panel", count: 100)
+        inventory.add(itemId: "accumulator", count: 100)
+        inventory.add(itemId: "small-electric-pole", count: 100)
+        inventory.add(itemId: "medium-electric-pole", count: 100)
+        inventory.add(itemId: "big-electric-pole", count: 100)
+        inventory.add(itemId: "gun-turret", count: 100)
+        inventory.add(itemId: "laser-turret", count: 100)
+        inventory.add(itemId: "wall", count: 100)
+        inventory.add(itemId: "grenade", count: 100)
+        inventory.add(itemId: "radar", count: 100)
+        inventory.add(itemId: "automation-science-pack", count: 100)
+        inventory.add(itemId: "logistic-science-pack", count: 100)
+        inventory.add(itemId: "chemical-science-pack", count: 100)
+        inventory.add(itemId: "production-science-pack", count: 100)
+        inventory.add(itemId: "utility-science-pack", count: 100)
+        inventory.add(itemId: "transport-belt", count: 100)
+        inventory.add(itemId: "firearm-magazine", count: 100)  // Starting ammo for self-defense
+        inventory.add(itemId: "transport-belt", count: 100)  // Starting belts
+        inventory.add(itemId: "inserter", count: 100)  // Starting inserters
+        inventory.add(itemId: "boiler", count: 100)  // Boiler for testing
+        inventory.add(itemId: "small-electric-pole", count: 100)  // Small electric pole for testing
+        inventory.add(itemId: "automation-science-pack", count: 100)  // Automation science pack for testing
+        inventory.add(itemId: "lab", count: 100)  // Lab for testing
+        inventory.add(itemId: "assembling-machine-1", count: 100)  // Assembling machine 1 for testing
+        inventory.add(itemId: "splitter", count: 100)
+        inventory.add(itemId: "merger", count: 100)
+        inventory.add(itemId: "belt-bridge", count: 100)
+        inventory.add(itemId: "long-handed-inserter", count: 100)
+        inventory.add(itemId: "fast-inserter", count: 100)
+        inventory.add(itemId: "wooden-chest", count: 100)
+        inventory.add(itemId: "iron-chest", count: 100)
+        inventory.add(itemId: "steel-chest", count: 100)
+        inventory.add(itemId: "electric-furnace", count: 100)
+        inventory.add(itemId: "electric-mining-drill", count: 100)
+        inventory.add(itemId: "electric-furnace", count: 100)
+
     }
     
     // MARK: - Update
