@@ -519,10 +519,6 @@ class GameViewController: UIViewController {
         loadingMenu.onSaveSlotDelete = { [weak self] slotName in
             self?.deleteSave(slotName: slotName)
         }
-        
-        loadingMenu.onSaveGameRequested = { [weak self] in
-            self?.saveCurrentGame()
-        }
 
         loadingMenu.onCloseTapped = { [weak self] in
             self?.uiSystem?.closeAllPanels()
@@ -700,11 +696,6 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
-        // Enable save button in loading menu (game is now running)
-        uiSystem?.getLoadingMenu().onSaveGameRequested = { [weak self] in
-            self?.saveCurrentGame()
-        }
-
         // Ensure renderer has the correct uiSystem reference before closing panels
         if let uiSystem = uiSystem {
             renderer.uiSystem = uiSystem
@@ -759,11 +750,6 @@ class GameViewController: UIViewController {
 
         // Exit build mode when loading a saved game
         inputManager?.exitBuildMode()
-
-        // Enable save button in loading menu (game is now running)
-        uiSystem?.getLoadingMenu().onSaveGameRequested = { [weak self] in
-            self?.saveCurrentGame()
-        }
 
         // Update UI system with game loop to ensure HUD has correct reference
         // NOTE: This recreates the HUD, so callbacks must be set AFTER this
