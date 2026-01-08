@@ -18,6 +18,9 @@ final class InventoryUI: UIPanel_Base {
     // Chest inventory mode
     private var chestEntity: Entity?
 
+    // Chest-only mode - when showing only chest inventory
+    private var chestOnlyEntity: Entity?
+
     // Callbacks for managing UIKit labels
     var onAddLabels: (([UILabel]) -> Void)?
     var onRemoveLabels: (([UILabel]) -> Void)?
@@ -55,6 +58,14 @@ final class InventoryUI: UIPanel_Base {
 
     func exitChestMode() {
         chestEntity = nil
+    }
+
+    func enterChestOnlyMode(entity: Entity) {
+        chestOnlyEntity = entity
+    }
+
+    func exitChestOnlyMode() {
+        chestOnlyEntity = nil
     }
 
     private func handleChestTransfer(slot: InventorySlot) {
@@ -142,6 +153,60 @@ final class InventoryUI: UIPanel_Base {
         }
     }
 
+    private func handleChestOnlyInteraction(slot: InventorySlot) {
+        guard let chestOnlyEntity = chestOnlyEntity,
+              let gameLoop = gameLoop else { return }
+
+        let chestInventory = gameLoop.world.get(InventoryComponent.self, for: chestOnlyEntity)
+        guard var chestInventory = chestInventory else { return }
+
+        let slotIndex = slot.index
+
+        // Bounds check - make sure slotIndex is valid for this chest
+        guard slotIndex < chestInventory.slots.count else { return }
+
+        if let chestItemStack = chestInventory.slots[slotIndex] {
+            // Filled chest slot - transfer to player
+            var playerInventory = gameLoop.player.inventory
+
+            // Calculate available space in player inventory for this item
+            var availableSpace = 0
+            if playerInventory.canAccept(itemId: chestItemStack.itemId) {
+                // Check existing stacks of same item
+                for slot in playerInventory.slots {
+                    if let stack = slot, stack.itemId == chestItemStack.itemId {
+                        availableSpace += stack.maxStack - stack.count
+                    }
+                }
+                // Check empty slots
+                let emptySlots = playerInventory.slots.filter { $0 == nil }.count
+                availableSpace += emptySlots * chestItemStack.maxStack
+            }
+
+            let itemsToTransfer = min(chestItemStack.count, availableSpace)
+
+            if itemsToTransfer > 0 {
+                // Remove from chest
+                chestInventory.slots[slotIndex]?.count -= itemsToTransfer
+                if chestInventory.slots[slotIndex]?.count == 0 {
+                    chestInventory.slots[slotIndex] = nil
+                }
+                gameLoop.world.add(chestInventory, to: chestOnlyEntity)
+
+                // Add to player
+                let remaining = playerInventory.add(itemId: chestItemStack.itemId, count: itemsToTransfer)
+                if remaining == 0 {  // All items were added
+                    gameLoop.player.inventory = playerInventory
+                    AudioManager.shared.playClickSound()
+                }
+            }
+        } else {
+            // Empty chest slot - for now, do nothing
+            // In the future, this could open player inventory for item selection
+            print("InventoryUI: Empty chest slot clicked")
+        }
+    }
+
     private func setupSlots() {
         let slotSize: Float = 40 * UIScale
         let slotSpacing: Float = 5 * UIScale
@@ -204,19 +269,37 @@ final class InventoryUI: UIPanel_Base {
             chestSlots = chestInventory.slots
         }
 
-        // Show both player and chest inventories
-        let totalSlots = playerSlots.count + chestSlots.count
+        if let chestOnlyEntity = chestOnlyEntity, let chestInventory = gameLoop.world.get(InventoryComponent.self, for: chestOnlyEntity) {
+            chestSlots = chestInventory.slots
+        }
+
+        // Determine total slots to show
+        var totalSlots = playerSlots.count
+        if chestEntity != nil {
+            // Chest mode - show both player and chest
+            totalSlots += chestSlots.count
+        } else if chestOnlyEntity != nil {
+            // Chest-only mode - show only chest slots
+            totalSlots = chestSlots.count
+        }
 
         for (index, slot) in slots.enumerated() {
             if index < totalSlots {
-                if index < playerSlots.count {
-                    // Player inventory slot
-                    slot.item = playerSlots[index]
-                } else {
-                    // Chest inventory slot
+                if chestEntity != nil && index >= playerSlots.count {
+                    // Chest inventory slot (only in chest mode, not pending chest mode)
                     let chestIndex = index - playerSlots.count
                     slot.item = chestIndex < chestSlots.count ? chestSlots[chestIndex] : nil
+                } else if chestOnlyEntity != nil {
+                    // Chest-only mode - all slots show chest inventory
+                    slot.item = index < chestSlots.count ? chestSlots[index] : nil
+                } else {
+                    // Player inventory slot
+                    slot.item = index < playerSlots.count ? playerSlots[index] : nil
                 }
+            } else {
+                // Clear slots beyond totalSlots
+                slot.item = nil
+            }
 
                 // Update count label
                 if index < countLabels.count {
@@ -268,9 +351,8 @@ final class InventoryUI: UIPanel_Base {
                     }
                 }
             }
-        }
     }
-    
+
     override func render(renderer: MetalRenderer) {
         guard isOpen else { return }
 
@@ -301,6 +383,9 @@ final class InventoryUI: UIPanel_Base {
                 } else if chestEntity != nil {
                     // Chest inventory mode - transfer items between player and chest
                     handleChestTransfer(slot: slot)
+                } else if chestOnlyEntity != nil {
+                    // Chest-only mode - handle chest slot interactions
+                    handleChestOnlyInteraction(slot: slot)
                 } else {
                     // Normal inventory mode - check if item can be placed as a building
                     if let itemStack = slot.item,
@@ -329,6 +414,7 @@ final class InventoryUI: UIPanel_Base {
         onRemoveLabels?(countLabels)
         exitMachineInputMode()
         exitChestMode()
+        exitChestOnlyMode()
         super.close()
     }
 

@@ -503,7 +503,7 @@ final class UISystem {
     }
 
     func openChestInventory(for entity: Entity) {
-        inventoryUI.enterChestMode(entity: entity)
+        inventoryUI.enterChestOnlyMode(entity: entity)
         openPanel(.inventory)
     }
 

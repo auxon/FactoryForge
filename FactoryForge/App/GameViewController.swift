@@ -967,16 +967,7 @@ class GameViewController: UIViewController {
             }
 
             // If no entity selected, clear selection
-            guard let entity = entity else { return }
-
-            let world = gameLoop.world
-
-            // Only open inventory UI for chests automatically (other machines require clicking the Open button)
-            if world.has(ChestComponent.self, for: entity) {
-                print("GameViewController: Chest selected, opening Inventory UI")
-                // Open inventory UI for chest
-                gameLoop.uiSystem?.openChestInventory(for: entity)
-            }
+            guard let _ = entity else { return }
         }
         
         // Setup HUD building callbacks
@@ -1097,9 +1088,14 @@ class GameViewController: UIViewController {
             guard let _ = self.gameLoop else { return }
             
             print("GameViewController: Open button pressed for entity \(selectedEntity)")
-            
-            // Otherwise, open the machine UI for the selected entity
-            self.uiSystem?.openMachineUI(for: selectedEntity)
+
+            // Check if it's a chest - open chest inventory instead of machine UI
+            if self.gameLoop!.world.has(ChestComponent.self, for: selectedEntity) {
+                self.uiSystem?.openChestInventory(for: selectedEntity)
+            } else {
+                // Otherwise, open the machine UI for the selected entity
+                self.uiSystem?.openMachineUI(for: selectedEntity)
+            }
         }
         
         uiSystem?.hud.onConfigureInserterPressed = { [weak self] in
