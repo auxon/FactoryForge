@@ -208,6 +208,11 @@ final class UISystem {
         // Set up IAPManager callback for inventory delivery
         IAPManager.shared.onPurchaseDelivered = { [weak self] itemId, quantity in
             self?.gameLoop?.addItemToInventory(itemId: itemId, quantity: quantity)
+            // Autosave after IAP completion
+            if let gameLoop = self?.gameLoop {
+                gameLoop.saveSystem.save(gameLoop: gameLoop, slotName: "autosave")
+                print("Game autosaved after IAP completion")
+            }
         }
 
         // Get all product IDs from IAPManager

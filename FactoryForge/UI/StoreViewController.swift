@@ -74,6 +74,7 @@ struct StoreViewRepresentable: View {
         // Extract item information from product ID and deliver to inventory
         if let itemInfo = IAPManager.shared.parseProductId(productId) {
             IAPManager.shared.deliverPurchaseToInventory(itemId: itemInfo.itemId, quantity: itemInfo.quantity)
+            // Autosave is handled by the IAPManager callback set up in UISystem
         }
     }
 }
