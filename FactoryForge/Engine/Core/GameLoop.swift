@@ -650,9 +650,8 @@ final class GameLoop {
         let isBelt = buildingDef.type == .belt
         let isInserter = buildingDef.type == .inserter
 
-        // For multi-tile buildings, use size 1x1 to prevent distortion with large textures
-        let isMultiTile = buildingDef.width > 1 || buildingDef.height > 1
-        let spriteSize = isMultiTile ? Vector2(3, 3) : Vector2(Float(buildingDef.width), Float(buildingDef.height))
+        // Use building dimensions for sprite size
+        let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
 
         world.add(SpriteComponent(
             textureId: buildingDef.textureId,
