@@ -1345,7 +1345,11 @@ final class GameLoop {
     }
     
     func save() {
-        saveSystem.save(gameLoop: self)
+        if let autosaveSlot = saveSystem.currentAutosaveSlot {
+            saveSystem.save(gameLoop: self, slotName: autosaveSlot)
+        } else {
+            print("GameLoop: No autosave slot set, cannot save")
+        }
     }
     
     func load(saveData: GameSave) {

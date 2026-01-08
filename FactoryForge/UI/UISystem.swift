@@ -209,9 +209,9 @@ final class UISystem {
         IAPManager.shared.onPurchaseDelivered = { [weak self] itemId, quantity in
             self?.gameLoop?.addItemToInventory(itemId: itemId, quantity: quantity)
             // Autosave after IAP completion
-            if let gameLoop = self?.gameLoop {
-                gameLoop.saveSystem.save(gameLoop: gameLoop, slotName: "autosave")
-                print("Game autosaved after IAP completion")
+            if let gameLoop = self?.gameLoop, let autosaveSlot = gameLoop.saveSystem.currentAutosaveSlot {
+                gameLoop.saveSystem.save(gameLoop: gameLoop, slotName: autosaveSlot)
+                print("Game autosaved after IAP completion to slot: \(autosaveSlot)")
             }
         }
 

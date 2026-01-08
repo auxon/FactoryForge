@@ -587,6 +587,9 @@ class GameViewController: UIViewController {
         gameLoop = GameLoop(renderer: renderer, seed: randomSeed)
         renderer.gameLoop = gameLoop
 
+        // Start a new autosave session for this game
+        gameLoop?.saveSystem.startNewGameSession()
+
         // Load initial chunks for new game (no save slot needed for new games)
         gameLoop?.chunkManager.update(playerPosition: gameLoop!.player.position)
 
@@ -740,7 +743,14 @@ class GameViewController: UIViewController {
         
         // Load save data into game loop (pass slot name so chunks load from correct directory)
         saveSystem.load(saveData: saveData, into: gameLoop!, slotName: slotName)
-        
+
+        // Set autosave slot - if loading an autosave, continue using it; otherwise create new autosave slot
+        if slotName.hasPrefix("autosave_") {
+            gameLoop?.saveSystem.setAutosaveSlot(slotName)
+        } else {
+            gameLoop?.saveSystem.startNewGameSession()
+        }
+
         // Update UI system with game loop
         uiSystem?.setGameLoop(gameLoop!)
         

@@ -14,6 +14,17 @@ final class LoadingMenu: UIPanel_Base {
     private var slotLabels: [UILabel] = [] // Labels for save slot information
     private var helpButtonLabel: UILabel? // Label for help button question mark
     private var closeButton: CloseButton!
+
+    // Scrolling functionality
+    private var scrollOffset: Float = 0 // Current scroll position (0 = top)
+    private var maxScrollOffset: Float = 0 // Maximum scroll position
+    private var scrollButtonHeight: Float = 40 * UIScale // Height of scroll buttons
+    private var visibleSlotCount: Int = 0 // Number of slots that can fit on screen
+    private var scrollUpButton: UIButton!
+    private var scrollDownButton: UIButton!
+    private var isDragging: Bool = false
+    private var dragStartPosition: Vector2 = .zero
+    private var dragStartScrollOffset: Float = 0
     
     var onNewGameSelected: (() -> Void)?
     var onSaveSlotSelected: ((String) -> Void)? // Called when a save slot is selected to load
@@ -135,35 +146,170 @@ final class LoadingMenu: UIPanel_Base {
             AudioManager.shared.toggleMute()
             print("Audio toggled: \(AudioManager.shared.isMuted ? "MUTED" : "UNMUTED")")
         }
+
+        // Scroll buttons (positioned on the left side of save slots area)
+        let scrollButtonWidth: Float = 50 * UIScale
+        let scrollButtonX = frame.center.x - 220 * UIScale  // Position left of save slots
+        let slotsAreaTop = frame.center.y - 20 * UIScale
+
+        // Scroll up button
+        scrollUpButton = UIButton(
+            frame: Rect(
+                center: Vector2(scrollButtonX, slotsAreaTop - scrollButtonHeight / 2),
+                size: Vector2(scrollButtonWidth, scrollButtonHeight)
+            ),
+            textureId: "solid_white"
+        )
+        scrollUpButton.onTap = { [weak self] in
+            self?.scrollUp()
+        }
+
+        // Scroll down button
+        scrollDownButton = UIButton(
+            frame: Rect(
+                center: Vector2(scrollButtonX, slotsAreaTop + scrollButtonHeight / 2 + 10 * UIScale),
+                size: Vector2(scrollButtonWidth, scrollButtonHeight)
+            ),
+            textureId: "solid_white"
+        )
+        scrollDownButton.onTap = { [weak self] in
+            self?.scrollDown()
+        }
     }
     
     func setShowSaveButton(_ show: Bool) {
         // Save button visibility will be controlled by whether onSaveGameRequested is set
     }
+
+    // MARK: - Scrolling Methods
+
+    private func scrollUp() {
+        AudioManager.shared.playClickSound()
+        scrollOffset = max(0, scrollOffset - 1)
+        refreshSaveSlots()
+    }
+
+    private func scrollDown() {
+        AudioManager.shared.playClickSound()
+        let maxOffset = max(0, Float(saveSystem.getSaveSlots().count) - Float(visibleSlotCount))
+        scrollOffset = min(maxOffset, scrollOffset + 1)
+        refreshSaveSlots()
+    }
+
+    private func calculateVisibleSlots() -> Int {
+        // Calculate how many slots can fit in the available space
+        let availableHeight = frame.height - 200 * UIScale  // Leave space for buttons above/below
+        let buttonHeight: Float = 60 * UIScale
+        let buttonSpacing: Float = 10 * UIScale
+        let totalButtonHeight = buttonHeight + buttonSpacing
+        return max(1, Int(availableHeight / totalButtonHeight))
+    }
+
+    private func startDrag(at position: Vector2) {
+        // Check if drag started in the save slots area
+        let slotsAreaLeft = frame.center.x - 250 * UIScale
+        let slotsAreaRight = frame.center.x + 250 * UIScale
+        let slotsAreaTop = frame.center.y - 20 * UIScale - scrollButtonHeight
+        let slotsAreaBottom = frame.center.y + 100 * UIScale  // Approximate bottom of slots area
+
+        if position.x >= slotsAreaLeft && position.x <= slotsAreaRight &&
+           position.y >= slotsAreaTop && position.y <= slotsAreaBottom {
+            isDragging = true
+            dragStartPosition = position
+            dragStartScrollOffset = scrollOffset
+        }
+    }
+
+    private func updateDrag(at position: Vector2) {
+        guard isDragging else { return }
+
+        // Calculate scroll change based on drag distance
+        let dragDistance = position.y - dragStartPosition.y
+        let scrollSensitivity: Float = 0.5  // Adjust sensitivity as needed
+
+        let newScrollOffset = dragStartScrollOffset - dragDistance * scrollSensitivity / (60 * UIScale + 10 * UIScale)  // Per slot height
+        scrollOffset = max(0, min(maxScrollOffset, newScrollOffset))
+
+        refreshSaveSlots()
+    }
+
+    private func endDrag() {
+        isDragging = false
+    }
+
+    private func showRenameDialog(for slot: SaveSlotInfo) {
+        guard let parentView = parentView else { return }
+
+        let alertController = UIAlertController(title: "Rename Save Slot", message: "Enter a new name for this save slot", preferredStyle: .alert)
+
+        alertController.addTextField { textField in
+            textField.text = slot.effectiveDisplayName
+            textField.placeholder = "Save name"
+        }
+
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+
+        let saveAction = UIAlertAction(title: "Save", style: .default) { [weak self] _ in
+            guard let textField = alertController.textFields?.first,
+                  let newName = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !newName.isEmpty else {
+                return
+            }
+
+            self?.saveSystem.setDisplayName(newName, for: slot.name)
+            self?.refreshSaveSlots()
+        }
+
+        alertController.addAction(cancelAction)
+        alertController.addAction(saveAction)
+
+        // Find the view controller to present the alert
+        var responder: UIResponder? = parentView
+        while responder != nil {
+            if let viewController = responder as? UIViewController {
+                viewController.present(alertController, animated: true, completion: nil)
+                break
+            }
+            responder = responder?.next
+        }
+    }
     
     func refreshSaveSlots() {
         // Remove old labels
         removeSlotLabels()
-        
+
         saveSlotButtons.removeAll()
-        
+
         let slots = saveSystem.getSaveSlots()
-        
+
+        // Calculate visible slots and scrolling
+        visibleSlotCount = calculateVisibleSlots()
+        let totalSlots = slots.count
+        maxScrollOffset = max(0, Float(totalSlots) - Float(visibleSlotCount))
+
+        // Ensure scroll offset is valid
+        scrollOffset = min(scrollOffset, maxScrollOffset)
+        scrollOffset = max(0, scrollOffset)
+
         // Save slot area width (leave space for load/delete buttons on the right)
         let slotAreaWidth: Float = 460 * UIScale
         let buttonHeight: Float = 60 * UIScale
         let buttonSpacing: Float = 10 * UIScale
         let startY = frame.center.y - 20 * UIScale // Moved up from -50 to have better spacing from buttons
-        let maxButtons = 7 // Maximum number of save slots to display
-        
+
         // Load/Delete button size (using same aspect ratio as other buttons)
         let imageAspectRatio: Float = 805.0 / 279.0
         let loadDeleteButtonHeight: Float = 60 * UIScale  // Match the button height used in save slots
         let loadDeleteButtonWidth: Float = loadDeleteButtonHeight * imageAspectRatio
-        
-        for (index, slot) in slots.prefix(maxButtons).enumerated() {
-            let buttonY = startY + Float(index) * (buttonHeight + buttonSpacing)
-            
+
+        // Create visible slots based on scroll offset
+        let startIndex = Int(scrollOffset)
+        let endIndex = min(startIndex + visibleSlotCount, totalSlots)
+
+        for (visibleIndex, slotIndex) in (startIndex..<endIndex).enumerated() {
+            let slot = slots[slotIndex]
+            let buttonY = startY + Float(visibleIndex) * (buttonHeight + buttonSpacing)
+
             // Save slot button (left side - takes up most of the width)
             let slotButton = SaveSlotButton(
                 frame: Rect(
@@ -183,9 +329,13 @@ final class LoadingMenu: UIPanel_Base {
                 AudioManager.shared.playClickSound()
                 self?.onSaveSlotDelete?(slot.name)
             }
+            slotButton.onRenameTap = { [weak self] in
+                AudioManager.shared.playClickSound()
+                self?.showRenameDialog(for: slot)
+            }
             saveSlotButtons.append(slotButton)
         }
-        
+
         // Update labels (will be created in setupLabels if parent view is set)
         updateSlotLabels()
         setupHelpButtonLabel()
@@ -235,8 +385,8 @@ final class LoadingMenu: UIPanel_Base {
             
             let label = slotLabels[index]
             
-            // Just show the save file name
-            label.text = slotInfo.name
+            // Just show the save file display name
+            label.text = slotInfo.effectiveDisplayName
             
             let labelPadding: Float = 10 * UIScale
             
@@ -366,10 +516,13 @@ final class LoadingMenu: UIPanel_Base {
 
         // Render close button
         closeButton.render(renderer: renderer)
-        
+
+        // Render scroll buttons
+        renderScrollButtons(renderer: renderer)
+
         // Render title
         renderTitle(renderer: renderer)
-        
+
         // Render New Game button
         renderNewGameButton(renderer: renderer)
         
@@ -432,6 +585,116 @@ final class LoadingMenu: UIPanel_Base {
         // Use the button's built-in render method
         button.render(renderer: renderer)
     }
+
+    private func renderScrollButtons(renderer: MetalRenderer) {
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+
+        // Only render scroll buttons if there are more slots than can fit on screen
+        let totalSlots = Float(saveSystem.getSaveSlots().count)
+        if totalSlots <= Float(visibleSlotCount) {
+            return
+        }
+
+        // Render scroll up button background
+        if let button = scrollUpButton {
+            // Render button background with bright color for visibility
+            let bgColor = scrollOffset > 0 ? Color(r: 0.8, g: 0.8, b: 0.9, a: 1) : Color(r: 0.4, g: 0.4, b: 0.5, a: 1)
+            renderer.queueSprite(SpriteInstance(
+                position: button.frame.center,
+                size: button.frame.size,
+                textureRect: solidRect,
+                color: bgColor,
+                layer: .ui
+            ))
+
+            // Simple up arrow
+            let arrowColor = Color.white
+            let arrowWidth: Float = 20 * UIScale
+            let arrowHeight: Float = 15 * UIScale
+
+            // Arrow shaft
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(button.frame.center.x, button.frame.center.y + arrowHeight * 0.2),
+                size: Vector2(3 * UIScale, arrowHeight * 0.6),
+                textureRect: solidRect,
+                color: arrowColor,
+                layer: .ui
+            ))
+
+            // Arrow head
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(button.frame.center.x, button.frame.center.y - arrowHeight * 0.3),
+                size: Vector2(arrowWidth * 0.5, arrowHeight * 0.4),
+                textureRect: solidRect,
+                color: arrowColor,
+                layer: .ui
+            ))
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(button.frame.center.x - arrowWidth * 0.15, button.frame.center.y - arrowHeight * 0.2),
+                size: Vector2(arrowWidth * 0.2, arrowHeight * 0.2),
+                textureRect: solidRect,
+                color: arrowColor,
+                layer: .ui
+            ))
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(button.frame.center.x + arrowWidth * 0.15, button.frame.center.y - arrowHeight * 0.2),
+                size: Vector2(arrowWidth * 0.2, arrowHeight * 0.2),
+                textureRect: solidRect,
+                color: arrowColor,
+                layer: .ui
+            ))
+        }
+
+        // Render scroll down button background
+        if let button = scrollDownButton {
+            // Render button background with bright color for visibility
+            let bgColor = Color(r: 0.2, g: 0.8, b: 0.2, a: 1)  // Bright green for visibility
+            renderer.queueSprite(SpriteInstance(
+                position: button.frame.center,
+                size: button.frame.size,
+                textureRect: solidRect,
+                color: bgColor,
+                layer: .ui
+            ))
+
+            // Simple down arrow
+            let arrowColor = Color.white
+            let arrowWidth: Float = 20 * UIScale
+            let arrowHeight: Float = 15 * UIScale
+
+            // Arrow shaft
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(button.frame.center.x, button.frame.center.y - arrowHeight * 0.2),
+                size: Vector2(3 * UIScale, arrowHeight * 0.6),
+                textureRect: solidRect,
+                color: arrowColor,
+                layer: .ui
+            ))
+
+            // Arrow head
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(button.frame.center.x, button.frame.center.y + arrowHeight * 0.3),
+                size: Vector2(arrowWidth * 0.5, arrowHeight * 0.4),
+                textureRect: solidRect,
+                color: arrowColor,
+                layer: .ui
+            ))
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(button.frame.center.x - arrowWidth * 0.15, button.frame.center.y + arrowHeight * 0.2),
+                size: Vector2(arrowWidth * 0.2, arrowHeight * 0.2),
+                textureRect: solidRect,
+                color: arrowColor,
+                layer: .ui
+            ))
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(button.frame.center.x + arrowWidth * 0.15, button.frame.center.y + arrowHeight * 0.2),
+                size: Vector2(arrowWidth * 0.2, arrowHeight * 0.2),
+                textureRect: solidRect,
+                color: arrowColor,
+                layer: .ui
+            ))
+        }
+    }
     
     private func renderEmptyState(renderer: MetalRenderer) {
         // Could render "No saved games" text here
@@ -446,11 +709,19 @@ final class LoadingMenu: UIPanel_Base {
             return true
         }
 
+        // Check scroll buttons
+        if scrollUpButton?.handleTap(at: position) == true {
+            return true
+        }
+        if scrollDownButton?.handleTap(at: position) == true {
+            return true
+        }
+
         // Check New Game button
         if newGameButton?.handleTap(at: position) == true {
             return true
         }
-        
+
         // Check Save Game button (if visible)
         if onSaveGameRequested != nil, saveGameButton?.handleTap(at: position) == true {
             return true
@@ -477,7 +748,7 @@ final class LoadingMenu: UIPanel_Base {
                 return true
             }
         }
-        
+
         return true // Consume tap within panel bounds
     }
 }
@@ -490,8 +761,9 @@ class SaveSlotButton: UIElement {
     var onTap: (() -> Void)?
     var onLoadTap: (() -> Void)? // Called when load button is tapped
     var onDeleteTap: (() -> Void)? // Called when delete button is tapped
+    var onRenameTap: (() -> Void)? // Called when rename button is tapped
     
-    // Load and delete button frames (positioned on the right side of the slot)
+    // Load, delete, and rename button frames (positioned on the right side of the slot)
     private var loadButtonFrame: Rect {
         let buttonHeight: Float = 60 * UIScale  // Match the button height used in save slots
         let imageAspectRatio: Float = 805.0 / 279.0
@@ -514,6 +786,19 @@ class SaveSlotButton: UIElement {
             size: Vector2(buttonWidth, buttonHeight)
         )
     }
+
+    private var renameButtonFrame: Rect {
+        let buttonHeight: Float = 40 * UIScale  // Smaller button for rename
+        let buttonWidth: Float = buttonHeight  // Square button
+        let spacing: Float = 5 * UIScale
+        let imageAspectRatio: Float = 805.0 / 279.0
+        let loadButtonWidth: Float = 60 * UIScale * imageAspectRatio
+        let deleteButtonWidth: Float = loadButtonWidth
+        return Rect(
+            center: Vector2(frame.maxX - loadButtonWidth - deleteButtonWidth - buttonWidth / 2 - spacing * 3, frame.center.y),
+            size: Vector2(buttonWidth, buttonHeight)
+        )
+    }
     
     init(frame: Rect, slotInfo: SaveSlotInfo) {
         self.frame = frame
@@ -522,19 +807,25 @@ class SaveSlotButton: UIElement {
     
     func handleTap(at position: Vector2) -> Bool {
         guard frame.contains(position) else { return false }
-        
+
         // Check if load button was tapped
         if loadButtonFrame.contains(position) {
             onLoadTap?()
             return true
         }
-        
+
         // Check if delete button was tapped
         if deleteButtonFrame.contains(position) {
             onDeleteTap?()
             return true
         }
-        
+
+        // Check if rename button was tapped (only for non-autosave slots)
+        if renameButtonFrame.contains(position) && !slotInfo.name.hasPrefix("autosave_") {
+            onRenameTap?()
+            return true
+        }
+
         // Otherwise, treat as slot tap
         onTap?()
         return true
@@ -543,8 +834,9 @@ class SaveSlotButton: UIElement {
     func render(renderer: MetalRenderer) {
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         
-        // Button background
-        let bgColor = Color(r: 0.15, g: 0.15, b: 0.2, a: 1)
+        // Button background - different color for autosave slots
+        let isAutosave = slotInfo.name.hasPrefix("autosave_")
+        let bgColor = isAutosave ? Color(r: 0.12, g: 0.18, b: 0.15, a: 1) : Color(r: 0.15, g: 0.15, b: 0.2, a: 1)
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size,
@@ -604,7 +896,63 @@ class SaveSlotButton: UIElement {
             color: .white,
             layer: .ui
         ))
-        
+
+        // Render rename button only for non-autosave slots
+        if !isAutosave {
+            let renameButtonColor = Color(r: 0.3, g: 0.6, b: 0.8, a: 1)
+            renderer.queueSprite(SpriteInstance(
+                position: renameButtonFrame.center,
+                size: renameButtonFrame.size,
+                textureRect: solidRect,
+                color: renameButtonColor,
+                layer: .ui
+            ))
+
+            // Render rename icon (simple "R" text approximation)
+            let iconSize: Float = 12 * UIScale
+            renderer.queueSprite(SpriteInstance(
+                position: renameButtonFrame.center + Vector2(-2 * UIScale, 0),
+                size: Vector2(iconSize * 0.8, iconSize),
+                textureRect: solidRect,
+                color: .white,
+                layer: .ui
+            ))
+            renderer.queueSprite(SpriteInstance(
+                position: renameButtonFrame.center + Vector2(2 * UIScale, -3 * UIScale),
+                size: Vector2(iconSize * 0.6, iconSize * 0.3),
+                textureRect: solidRect,
+                color: .white,
+                layer: .ui
+            ))
+        } else {
+            // Render autosave indicator instead of rename button
+            let autosaveColor = Color(r: 0.4, g: 0.7, b: 0.5, a: 1)
+            renderer.queueSprite(SpriteInstance(
+                position: renameButtonFrame.center,
+                size: renameButtonFrame.size,
+                textureRect: solidRect,
+                color: autosaveColor,
+                layer: .ui
+            ))
+
+            // Render "A" for autosave
+            let iconSize: Float = 12 * UIScale
+            renderer.queueSprite(SpriteInstance(
+                position: renameButtonFrame.center + Vector2(-3 * UIScale, 0),
+                size: Vector2(iconSize * 0.6, iconSize),
+                textureRect: solidRect,
+                color: .white,
+                layer: .ui
+            ))
+            renderer.queueSprite(SpriteInstance(
+                position: renameButtonFrame.center + Vector2(3 * UIScale, -3 * UIScale),
+                size: Vector2(iconSize * 0.6, iconSize * 0.3),
+                textureRect: solidRect,
+                color: .white,
+                layer: .ui
+            ))
+        }
+
         // Text is rendered using UILabel overlays (see setupLabels and updateSlotLabels)
     }
 

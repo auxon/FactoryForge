@@ -5,12 +5,15 @@ final class SaveSystem {
     private let saveDirectory: URL?
     private let autosaveInterval: TimeInterval = 300  // 5 minutes
     private var lastAutosaveTime: TimeInterval = 0
+    private var displayNames: [String: String] = [:] // Maps slot name to display name
+    var currentAutosaveSlot: String? // Current game's autosave slot name
     
     init() {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         if let documentsDir = paths.first {
             saveDirectory = documentsDir.appendingPathComponent("saves")
             try? FileManager.default.createDirectory(at: saveDirectory!, withIntermediateDirectories: true)
+            loadDisplayNames()
         } else {
             saveDirectory = nil
         }
@@ -18,7 +21,7 @@ final class SaveSystem {
     
     // MARK: - Save
     
-    func save(gameLoop: GameLoop, slotName: String = "autosave") {
+    func save(gameLoop: GameLoop, slotName: String) {
         // Set the save slot in chunk manager so chunks are saved to the correct directory
         gameLoop.chunkManager.setSaveSlot(slotName)
         
@@ -231,13 +234,19 @@ final class SaveSystem {
     }
     
     // MARK: - Autosave
-    
+
     func checkAutosave(gameLoop: GameLoop) {
+        guard let autosaveSlot = currentAutosaveSlot else {
+            print("SaveSystem: No autosave slot set, skipping autosave")
+            return
+        }
+
         let currentTime = gameLoop.playTime
-        
+
         if currentTime - lastAutosaveTime >= autosaveInterval {
-            save(gameLoop: gameLoop, slotName: "autosave")
+            save(gameLoop: gameLoop, slotName: autosaveSlot)
             lastAutosaveTime = currentTime
+            print("SaveSystem: Autosaved to slot: \(autosaveSlot)")
         }
     }
     
@@ -258,8 +267,10 @@ final class SaveSystem {
                 // Try to read save info
                 if let data = try? Data(contentsOf: file),
                    let save = try? JSONDecoder().decode(GameSave.self, from: data) {
+                    let slotName = file.deletingPathExtension().lastPathComponent
                     slots.append(SaveSlotInfo(
-                        name: file.deletingPathExtension().lastPathComponent,
+                        name: slotName,
+                        displayName: displayNames[slotName],
                         playTime: save.playTime,
                         timestamp: save.timestamp,
                         modificationDate: modDate
@@ -275,9 +286,60 @@ final class SaveSystem {
     
     func deleteSave(_ slotName: String) {
         guard let directory = saveDirectory else { return }
-        
+
         let saveURL = directory.appendingPathComponent("\(slotName).json")
         try? FileManager.default.removeItem(at: saveURL)
+
+        // Remove display name
+        displayNames.removeValue(forKey: slotName)
+        saveDisplayNames()
+    }
+
+    func setDisplayName(_ displayName: String, for slotName: String) {
+        displayNames[slotName] = displayName
+        saveDisplayNames()
+    }
+
+    /// Starts a new game session with a unique autosave slot
+    func startNewGameSession() {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
+        let timestamp = dateFormatter.string(from: Date())
+        currentAutosaveSlot = "autosave_\(timestamp)"
+        lastAutosaveTime = 0 // Reset autosave timer for new game
+    }
+
+    /// Sets the autosave slot for loading an existing game
+    func setAutosaveSlot(_ slotName: String) {
+        currentAutosaveSlot = slotName
+        lastAutosaveTime = 0 // Reset autosave timer
+    }
+
+    private func loadDisplayNames() {
+        guard let directory = saveDirectory else { return }
+
+        let displayNamesURL = directory.appendingPathComponent("display_names.json")
+
+        do {
+            let data = try Data(contentsOf: displayNamesURL)
+            displayNames = try JSONDecoder().decode([String: String].self, from: data)
+        } catch {
+            // File doesn't exist or couldn't be read, start with empty dictionary
+            displayNames = [:]
+        }
+    }
+
+    private func saveDisplayNames() {
+        guard let directory = saveDirectory else { return }
+
+        let displayNamesURL = directory.appendingPathComponent("display_names.json")
+
+        do {
+            let data = try JSONEncoder().encode(displayNames)
+            try data.write(to: displayNamesURL)
+        } catch {
+            print("Failed to save display names: \(error)")
+        }
     }
 }
 
@@ -295,14 +357,19 @@ struct GameSave: Codable {
 
 struct SaveSlotInfo {
     let name: String
+    let displayName: String? // Custom display name, falls back to filename if nil
     let playTime: TimeInterval
     let timestamp: Date
     let modificationDate: Date
-    
+
     var formattedPlayTime: String {
         let hours = Int(playTime) / 3600
         let minutes = (Int(playTime) % 3600) / 60
         return String(format: "%d:%02d", hours, minutes)
+    }
+
+    var effectiveDisplayName: String {
+        return displayName ?? name
     }
 }
 
