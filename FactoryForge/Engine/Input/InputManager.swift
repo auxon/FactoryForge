@@ -287,8 +287,8 @@ final class InputManager: NSObject {
                 // For non-centered sprites (buildings), account for half sprite size offset
                 let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
-                let isBelt = buildingId.contains("belt")
-                let isInserter = buildingId.contains("inserter")
+                let isBelt = buildingDef.type == .belt
+                let isInserter = buildingDef.type == .inserter
                 let tapOffset = (isBelt || isInserter) ? (worldPos - tileCenter) : (worldPos - tileCenter - spriteSize / 2)
 
                 // Check placement validity
@@ -486,8 +486,8 @@ final class InputManager: NSObject {
                 // For non-centered sprites (buildings), account for half sprite size offset
                 let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
-                let isBelt = buildingId.contains("belt")
-                let isInserter = buildingId.contains("inserter")
+                let isBelt = buildingDef.type == .belt
+                let isInserter = buildingDef.type == .inserter
                 let tapOffset = (isBelt || isInserter) ? (worldPos - tileCenter) : (worldPos - tileCenter - spriteSize / 2)
 
                 // Check placement validity
@@ -1620,7 +1620,7 @@ final class InputManager: NSObject {
         // Update preview
         dragPathPreview = path
         
-        let isBelt = buildingId.contains("belt")
+        let isBelt = buildingDef.type == .belt
         
         // Place items along the path that haven't been placed yet
         for (index, pos) in path.enumerated() {
