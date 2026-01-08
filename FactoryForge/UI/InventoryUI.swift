@@ -7,7 +7,8 @@ final class InventoryUI: UIPanel_Base {
     private var slots: [InventorySlot] = []
     private var countLabels: [UILabel] = []
     private var closeButton: CloseButton!
-    private let slotsPerRow = 10
+    private let slotsPerRow = 8
+    private let maxSlots = 48  // Maximum slots for steel chest
     private let screenSize: Vector2
 
     // Machine input mode
@@ -23,6 +24,9 @@ final class InventoryUI: UIPanel_Base {
 
     // Pending chest transfer mode - when selecting items to transfer to a chest
     private var pendingChestEntity: Entity?
+
+    // Current number of slots to display
+    private var totalSlots = 48
 
     // Callbacks for managing UIKit labels
     var onAddLabels: (([UILabel]) -> Void)?
@@ -265,12 +269,13 @@ final class InventoryUI: UIPanel_Base {
     private func setupSlots() {
         let slotSize: Float = 40 * UIScale
         let slotSpacing: Float = 5 * UIScale
+        let rows = (maxSlots + slotsPerRow - 1) / slotsPerRow  // Calculate rows needed
         let totalWidth = Float(slotsPerRow) * slotSize + Float(slotsPerRow - 1) * slotSpacing
-        let totalHeight = Float(4) * slotSize + Float(3) * slotSpacing
+        let totalHeight = Float(rows) * slotSize + Float(rows - 1) * slotSpacing
         let startX = frame.center.x - totalWidth / 2 + slotSize / 2
         let startY = frame.center.y - totalHeight / 2 + slotSize / 2
-        
-        for i in 0..<40 {
+
+        for i in 0..<maxSlots {
             let row = i / slotsPerRow
             let col = i % slotsPerRow
             
@@ -285,7 +290,7 @@ final class InventoryUI: UIPanel_Base {
     }
 
     private func setupCountLabels() {
-        for _ in 0..<40 {
+        for _ in 0..<maxSlots {
             let label = UILabel()
             label.font = UIFont.systemFont(ofSize: 10, weight: UIFont.Weight.bold)
             label.textColor = UIColor.white
@@ -329,16 +334,16 @@ final class InventoryUI: UIPanel_Base {
         }
 
         // Determine total slots to show
-        var totalSlots = playerSlots.count
+        self.totalSlots = playerSlots.count
         if chestEntity != nil {
             // Chest mode - show both player and chest
-            totalSlots += chestSlots.count
+            self.totalSlots += chestSlots.count
         } else if chestOnlyEntity != nil {
             // Chest-only mode - show only chest slots
-            totalSlots = chestSlots.count
+            self.totalSlots = chestSlots.count
         } else if pendingChestEntity != nil {
             // Pending chest mode - show player slots for item selection
-            totalSlots = playerSlots.count
+            self.totalSlots = playerSlots.count
         }
 
         for (index, slot) in slots.enumerated() {
@@ -360,22 +365,21 @@ final class InventoryUI: UIPanel_Base {
             }
 
                 // Update count label
-                if index < countLabels.count {
+                if index < countLabels.count && index < totalSlots {
                     let label = countLabels[index]
 
                     // Position label in bottom-right corner of slot
-                    // Calculate position based on slot index in the grid (10 columns x 4 rows)
-                    let slotsPerRow = 10
                     let slotSize: Float = 40 * UIScale
                     let slotSpacing: Float = 5 * UIScale
+                    let rows = (maxSlots + self.slotsPerRow - 1) / self.slotsPerRow
 
                     // Calculate slot position in grid
-                    let row = index / slotsPerRow
-                    let col = index % slotsPerRow
+                    let row = index / self.slotsPerRow
+                    let col = index % self.slotsPerRow
 
                     // Calculate total grid size
-                    let totalWidth = Float(slotsPerRow) * slotSize + Float(slotsPerRow - 1) * slotSpacing
-                    let totalHeight = 4 * slotSize + 3 * slotSpacing
+                    let totalWidth = Float(self.slotsPerRow) * slotSize + Float(self.slotsPerRow - 1) * slotSpacing
+                    let totalHeight = Float(rows) * slotSize + Float(rows - 1) * slotSpacing
 
                     // Calculate grid top-left position (centered on screen)
                     let gridStartX = (screenSize.x - totalWidth) / 2
@@ -419,9 +423,11 @@ final class InventoryUI: UIPanel_Base {
         // Render close button
         closeButton.render(renderer: renderer)
 
-        // Render slots
-        for slot in slots {
-            slot.render(renderer: renderer)
+        // Render slots (only up to totalSlots)
+        for (index, slot) in slots.enumerated() {
+            if index < totalSlots {
+                slot.render(renderer: renderer)
+            }
         }
     }
     
@@ -433,8 +439,8 @@ final class InventoryUI: UIPanel_Base {
             return true
         }
 
-        for slot in slots {
-            if slot.handleTap(at: position) {
+        for (index, slot) in slots.enumerated() {
+            if index < totalSlots && slot.handleTap(at: position) {
                 if machineEntity != nil {
                     // Machine input mode - add item to machine
                     handleMachineInput(slot: slot)
