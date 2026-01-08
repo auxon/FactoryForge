@@ -41,6 +41,9 @@
 		0D3A37252F060B2B00941686 /* inserter_cancel_button.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37212F060B2B00941686 /* inserter_cancel_button.png */; };
 		0D3A37262F060B2B00941686 /* inserter_output_button.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37232F060B2B00941686 /* inserter_output_button.png */; };
 		0D45A98F2F0F4D37006B346C /* research.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D45A98E2F0F4D37006B346C /* research.png */; };
+		0D45A9932F0F5D75006B346C /* oil_refinery.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D45A9922F0F5D75006B346C /* oil_refinery.png */; };
+		0D45A9952F0F5E03006B346C /* oil_well.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D45A9942F0F5E03006B346C /* oil_well.png */; };
+		0D45A9972F0F5E7A006B346C /* chemical_plant.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D45A9962F0F5E7A006B346C /* chemical_plant.png */; };
 		0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD42EFDD03C00576EC3 /* player.png */; };
 		0D6FDC1B2EFDE1B500576EC3 /* small_electric_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC092EFDE1B500576EC3 /* small_electric_pole.png */; };
 		0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE72EFDE1B500576EC3 /* copper_ore _2.png */; };
@@ -320,6 +323,9 @@
 		0D3A37222F060B2B00941686 /* inserter_input_button.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserter_input_button.png; sourceTree = "<group>"; };
 		0D3A37232F060B2B00941686 /* inserter_output_button.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = inserter_output_button.png; sourceTree = "<group>"; };
 		0D45A98E2F0F4D37006B346C /* research.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = research.png; sourceTree = "<group>"; };
+		0D45A9922F0F5D75006B346C /* oil_refinery.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = oil_refinery.png; sourceTree = "<group>"; };
+		0D45A9942F0F5E03006B346C /* oil_well.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = oil_well.png; sourceTree = "<group>"; };
+		0D45A9962F0F5E7A006B346C /* chemical_plant.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chemical_plant.png; sourceTree = "<group>"; };
 		0D6FDBD42EFDD03C00576EC3 /* player.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player.png; sourceTree = "<group>"; };
 		0D6FDBD62EFDE1B500576EC3 /* accumulator.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = accumulator.png; sourceTree = "<group>"; };
 		0D6FDBD72EFDE1B500576EC3 /* advanced_circuit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = advanced_circuit.png; sourceTree = "<group>"; };
@@ -596,6 +602,9 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D45A9962F0F5E7A006B346C /* chemical_plant.png */,
+				0D45A9942F0F5E03006B346C /* oil_well.png */,
+				0D45A9922F0F5D75006B346C /* oil_refinery.png */,
 				0D45A98E2F0F4D37006B346C /* research.png */,
 				0D841AD52F0F2FE600F499B6 /* wall.png */,
 				0D18B57A2F0EECE4006B70A5 /* buy.png */,
@@ -1242,6 +1251,7 @@
 				0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */,
 				0D6FDC1B2EFDE1B500576EC3 /* small_electric_pole.png in Resources */,
 				0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */,
+				0D45A9932F0F5D75006B346C /* oil_refinery.png in Resources */,
 				0D6FDC1D2EFDE1B500576EC3 /* iron_ore_2.png in Resources */,
 				0DE2298B2F01969900BD619D /* disable_audio.png in Resources */,
 				0D6FDC1E2EFDE1B500576EC3 /* utility_science_pack.png in Resources */,
@@ -1258,6 +1268,7 @@
 				0D18B5562F0C64BE006B70A5 /* Assets.xcassets in Resources */,
 				0DE229852F01794500BD619D /* chest.png in Resources */,
 				0D6FDC6A2EFEE52D00576EC3 /* delete_game.png in Resources */,
+				0D45A9972F0F5E7A006B346C /* chemical_plant.png in Resources */,
 				0D6FDC6B2EFEE52D00576EC3 /* load_game.png in Resources */,
 				0DFF59BC2F02CAC000A8699D /* transport_belt_east_003.png in Resources */,
 				0DFF59BD2F02CAC000A8699D /* transport_belt_east_004.png in Resources */,
@@ -1427,6 +1438,7 @@
 				0D6FDC5A2EFDE1B500576EC3 /* bullet.png in Resources */,
 				0D6FDC5B2EFDE1B500576EC3 /* dirt.png in Resources */,
 				0D6FDC5C2EFDE1B500576EC3 /* lab.png in Resources */,
+				0D45A9952F0F5E03006B346C /* oil_well.png in Resources */,
 				0D6FDC5D2EFDE1B500576EC3 /* steel_chest.png in Resources */,
 				0D6FDC5E2EFDE1B500576EC3 /* long_handed_inserter.png in Resources */,
 				0D6FDC5F2EFDE1B500576EC3 /* steel_furnace.png in Resources */,
