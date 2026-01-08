@@ -16,6 +16,7 @@ final class LoadingMenu: UIPanel_Base {
     private var saveSlotLabels: [UILabel] = [] // Clickable labels for save slots
 
     // Action buttons
+    private var newButtonLabel: UILabel?
     private var saveButtonLabel: UILabel?
     private var loadButtonLabel: UILabel?
     private var renameButtonLabel: UILabel?
@@ -208,10 +209,19 @@ final class LoadingMenu: UIPanel_Base {
         let buttonSpacing: CGFloat = 20
         let buttonsY = scrollView!.frame.maxY + 20
 
+        // New button
+        newButtonLabel = createActionButton(
+            title: "New",
+            frame: CGRect(x: parentView.bounds.width * 0.1, y: buttonsY, width: buttonWidth, height: buttonHeight),
+            parentView: parentView
+        )
+        let newTap = UITapGestureRecognizer(target: self, action: #selector(newButtonTapped))
+        newButtonLabel?.addGestureRecognizer(newTap)
+
         // Save button
         saveButtonLabel = createActionButton(
             title: "Save",
-            frame: CGRect(x: parentView.bounds.width * 0.1, y: buttonsY, width: buttonWidth, height: buttonHeight),
+            frame: CGRect(x: parentView.bounds.width * 0.1 + buttonWidth + buttonSpacing, y: buttonsY, width: buttonWidth, height: buttonHeight),
             parentView: parentView
         )
         let saveTap = UITapGestureRecognizer(target: self, action: #selector(saveButtonTapped))
@@ -220,7 +230,7 @@ final class LoadingMenu: UIPanel_Base {
         // Load button
         loadButtonLabel = createActionButton(
             title: "Load",
-            frame: CGRect(x: parentView.bounds.width * 0.1 + buttonWidth + buttonSpacing, y: buttonsY, width: buttonWidth, height: buttonHeight),
+            frame: CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 2, y: buttonsY, width: buttonWidth, height: buttonHeight),
             parentView: parentView
         )
         let loadTap = UITapGestureRecognizer(target: self, action: #selector(loadButtonTapped))
@@ -229,7 +239,7 @@ final class LoadingMenu: UIPanel_Base {
         // Rename button
         renameButtonLabel = createActionButton(
             title: "Rename",
-            frame: CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 2, y: buttonsY, width: buttonWidth, height: buttonHeight),
+            frame: CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 3, y: buttonsY, width: buttonWidth, height: buttonHeight),
             parentView: parentView
         )
         let renameTap = UITapGestureRecognizer(target: self, action: #selector(renameButtonTapped))
@@ -238,7 +248,7 @@ final class LoadingMenu: UIPanel_Base {
         // Delete button
         deleteButtonLabel = createActionButton(
             title: "Delete",
-            frame: CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 3, y: buttonsY, width: buttonWidth, height: buttonHeight),
+            frame: CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 4, y: buttonsY, width: buttonWidth, height: buttonHeight),
             parentView: parentView
         )
         let deleteTap = UITapGestureRecognizer(target: self, action: #selector(deleteButtonTapped))
@@ -267,6 +277,9 @@ final class LoadingMenu: UIPanel_Base {
     private func updateActionButtonStates() {
         let hasSelection = selectedSaveSlot != nil
         let alpha: CGFloat = hasSelection ? 1.0 : 0.5
+
+        // New button is always enabled (doesn't require selection)
+        // Save button is always enabled (can always save)
 
         loadButtonLabel?.alpha = alpha
         renameButtonLabel?.alpha = alpha
@@ -304,6 +317,11 @@ final class LoadingMenu: UIPanel_Base {
         updateActionButtonStates()
     }
 
+    @objc private func newButtonTapped() {
+        AudioManager.shared.playClickSound()
+        onNewGameSelected?()
+    }
+
     @objc private func saveButtonTapped() {
         AudioManager.shared.playClickSound()
         onSaveGameRequested?()
@@ -334,11 +352,13 @@ final class LoadingMenu: UIPanel_Base {
         saveSlotLabels.removeAll()
 
         // Remove action buttons
+        newButtonLabel?.removeFromSuperview()
         saveButtonLabel?.removeFromSuperview()
         loadButtonLabel?.removeFromSuperview()
         renameButtonLabel?.removeFromSuperview()
         deleteButtonLabel?.removeFromSuperview()
 
+        newButtonLabel = nil
         saveButtonLabel = nil
         loadButtonLabel = nil
         renameButtonLabel = nil
@@ -413,11 +433,13 @@ final class LoadingMenu: UIPanel_Base {
         helpButtonLabel?.isHidden = true
 
         // Remove action buttons from view hierarchy when closing
+        newButtonLabel?.removeFromSuperview()
         saveButtonLabel?.removeFromSuperview()
         loadButtonLabel?.removeFromSuperview()
         renameButtonLabel?.removeFromSuperview()
         deleteButtonLabel?.removeFromSuperview()
 
+        newButtonLabel = nil
         saveButtonLabel = nil
         loadButtonLabel = nil
         renameButtonLabel = nil
