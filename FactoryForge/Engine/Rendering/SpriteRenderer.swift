@@ -98,16 +98,6 @@ final class SpriteRenderer {
             
             let textureRect = textureAtlas.getTextureRect(for: renderSprite.textureId)
 
-            // For multi-tile buildings with large textures, scale the effective size to prevent distortion
-            let multiTileBuildings = [
-                "assembling_machine_1", "assembling_machine_2", "assembling_machine_3",
-                "electric_mining_drill", "electric_furnace", "burner_miner_drill",
-                "burner_mining_drill", "stone_furnace", "steel_furnace",
-                "lab", "solar_panel", "boiler", "steam_engine",
-                "gun_turret", "laser_turret", "radar"
-            ]
-            let isMultiTileBuilding = multiTileBuildings.contains(renderSprite.textureId)
-
             // Use sprite size as defined in the building/component
             let effectiveSize = renderSprite.size
 
