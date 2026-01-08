@@ -304,17 +304,82 @@ final class GameLoop {
     // Input manager reference (set by GameViewController)
     weak var inputManager: InputManager?
     
+    /// Spawn smoke particles for active buildings
+    private func spawnBuildingSmoke(renderer: MetalRenderer) {
+        // Check visible area to only spawn smoke for buildings that are on screen
+        let visibleRect = renderer.camera.visibleRect
+
+        // Stone furnaces - spawn smoke when smelting
+        world.forEach(FurnaceComponent.self) { entity, furnace in
+            guard let position = world.get(PositionComponent.self, for: entity)?.worldPosition else { return }
+            guard visibleRect.contains(position) else { return }
+
+            // Only spawn smoke for stone furnaces (burner furnaces)
+            if let buildingDef = buildingRegistry.getByTexture(world.get(SpriteComponent.self, for: entity)?.textureId ?? ""),
+               buildingDef.id == "stone-furnace",
+               furnace.smeltingProgress > 0 {
+                // Spawn smoke in the tile above the building center
+                renderer.particleRenderer.spawnSmoke(at: position + Vector2(1, 1.5), count: 1)
+            }
+        }
+
+        // Burner miners - spawn smoke when active
+        world.forEach(MinerComponent.self) { entity, miner in
+            guard let position = world.get(PositionComponent.self, for: entity)?.worldPosition else { return }
+            guard visibleRect.contains(position) else { return }
+
+            // Only spawn smoke for burner miners
+            if let buildingDef = buildingRegistry.getByTexture(world.get(SpriteComponent.self, for: entity)?.textureId ?? ""),
+               buildingDef.id == "burner-mining-drill",
+               miner.isActive {
+                // Spawn smoke in the tile above the building center
+                renderer.particleRenderer.spawnMiningParticles(at: position + Vector2(1, 1.5), color: Color.black, count: 5)
+            }
+        }
+
+        // Boilers - spawn smoke when generating power
+        world.forEach(GeneratorComponent.self) { entity, generator in
+            guard let position = world.get(PositionComponent.self, for: entity)?.worldPosition else { return }
+            guard visibleRect.contains(position) else { return }
+
+            // Only spawn smoke for boilers
+            if let buildingDef = buildingRegistry.getByTexture(world.get(SpriteComponent.self, for: entity)?.textureId ?? ""),
+               buildingDef.id == "boiler",
+               generator.currentOutput > 0 {
+                // Spawn smoke in the tile above the building center
+                renderer.particleRenderer.spawnSmoke(at: position + Vector2(1, 2), count: 2)
+            }
+        }
+
+        // Chemical plants - spawn smoke when crafting
+        world.forEach(AssemblerComponent.self) { entity, assembler in
+            guard let position = world.get(PositionComponent.self, for: entity)?.worldPosition else { return }
+            guard visibleRect.contains(position) else { return }
+
+            // Only spawn smoke for chemical plants
+            if let buildingDef = buildingRegistry.getByTexture(world.get(SpriteComponent.self, for: entity)?.textureId ?? ""),
+               buildingDef.id == "chemical-plant",
+               assembler.craftingProgress > 0 {
+                // Spawn smoke in the tile above the building center
+                renderer.particleRenderer.spawnSmoke(at: position + Vector2(1, 2), count: 1)
+            }
+        }
+    }
+
     /// Render the game state
     func render(renderer: MetalRenderer) {
+        // Spawn smoke particles for active buildings
+        spawnBuildingSmoke(renderer: renderer)
+
         // Render world tiles
         chunkManager.render(renderer: renderer, camera: renderer.camera)
-        
-        // Note: Entities (including player) are rendered by SpriteRenderer 
+
+        // Note: Entities (including player) are rendered by SpriteRenderer
         // which queries the world for PositionComponent + SpriteComponent
-        
+
         // Note: Player entity is rendered by SpriteRenderer which queries world entities
         // The player sprite component is already in the world, so it will be rendered automatically
-        
+
         // Note: UI is rendered by MetalRenderer before this call to allow loading menu to render first
     }
     
