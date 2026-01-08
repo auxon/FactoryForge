@@ -26,7 +26,6 @@
         }
       ],
       "productID" : "com.factoryforge.items.iron_ore_pack",
-      "promotionalImageID" : "79715020",
       "referenceName" : "Iron Ore Pack (100)",
       "type" : "Consumable"
     },
@@ -42,7 +41,6 @@
         }
       ],
       "productID" : "com.factoryforge.items.copper_ore_pack",
-      "promotionalImageID" : "375466EB",
       "referenceName" : "Copper Ore Pack (100)",
       "type" : "Consumable"
     },
@@ -344,6 +342,276 @@
       ],
       "productID" : "com.factoryforge.items.crude_oil_pack",
       "referenceName" : "Crude Oil Pack (1000)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "STEEL_FURNACE",
+      "localizations" : [
+        {
+          "description" : "Advanced furnace with improved efficiency - Process materials faster",
+          "displayName" : "Steel Furnace",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.steel_furnace",
+      "referenceName" : "Steel Furnace",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "6.99",
+      "familyShareable" : false,
+      "internalID" : "ELECTRIC_FURNACE",
+      "localizations" : [
+        {
+          "description" : "High-tech electric furnace - Ultimate smelting performance",
+          "displayName" : "Electric Furnace",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.electric_furnace",
+      "referenceName" : "Electric Furnace",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "ASSEMBLER_2",
+      "localizations" : [
+        {
+          "description" : "Advanced assembler with improved crafting speed",
+          "displayName" : "Assembling Machine 2",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.assembling_machine_2",
+      "referenceName" : "Assembling Machine 2",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "6.99",
+      "familyShareable" : false,
+      "internalID" : "ASSEMBLER_3",
+      "localizations" : [
+        {
+          "description" : "Ultimate assembler with maximum crafting efficiency",
+          "displayName" : "Assembling Machine 3",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.assembling_machine_3",
+      "referenceName" : "Assembling Machine 3",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "BOILER",
+      "localizations" : [
+        {
+          "description" : "Steam boiler for power generation - Essential for steam power",
+          "displayName" : "Boiler",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.boiler",
+      "referenceName" : "Boiler",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "5.99",
+      "familyShareable" : false,
+      "internalID" : "STEAM_ENGINE",
+      "localizations" : [
+        {
+          "description" : "Steam turbine for power generation - Scale up your energy production",
+          "displayName" : "Steam Engine",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.steam_engine",
+      "referenceName" : "Steam Engine",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.49",
+      "familyShareable" : false,
+      "internalID" : "FAST_BELT",
+      "localizations" : [
+        {
+          "description" : "Faster transport belt - Increase your factory throughput",
+          "displayName" : "Fast Transport Belt",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.fast_transport_belt",
+      "referenceName" : "Fast Transport Belt",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "UNDERGROUND_BELT",
+      "localizations" : [
+        {
+          "description" : "Underground belt system - Transport items under obstacles",
+          "displayName" : "Underground Belt",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.underground_belt",
+      "referenceName" : "Underground Belt",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "SPLITTER",
+      "localizations" : [
+        {
+          "description" : "Belt splitter - Divide and distribute items across multiple belts",
+          "displayName" : "Splitter",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.splitter",
+      "referenceName" : "Splitter",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "MERGER",
+      "localizations" : [
+        {
+          "description" : "Belt merger - Combine items from multiple belts into one",
+          "displayName" : "Merger",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.merger",
+      "referenceName" : "Merger",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.49",
+      "familyShareable" : false,
+      "internalID" : "LONG_INSERTER",
+      "localizations" : [
+        {
+          "description" : "Extended reach inserter - Move items over longer distances",
+          "displayName" : "Long Handed Inserter",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.long_handed_inserter",
+      "referenceName" : "Long Handed Inserter",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "IRON_CHEST",
+      "localizations" : [
+        {
+          "description" : "Medium storage chest - Store more items than wooden chests",
+          "displayName" : "Iron Chest",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.iron_chest",
+      "referenceName" : "Iron Chest",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "MEDIUM_POLE",
+      "localizations" : [
+        {
+          "description" : "Extended range power pole - Connect power over longer distances",
+          "displayName" : "Medium Electric Pole",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.medium_electric_pole",
+      "referenceName" : "Medium Electric Pole",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "BIG_POLE",
+      "localizations" : [
+        {
+          "description" : "Long-range power transmission - Connect distant power networks",
+          "displayName" : "Big Electric Pole",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.big_electric_pole",
+      "referenceName" : "Big Electric Pole",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "7.99",
+      "familyShareable" : false,
+      "internalID" : "OIL_WELL",
+      "localizations" : [
+        {
+          "description" : "Oil extraction pump - Access crude oil resources",
+          "displayName" : "Oil Well",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.oil_well",
+      "referenceName" : "Oil Well",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "OIL_REFINERY",
+      "localizations" : [
+        {
+          "description" : "Advanced oil processing facility - Convert crude oil into useful products",
+          "displayName" : "Oil Refinery",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.oil_refinery",
+      "referenceName" : "Oil Refinery",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "6.99",
+      "familyShareable" : false,
+      "internalID" : "CHEMICAL_PLANT",
+      "localizations" : [
+        {
+          "description" : "Chemical processing facility - Create advanced materials and fuels",
+          "displayName" : "Chemical Plant",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.chemical_plant",
+      "referenceName" : "Chemical Plant",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "5.99",
+      "familyShareable" : false,
+      "internalID" : "LASER_TURRET",
+      "localizations" : [
+        {
+          "description" : "Advanced laser defense turret - High-tech protection for your base",
+          "displayName" : "Laser Turret",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.laser_turret",
+      "referenceName" : "Laser Turret",
       "type" : "Consumable"
     }
   ],

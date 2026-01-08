@@ -55,17 +55,39 @@ final class IAPManager: NSObject, ObservableObject {
         // Production items
         productIdsSet.insert("com.factoryforge.items.electric_mining_drill")
         productIdsSet.insert("com.factoryforge.items.assembling_machine_1")
+        productIdsSet.insert("com.factoryforge.items.assembling_machine_2")
+        productIdsSet.insert("com.factoryforge.items.assembling_machine_3")
         productIdsSet.insert("com.factoryforge.items.lab")
+        productIdsSet.insert("com.factoryforge.items.steel_furnace")
+        productIdsSet.insert("com.factoryforge.items.electric_furnace")
         productIdsSet.insert("com.factoryforge.items.solar_panel")
         productIdsSet.insert("com.factoryforge.items.accumulator")
+        productIdsSet.insert("com.factoryforge.items.boiler")
+        productIdsSet.insert("com.factoryforge.items.steam_engine")
 
         // Logistics items
         productIdsSet.insert("com.factoryforge.items.express_transport_belt")
+        productIdsSet.insert("com.factoryforge.items.fast_transport_belt")
+        productIdsSet.insert("com.factoryforge.items.underground_belt")
+        productIdsSet.insert("com.factoryforge.items.splitter")
+        productIdsSet.insert("com.factoryforge.items.merger")
         productIdsSet.insert("com.factoryforge.items.fast_inserter")
+        productIdsSet.insert("com.factoryforge.items.long_handed_inserter")
         productIdsSet.insert("com.factoryforge.items.steel_chest")
+        productIdsSet.insert("com.factoryforge.items.iron_chest")
+
+        // Power infrastructure
+        productIdsSet.insert("com.factoryforge.items.medium_electric_pole")
+        productIdsSet.insert("com.factoryforge.items.big_electric_pole")
+
+        // Oil processing
+        productIdsSet.insert("com.factoryforge.items.oil_well")
+        productIdsSet.insert("com.factoryforge.items.oil_refinery")
+        productIdsSet.insert("com.factoryforge.items.chemical_plant")
 
         // Combat items
         productIdsSet.insert("com.factoryforge.items.gun_turret")
+        productIdsSet.insert("com.factoryforge.items.laser_turret")
         productIdsSet.insert("com.factoryforge.items.wall")
         productIdsSet.insert("com.factoryforge.items.firearm_magazine_pack")
     }
@@ -197,17 +219,39 @@ final class IAPManager: NSObject, ObservableObject {
         // Production items
         case "electric_mining_drill": return ("electric-mining-drill", 1)
         case "assembling_machine_1": return ("assembling-machine-1", 1)
+        case "assembling_machine_2": return ("assembling-machine-2", 1)
+        case "assembling_machine_3": return ("assembling-machine-3", 1)
         case "lab": return ("lab", 1)
+        case "steel_furnace": return ("steel-furnace", 1)
+        case "electric_furnace": return ("electric-furnace", 1)
         case "solar_panel": return ("solar-panel", 1)
         case "accumulator": return ("accumulator", 1)
+        case "boiler": return ("boiler", 1)
+        case "steam_engine": return ("steam-engine", 1)
 
         // Logistics items
         case "express_transport_belt": return ("express-transport-belt", 1)
+        case "fast_transport_belt": return ("fast-transport-belt", 1)
+        case "underground_belt": return ("underground-belt", 1)
+        case "splitter": return ("splitter", 1)
+        case "merger": return ("merger", 1)
         case "fast_inserter": return ("fast-inserter", 1)
+        case "long_handed_inserter": return ("long-handed-inserter", 1)
         case "steel_chest": return ("steel-chest", 1)
+        case "iron_chest": return ("iron-chest", 1)
+
+        // Power infrastructure
+        case "medium_electric_pole": return ("medium-electric-pole", 1)
+        case "big_electric_pole": return ("big-electric-pole", 1)
+
+        // Oil processing
+        case "oil_well": return ("oil-well", 1)
+        case "oil_refinery": return ("oil-refinery", 1)
+        case "chemical_plant": return ("chemical-plant", 1)
 
         // Combat items
         case "gun_turret": return ("gun-turret", 1)
+        case "laser_turret": return ("laser-turret", 1)
         case "wall": return ("wall", 10)
         case "firearm_magazine_pack": return ("firearm-magazine", 100)
 
