@@ -27,7 +27,7 @@ final class LoadingMenu: UIPanel_Base {
     
     var onNewGameSelected: (() -> Void)?
     var onSaveSlotSelected: ((String) -> Void)? // Called when a save slot is selected (highlighted)
-    var onSaveGameRequested: (() -> Void)? // Called when save button is tapped
+    var onSaveGameRequested: ((String?) -> Void)? // Called when save button is tapped, optional slot name
     var onLoadGameRequested: ((String) -> Void)? // Called when load button is tapped with selected slot
     var onRenameSlotRequested: ((String) -> Void)? // Called when rename button is tapped with selected slot
     var onDeleteSlotRequested: ((String) -> Void)? // Called when delete button is tapped with selected slot
@@ -324,7 +324,7 @@ final class LoadingMenu: UIPanel_Base {
 
     @objc private func saveButtonTapped() {
         AudioManager.shared.playClickSound()
-        onSaveGameRequested?()
+        onSaveGameRequested?(selectedSaveSlot)
     }
 
     @objc private func loadButtonTapped() {

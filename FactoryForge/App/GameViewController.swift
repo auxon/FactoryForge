@@ -517,8 +517,12 @@ class GameViewController: UIViewController {
             print("Selected save slot: \(slotName)")
         }
 
-        loadingMenu.onSaveGameRequested = { [weak self] in
-            self?.saveCurrentGame()
+        loadingMenu.onSaveGameRequested = { [weak self] slotName in
+            if let slotName = slotName {
+                self?.saveCurrentGame(to: slotName)
+            } else {
+                self?.saveCurrentGame()
+            }
         }
 
         loadingMenu.onLoadGameRequested = { [weak self] slotName in
@@ -855,21 +859,27 @@ class GameViewController: UIViewController {
         gameLoop?.chunkManager.update(playerPosition: gameLoop!.player.position)
     }
     
-    private func saveCurrentGame() {
+    private func saveCurrentGame(to slotName: String? = nil) {
         guard let gameLoop = gameLoop else { return }
-        
+
         let saveSystem = SaveSystem()
-        
-        // Generate a save slot name with timestamp
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd_HH-mm"
-        let timestamp = formatter.string(from: Date())
-        let slotName = "save_\(timestamp)"
-        
+
+        let finalSlotName: String
+        if let slotName = slotName {
+            // Use the provided slot name (overwriting existing)
+            finalSlotName = slotName
+        } else {
+            // Generate a new save slot name with timestamp
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd_HH-mm"
+            let timestamp = formatter.string(from: Date())
+            finalSlotName = "save_\(timestamp)"
+        }
+
         // Save the game
-        saveSystem.save(gameLoop: gameLoop, slotName: slotName)
-        
-        print("Game saved to slot: \(slotName)")
+        saveSystem.save(gameLoop: gameLoop, slotName: finalSlotName)
+
+        print("Game saved to slot: \(finalSlotName)")
         
         // Refresh the loading menu to show the new save
         uiSystem?.getLoadingMenu().refreshSaveSlots()
