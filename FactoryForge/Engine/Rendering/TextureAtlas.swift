@@ -272,6 +272,8 @@ final class TextureAtlas {
                 if packSpriteIntoAtlas(image: image, name: textureId, into: &atlasData, atlasX: &atlasX, atlasY: &atlasY, spriteSize: buttonSpriteSize, useActualSize: useActualSize, scaleDownMultiTile: scaleDownMultiTile) {
                     if textureId == "transport_belt_animation" {
                         print("✓ Successfully processed transport_belt_animation.png")
+                    } else if textureId == "merger" {
+                        print("✓ Loaded merger: \(filename).png -> textureId: \(textureId)")
                     } else {
                         print("✓ Loaded: \(filename).png -> textureId: \(textureId)")
                     }
@@ -1566,12 +1568,12 @@ final class TextureAtlas {
             textureRects[name] = uvRect
 
             // Debug UV coordinates for UI textures
-            if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder"].contains(name) {
+            if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder", "merger"].contains(name) {
                 print("DEBUG: \(name) UV rect: x=\(uvRect.origin.x), y=\(uvRect.origin.y), w=\(uvRect.size.x), h=\(uvRect.size.y)")
             }
 
         // Debug UV coordinates for UI textures
-        if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder"].contains(name) {
+        if ["new_game", "save_game", "load_game", "delete_game", "menu", "solid_white", "building_placeholder", "merger"].contains(name) {
             print("DEBUG: \(name) UV rect: x=\(uvRect.origin.x), y=\(uvRect.origin.y), w=\(uvRect.size.x), h=\(uvRect.size.y)")
         }
 

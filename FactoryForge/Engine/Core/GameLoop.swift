@@ -714,9 +714,10 @@ final class GameLoop {
                 type: beltType
             ), to: entity)
 
-            // Add belt animation using north frames for all directions (rotation handles orientation)
-            if var sprite = world.get(SpriteComponent.self, for: entity) {
-                // Create animation frames using north direction for all belts, cycling through 4 frames
+            // Add belt animation only for animated belt types (transport, fast, express)
+            // Static belt buildings (merger, splitter, underground) keep their original textures
+            if beltType == .normal, var sprite = world.get(SpriteComponent.self, for: entity) {
+                // Create animation frames using north direction, cycling through 4 frames
                 let beltFrames = (1...16).map { frameIndex in
                     let actualFrame = ((frameIndex - 1) % 4) + 1  // Cycle through frames 1-4
                     return "transport_belt_north_\(String(format: "%03d", actualFrame))"
@@ -729,8 +730,6 @@ final class GameLoop {
                 sprite.animation = beltAnimation
                 sprite.textureId = beltFrames[0]  // Start with first frame
                 world.add(sprite, to: entity)
-            } else {
-                print("✗ No sprite component found for belt entity")
             }
 
             beltSystem.registerBelt(entity: entity, at: position, direction: direction, type: beltType)
