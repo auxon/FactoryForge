@@ -180,6 +180,7 @@ final class TextureAtlas {
             ("gun_turret", nil),
             ("laser_turret", nil),
             ("stone_wall", nil),
+            ("wall", nil),
             ("radar", nil),
             
             // Buildings - Fluids

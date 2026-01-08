@@ -613,4 +613,3 @@ class SaveSlotButton: UIElement {
         return nil
     }
 }
-

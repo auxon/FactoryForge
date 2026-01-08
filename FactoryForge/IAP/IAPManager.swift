@@ -151,14 +151,22 @@ final class IAPManager: NSObject, ObservableObject {
     }
 
     private func handleTransaction(_ transaction: Transaction) async {
-        // Deliver content based on the purchased product
+        // Only handle transactions that are NOT initiated through StoreView
+        // StoreView handles its own transaction processing to avoid double delivery
         let productId = transaction.productID
-        let quantity = transaction.purchasedQuantity
 
-        // Extract item information from product ID
-        if let itemInfo = self.parseProductId(productId) {
-            await self.deliverPurchase(itemId: itemInfo.itemId, quantity: itemInfo.quantity * quantity)
+        // Check if this product ID is one of our store products
+        guard productIdsSet.contains(productId) else {
+            // Not one of our products, handle normally
+            if let itemInfo = self.parseProductId(productId) {
+                await self.deliverPurchase(itemId: itemInfo.itemId, quantity: itemInfo.quantity * transaction.purchasedQuantity)
+            }
+            return
         }
+
+        // For store products, only deliver if not using StoreView
+        // StoreView handles delivery through its completion handler
+        // This prevents double delivery when StoreView is used
     }
 
     func parseProductId(_ productId: String) -> (itemId: String, quantity: Int)? {

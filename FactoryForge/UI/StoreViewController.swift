@@ -22,27 +22,28 @@ struct StoreViewRepresentable: View {
                     case .success(let purchaseResult):
                         switch purchaseResult {
                         case .success:
-                            // Purchase completed successfully - deliver items
+                            // Only deliver items for verified successful transactions
+                            // The StoreView handles transaction verification internally
                             handlePurchaseSuccess(for: product.id)
                             onPurchaseCompleted()
                             // Clean up callback after successful purchase
                             IAPManager.shared.onPurchaseDelivered = nil
                         case .userCancelled:
-                            // User cancelled the purchase
-                            print("Purchase cancelled by user")
+                            // User cancelled the purchase - do NOT deliver items
+                            print("Purchase cancelled by user for product: \(product.id)")
                         case .pending:
-                            // Transaction is pending (e.g., waiting for parental approval)
-                            print("Purchase pending")
+                            // Transaction is pending - do NOT deliver items yet
+                            print("Purchase pending for product: \(product.id)")
                         @unknown default:
-                            // Handle future cases
+                            // Handle future cases - do NOT deliver items
                             print("Unknown purchase result: \(purchaseResult)")
                         }
                     case .failure(let error):
-                        // Purchase failed
-                        print("Purchase failed: \(error)")
+                        // Purchase failed - do NOT deliver items
+                        print("Purchase failed for product \(product.id): \(error)")
                     @unknown default:
-                        // Handle any future Result cases
-                        print("Unknown result: \(result)")
+                        // Handle any future Result cases - do NOT deliver items
+                        print("Unknown result for product \(product.id): \(result)")
                     }
                 }
             
@@ -117,4 +118,3 @@ class StoreViewController: UIHostingController<StoreViewRepresentable> {
         fatalError("init(coder:) has not been implemented")
     }
 }
-

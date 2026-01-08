@@ -397,6 +397,7 @@ final class BuildingRegistry {
             name: "Wall",
             type: .wall,
             maxHealth: 350,
+            textureId: "wall",
             cost: [ItemStack(itemId: "wall", count: 1)]
         )
         register(wall)
