@@ -45,6 +45,19 @@ final class IAPManager: NSObject, ObservableObject {
         productIdsSet.insert("com.factoryforge.items.wood_pack")
         productIdsSet.insert("com.factoryforge.items.crude_oil_pack")
 
+        // Processed materials
+        productIdsSet.insert("com.factoryforge.items.iron_plate_pack")
+        productIdsSet.insert("com.factoryforge.items.copper_plate_pack")
+        productIdsSet.insert("com.factoryforge.items.steel_plate_pack")
+        productIdsSet.insert("com.factoryforge.items.stone_brick_pack")
+
+        // Components
+        productIdsSet.insert("com.factoryforge.items.iron_gear_wheel_pack")
+        productIdsSet.insert("com.factoryforge.items.copper_cable_pack")
+        productIdsSet.insert("com.factoryforge.items.pipe_pack")
+        productIdsSet.insert("com.factoryforge.items.electronic_circuit_pack")
+        productIdsSet.insert("com.factoryforge.items.advanced_circuit_pack")
+
         // Science packs
         productIdsSet.insert("com.factoryforge.items.automation_science_pack")
         productIdsSet.insert("com.factoryforge.items.logistic_science_pack")
@@ -52,7 +65,16 @@ final class IAPManager: NSObject, ObservableObject {
         productIdsSet.insert("com.factoryforge.items.production_science_pack")
         productIdsSet.insert("com.factoryforge.items.utility_science_pack")
 
+        // Basic logistics
+        productIdsSet.insert("com.factoryforge.items.transport_belt_pack")
+        productIdsSet.insert("com.factoryforge.items.inserter")
+
         // Production items
+        productIdsSet.insert("com.factoryforge.items.burner_mining_drill")
+        productIdsSet.insert("com.factoryforge.items.stone_furnace")
+        productIdsSet.insert("com.factoryforge.items.wooden_chest")
+        productIdsSet.insert("com.factoryforge.items.small_electric_pole")
+        productIdsSet.insert("com.factoryforge.items.radar")
         productIdsSet.insert("com.factoryforge.items.electric_mining_drill")
         productIdsSet.insert("com.factoryforge.items.assembling_machine_1")
         productIdsSet.insert("com.factoryforge.items.assembling_machine_2")
@@ -209,12 +231,36 @@ final class IAPManager: NSObject, ObservableObject {
         case "wood_pack": return ("wood", 100)
         case "crude_oil_pack": return ("crude-oil", 1000)
 
+        // Processed materials
+        case "iron_plate_pack": return ("iron-plate", 100)
+        case "copper_plate_pack": return ("copper-plate", 100)
+        case "steel_plate_pack": return ("steel-plate", 50)
+        case "stone_brick_pack": return ("stone-brick", 100)
+
+        // Components
+        case "iron_gear_wheel_pack": return ("iron-gear-wheel", 50)
+        case "copper_cable_pack": return ("copper-cable", 100)
+        case "pipe_pack": return ("pipe", 50)
+        case "electronic_circuit_pack": return ("electronic-circuit", 50)
+        case "advanced_circuit_pack": return ("advanced-circuit", 25)
+
         // Science packs
         case "automation_science_pack": return ("automation-science-pack", 10)
         case "logistic_science_pack": return ("logistic-science-pack", 10)
         case "chemical_science_pack": return ("chemical-science-pack", 10)
         case "production_science_pack": return ("production-science-pack", 10)
         case "utility_science_pack": return ("utility-science-pack", 10)
+
+        // Basic logistics
+        case "transport_belt_pack": return ("transport-belt", 50)
+        case "inserter": return ("inserter", 1)
+
+        // Basic buildings
+        case "burner_mining_drill": return ("burner-mining-drill", 1)
+        case "stone_furnace": return ("stone-furnace", 1)
+        case "wooden_chest": return ("wooden-chest", 1)
+        case "small_electric_pole": return ("small-electric-pole", 1)
+        case "radar": return ("radar", 1)
 
         // Production items
         case "electric_mining_drill": return ("electric-mining-drill", 1)

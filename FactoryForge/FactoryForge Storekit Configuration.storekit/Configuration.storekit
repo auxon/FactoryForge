@@ -90,6 +90,66 @@
       "type" : "Consumable"
     },
     {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "IRON_PLATE",
+      "localizations" : [
+        {
+          "description" : "100 units of Iron Plate - Basic construction material",
+          "displayName" : "Iron Plate Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.iron_plate_pack",
+      "referenceName" : "Iron Plate Pack (100)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "COPPER_PLATE",
+      "localizations" : [
+        {
+          "description" : "100 units of Copper Plate - Essential for electronics",
+          "displayName" : "Copper Plate Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.copper_plate_pack",
+      "referenceName" : "Copper Plate Pack (100)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.49",
+      "familyShareable" : false,
+      "internalID" : "STEEL_PLATE",
+      "localizations" : [
+        {
+          "description" : "50 units of Steel Plate - Advanced construction material",
+          "displayName" : "Steel Plate Pack (50)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.steel_plate_pack",
+      "referenceName" : "Steel Plate Pack (50)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "STONE_BRICK",
+      "localizations" : [
+        {
+          "description" : "100 units of Stone Brick - Construction and furnace material",
+          "displayName" : "Stone Brick Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.stone_brick_pack",
+      "referenceName" : "Stone Brick Pack (100)",
+      "type" : "Consumable"
+    },
+    {
       "displayPrice" : "1.99",
       "familyShareable" : false,
       "internalID" : "AUTO_SCIENCE",
@@ -105,6 +165,81 @@
       "type" : "Consumable"
     },
     {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "IRON_GEAR_WHEEL",
+      "localizations" : [
+        {
+          "description" : "50 Iron Gear Wheels - Essential mechanical components",
+          "displayName" : "Iron Gear Wheel Pack (50)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.iron_gear_wheel_pack",
+      "referenceName" : "Iron Gear Wheel Pack (50)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "COPPER_CABLE",
+      "localizations" : [
+        {
+          "description" : "100 Copper Cables - Essential for electrical connections",
+          "displayName" : "Copper Cable Pack (100)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.copper_cable_pack",
+      "referenceName" : "Copper Cable Pack (100)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "PIPE",
+      "localizations" : [
+        {
+          "description" : "50 Pipes - For fluid transport and steam systems",
+          "displayName" : "Pipe Pack (50)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.pipe_pack",
+      "referenceName" : "Pipe Pack (50)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "ELECTRONIC_CIRCUIT",
+      "localizations" : [
+        {
+          "description" : "50 Electronic Circuits - Basic electronic components",
+          "displayName" : "Electronic Circuit Pack (50)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.electronic_circuit_pack",
+      "referenceName" : "Electronic Circuit Pack (50)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "ADVANCED_CIRCUIT",
+      "localizations" : [
+        {
+          "description" : "25 Advanced Circuits - Advanced electronic components",
+          "displayName" : "Advanced Circuit Pack (25)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.advanced_circuit_pack",
+      "referenceName" : "Advanced Circuit Pack (25)",
+      "type" : "Consumable"
+    },
+    {
       "displayPrice" : "2.99",
       "familyShareable" : false,
       "internalID" : "LOGISTIC_SCIENCE",
@@ -117,6 +252,36 @@
       ],
       "productID" : "com.factoryforge.items.logistic_science_pack",
       "referenceName" : "Logistic Science Pack (10)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "TRANSPORT_BELT",
+      "localizations" : [
+        {
+          "description" : "50 Transport Belts - Basic item transportation",
+          "displayName" : "Transport Belt Pack (50)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.transport_belt_pack",
+      "referenceName" : "Transport Belt Pack (50)",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "INSERTER",
+      "localizations" : [
+        {
+          "description" : "Basic inserter - Move items between containers",
+          "displayName" : "Inserter",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.inserter",
+      "referenceName" : "Inserter",
       "type" : "Consumable"
     },
     {
@@ -237,6 +402,81 @@
       ],
       "productID" : "com.factoryforge.items.accumulator",
       "referenceName" : "Accumulator",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "BURNER_MINING_DRILL",
+      "localizations" : [
+        {
+          "description" : "Basic mining drill powered by fuel - Extract resources manually",
+          "displayName" : "Burner Mining Drill",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.burner_mining_drill",
+      "referenceName" : "Burner Mining Drill",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "STONE_FURNACE",
+      "localizations" : [
+        {
+          "description" : "Basic furnace for smelting ores - Process raw materials",
+          "displayName" : "Stone Furnace",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.stone_furnace",
+      "referenceName" : "Stone Furnace",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "WOODEN_CHEST",
+      "localizations" : [
+        {
+          "description" : "Basic storage container - Store your items",
+          "displayName" : "Wooden Chest",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.wooden_chest",
+      "referenceName" : "Wooden Chest",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.49",
+      "familyShareable" : false,
+      "internalID" : "SMALL_ELECTRIC_POLE",
+      "localizations" : [
+        {
+          "description" : "Basic power pole - Connect buildings to power networks",
+          "displayName" : "Small Electric Pole",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.small_electric_pole",
+      "referenceName" : "Small Electric Pole",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.49",
+      "familyShareable" : false,
+      "internalID" : "RADAR",
+      "localizations" : [
+        {
+          "description" : "Radar station - Scan for resources and reveal the map",
+          "displayName" : "Radar",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.factoryforge.items.radar",
+      "referenceName" : "Radar",
       "type" : "Consumable"
     },
     {
