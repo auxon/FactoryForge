@@ -29,6 +29,7 @@ final class GameLoop {
     private let combatSystem: CombatSystem
     let entityCleanupSystem: EntityCleanupSystem
     let autoPlaySystem: AutoPlaySystem
+    let rocketSystem: RocketSystem
     
     // Player
     let player: Player
@@ -96,6 +97,7 @@ final class GameLoop {
         combatSystem = CombatSystem(world: world)
         combatSystem.setRenderer(renderer)
         entityCleanupSystem = EntityCleanupSystem(world: world, chunkManager: chunkManager)
+        rocketSystem = RocketSystem(world: world, itemRegistry: itemRegistry)
 
         // Auto-play system for automated testing
         autoPlaySystem = AutoPlaySystem()
@@ -111,6 +113,7 @@ final class GameLoop {
             pollutionSystem,
             enemyAISystem,
             combatSystem,
+            rocketSystem,
             entityCleanupSystem,
             autoPlaySystem
         ]
@@ -851,6 +854,23 @@ final class GameLoop {
             world.add(AssemblerComponent(craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "chemistry"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+
+        case .rocketSilo:
+            world.add(RocketSiloComponent(), to: entity)
+            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+
+        case .centrifuge:
+            world.add(AssemblerComponent(craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "centrifuging"), to: entity)
+            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+
+        case .nuclearReactor:
+            world.add(GeneratorComponent(
+                powerOutput: buildingDef.powerProduction,
+                fuelCategory: buildingDef.fuelCategory ?? "nuclear"
+            ), to: entity)
+            world.add(InventoryComponent(slots: 1, allowedItems: ["uranium-fuel-cell"]), to: entity)
         }
     }
 

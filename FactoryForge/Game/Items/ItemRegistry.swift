@@ -66,6 +66,11 @@ final class ItemRegistry {
         register(Item(id: "uranium-235", name: "Uranium-235", stackSize: 100, category: .intermediate, order: "p"))
         register(Item(id: "uranium-238", name: "Uranium-238", stackSize: 100, category: .intermediate, order: "q"))
         register(Item(id: "nuclear-fuel", name: "Nuclear Fuel", stackSize: 1, category: .intermediate, order: "r"))
+        register(Item(id: "rocket-fuel", name: "Rocket Fuel", stackSize: 10, category: .intermediate, order: "s"))
+        register(Item(id: "rocket-part", name: "Rocket Part", stackSize: 5, category: .intermediate, order: "t"))
+        register(Item(id: "satellite", name: "Satellite", stackSize: 1, category: .intermediate, order: "u"))
+        register(Item(id: "low-density-structure", name: "Low Density Structure", stackSize: 10, category: .intermediate, order: "v"))
+        register(Item(id: "solid-fuel", name: "Solid Fuel", stackSize: 50, category: .intermediate, order: "w", fuelValue: 25000, fuelCategory: "chemical"))
 
         // Science packs
         register(Item(id: "automation-science-pack", name: "Automation Science Pack", stackSize: 200, category: .science, order: "a"))
@@ -74,6 +79,7 @@ final class ItemRegistry {
         register(Item(id: "chemical-science-pack", name: "Chemical Science Pack", stackSize: 200, category: .science, order: "d"))
         register(Item(id: "production-science-pack", name: "Production Science Pack", stackSize: 200, category: .science, order: "e"))
         register(Item(id: "utility-science-pack", name: "Utility Science Pack", stackSize: 200, category: .science, order: "f"))
+        register(Item(id: "space-science-pack", name: "Space Science Pack", stackSize: 2000, category: .science, order: "g"))
         
         // Logistics items
         register(Item(id: "transport-belt", name: "Transport Belt", stackSize: 100, category: .logistics, order: "a", placedAs: "transport-belt"))

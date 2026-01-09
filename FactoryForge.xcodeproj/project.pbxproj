@@ -126,6 +126,22 @@
 		0D778B2A2F107E6D003BC642 /* trash.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B292F107E6D003BC642 /* trash.png */; };
 		0D778B2C2F1167E0003BC642 /* water_pump.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B2B2F1167E0003BC642 /* water_pump.png */; };
 		0D778B2E2F118392003BC642 /* EntityCleanupSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D778B2D2F118392003BC642 /* EntityCleanupSystem.swift */; };
+		0D778B302F119A07003BC642 /* RocketSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D778B2F2F119A07003BC642 /* RocketSystem.swift */; };
+		0D778B322F119AAF003BC642 /* RocketComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D778B312F119AAF003BC642 /* RocketComponents.swift */; };
+		0D778B412F11A14E003BC642 /* rocket.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B3A2F11A14E003BC642 /* rocket.png */; };
+		0D778B422F11A14E003BC642 /* battery.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B332F11A14E003BC642 /* battery.png */; };
+		0D778B432F11A14E003BC642 /* centrifuge.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B342F11A14E003BC642 /* centrifuge.png */; };
+		0D778B442F11A14E003BC642 /* nuclear_fuel.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B362F11A14E003BC642 /* nuclear_fuel.png */; };
+		0D778B452F11A14E003BC642 /* space_science_pack.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B3C2F11A14E003BC642 /* space_science_pack.png */; };
+		0D778B462F11A14E003BC642 /* petroleum_gas.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B382F11A14E003BC642 /* petroleum_gas.png */; };
+		0D778B472F11A14E003BC642 /* uranium_235.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B3E2F11A14E003BC642 /* uranium_235.png */; };
+		0D778B482F11A14E003BC642 /* plastic_bar.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B392F11A14E003BC642 /* plastic_bar.png */; };
+		0D778B492F11A14E003BC642 /* uranium_238.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B3F2F11A14E003BC642 /* uranium_238.png */; };
+		0D778B4A2F11A14E003BC642 /* sulfuric_acid.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B3D2F11A14E003BC642 /* sulfuric_acid.png */; };
+		0D778B4B2F11A14E003BC642 /* satellite.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B3B2F11A14E003BC642 /* satellite.png */; };
+		0D778B4C2F11A14E003BC642 /* uranium_processing.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B402F11A14E003BC642 /* uranium_processing.png */; };
+		0D778B4D2F11A14E003BC642 /* explosives.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B352F11A14E003BC642 /* explosives.png */; };
+		0D778B4E2F11A14E003BC642 /* nuclear_reactor.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B372F11A14E003BC642 /* nuclear_reactor.png */; };
 		0D841AD62F0F2FE600F499B6 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D841AD52F0F2FE600F499B6 /* wall.png */; };
 		0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
@@ -411,6 +427,22 @@
 		0D778B292F107E6D003BC642 /* trash.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = trash.png; sourceTree = "<group>"; };
 		0D778B2B2F1167E0003BC642 /* water_pump.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = water_pump.png; sourceTree = "<group>"; };
 		0D778B2D2F118392003BC642 /* EntityCleanupSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntityCleanupSystem.swift; sourceTree = "<group>"; };
+		0D778B2F2F119A07003BC642 /* RocketSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RocketSystem.swift; sourceTree = "<group>"; };
+		0D778B312F119AAF003BC642 /* RocketComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RocketComponents.swift; sourceTree = "<group>"; };
+		0D778B332F11A14E003BC642 /* battery.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = battery.png; sourceTree = "<group>"; };
+		0D778B342F11A14E003BC642 /* centrifuge.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = centrifuge.png; sourceTree = "<group>"; };
+		0D778B352F11A14E003BC642 /* explosives.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = explosives.png; sourceTree = "<group>"; };
+		0D778B362F11A14E003BC642 /* nuclear_fuel.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = nuclear_fuel.png; sourceTree = "<group>"; };
+		0D778B372F11A14E003BC642 /* nuclear_reactor.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = nuclear_reactor.png; sourceTree = "<group>"; };
+		0D778B382F11A14E003BC642 /* petroleum_gas.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = petroleum_gas.png; sourceTree = "<group>"; };
+		0D778B392F11A14E003BC642 /* plastic_bar.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = plastic_bar.png; sourceTree = "<group>"; };
+		0D778B3A2F11A14E003BC642 /* rocket.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = rocket.png; sourceTree = "<group>"; };
+		0D778B3B2F11A14E003BC642 /* satellite.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = satellite.png; sourceTree = "<group>"; };
+		0D778B3C2F11A14E003BC642 /* space_science_pack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = space_science_pack.png; sourceTree = "<group>"; };
+		0D778B3D2F11A14E003BC642 /* sulfuric_acid.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = sulfuric_acid.png; sourceTree = "<group>"; };
+		0D778B3E2F11A14E003BC642 /* uranium_235.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = uranium_235.png; sourceTree = "<group>"; };
+		0D778B3F2F11A14E003BC642 /* uranium_238.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = uranium_238.png; sourceTree = "<group>"; };
+		0D778B402F11A14E003BC642 /* uranium_processing.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = uranium_processing.png; sourceTree = "<group>"; };
 		0D841AD52F0F2FE600F499B6 /* wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wall.png; sourceTree = "<group>"; };
 		0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FactoryForge Storekit Configuration.storekit"; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
@@ -608,6 +640,20 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D778B332F11A14E003BC642 /* battery.png */,
+				0D778B342F11A14E003BC642 /* centrifuge.png */,
+				0D778B352F11A14E003BC642 /* explosives.png */,
+				0D778B362F11A14E003BC642 /* nuclear_fuel.png */,
+				0D778B372F11A14E003BC642 /* nuclear_reactor.png */,
+				0D778B382F11A14E003BC642 /* petroleum_gas.png */,
+				0D778B392F11A14E003BC642 /* plastic_bar.png */,
+				0D778B3A2F11A14E003BC642 /* rocket.png */,
+				0D778B3B2F11A14E003BC642 /* satellite.png */,
+				0D778B3C2F11A14E003BC642 /* space_science_pack.png */,
+				0D778B3D2F11A14E003BC642 /* sulfuric_acid.png */,
+				0D778B3E2F11A14E003BC642 /* uranium_235.png */,
+				0D778B3F2F11A14E003BC642 /* uranium_238.png */,
+				0D778B402F11A14E003BC642 /* uranium_processing.png */,
 				0D778B2B2F1167E0003BC642 /* water_pump.png */,
 				0D778B292F107E6D003BC642 /* trash.png */,
 				0D45A9962F0F5E7A006B346C /* chemical_plant.png */,
@@ -1059,6 +1105,7 @@
 		A0000200026 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				0D778B312F119AAF003BC642 /* RocketComponents.swift */,
 				A1003001000 /* PositionComponent.swift */,
 				A1003002000 /* SpriteComponent.swift */,
 				A1003003000 /* HealthComponent.swift */,
@@ -1135,6 +1182,7 @@
 		A0000200035 /* Systems */ = {
 			isa = PBXGroup;
 			children = (
+				0D778B2F2F119A07003BC642 /* RocketSystem.swift */,
 				0D778B2D2F118392003BC642 /* EntityCleanupSystem.swift */,
 				0D18B5612F0D9219006B70A5 /* AutoPlaySystem.swift */,
 				0D18B5622F0D9219006B70A5 /* AutoPlayTypes.swift */,
@@ -1398,6 +1446,20 @@
 				0DFF5A042F02CAD900A8699D /* transport_belt_west_016.png in Resources */,
 				0DFF5A052F02CAD900A8699D /* transport_belt_west_013.png in Resources */,
 				0DFF5A062F02CAD900A8699D /* transport_belt_west_002.png in Resources */,
+				0D778B412F11A14E003BC642 /* rocket.png in Resources */,
+				0D778B422F11A14E003BC642 /* battery.png in Resources */,
+				0D778B432F11A14E003BC642 /* centrifuge.png in Resources */,
+				0D778B442F11A14E003BC642 /* nuclear_fuel.png in Resources */,
+				0D778B452F11A14E003BC642 /* space_science_pack.png in Resources */,
+				0D778B462F11A14E003BC642 /* petroleum_gas.png in Resources */,
+				0D778B472F11A14E003BC642 /* uranium_235.png in Resources */,
+				0D778B482F11A14E003BC642 /* plastic_bar.png in Resources */,
+				0D778B492F11A14E003BC642 /* uranium_238.png in Resources */,
+				0D778B4A2F11A14E003BC642 /* sulfuric_acid.png in Resources */,
+				0D778B4B2F11A14E003BC642 /* satellite.png in Resources */,
+				0D778B4C2F11A14E003BC642 /* uranium_processing.png in Resources */,
+				0D778B4D2F11A14E003BC642 /* explosives.png in Resources */,
+				0D778B4E2F11A14E003BC642 /* nuclear_reactor.png in Resources */,
 				0DFF5A072F02CAD900A8699D /* transport_belt_west_004.png in Resources */,
 				0DFF5A082F02CAD900A8699D /* transport_belt_west_012.png in Resources */,
 				0DFF5A092F02CAD900A8699D /* transport_belt_west_001.png in Resources */,
@@ -1484,8 +1546,10 @@
 				A1003007001 /* CombatComponents.swift in Sources */,
 				A1004001001 /* MetalRenderer.swift in Sources */,
 				A1004002001 /* TextureAtlas.swift in Sources */,
+				0D778B302F119A07003BC642 /* RocketSystem.swift in Sources */,
 				0D18B5862F0EF07B006B70A5 /* StoreViewController.swift in Sources */,
 				A1004003001 /* TileMapRenderer.swift in Sources */,
+				0D778B322F119AAF003BC642 /* RocketComponents.swift in Sources */,
 				A1004004001 /* SpriteRenderer.swift in Sources */,
 				0D18B5742F0DD8E2006B70A5 /* DocumentViewer.swift in Sources */,
 				0D18B5752F0DD8E2006B70A5 /* HelpMenu.swift in Sources */,

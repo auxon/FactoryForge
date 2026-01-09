@@ -70,7 +70,7 @@ final class EntityCleanupSystem: System {
         }
 
         // Log cleanup for debugging
-        if let tree = world.get(TreeComponent.self, for: entity) {
+        if let _ = world.get(TreeComponent.self, for: entity) {
             print("EntityCleanupSystem: Removing depleted tree at \(tilePosition)")
         }
 

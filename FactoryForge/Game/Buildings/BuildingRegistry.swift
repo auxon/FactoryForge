@@ -516,7 +516,10 @@ final class BuildingRegistry {
             width: 5,
             height: 5,
             maxHealth: 500,
-            cost: [ItemStack(itemId: "nuclear-reactor", count: 1)]
+            cost: [ItemStack(itemId: "steel-plate", count: 400),
+                   ItemStack(itemId: "advanced-circuit", count: 400),
+                   ItemStack(itemId: "copper-plate", count: 400),
+                   ItemStack(itemId: "stone-brick", count: 400)]
         )
         nuclearReactor.powerProduction = 40000  // 40 MW
         register(nuclearReactor)
@@ -533,6 +536,23 @@ final class BuildingRegistry {
         centrifuge.powerConsumption = 350  // kW
         centrifuge.inventorySlots = 2      // Input and output slots
         register(centrifuge)
+
+        // Rocket facilities
+        var rocketSilo = BuildingDefinition(
+            id: "rocket-silo",
+            name: "Rocket Silo",
+            type: .rocketSilo,
+            width: 9,
+            height: 9,
+            maxHealth: 5000,
+            cost: [ItemStack(itemId: "steel-plate", count: 1000),
+                   ItemStack(itemId: "stone-brick", count: 1000),
+                   ItemStack(itemId: "pipe", count: 100),
+                   ItemStack(itemId: "processing-unit", count: 200)]
+        )
+        rocketSilo.powerConsumption = 1000  // kW - high power for rocket launches
+        rocketSilo.inventorySlots = 10      // Large inventory for rocket parts and fuel
+        register(rocketSilo)
     }
 }
 

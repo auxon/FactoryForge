@@ -246,6 +246,12 @@ final class TextureAtlas {
             ("uranium-235", nil),
             ("uranium-238", nil),
             ("nuclear-fuel", nil),
+            ("rocket-silo", nil),
+            ("rocket-fuel", nil),
+            ("rocket-part", nil),
+            ("satellite", nil),
+            ("low-density-structure", nil),
+            ("solid-fuel", nil),
         ]
         
         print("Loading \(spriteFiles.count) sprite files...")

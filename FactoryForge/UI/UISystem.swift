@@ -219,6 +219,22 @@ final class UISystem {
             self?.togglePanel(.research)
         }
 
+        // Machine UI callback for launching rockets
+        machineUI.onLaunchRocket = { [weak self] entity in
+            guard let self = self, let gameLoop = self.gameLoop else { return }
+
+            // Attempt to launch rocket from the silo
+            let success = gameLoop.rocketSystem.launchRocketFromSilo(entity)
+
+            if success {
+                print("UISystem: Rocket launch initiated!")
+                // Close machine UI to show the launch
+                self.closeAllPanels()
+            } else {
+                print("UISystem: Rocket launch failed - check silo status")
+            }
+        }
+
         // Quick bar slot callback
     }
 
@@ -256,7 +272,7 @@ final class UISystem {
         }
 
         // Create the StoreViewController
-        let storeVC = StoreViewController(productIds: productIds) { [weak self] in
+        let storeVC = StoreViewController(productIds: productIds) {
             // Purchase completed - items are automatically added to inventory via IAPManager
             // No additional UI action needed
         }

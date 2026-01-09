@@ -450,6 +450,102 @@ final class TechnologyRegistry {
             order: "k",
             tier: 3
         ))
+
+        register(Technology(
+            id: "rocket-fuel",
+            name: "Rocket Fuel",
+            description: "Unlocks solid fuel and rocket fuel production",
+            prerequisites: ["advanced-oil-processing"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 200),
+                ScienceCost("logistic-science-pack", count: 200),
+                ScienceCost("chemical-science-pack", count: 200)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["solid-fuel", "rocket-fuel"]),
+            order: "l",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "low-density-structure",
+            name: "Low Density Structure",
+            description: "Unlocks lightweight structural materials",
+            prerequisites: ["rocket-fuel"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 200),
+                ScienceCost("logistic-science-pack", count: 200),
+                ScienceCost("chemical-science-pack", count: 200)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["low-density-structure"]),
+            order: "m",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "rocket-parts",
+            name: "Rocket Parts",
+            description: "Unlocks rocket part assembly",
+            prerequisites: ["low-density-structure"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 300),
+                ScienceCost("logistic-science-pack", count: 300),
+                ScienceCost("chemical-science-pack", count: 300)
+            ],
+            researchTime: 45,
+            unlocks: TechnologyUnlocks(recipes: ["rocket-part"]),
+            order: "n",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "satellite",
+            name: "Satellite",
+            description: "Unlocks satellite construction",
+            prerequisites: ["rocket-parts", "solar-energy"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 400),
+                ScienceCost("logistic-science-pack", count: 400),
+                ScienceCost("chemical-science-pack", count: 400)
+            ],
+            researchTime: 60,
+            unlocks: TechnologyUnlocks(recipes: ["satellite"]),
+            order: "o",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "rocket-silo",
+            name: "Rocket Silo",
+            description: "Unlocks rocket silo construction",
+            prerequisites: ["satellite"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 500),
+                ScienceCost("logistic-science-pack", count: 500),
+                ScienceCost("chemical-science-pack", count: 500)
+            ],
+            researchTime: 90,
+            unlocks: TechnologyUnlocks(recipes: ["rocket-silo"]),
+            order: "p",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "space-science-pack",
+            name: "Space Science Pack",
+            description: "Unlocks space science research",
+            prerequisites: ["rocket-silo"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 1000),
+                ScienceCost("logistic-science-pack", count: 1000),
+                ScienceCost("chemical-science-pack", count: 1000)
+            ],
+            researchTime: 120,
+            unlocks: TechnologyUnlocks(recipes: ["space-science-pack"]),
+            order: "q",
+            tier: 4
+        ))
     }
     
     /// Gets prerequisites for a technology
