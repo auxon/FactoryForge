@@ -80,32 +80,6 @@ struct StoreViewRepresentable: View {
                     .padding(.trailing, 20)
                 }
 
-                // Debug button for testing inventory expansion
-                #if DEBUG
-                HStack {
-                    Button(action: {
-                        print("🐛 Debug button pressed - testing inventory expansion")
-                        // Find the UISystem instance and call debug method
-                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                           let window = windowScene.windows.first,
-                           let rootVC = window.rootViewController as? GameViewController,
-                           let uiSystem = rootVC.uiSystem {
-                            uiSystem.debugExpandInventory()
-                        }
-                    }) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(SwiftUI.Color.blue)
-                                .frame(width: 200, height: 44)
-                            Text("🧪 Test Inventory +8")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(SwiftUI.Color.white)
-                        }
-                    }
-                    .padding(.bottom, 50)
-                }
-                #endif
-
                 Spacer()
             }
         }
