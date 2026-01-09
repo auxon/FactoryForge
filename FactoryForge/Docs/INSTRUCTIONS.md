@@ -1,42 +1,83 @@
-# FactoryForge - Game Instructions
+# 🎯 FactoryForge - Complete Game Instructions
 
-Welcome to **FactoryForge**, a factory automation game set in a procedurally generated world! Build factories, automate production, and defend against enemies in this 2D factory building game.
+> **FactoryForge** is a comprehensive factory automation game inspired by Factorio, featuring procedural world generation, complex production chains, and advanced automation systems.
+
+---
+
+## 📋 Table of Contents
+
+### 🎮 Getting Started
+- [Game Overview](#-game-overview)
+- [Basic Controls](#-basic-controls)
+
+### ⛏️ Core Gameplay
+- [Resources & Mining](#-resources--mining)
+- [Production & Crafting](#-production--crafting)
+- [Building & Automation](#-building--automation)
+- [Inventory Management](#-inventory-management)
+
+### ⚡ Advanced Systems
+- [Oil Processing & Chemical Production](#️-oil-processing--chemical-production)
+- [Power Systems](#-power-systems)
+- [Research & Progression](#-research--progression)
+- [Combat & Defense](#-combat--defense)
+
+### 🛠️ Special Features
+- [In-App Store](#-in-app-store)
+- [Auto-Play System](#-auto-play-system)
+
+### 📚 Reference
+- [User Interface](#-user-interface)
+- [Tips & Strategies](#-tips--strategies)
+- [Troubleshooting](#-troubleshooting)
+- [Game Goals](#-game-goals)
+- [Version Notes](#-version-notes)
+
+---
 
 ## 🎮 Game Overview
 
 FactoryForge is a factory automation game where you start with basic resources and work your way up to complex automated production lines. Gather resources, craft items, build machines, and defend your factory from enemies.
 
-### Key Features:
-- **Procedural World Generation** - Every world is unique
-- **Resource Mining** - Extract iron, copper, coal, and stone
-- **Automated Production** - Build assemblers and furnaces for automated crafting
-- **Factory Automation** - Use belts, inserters, and chests to create production lines
-- **Combat System** - Defend against enemies with firearms and turrets
-- **Research Tree** - Unlock new technologies and recipes
+### 🌟 Key Features:
+- **🌍 Procedural World Generation** - Every world is unique
+- **⛏️ Resource Mining** - Extract iron, copper, coal, stone, uranium, and crude oil
+- **🏭 Automated Production** - Build multiple tiers of assemblers and furnaces
+- **🔄 Advanced Factory Automation** - Use belts, inserters, underground belts, splitters, and mergers
+- **🛢️ Oil Processing** - Extract and refine crude oil into advanced materials
+- **⚗️ Chemical Production** - Create plastics, explosives, batteries, and more
+- **⚔️ Combat System** - Defend against enemies with firearms, gun turrets, and laser turrets
+- **🧪 Research Tree** - Unlock advanced technologies and bonuses
+- **⚡ Power Systems** - Steam, solar, and electric power generation
+- **🛒 In-App Purchases** - Buy resources and upgrades through the store
 
 ---
 
 ## 🕹️ Basic Controls
 
-### Movement & Camera
-- **Move**: Touch and drag anywhere on the screen to pan the camera
-- **Zoom**: Use pinch gestures to zoom in/out
-- **Zoom Levels**: Min 0.25x, Max 4.0x (starts at 4.0x for close-up view)
+### 🎥 Movement & Camera
+- **📍 Move**: Touch and drag anywhere on the screen to pan the camera
+- **🔍 Zoom**: Use pinch gestures to zoom in/out
+- **📏 Zoom Levels**: Min 0.25x, Max 4.0x (starts at 4.0x for close-up view)
 
-### Player Actions
-- **Manual Mining**: Tap on resource deposits (iron ore, copper ore, coal, stone) to mine them manually
-- **Combat**: Tap near enemies to shoot them (requires firearm magazine in inventory)
-- **Building Interaction**: Tap on placed buildings to open their interfaces
+### 👤 Player Actions
+- **⛏️ Manual Mining**: Tap on resource deposits to mine them manually
+- **🔫 Combat**: Tap near enemies to shoot them (requires firearm magazine in inventory)
+- **🏭 Building Interaction**: Tap on placed buildings to open their interfaces
 
 ---
 
 ## ⛏️ Resources & Mining
 
-### Resource Types
-- **Iron Ore** - Gray-blue patches, produces `iron-ore`
-- **Copper Ore** - Brown patches, produces `copper-ore`
-- **Coal** - Dark gray patches, produces `coal`
-- **Stone** - Gray patches, produces `stone`
+### 🔍 Resource Types
+| Resource | Appearance | Item Produced | Notes |
+|----------|------------|---------------|-------|
+| **Iron Ore** | 🔵 Gray-blue patches | `iron-ore` | Basic metal, essential for everything |
+| **Copper Ore** | 🟤 Brown patches | `copper-ore` | Used for electronics and cables |
+| **Coal** | ⚫ Dark gray patches | `coal` | Fuel source, also used in chemical processes |
+| **Stone** | 🔘 Gray patches | `stone` | Building material and furnace fuel |
+| **Uranium Ore** | 🟢 Green patches | `uranium-ore` | Advanced resource (requires research) |
+| **Crude Oil** | 🫧 Black liquid deposits | `crude-oil` | Complex processing required (requires research) |
 
 ### Manual Mining
 1. Find resource deposits on the ground
@@ -64,23 +105,65 @@ Use **Burner Mining Drills** for automated resource extraction:
 ### Key Machines
 
 #### Burner Mining Drill
-- **Cost**: 5 iron plates
-- **Function**: Automatically mines resources
+- **Cost**: 3 Iron Gear Wheels + 3 Iron Plates + 1 Stone Furnace
+- **Function**: Automatically mines 3×3 area around placement
 - **Fuel**: None required (burner technology)
+- **Mining Speed**: 0.5 (items per second)
+- **Output**: 1 slot for mined resources
+
+#### Electric Mining Drill
+- **Cost**: 3 Electronic Circuits + 5 Iron Gear Wheels + 10 Iron Plates
+- **Function**: Automatically mines 3×3 area around placement
+- **Power**: 90 kW electricity required
+- **Mining Speed**: 0.75 (items per second)
 - **Output**: 1 slot for mined resources
 
 #### Stone Furnace
-- **Cost**: 5 iron plates
+- **Cost**: 5 Stone
 - **Function**: Smelts ores into plates
-- **Recipes**: Iron ore → Iron plate, Copper ore → Copper plate
-- **Fuel**: Coal (place in furnace input)
+- **Recipes**: Iron ore → Iron plate, Copper ore → Copper plate, Stone → Stone brick
+- **Fuel**: Coal or Wood (4000/2000 energy units respectively)
+- **Crafting Speed**: 1.0 (base speed)
+- **Slots**: 4 total (2 input, 2 output)
+
+#### Steel Furnace
+- **Cost**: 1 Steel Furnace (unlocked via research)
+- **Function**: Faster smelting with higher fuel efficiency
+- **Recipes**: All Stone Furnace recipes plus Steel Plate production
+- **Fuel**: Coal or Wood (more efficient than stone furnace)
+- **Crafting Speed**: 2.0 (2x faster than stone furnace)
+- **Slots**: 4 total (2 input, 2 output)
+
+#### Electric Furnace
+- **Cost**: 1 Electric Furnace (unlocked via research)
+- **Function**: Fastest smelting, no fuel required
+- **Recipes**: All furnace recipes
+- **Power**: 180 kW electricity required
+- **Crafting Speed**: 2.0 (2x faster than stone furnace)
 - **Slots**: 4 total (2 input, 2 output)
 
 #### Assembling Machine 1
-- **Cost**: Custom recipe (unlock via research)
+- **Cost**: 3 Electronic Circuits + 5 Iron Gear Wheels + 9 Iron Plates
 - **Function**: Crafts intermediate products
-- **Recipes**: Various crafting recipes
+- **Recipes**: Basic crafting recipes (gears, circuits, etc.)
 - **Power**: 75 kW electricity required
+- **Crafting Speed**: 0.5 (base speed)
+- **Slots**: 8 total (4 input, 4 output)
+
+#### Assembling Machine 2
+- **Cost**: Unlocked via Automation 2 research
+- **Function**: Advanced crafting with more recipes
+- **Recipes**: Advanced crafting recipes (advanced circuits, processing units)
+- **Power**: 150 kW electricity required
+- **Crafting Speed**: 0.75 (50% faster than Assembling Machine 1)
+- **Slots**: 8 total (4 input, 4 output)
+
+#### Assembling Machine 3
+- **Cost**: Unlocked via advanced research
+- **Function**: Fastest automated crafting
+- **Recipes**: All crafting recipes including complex items
+- **Power**: 375 kW electricity required
+- **Crafting Speed**: 1.25 (2.5x faster than Assembling Machine 1)
 - **Slots**: 8 total (4 input, 4 output)
 
 ### Production Chain Examples
@@ -111,21 +194,143 @@ Use **Burner Mining Drills** for automated resource extraction:
 ### Automation Tools
 
 #### Transport Belts
-- **Cost**: 1 iron plate
+- **Yellow Belt Cost**: 1 Iron Plate + 1 Iron Gear Wheel (5 belts)
 - **Function**: Move items between machines
 - **Directions**: Can be rotated during placement
-- **Speed**: Basic belts move 15 items/minute per lane
+- **Speed**: 15 items/minute per lane (1.875 items/second per lane)
+
+#### Fast Transport Belts
+- **Blue Belt Cost**: 5 Iron Gear Wheels + 1 Iron Plate
+- **Function**: Faster item transport
+- **Speed**: 30 items/minute per lane (3.75 items/second per lane)
+
+#### Express Transport Belts
+- **Purple Belt Cost**: 10 Iron Gear Wheels + 2 Advanced Circuits + 1 Steel Plate
+- **Function**: Fastest item transport
+- **Speed**: 45 items/minute per lane (5.625 items/second per lane)
+
+#### Underground Belts
+- **Cost**: 10 Iron Plates + 5 Transport Belts (makes 2 underground belts)
+- **Function**: Route items underground between buildings
+- **Range**: Connect input and output points up to several tiles apart
+- **Speed**: Same as transport belt type used
+
+#### Splitters
+- **Cost**: 5 Electronic Circuits + 5 Iron Plates + 4 Transport Belts
+- **Function**: Distribute items from one input to multiple outputs
+- **Behavior**: Items distributed round-robin between left and right lanes
+
+#### Mergers
+- **Cost**: 5 Electronic Circuits + 5 Iron Plates + 4 Transport Belts
+- **Function**: Combine items from multiple inputs into one output stream
+- **Behavior**: Merges all input streams into organized output lanes
+
+#### Belt Bridges
+- **Cost**: Same as basic transport belts (for now)
+- **Function**: Allow belts to cross over other belts or obstacles
+- **Visual**: Elevated rendering with shadow underneath
 
 #### Inserters
-- **Cost**: Various (basic inserter requires custom parts)
+- **Basic Inserter Cost**: 1 Electronic Circuit + 1 Iron Gear Wheel + 1 Iron Plate
 - **Function**: Move items between containers and machines
-- **Range**: Pick up from input, drop to output
-- **Speed**: Varies by inserter type
+- **Range**: Standard pickup and drop range
+- **Speed**: 4 seconds per operation (0.25 operations/second)
+
+#### Long Handed Inserters
+- **Cost**: Unlocked via Logistics research
+- **Function**: Extended range item transfer
+- **Range**: Longer pickup and drop distance
+- **Speed**: 1.2 seconds per operation (0.83 operations/second)
+
+#### Fast Inserters
+- **Cost**: Unlocked via Logistics research
+- **Function**: Faster item transfer
+- **Range**: Standard pickup and drop range
+- **Speed**: 2.31 seconds per operation (~0.43 operations/second)
 
 #### Chests
-- **Cost**: Various woods/metals
-- **Function**: Store large amounts of items
-- **Capacity**: 16-48 slots depending on chest type
+- **Wooden Chest Cost**: 2 Wood
+- **Capacity**: 16 slots
+- **Function**: Basic item storage
+
+- **Iron Chest Cost**: 8 Iron Plates
+- **Capacity**: 32 slots
+- **Function**: Intermediate item storage
+
+- **Steel Chest Cost**: 1 Steel Chest (unlocked via research)
+- **Capacity**: 48 slots
+- **Function**: Large-scale item storage
+
+---
+
+## 🛢️ Oil Processing & Chemical Production
+
+### Oil Extraction
+- **Oil Wells**: Extract crude oil from deposits (requires Oil Processing research)
+- **Cost**: 5 Steel Plates + 10 Iron Gear Wheels + 5 Electronic Circuits + 10 Pipes
+- **Power**: 90 kW electricity required
+- **Output**: Crude oil at 1 unit per second (at full power)
+
+### Oil Refining
+- **Oil Refineries**: Process crude oil into petroleum gas, light oil, and heavy oil
+- **Cost**: 15 Steel Plates + 10 Iron Gear Wheels + 10 Electronic Circuits + 10 Pipes + 10 Stone Bricks
+- **Power**: 420 kW electricity required
+- **Recipes**:
+  - **Basic Oil Processing**: 100 Crude Oil → 45 Petroleum Gas + 30 Light Oil + 25 Heavy Oil
+  - **Advanced Oil Processing**: 100 Crude Oil + 50 Water → 55 Petroleum Gas + 45 Light Oil + 25 Heavy Oil
+
+### Oil Cracking
+- **Light Oil Cracking**: 30 Light Oil + 30 Water → 20 Petroleum Gas
+- **Heavy Oil Cracking**: 40 Heavy Oil + 30 Water → 30 Light Oil
+- **Chemical Plants**: Required for cracking processes (210 kW power)
+
+### Chemical Products
+- **Plastic Bar**: 20 Petroleum Gas + 1 Coal → 2 Plastic Bars
+- **Sulfur**: 30 Petroleum Gas + 30 Water → 2 Sulfur
+- **Sulfuric Acid**: 5 Sulfur + 1 Iron Plate + 100 Water → 50 Sulfuric Acid
+- **Lubricant**: 10 Heavy Oil → 10 Lubricant
+- **Battery**: 1 Iron Plate + 1 Copper Plate + 20 Sulfuric Acid → 1 Battery
+- **Explosives**: 1 Coal + 1 Sulfur + 1 Water → 2 Explosives
+
+### Chemical Science Pack Production
+- **Requirements**: 3 Advanced Circuits + 2 Engine Units + 1 Sulfuric Acid
+- **Output**: 1 Chemical Science Pack (unlocks advanced research)
+
+---
+
+## ⚡ Power Systems
+
+### Steam Power (Early Game)
+- **Boiler**: Converts water + fuel into steam (1 Boiler + 4 Pipes)
+- **Steam Engine**: Generates 900 kW from steam (8 Iron Gear Wheels + 10 Iron Plates + 5 Pipes)
+- **Fuel**: Coal or Wood (4000/2000 energy units respectively)
+
+### Solar Power (Mid Game)
+- **Solar Panels**: Generate 60 kW each during daylight
+- **Cost**: 5 Steel Plates + 15 Electronic Circuits + 5 Copper Plates
+- **Accumulators**: Store excess power for nighttime use
+- **Cost**: Unlocked via Electric Energy Accumulators research
+- **Capacity**: 5000 kJ per accumulator
+
+### Power Distribution
+- **Small Electric Pole**: 7.5 tile wire reach, 2.5 tile supply area
+- **Medium Electric Pole**: 9 tile wire reach, 3.5 tile supply area
+- **Big Electric Pole**: 30 tile wire reach, 2 tile supply area (2×2 size)
+
+---
+
+## 🛒 In-App Store
+
+### Available Purchases
+- **Resource Packs**: Buy stacks of iron ore, copper ore, coal, stone, wood, crude oil
+- **Upgrade Packs**: Purchase advanced materials and components
+- **Convenience Items**: Skip grinding by buying intermediate products
+
+### How to Access
+1. Tap the shopping cart icon in the main menu
+2. Browse available products and their costs
+3. Complete purchase to add items to your inventory
+4. Items are delivered instantly to your player inventory
 
 ---
 
@@ -161,10 +366,22 @@ Use **Burner Mining Drills** for automated resource extraction:
 
 ### Turrets
 - **Gun Turret**: Automatic defense against enemies
-- **Cost**: Custom recipe (unlock via research)
-- **Ammo**: Requires firearm magazines
+- **Cost**: 10 Iron Gear Wheels + 10 Copper Plates + 20 Iron Plates
+- **Ammo**: Requires firearm magazines or piercing rounds magazines
 - **Range**: 18 tiles
-- **Damage**: 6 per shot
+- **Damage**: 6 per shot (firearm magazine) or 8 per shot (piercing rounds)
+- **Fire Rate**: 10 shots per second
+
+- **Laser Turret**: Advanced defense with high damage
+- **Cost**: Unlocked via Laser Turrets research
+- **Power**: 800 kW electricity required
+- **Range**: 24 tiles
+- **Damage**: 20 per shot
+- **Fire Rate**: 20 shots per second
+
+### Ammunition
+- **Firearm Magazine**: Basic ammo (4 Iron Plates each)
+- **Piercing Rounds Magazine**: Advanced ammo with higher damage (unlocked via Military research)
 
 ### Enemy Types
 - **Biters**: Basic enemies that attack your factory
@@ -181,10 +398,35 @@ Use **Burner Mining Drills** for automated resource extraction:
 - **Requirements**: Labs consume science packs to generate research points
 
 ### Research Tree
-1. **Basic Automation** - Unlocks assemblers and inserters
-2. **Logistics** - Better belts and storage
-3. **Military** - Weapons and defense
-4. **Production** - Advanced machines and recipes
+
+#### Tier 1 - Basic Technologies (Red Science Only)
+- **Automation** - Unlocks Assembling Machine 1 (10 Red packs)
+- **Logistics** - Unlocks Fast/Long Handed Inserters (20 Red packs)
+- **Turrets** - Unlocks Gun Turret (10 Red packs)
+- **Stone Walls** - Unlocks defensive walls (10 Red packs)
+- **Steel Processing** - Unlocks Steel Plate smelting (50 Red packs)
+- **Military** - Unlocks Piercing Rounds Magazine (20 Red packs)
+
+#### Tier 2 - Advanced Technologies (Red + Green Science)
+- **Logistic Science Pack** - Enables green science production (75 Red packs)
+- **Automation 2** - Unlocks Assembling Machine 2 (40 Red + 40 Green packs)
+- **Logistics 2** - Unlocks Fast Transport Belts (40 Red + 40 Green packs)
+- **Advanced Logistics** - Unlocks Underground Belts, Splitters, Mergers (75 Red + 75 Green packs)
+- **Advanced Material Processing** - Unlocks Steel Furnace (50 Red + 50 Green packs)
+- **Solar Energy** - Unlocks Solar Panels (100 Red + 100 Green packs)
+- **Electric Energy Accumulators** - Unlocks Accumulators (100 Red + 100 Green packs)
+- **Laser Turrets** - Unlocks Laser Turrets (150 Red + 150 Green packs)
+- **Mining Productivity 1** - +10% mining output bonus (100 Red + 100 Green packs)
+- **Research Speed 1** - +20% research speed bonus (100 Red + 100 Green packs)
+
+#### Tier 3 - Oil & Chemical Processing (Red + Green + Blue Science)
+- **Oil Processing** - Unlocks Oil Wells and basic refining (50 Red + 50 Green + 50 Blue packs)
+- **Advanced Oil Processing** - Unlocks Oil Refineries and advanced refining (50 Red + 50 Green + 50 Blue packs)
+- **Chemistry** - Unlocks Chemical Plants and basic chemical production (100 Red + 100 Green + 100 Blue packs)
+- **Oil Cracking** - Unlocks oil cracking for better yields (100 Red + 100 Green + 100 Blue packs)
+- **Sulfur Processing** - Unlocks sulfuric acid production (100 Red + 100 Green + 100 Blue packs)
+- **Battery** - Unlocks battery production (100 Red + 100 Green + 100 Blue packs)
+- **Explosives** - Unlocks explosive production (100 Red + 100 Green + 100 Blue packs)
 
 ---
 
@@ -276,6 +518,30 @@ Use **Burner Mining Drills** for automated resource extraction:
 
 ---
 
+## 🤖 Auto-Play System
+
+### Overview
+FactoryForge includes an advanced auto-play system for automated testing, performance validation, and demo creation. This system allows the game to run autonomously with predefined scenarios.
+
+### Features
+- **Time Controls**: Speed up game time for faster testing (up to 8x speed)
+- **Scenario Playback**: Run predefined automated sequences
+- **Performance Monitoring**: Track FPS, entity counts, and production rates
+- **Automated Building**: Smart placement of production chains
+
+### Access Auto-Play
+1. Look for the auto-play menu in the loading screen
+2. Select from predefined scenarios or create custom ones
+3. Control playback speed and monitor performance metrics
+
+### Use Cases
+- **Development Testing**: Automated regression testing
+- **Performance Benchmarking**: Stress test with many entities
+- **Demo Creation**: Automated showcases of game features
+- **Tutorial Automation**: Guided automated learning sequences
+
+---
+
 ## 🎯 Game Goals
 
 ### Short Term
@@ -295,28 +561,47 @@ Use **Burner Mining Drills** for automated resource extraction:
 
 ---
 
+## 📚 Additional Documentation
+
+FactoryForge includes detailed guides for specific game mechanics:
+
+### 📖 Available Guides
+- **[Belt Mechanics Guide](Belt Mechanics.md)** - Advanced belt systems (underground belts, splitters, mergers)
+- **[Research Guide](Research.md)** - Complete research tree and technology details
+- **[Furnace Usage Guide](How to Use a Furnace.md)** - Detailed furnace operation instructions
+- **[Auto-Play Plan](autoplay_plan.md)** - Automated testing and demo system documentation
+
+### 📱 Accessing Help In-Game
+1. Tap the **question mark (?) icon** in the main menu
+2. Browse available documentation topics
+3. Each guide covers specific aspects of gameplay in detail
+
+---
+
 ## 📝 Version Notes
 
 **Current Features:**
 - ✅ Procedural world generation
-- ✅ Resource mining (manual + automated)
-- ✅ Basic crafting and production
-- ✅ Building placement system
-- ✅ Inventory management
-- ✅ Basic combat system
-- ✅ Furnace automation
-- ✅ Assembler automation
-- ✅ Transport belts and inserters
-- ✅ Research system
-- ✅ UI improvements
+- ✅ Resource mining (manual + automated, including uranium)
+- ✅ Multi-tier crafting and production (stone/steel/electric furnaces, 3 assembler tiers)
+- ✅ Advanced factory automation (underground belts, splitters, mergers, belt bridges)
+- ✅ Oil processing and chemical production
+- ✅ Complete research tree (3 tiers, 20+ technologies)
+- ✅ Advanced power systems (steam, solar, accumulators)
+- ✅ Multi-tier combat (gun turrets, laser turrets, piercing ammo)
+- ✅ Comprehensive inventory and logistics systems
+- ✅ In-app purchase store system
+- ✅ Auto-play system for testing and demos
+- ✅ Performance monitoring and benchmarking
+- ✅ Advanced UI with research, crafting, and machine interfaces
 
 **Planned Features:**
-- 🚧 Electric mining drills
-- 🚧 Advanced machines (steel furnaces, chemical plants)
-- 🚧 Oil processing
-- 🚧 Rail transport
-- 🚧 Robot automation
+- 🚧 Rail transport system
+- 🚧 Robot automation (logistic robots, construction robots)
+- 🚧 Nuclear power generation
+- 🚧 Advanced weapons and defense
 - 🚧 Multiplayer support
+- 🚧 Modding support
 
 ---
 
