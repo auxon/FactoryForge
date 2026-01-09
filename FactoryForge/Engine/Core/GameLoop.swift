@@ -27,6 +27,7 @@ final class GameLoop {
     private let pollutionSystem: PollutionSystem
     private let enemyAISystem: EnemyAISystem
     private let combatSystem: CombatSystem
+    let entityCleanupSystem: EntityCleanupSystem
     let autoPlaySystem: AutoPlaySystem
     
     // Player
@@ -94,6 +95,7 @@ final class GameLoop {
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
         combatSystem = CombatSystem(world: world)
         combatSystem.setRenderer(renderer)
+        entityCleanupSystem = EntityCleanupSystem(world: world, chunkManager: chunkManager)
 
         // Auto-play system for automated testing
         autoPlaySystem = AutoPlaySystem()
@@ -109,6 +111,7 @@ final class GameLoop {
             pollutionSystem,
             enemyAISystem,
             combatSystem,
+            entityCleanupSystem,
             autoPlaySystem
         ]
 

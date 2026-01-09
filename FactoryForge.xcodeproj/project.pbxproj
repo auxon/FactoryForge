@@ -125,6 +125,7 @@
 		0D7457F42EFF6B8700C7C473 /* menu.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457F32EFF6B8700C7C473 /* menu.png */; };
 		0D778B2A2F107E6D003BC642 /* trash.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B292F107E6D003BC642 /* trash.png */; };
 		0D778B2C2F1167E0003BC642 /* water_pump.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B2B2F1167E0003BC642 /* water_pump.png */; };
+		0D778B2E2F118392003BC642 /* EntityCleanupSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D778B2D2F118392003BC642 /* EntityCleanupSystem.swift */; };
 		0D841AD62F0F2FE600F499B6 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D841AD52F0F2FE600F499B6 /* wall.png */; };
 		0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
@@ -409,6 +410,7 @@
 		0D7457F32EFF6B8700C7C473 /* menu.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = menu.png; sourceTree = "<group>"; };
 		0D778B292F107E6D003BC642 /* trash.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = trash.png; sourceTree = "<group>"; };
 		0D778B2B2F1167E0003BC642 /* water_pump.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = water_pump.png; sourceTree = "<group>"; };
+		0D778B2D2F118392003BC642 /* EntityCleanupSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntityCleanupSystem.swift; sourceTree = "<group>"; };
 		0D841AD52F0F2FE600F499B6 /* wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wall.png; sourceTree = "<group>"; };
 		0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FactoryForge Storekit Configuration.storekit"; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
@@ -1133,6 +1135,7 @@
 		A0000200035 /* Systems */ = {
 			isa = PBXGroup;
 			children = (
+				0D778B2D2F118392003BC642 /* EntityCleanupSystem.swift */,
 				0D18B5612F0D9219006B70A5 /* AutoPlaySystem.swift */,
 				0D18B5622F0D9219006B70A5 /* AutoPlayTypes.swift */,
 				A1011001000 /* MiningSystem.swift */,
@@ -1509,6 +1512,7 @@
 				A1011004001 /* CraftingSystem.swift in Sources */,
 				A1011005001 /* PowerSystem.swift in Sources */,
 				A1011006001 /* ResearchSystem.swift in Sources */,
+				0D778B2E2F118392003BC642 /* EntityCleanupSystem.swift in Sources */,
 				A1011007001 /* PollutionSystem.swift in Sources */,
 				A1011008001 /* EnemyAISystem.swift in Sources */,
 				A1011009001 /* CombatSystem.swift in Sources */,

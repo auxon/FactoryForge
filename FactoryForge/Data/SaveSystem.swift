@@ -87,9 +87,12 @@ final class SaveSystem {
         // Load world state FIRST (this clears the world, including the player's entity)
         gameLoop.world.deserialize(saveData.worldData)
 
+        // Clean up any trees that were marked for removal in the previous session
+        gameLoop.entityCleanupSystem.performImmediateCleanup()
+
         // Trees are now spawned automatically for forest chunks when loaded
         // No need to spawn initial trees here
-        
+
         // Remove any player entity that might have been deserialized from the world
         // (the player entity is managed separately by the Player class)
         removePlayerEntityFromWorld(gameLoop.world)
@@ -144,7 +147,7 @@ final class SaveSystem {
         
         print("Game loaded from save")
     }
-    
+
     /// Registers all belt entities in the BeltSystem after loading a saved game
     private func registerAllBelts(in gameLoop: GameLoop) {
         var beltCount = 0
