@@ -31,8 +31,6 @@ final class PollutionSystem: System {
     }
     
     func update(deltaTime: Float) {
-        let startTime = CACurrentMediaTime()
-
         // Update pollution entity cache periodically
         let currentTime = Time.shared.totalTime
         if Double(currentTime) - lastCacheUpdate > cacheUpdateInterval {

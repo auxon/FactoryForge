@@ -462,19 +462,15 @@ class GameViewController: UIViewController {
         let craftingMenu = uiSystem?.getCraftingMenu()
         print("GameViewController: Got CraftingMenu instance: \(craftingMenu != nil ? "exists" : "nil")")
         craftingMenu?.onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-            print("GameViewController: onAddLabels callback called with \(labels.count) labels")
             guard let self = self else {
-                print("GameViewController: ERROR - self is nil in onAddLabels callback!")
                 return
             }
-            print("GameViewController: Adding labels to view, view.bounds=\(self.view.bounds)")
             labels.forEach {
                 let originalFrame = $0.frame
                 print("GameViewController: Adding label '\($0.text ?? "")' with frame=\(originalFrame)")
                 self.view.addSubview($0)
                 // Set frame again after adding to view (in case it was reset)
                 $0.frame = originalFrame
-                print("GameViewController: Frame after adding: \($0.frame)")
                 // Bring labels to front so they're above the metal view
                 self.view.bringSubviewToFront($0)
                 // Also ensure they're above the Metal view by inserting at the top
@@ -482,21 +478,15 @@ class GameViewController: UIViewController {
                     self.view.insertSubview($0, aboveSubview: metalView)
                     // Set frame again after inserting (in case it was reset)
                     $0.frame = originalFrame
-                    print("GameViewController: Frame after inserting: \($0.frame)")
-                } else {
-                    print("GameViewController: WARNING - metalView is nil!")
                 }
-                print("GameViewController: Final frame: \($0.frame), superview=\($0.superview != nil ? "exists" : "nil")")
                 // Force layout to ensure frame is applied
                 $0.setNeedsLayout()
                 $0.layoutIfNeeded()
-                print("GameViewController: Frame after layout: \($0.frame)")
             }
         }
         craftingMenu?.onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
         }
-        print("GameViewController: CraftingMenu callback setup complete. onAddLabels = \(craftingMenu?.onAddLabels != nil ? "set" : "nil")")
     }
     
     private func setupLoadingMenu() {
@@ -677,20 +667,16 @@ class GameViewController: UIViewController {
         // Inserter type dialog uses Metal rendering - no view setup needed
 
         // Re-set up crafting menu label callbacks (UI system was recreated)
+        print("GameViewController: Setting up CraftingMenu callbacks in startNewGame")
         uiSystem?.getCraftingMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-            print("GameViewController: onAddLabels callback called with \(labels.count) labels")
             guard let self = self else {
-                print("GameViewController: ERROR - self is nil in onAddLabels callback!")
                 return
             }
-            print("GameViewController: Adding labels to view, view.bounds=\(self.view.bounds)")
             labels.forEach {
                 let originalFrame = $0.frame
-                print("GameViewController: Adding label '\($0.text ?? "")' with frame=\(originalFrame)")
                 self.view.addSubview($0)
                 // Set frame again after adding to view (in case it was reset)
                 $0.frame = originalFrame
-                print("GameViewController: Frame after adding: \($0.frame)")
                 // Bring labels to front so they're above the metal view
                 self.view.bringSubviewToFront($0)
                 // Also ensure they're above the Metal view by inserting at the top
@@ -698,15 +684,10 @@ class GameViewController: UIViewController {
                     self.view.insertSubview($0, aboveSubview: metalView)
                     // Set frame again after inserting (in case it was reset)
                     $0.frame = originalFrame
-                    print("GameViewController: Frame after inserting: \($0.frame)")
-                } else {
-                    print("GameViewController: WARNING - metalView is nil!")
                 }
-                print("GameViewController: Final frame: \($0.frame), superview=\($0.superview != nil ? "exists" : "nil")")
                 // Force layout to ensure frame is applied
                 $0.setNeedsLayout()
                 $0.layoutIfNeeded()
-                print("GameViewController: Frame after layout: \($0.frame)")
             }
         }
         uiSystem?.getCraftingMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in
@@ -824,7 +805,6 @@ class GameViewController: UIViewController {
                 self.view.addSubview($0)
                 // Set frame again after adding to view (in case it was reset)
                 $0.frame = originalFrame
-                print("GameViewController: Frame after adding: \($0.frame)")
                 // Bring labels to front so they're above the metal view
                 self.view.bringSubviewToFront($0)
                 // Also ensure they're above the Metal view by inserting at the top
@@ -832,15 +812,10 @@ class GameViewController: UIViewController {
                     self.view.insertSubview($0, aboveSubview: metalView)
                     // Set frame again after inserting (in case it was reset)
                     $0.frame = originalFrame
-                    print("GameViewController: Frame after inserting: \($0.frame)")
-                } else {
-                    print("GameViewController: WARNING - metalView is nil!")
                 }
-                print("GameViewController: Final frame: \($0.frame), superview=\($0.superview != nil ? "exists" : "nil")")
                 // Force layout to ensure frame is applied
                 $0.setNeedsLayout()
                 $0.layoutIfNeeded()
-                print("GameViewController: Frame after layout: \($0.frame)")
             }
         }
         uiSystem?.getCraftingMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in

@@ -265,6 +265,12 @@ Use **Burner Mining Drills** for automated resource extraction:
 
 ## 🛢️ Oil Processing & Chemical Production
 
+### Water Extraction
+- **Water Pumps**: Extract water from any location (available from start)
+- **Cost**: 5 Iron Plates + 5 Pipes + 2 Electronic Circuits
+- **Power**: 30 kW electricity required
+- **Output**: Water at 1 unit per second (at full power)
+
 ### Oil Extraction
 - **Oil Wells**: Extract crude oil from deposits (requires Oil Processing research)
 - **Cost**: 5 Steel Plates + 10 Iron Gear Wheels + 5 Electronic Circuits + 10 Pipes
@@ -585,8 +591,9 @@ FactoryForge includes detailed guides for specific game mechanics:
 - ✅ Resource mining (manual + automated, including uranium)
 - ✅ Multi-tier crafting and production (stone/steel/electric furnaces, 3 assembler tiers)
 - ✅ Advanced factory automation (underground belts, splitters, mergers, belt bridges)
-- ✅ Oil processing and chemical production
-- ✅ Complete research tree (3 tiers, 20+ technologies)
+- ✅ Complete oil processing (extraction, refining, and cracking)
+- ✅ Full chemical production (plastics, sulfur, sulfuric acid, batteries, explosives)
+- ✅ Research tree (3 tiers, 20+ technologies, some advanced tech locked)
 - ✅ Advanced power systems (steam, solar, accumulators)
 - ✅ Multi-tier combat (gun turrets, laser turrets, piercing ammo)
 - ✅ Comprehensive inventory and logistics systems
@@ -596,6 +603,7 @@ FactoryForge includes detailed guides for specific game mechanics:
 - ✅ Advanced UI with research, crafting, and machine interfaces
 
 **Planned Features:**
+- 🚧 Nuclear power generation
 - 🚧 Rail transport system
 - 🚧 Robot automation (logistic robots, construction robots)
 - 🚧 Nuclear power generation

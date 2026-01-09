@@ -449,6 +449,20 @@ final class BuildingRegistry {
         oilWell.inventorySlots = 1     // Output slot for crude oil
         register(oilWell)
 
+        var waterPump = BuildingDefinition(
+            id: "water-pump",
+            name: "Water Pump",
+            type: .waterPump,
+            maxHealth: 150,
+            cost: [ItemStack(itemId: "iron-plate", count: 5),
+                   ItemStack(itemId: "pipe", count: 5),
+                   ItemStack(itemId: "electronic-circuit", count: 2)]
+        )
+        waterPump.powerConsumption = 30  // kW - less than oil well
+        waterPump.extractionRate = 1.0   // 1 water per second at full power
+        waterPump.inventorySlots = 1     // Output slot for water
+        register(waterPump)
+
         var oilRefinery = BuildingDefinition(
             id: "oil-refinery",
             name: "Oil Refinery",

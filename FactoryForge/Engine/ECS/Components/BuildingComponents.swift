@@ -380,15 +380,19 @@ struct PumpjackComponent: Component {
     var extractionRate: Float
     var oilRemaining: Float
 
+    /// The resource this pumpjack extracts
+    var resourceType: String
+
     /// Extraction progress (0-1)
     var progress: Float
 
     /// Whether the pumpjack is currently active
     var isActive: Bool
 
-    init(extractionRate: Float = 1.0, oilRemaining: Float = 0) {
+    init(extractionRate: Float = 1.0, oilRemaining: Float = 0, resourceType: String = "crude-oil") {
         self.extractionRate = extractionRate
         self.oilRemaining = oilRemaining
+        self.resourceType = resourceType
         self.progress = 0
         self.isActive = true
     }

@@ -631,6 +631,25 @@ final class HUD {
     }
     
     func handleTap(at position: Vector2, screenSize: Vector2) -> Bool {
+        // Check if any UI panels are open - if so, don't handle HUD taps
+        if let gameLoop = gameLoop, let uiSystem = gameLoop.uiSystem {
+            if uiSystem.isAnyPanelCurrentlyOpen {
+                return false // Don't handle HUD taps when panels are open
+            }
+        }
+
+        // Use provided screen size for consistent layout
+        self.screenSize = screenSize
+
+        // Position is already in UIKit coordinates (top-left origin, Y increases downward)
+        // Button positions are also in UIKit coordinates, so no conversion needed
+
+        // When player is dead, don't handle any HUD taps (UIKit labels handle input)
+        if let gameLoop = gameLoop, gameLoop.isPlayerDead {
+            print("HUD: Player is dead, ignoring tap")
+            return false
+        }
+
         // Use provided screen size for consistent layout
         self.screenSize = screenSize
 

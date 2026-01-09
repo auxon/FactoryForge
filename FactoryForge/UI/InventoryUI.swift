@@ -635,7 +635,7 @@ final class InventoryUI: UIPanel_Base {
         var playerInventory = gameLoop.player.inventory
 
         // Remove the item stack from the slot
-        if var itemStack = playerInventory.slots[slotIndex] {
+        if let itemStack = playerInventory.slots[slotIndex] {
             playerInventory.slots[slotIndex] = nil
             gameLoop.player.inventory = playerInventory
 

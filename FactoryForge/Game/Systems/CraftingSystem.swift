@@ -16,8 +16,6 @@ final class CraftingSystem: System {
     }
     
     func update(deltaTime: Float) {
-        let startTime = CACurrentMediaTime()
-
         // Update assemblers
         updateAssemblers(deltaTime: deltaTime)
 

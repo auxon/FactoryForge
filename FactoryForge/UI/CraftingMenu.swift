@@ -20,8 +20,11 @@ final class CraftingMenu: UIPanel_Base {
             center: Vector2(screenSize.x / 2, screenSize.y / 2),
             size: Vector2(screenSize.x, screenSize.y)
         )
-        
+
         super.init(frame: panelFrame)
+
+        // Make background completely opaque black to block ALL underlying UI
+        backgroundColor = Color(r: 0.0, g: 0.0, b: 0.0, a: 1.0)
         self.gameLoop = gameLoop
 
         setupCloseButton()
@@ -206,55 +209,8 @@ final class CraftingMenu: UIPanel_Base {
     }
     
     private func createRecipeLabels(recipe: Recipe, renderer: MetalRenderer) {
-        print("CraftingMenu: createRecipeLabels called for recipe \(recipe.name)")
-        let iconSize: Float = 30 * UIScale
-        let iconSpacing: Float = 40 * UIScale
-        let detailsY = frame.maxY - 100 * UIScale
-        let screenScale = CGFloat(UIScreen.main.scale)
-        print("CraftingMenu: detailsY = \(detailsY), frame.maxY = \(frame.maxY), frame.minY = \(frame.minY), frame.height = \(frame.height)")
-        print("CraftingMenu: screenScale = \(screenScale), detailsY in points = \(CGFloat(detailsY) / screenScale)")
-
-        // Recipe inputs - create labels for counts
-        // Icons are centered at (inputX, detailsY), so pass center position
-        var inputX = frame.minX + 50 * UIScale
-        print("CraftingMenu: Creating labels for \(recipe.inputs.count) inputs")
-        for input in recipe.inputs {
-            // Create label for input count (always show count for clarity)
-            print("CraftingMenu: Creating label for input \(input.itemId) count \(input.count)")
-            let label = createCountLabel(text: "\(input.count)", iconCenterX: inputX, iconCenterY: detailsY, iconSize: iconSize, screenHeight: renderer.screenSize.y)
-            recipeLabels.append(label)
-
-            inputX += iconSpacing
-        }
-
-        // Recipe outputs - create labels for counts
-        // Icons are centered at (outputX, detailsY), so pass center position
-        let outputStartX = inputX + 60 * UIScale
-        var outputX = outputStartX
-        print("CraftingMenu: Creating labels for \(recipe.outputs.count) outputs")
-        for output in recipe.outputs {
-            // Create label for output count (always show count for clarity)
-            print("CraftingMenu: Creating label for output \(output.itemId) count \(output.count)")
-            let label = createCountLabel(text: "\(output.count)", iconCenterX: outputX, iconCenterY: detailsY, iconSize: iconSize, screenHeight: renderer.screenSize.y)
-            recipeLabels.append(label)
-
-            outputX += iconSpacing
-        }
-        print("CraftingMenu: Created \(recipeLabels.count) total labels")
-
-        // Add labels to view
-        if !recipeLabels.isEmpty {
-            print("CraftingMenu: About to call onAddLabels with \(recipeLabels.count) labels")
-            if let callback = onAddLabels {
-                print("CraftingMenu: onAddLabels callback exists, calling it")
-                callback(recipeLabels)
-                print("CraftingMenu: Callback called")
-            } else {
-                print("CraftingMenu: ERROR - onAddLabels is nil!")
-            }
-        } else {
-            print("CraftingMenu: No labels to add (recipeLabels is empty)")
-        }
+        // Don't create any UIKit labels to prevent touch handling conflicts
+        // Recipe information will be displayed in Metal rendering only
     }
 
     private func createCountLabel(text: String, iconCenterX: Float, iconCenterY: Float, iconSize: Float, screenHeight: Float) -> UILabel {
@@ -314,13 +270,11 @@ final class CraftingMenu: UIPanel_Base {
     }
     
     override func handleTap(at position: Vector2) -> Bool {
-        guard isOpen else { return false }
-
-        // Check if the tap is within our frame
-        if !frame.contains(position) {
+        guard isOpen else {
             return false
         }
 
+        // When the crafting menu is open, ALWAYS consume the tap to prevent it from passing through to other UI
         // Check close button first
         if closeButton.handleTap(at: position) {
             return true
@@ -332,7 +286,7 @@ final class CraftingMenu: UIPanel_Base {
             }
         }
 
-        // If the crafting menu is open and tap is within bounds, consume all taps to prevent them from passing through
+        // Consume ALL other taps when menu is open, even if they're outside our frame
         return true
     }
 

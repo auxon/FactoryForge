@@ -478,6 +478,20 @@ final class RecipeRegistry {
 
         // Oil processing buildings
         register(Recipe(
+            id: "water-pump",
+            name: "Water Pump",
+            inputs: [
+                ItemStack(itemId: "iron-plate", count: 5),
+                ItemStack(itemId: "pipe", count: 5),
+                ItemStack(itemId: "electronic-circuit", count: 2)
+            ],
+            outputs: [ItemStack(itemId: "water-pump", count: 1)],
+            craftTime: 5,
+            category: .crafting,
+            order: "w"
+        ))
+
+        register(Recipe(
             id: "oil-well",
             name: "Oil Well",
             inputs: [

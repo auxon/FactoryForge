@@ -120,11 +120,6 @@ final class GameLoop {
 
         // Load registries from JSON
         loadGameData()
-
-        // Spawn trees for loaded chunks (after ALL properties are initialized)
-        print("GameLoop: Spawning trees for initially loaded chunks")
-        spawnTreesForLoadedChunks()
-        print("GameLoop: Finished spawning initial trees")
         
         // Note: Don't load chunks here - they will be loaded when:
         // 1. For saved games: After saveSystem.load() sets the save slot and loads chunks from disk
@@ -146,10 +141,7 @@ final class GameLoop {
     func update() {
         guard isRunning else { return }
 
-        let frameStartTime = CACurrentMediaTime()
-
         Time.shared.update()
-        let timeUpdateEnd = CACurrentMediaTime()
 
         let realDeltaTime = Time.shared.deltaTime
         let gameSpeedFloat = Float(gameSpeed)
@@ -158,15 +150,6 @@ final class GameLoop {
         playTime += Double(realDeltaTime)  // Track real time, not scaled time (no conversion needed)
 
         frameCount += 1
-
-        // Performance profiling (every 5 seconds)
-        if Double(Time.shared.totalTime) - lastProfileTime > profileInterval {
-            let fps = 1.0 / realDeltaTime
-            print(String(format: "Performance: %.1f FPS, %d chunks loaded", fps, chunkManager.allLoadedChunks.count))
-            lastProfileTime = Double(Time.shared.totalTime)
-        }
-
-        let deathCheckStart = CACurrentMediaTime()
 
         // Check for player death
         if !isPlayerDead && player.isDead {
@@ -178,11 +161,9 @@ final class GameLoop {
             return
         }
 
-        let playerUpdateStart = CACurrentMediaTime()
         // Update player
         player.update(deltaTime: deltaTime)
 
-        let chunkUpdateStart = CACurrentMediaTime()
         // Update chunk loading based on player position (only if moved significantly)
         let playerPos = player.position
         let distanceMoved = (playerPos - lastChunkUpdatePosition).lengthSquared
@@ -192,15 +173,8 @@ final class GameLoop {
 
             // Invalidate mining system cache when chunks change
             miningSystem.invalidateResourceCache()
-
-            // Spawn trees for newly loaded forest chunks (only when chunks updated)
-            let treesSpawned = spawnTreesForNewChunks()
-            if treesSpawned > 0 {
-                print("GameLoop: Spawned \(treesSpawned) trees this frame")
-            }
         }
 
-        let systemsUpdateStart = CACurrentMediaTime()
         // Fixed timestep updates for game systems (limit to prevent spiral of death)
         var fixedUpdateCount = 0
         let maxFixedUpdates = 5  // Maximum fixed updates per frame
@@ -211,13 +185,11 @@ final class GameLoop {
             fixedUpdateCount += 1
         }
 
-        let uiUpdateStart = CACurrentMediaTime()
         // Update UI (skip if game is effectively paused to save performance)
         if gameSpeed > 0.01 {
             uiSystem?.update(deltaTime: deltaTime)
         }
 
-        let cameraUpdateStart = CACurrentMediaTime()
         // Update renderer camera to follow player (only if not manually panning and player is alive)
         if !isPlayerDead {
             let shouldFollowPlayer = inputManager?.isDragging == false
@@ -226,25 +198,6 @@ final class GameLoop {
             }
         }
         renderer?.camera.update(deltaTime: deltaTime)
-
-        let endTime = CACurrentMediaTime()
-
-        // Detailed performance profiling (every 60 frames)
-        if frameCount % 60 == 0 {
-            let totalFrameTime = endTime - frameStartTime
-            let timeUpdateTime = timeUpdateEnd - frameStartTime
-            let deathCheckTime = playerUpdateStart - deathCheckStart
-            let playerUpdateTime = chunkUpdateStart - playerUpdateStart
-            let chunkUpdateTime = systemsUpdateStart - chunkUpdateStart
-            let systemsUpdateTime = uiUpdateStart - systemsUpdateStart
-            let uiUpdateTime = cameraUpdateStart - uiUpdateStart
-            let cameraUpdateTime = endTime - cameraUpdateStart
-
-            print(String(format: "Frame Profile (%.1f FPS): Time=%.2fms, TimeUpdate=%.2fms, DeathCheck=%.2fms, Player=%.2fms, Chunk=%.2fms, Systems=%.2fms, UI=%.2fms, Camera=%.2fms",
-                         1.0/realDeltaTime, totalFrameTime*1000,
-                         timeUpdateTime*1000, deathCheckTime*1000, playerUpdateTime*1000,
-                         chunkUpdateTime*1000, systemsUpdateTime*1000, uiUpdateTime*1000, cameraUpdateTime*1000))
-        }
 
         // Call update callback
         onUpdate?()
@@ -872,7 +825,16 @@ final class GameLoop {
             
         case .pumpjack:
             world.add(PumpjackComponent(
-                extractionRate: buildingDef.extractionRate
+                extractionRate: buildingDef.extractionRate,
+                resourceType: "crude-oil"
+            ), to: entity)
+            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
+            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+
+        case .waterPump:
+            world.add(PumpjackComponent(
+                extractionRate: buildingDef.extractionRate,
+                resourceType: "water"
             ), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)

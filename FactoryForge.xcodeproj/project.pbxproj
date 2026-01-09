@@ -124,6 +124,7 @@
 		0D7457F22EFF204D00C7C473 /* stone_brick.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457F02EFF204D00C7C473 /* stone_brick.png */; };
 		0D7457F42EFF6B8700C7C473 /* menu.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7457F32EFF6B8700C7C473 /* menu.png */; };
 		0D778B2A2F107E6D003BC642 /* trash.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B292F107E6D003BC642 /* trash.png */; };
+		0D778B2C2F1167E0003BC642 /* water_pump.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B2B2F1167E0003BC642 /* water_pump.png */; };
 		0D841AD62F0F2FE600F499B6 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D841AD52F0F2FE600F499B6 /* wall.png */; };
 		0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
@@ -407,6 +408,7 @@
 		0D7457F02EFF204D00C7C473 /* stone_brick.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stone_brick.png; sourceTree = "<group>"; };
 		0D7457F32EFF6B8700C7C473 /* menu.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = menu.png; sourceTree = "<group>"; };
 		0D778B292F107E6D003BC642 /* trash.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = trash.png; sourceTree = "<group>"; };
+		0D778B2B2F1167E0003BC642 /* water_pump.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = water_pump.png; sourceTree = "<group>"; };
 		0D841AD52F0F2FE600F499B6 /* wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wall.png; sourceTree = "<group>"; };
 		0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FactoryForge Storekit Configuration.storekit"; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
@@ -604,6 +606,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D778B2B2F1167E0003BC642 /* water_pump.png */,
 				0D778B292F107E6D003BC642 /* trash.png */,
 				0D45A9962F0F5E7A006B346C /* chemical_plant.png */,
 				0D45A9942F0F5E03006B346C /* oil_well.png */,
@@ -1325,6 +1328,7 @@
 				0D18B5502F0B6B2B006B70A5 /* build.png in Resources */,
 				0DE2296C2F001B9F00BD619D /* transport_belt_north_011.png in Resources */,
 				0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */,
+				0D778B2C2F1167E0003BC642 /* water_pump.png in Resources */,
 				0DE2296D2F001B9F00BD619D /* transport_belt_north_016.png in Resources */,
 				0DE2296E2F001B9F00BD619D /* transport_belt_north_008.png in Resources */,
 				0DE2298F2F02154900BD619D /* right_arrow.png in Resources */,

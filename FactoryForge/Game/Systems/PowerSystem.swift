@@ -22,8 +22,6 @@ final class PowerSystem: System {
     }
     
     func update(deltaTime: Float) {
-        let startTime = CACurrentMediaTime()
-
         if networksDirty {
             rebuildNetworks()
             networksDirty = false

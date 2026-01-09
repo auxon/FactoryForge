@@ -28,7 +28,6 @@ final class MiningSystem: System {
     }
     
     func update(deltaTime: Float) {
-        let startTime = CACurrentMediaTime()
         let currentTime = Time.shared.totalTime
 
         // Update resource/tree cache periodically for performance
@@ -178,12 +177,17 @@ final class MiningSystem: System {
             minerModifications.append((entity, updatedMiner))
         }
 
-        // Process pumpjacks (oil wells)
+        // Process pumpjacks (oil wells and water pumps)
         world.forEach(PumpjackComponent.self) { [self] entity, pumpjack in
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
             guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
 
             var updatedPumpjack = pumpjack
+            let tilePos = position.tilePosition
+
+            // Determine what resource this pumpjack extracts and if it requires deposits
+            let resourceItem = pumpjack.resourceType
+            let requiresDeposit = (resourceItem == "crude-oil")  // Only oil requires deposits
 
             // Check power for pumpjacks
             if let power = world.get(PowerConsumerComponent.self, for: entity) {
@@ -201,20 +205,19 @@ final class MiningSystem: System {
                 return
             }
 
-            // Check if pumpjack is on an oil deposit
-            let tilePos = position.tilePosition
-            guard let oilDeposit = chunkManager.getResource(at: tilePos),
-                  oilDeposit.type.outputItem == "crude-oil",
-                  oilDeposit.amount > 0 else {
-                updatedPumpjack.isActive = false
-                pumpjackModifications.append((entity, updatedPumpjack))
-                return
+            // Check resource availability (deposits for oil, always available for water)
+            if requiresDeposit {
+                guard let deposit = chunkManager.getResource(at: tilePos),
+                      deposit.type.outputItem == resourceItem,
+                      deposit.amount > 0 else {
+                    updatedPumpjack.isActive = false
+                    pumpjackModifications.append((entity, updatedPumpjack))
+                    return
+                }
             }
 
-            updatedPumpjack.isActive = true
-
-            // Check if output inventory has space for crude oil
-            guard inventory.canAccept(itemId: "crude-oil") else {
+            // Check if output inventory has space for the resource
+            guard inventory.canAccept(itemId: resourceItem) else {
                 pumpjackModifications.append((entity, updatedPumpjack))
                 return
             }
@@ -235,8 +238,8 @@ final class MiningSystem: System {
             if updatedPumpjack.progress >= 1.0 {
                 updatedPumpjack.progress = 0
 
-                // Extract oil (oil deposits are infinite in Factorio, so we don't reduce the deposit amount)
-                inventory.add(itemId: "crude-oil", count: 1)
+                // Extract resource (deposits are infinite in Factorio, so we don't reduce the deposit amount)
+                inventory.add(itemId: resourceItem, count: 1)
                 inventoryModifications.append((entity, inventory))
             }
 

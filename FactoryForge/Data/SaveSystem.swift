@@ -87,26 +87,6 @@ final class SaveSystem {
         // Load world state FIRST (this clears the world, including the player's entity)
         gameLoop.world.deserialize(saveData.worldData)
 
-        // Make all trees harvestable (reset wood yield for loaded trees)
-        var treeCount = 0
-        var treesToUpdate: [(Entity, TreeComponent)] = []
-
-        // First, collect all trees that need updating
-        gameLoop.world.forEach(TreeComponent.self) { entity, tree in
-            var updatedTree = tree
-            updatedTree.woodYield = 800  // Reset to full harvestable amount
-            updatedTree.markedForRemoval = false  // Ensure not marked for removal
-            treesToUpdate.append((entity, updatedTree))
-        }
-
-        // Then, update them after iteration is complete
-        for (entity, updatedTree) in treesToUpdate {
-            gameLoop.world.add(updatedTree, to: entity)
-            treeCount += 1
-            print("SaveSystem: Reset tree entity \(entity) to harvestable (yield: 800)")
-        }
-        print("SaveSystem: Made \(treeCount) trees harvestable")
-
         // Trees are now spawned automatically for forest chunks when loaded
         // No need to spawn initial trees here
         

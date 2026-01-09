@@ -91,6 +91,7 @@ enum BuildingType: String, Codable, CaseIterable {
     case chest
     case pipe
     case pumpjack
+    case waterPump
     case oilRefinery
     case chemicalPlant
 
@@ -111,6 +112,7 @@ enum BuildingType: String, Codable, CaseIterable {
         case .chest: return "Chest"
         case .pipe: return "Pipe"
         case .pumpjack: return "Pumpjack"
+        case .waterPump: return "Water Pump"
         case .oilRefinery: return "Oil Refinery"
         case .chemicalPlant: return "Chemical Plant"
         }

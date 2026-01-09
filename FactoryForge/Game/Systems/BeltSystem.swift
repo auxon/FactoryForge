@@ -297,8 +297,6 @@ final class BeltSystem: System {
     // MARK: - Update
     
     func update(deltaTime: Float) {
-        let startTime = CACurrentMediaTime()
-
         if needsResort {
             topologicalSort()
         }

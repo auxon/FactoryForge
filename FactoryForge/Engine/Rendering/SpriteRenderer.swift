@@ -244,14 +244,6 @@ final class SpriteRenderer {
         encoder.setFragmentSamplerState(textureAtlas.sampler, index: 0)
 
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
-
-        // Debug performance info (only in debug builds and infrequently)
-        #if DEBUG
-        let totalSprites = spritesCollected + spritesCulledDistance + spritesCulledSize
-        if totalSprites > 50 && frameCount % 60 == 0 {  // Only log every 60 frames when there are many sprites
-            print("SpriteRenderer: Rendered \(spritesToRender) sprites (\(spritesCollected) collected, \(spritesCulledDistance) culled by distance, \(spritesCulledSize) culled by size)")
-        }
-        #endif
     }
     
     private func renderBelts(world: World, visibleRect: Rect, camera: Camera2D) {

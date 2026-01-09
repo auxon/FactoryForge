@@ -29,6 +29,22 @@ final class UISystem {
     // Current state
     private(set) var activePanel: UIPanel?
     private(set) var isAnyPanelOpen: Bool = false
+
+    /// Public property to check if any UI panels are currently open
+    var isAnyPanelCurrentlyOpen: Bool {
+        craftingMenu.isOpen ||
+        buildMenu.isOpen ||
+        researchUI.isOpen ||
+        inventoryUI.isOpen ||
+        machineUI.isOpen ||
+        (entitySelectionDialog?.isOpen ?? false) ||
+        (inserterConnectionDialog?.isOpen ?? false) ||
+        loadingMenu.isOpen ||
+        autoplayMenu.isOpen ||
+        helpMenu.isOpen ||
+        (documentViewer?.isOpen ?? false) ||
+        (activePanel != nil)
+    }
     
     // Touch handling
     private var touchedElement: UIElement?
@@ -133,6 +149,10 @@ final class UISystem {
         }
         
         hud.onCraftingPressed = { [weak self] in
+            // Check if any panels are currently open - if so, ignore HUD button presses
+            if let self = self, self.isAnyPanelCurrentlyOpen {
+                return
+            }
             // Close machine UI if open when clicking any HUD button
             if self?.activePanel == .machine {
                 self?.closeAllPanels()
@@ -466,7 +486,6 @@ final class UISystem {
             return
         }
         
-        // Render HUD (always visible)
         hud.render(renderer: renderer)
         
         // Render active panel
@@ -622,142 +641,89 @@ final class UISystem {
     // MARK: - Touch Handling
     
     func handleTap(at screenPos: Vector2) -> Bool {
+        // If ANY UI panel is open, consume the tap completely - no HUD or game world interaction allowed
+        let anyPanelOpen = craftingMenu.isOpen ||
+                          buildMenu.isOpen ||
+                          researchUI.isOpen ||
+                          inventoryUI.isOpen ||
+                          machineUI.isOpen ||
+                          (entitySelectionDialog?.isOpen ?? false) ||
+                          (inserterConnectionDialog?.isOpen ?? false) ||
+                          loadingMenu.isOpen ||
+                          autoplayMenu.isOpen ||
+                          helpMenu.isOpen ||
+                          (documentViewer?.isOpen ?? false) ||
+                          (activePanel != nil)
 
-        // If these menus are active, handle taps only for them
-        if let panel = activePanel, panel == .loadingMenu || panel == .helpMenu || panel == .documentViewer {
-            print("UISystem: Special menu active, handling only for that menu")
-            if panel == .loadingMenu {
-                return loadingMenu.handleTap(at: screenPos)
-            } else if panel == .helpMenu {
-                return helpMenu.handleTap(at: screenPos)
-            } else if panel == .documentViewer {
-                return documentViewer?.handleTap(at: screenPos) ?? false
+        if anyPanelOpen {
+            // Allow panels to handle their own interactions, but consume the tap regardless
+            if let panel = activePanel {
+                switch panel {
+                case .loadingMenu:
+                    loadingMenu.handleTap(at: screenPos)
+                case .autoplayMenu:
+                    autoplayMenu.handleTap(at: screenPos)
+                case .helpMenu:
+                    helpMenu.handleTap(at: screenPos)
+                case .documentViewer:
+                    documentViewer?.handleTap(at: screenPos)
+                case .inventory:
+                    inventoryUI.handleTap(at: screenPos)
+                case .crafting:
+                    craftingMenu.handleTap(at: screenPos)
+                case .build:
+                    buildMenu.handleTap(at: screenPos)
+                case .research:
+                    researchUI.handleTap(at: screenPos)
+                case .machine:
+                    machineUI.handleTap(at: screenPos)
+                case .entitySelection:
+                    entitySelectionDialog?.handleTap(at: screenPos)
+                case .inserterConnection:
+                    inserterConnectionDialog?.handleTap(at: screenPos)
+                }
             }
-        }
-        
-        // Get current screen size from renderer
-        let currentScreenSize = renderer?.screenSize ?? Vector2(800, 600)
 
-        // Check active panel first (so panels can override HUD buttons)
-        if let panel = activePanel {
-            switch panel {
-            case .loadingMenu:
-                return loadingMenu.handleTap(at: screenPos)
-            case .autoplayMenu:
-                return autoplayMenu.handleTap(at: screenPos)
-            case .helpMenu:
-                return helpMenu.handleTap(at: screenPos)
-            case .documentViewer:
-                return documentViewer?.handleTap(at: screenPos) ?? false
-            case .inventory:
-                if inventoryUI.handleTap(at: screenPos) { return true }
-            case .crafting:
-                if craftingMenu.handleTap(at: screenPos) { return true }
-            case .build:
-                if buildMenu.handleTap(at: screenPos) { return true }
-            case .research:
-                if researchUI.handleTap(at: screenPos) { return true }
-            case .machine:
-                if machineUI.handleTap(at: screenPos) { return true }
-            case .entitySelection:
-                if entitySelectionDialog?.handleTap(at: screenPos) ?? false { return true }
-            case .inserterConnection:
-                if inserterConnectionDialog?.handleTap(at: screenPos) ?? false { return true }
-            }
-
-            // If we reach here, the panel's handleTap returned false,
-            // meaning the tap was not handled by the panel.
-            // Close the panel regardless of tap location.
-            closeAllPanels()
+            // Always consume the tap when panels are open
             return true
         }
 
-        // Check HUD (only when no panel is active)
+        // No panels open - allow HUD and game world interaction
+        let currentScreenSize = renderer?.screenSize ?? Vector2(800, 600)
         if hud.handleTap(at: screenPos, screenSize: currentScreenSize) {
             return true
         }
 
-        // Check fallback panels
-        if let panel = activePanel {
-            print("UISystem: Active panel is \(panel), checking for tap handling")
-            switch panel {
-            case .loadingMenu:
-                let result = loadingMenu.handleTap(at: screenPos)
-                print("UISystem: loadingMenu.handleTap returned \(result)")
-                return result
-            case .autoplayMenu:
-                let result = autoplayMenu.handleTap(at: screenPos)
-                print("UISystem: autoplayMenu.handleTap returned \(result)")
-                return result
-            case .helpMenu:
-                let result = helpMenu.handleTap(at: screenPos)
-                print("UISystem: helpMenu.handleTap returned \(result)")
-                return result
-            case .documentViewer:
-                let result = documentViewer?.handleTap(at: screenPos) ?? false
-                print("UISystem: documentViewer.handleTap returned \(result)")
-                return result
-            case .inventory:
-                let result = inventoryUI.handleTap(at: screenPos)
-                print("UISystem: inventoryUI.handleTap returned \(result)")
-                if result { return true }
-            case .crafting:
-                print("UISystem: Calling craftingMenu.handleTap")
-                let result = craftingMenu.handleTap(at: screenPos)
-                print("UISystem: craftingMenu.handleTap returned \(result)")
-                if result { return true }
-            case .build:
-                let result = buildMenu.handleTap(at: screenPos)
-                print("UISystem: buildMenu.handleTap returned \(result)")
-                if result { return true }
-            case .research:
-                let result = researchUI.handleTap(at: screenPos)
-                print("UISystem: researchUI.handleTap returned \(result)")
-                if result { return true }
-            case .machine:
-                let result = machineUI.handleTap(at: screenPos)
-                print("UISystem: machineUI.handleTap returned \(result)")
-                if result { return true }
-            case .entitySelection:
-                let result = entitySelectionDialog?.handleTap(at: screenPos) ?? false
-                print("UISystem: entitySelectionDialog.handleTap returned \(result)")
-                if result { return true }
-            case .inserterConnection:
-                let result = inserterConnectionDialog?.handleTap(at: screenPos) ?? false
-                print("UISystem: inserterConnectionDialog.handleTap returned \(result)")
-                if result { return true }
-            }
-
-            // If we reach here, the panel's handleTap returned false,
-            // meaning the tap was not handled by the panel.
-            // Close the panel regardless of tap location.
-            closeAllPanels()
-            return true
-        }
-
-        // If no active panel handled the tap, check if any other panels that might be open can handle it
-        // This handles cases where panels have isOpen = true but activePanel is nil
-        if craftingMenu.isOpen && craftingMenu.handleTap(at: screenPos) { return true }
-        if machineUI.isOpen && machineUI.handleTap(at: screenPos) { return true }
-        if researchUI.isOpen && researchUI.handleTap(at: screenPos) { return true }
-        if buildMenu.isOpen && buildMenu.handleTap(at: screenPos) { return true }
-        if inventoryUI.isOpen && inventoryUI.handleTap(at: screenPos) { return true }
-
         return false
     }
-
     func getTooltip(at screenPos: Vector2) -> String? {
         // If loading menu is active, check tooltips only for it
         if let panel = activePanel, panel == .loadingMenu {
             return nil // Loading menu doesn't need tooltips
         }
 
+        // Check if any panels are open - if so, don't show HUD tooltips
+        let anyPanelOpen = craftingMenu.isOpen ||
+                          buildMenu.isOpen ||
+                          researchUI.isOpen ||
+                          inventoryUI.isOpen ||
+                          machineUI.isOpen ||
+                          (entitySelectionDialog?.isOpen ?? false) ||
+                          (inserterConnectionDialog?.isOpen ?? false) ||
+                          loadingMenu.isOpen ||
+                          autoplayMenu.isOpen ||
+                          helpMenu.isOpen ||
+                          (documentViewer?.isOpen ?? false) ||
+                          (activePanel != nil)
+
         // Get current screen size from renderer
         let currentScreenSize = renderer?.screenSize ?? Vector2(800, 600)
 
-        // Check HUD first
-        if let tooltip = hud.getButtonName(at: screenPos, screenSize: currentScreenSize) {
-            return tooltip
+        // Check HUD first (only if no panels are open)
+        if !anyPanelOpen {
+            if let tooltip = hud.getButtonName(at: screenPos, screenSize: currentScreenSize) {
+                return tooltip
+            }
         }
 
         // Check active panel

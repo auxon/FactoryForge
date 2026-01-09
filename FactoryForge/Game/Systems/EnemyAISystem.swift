@@ -92,7 +92,6 @@ final class EnemyAISystem: System {
     }
     
     func update(deltaTime: Float) {
-        let startTime = CACurrentMediaTime()
         let currentTime = Time.shared.totalTime
 
         // Register any existing enemies that don't have Biter objects
