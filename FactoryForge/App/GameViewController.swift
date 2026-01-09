@@ -173,7 +173,7 @@ class GameViewController: UIViewController {
     func updateSelectedEntityTooltip(entity: Entity?, text: String?) {
         if let entity = entity, let text = text {
             // Set persistent tooltip for selected entity
-            showTooltip(text, entity: entity, persistent: true)
+            showTooltip(text, entity: entity, persistent: false)
         } else {
             // Clear persistent tooltip
             selectedEntityTooltip = ("", nil, false)
@@ -184,7 +184,7 @@ class GameViewController: UIViewController {
     /// Show the persistent tooltip for the selected entity (called when temporary tooltip expires)
     private func showPersistentTooltipIfAvailable() {
         if selectedEntityTooltip.persistent && !selectedEntityTooltip.text.isEmpty {
-            showTooltip(selectedEntityTooltip.text, entity: selectedEntityTooltip.entity, persistent: true)
+            showTooltip(selectedEntityTooltip.text, entity: selectedEntityTooltip.entity, persistent: false)
         }
     }
     

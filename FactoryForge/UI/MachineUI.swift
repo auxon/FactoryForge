@@ -59,7 +59,7 @@ final class MachineUI: UIPanel_Base {
 
         // Input slots (left side)
         for i in 0..<4 {
-            let x = frame.center.x - 150 * UIScale - slotSize/2
+            let x = frame.center.x - 200 * UIScale - slotSize/2
             let y = frame.center.y - 80 * UIScale + Float(i) * (slotSize + slotSpacing)
 
             let slotFrame = Rect(center: Vector2(x, y), size: Vector2(slotSize, slotSize))
@@ -72,13 +72,13 @@ final class MachineUI: UIPanel_Base {
             label.font = UIFont.systemFont(ofSize: 12)
             label.textColor = .white
             label.textAlignment = .center
-            label.frame = CGRect(x: CGFloat(x - 10), y: CGFloat(y + slotSize/2 + 2), width: 20, height: 12)
+            label.frame = CGRect(x: CGFloat(x - slotSize/2 - 25), y: CGFloat(y + slotSize/2 + 2), width: 20, height: 12)
             inputCountLabels.append(label)
         }
 
         // Output slots (right side)
         for i in 0..<4 {
-            let x = frame.center.x + 150 * UIScale + slotSize/2
+            let x = frame.center.x + 200 * UIScale + slotSize/2
             let y = frame.center.y - 80 * UIScale + Float(i) * (slotSize + slotSpacing)
 
             let slotFrame = Rect(center: Vector2(x, y), size: Vector2(slotSize, slotSize))
@@ -91,7 +91,7 @@ final class MachineUI: UIPanel_Base {
             label.font = UIFont.systemFont(ofSize: 12)
             label.textColor = .white
             label.textAlignment = .center
-            label.frame = CGRect(x: CGFloat(x - 10), y: CGFloat(y + slotSize/2 + 2), width: 20, height: 12)
+            label.frame = CGRect(x: CGFloat(x - slotSize/2 - 25), y: CGFloat(y + slotSize/2 + 2), width: 20, height: 12)
             outputCountLabels.append(label)
         }
     }
@@ -172,7 +172,7 @@ final class MachineUI: UIPanel_Base {
         let buttonSize: Float = 40 * UIScale
         let buttonSpacing: Float = 5 * UIScale
         let buttonsPerRow = 8  // Increased from 5 to fit more buttons with wider panel
-        let startX = frame.center.x - Float(buttonsPerRow) * (buttonSize + buttonSpacing) / 2
+        let startX = frame.center.x - (Float(buttonsPerRow - 1) * (buttonSize + buttonSpacing) + buttonSize) / 2
         // Position recipe buttons immediately below the progress bar (status bar area)
         // Progress bar is at frame.center.y - 30 * UIScale, height is 20 * UIScale
         // So progress bar bottom is at frame.center.y - 20 * UIScale

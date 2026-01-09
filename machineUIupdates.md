@@ -48,10 +48,10 @@ The launch button dynamically changes based on rocket silo conditions:
 - **Error State**: If silo components are missing or invalid
 
 ### UI Layout
-- Button positioned below the main machine interface
-- Centered horizontally with the panel
-- 200x50 pixel dimensions with rounded corners
-- Uses system green color scheme for positive actions
+- **Input/Output Slots**: Positioned at ±200 units from center (increased from ±150) to provide more space for recipe buttons
+- **Count Labels**: Repositioned relative to slot locations for proper alignment
+- **Recipe Buttons**: Properly centered horizontally using corrected spacing calculation: `startX = center - ((buttonsPerRow - 1) × (buttonSize + spacing) + buttonSize) / 2`
+- **Rocket Launch Button**: Positioned below the main machine interface, centered horizontally with 200x50 pixel dimensions using system green color scheme
 
 ### Callback Integration
 The rocket launch functionality integrates with the existing callback system:
@@ -84,6 +84,8 @@ The MachineUI refactoring introduced several compilation errors that were subseq
 6. **Invalid Property Access**: Removed non-existent `isEnabled` and `slotIndex` properties
 7. **Missing Render Method**: Added comprehensive render method for all UI elements
 8. **Missing Tap Handling**: Added handleTap method for interactive elements
+9. **Layout Overlap**: Moved input slots further left (-200) and output slots further right (+200) to prevent overlap with recipe buttons
+10. **Button Centering**: Fixed recipe button centering formula to properly account for spacing (no spacing after last button)
 
 ### Architecture Changes:
 - **UI Element Management**: Elements are stored in arrays and rendered directly in the panel's render method
