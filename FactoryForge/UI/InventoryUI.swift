@@ -343,6 +343,8 @@ final class InventoryUI: UIPanel_Base {
         closeButton = CloseButton(frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)))
         closeButton.onTap = { [weak self] in
             self?.close()
+            // Also notify UISystem to update panel state
+            self?.gameLoop?.uiSystem?.closeAllPanels()
         }
     }
 

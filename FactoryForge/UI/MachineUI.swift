@@ -26,6 +26,7 @@ final class MachineUI: UIPanel_Base {
     var onOpenInventoryForMachine: ((Entity, Int) -> Void)?
     var onOpenResearchMenu: (() -> Void)?
     var onLaunchRocket: ((Entity) -> Void)?
+    var onClosePanel: (() -> Void)?
 
     // Helper to check if current machine is a lab
     private var isLab: Bool {
@@ -183,7 +184,7 @@ final class MachineUI: UIPanel_Base {
             let row = index / buttonsPerRow
             let col = index % buttonsPerRow
 
-            let x = startX + Float(col) * (buttonSize + buttonSpacing)
+            let x = startX + Float(col) * (buttonSize + buttonSpacing) + buttonSize 
             let y = startY + Float(row) * (buttonSize + buttonSpacing)
 
             let buttonFrame = Rect(center: Vector2(x, y), size: Vector2(buttonSize, buttonSize))
@@ -383,6 +384,8 @@ final class MachineUI: UIPanel_Base {
             }
         }
 
-        return super.handleTap(at: position)
+        // If tap didn't hit any UI elements, close the panel
+        onClosePanel?()
+        return true // Consume the tap to prevent other interactions
     }
 }

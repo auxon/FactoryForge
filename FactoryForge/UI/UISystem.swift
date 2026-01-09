@@ -235,6 +235,11 @@ final class UISystem {
             }
         }
 
+        // Machine UI callback for closing when tapped outside
+        machineUI.onClosePanel = { [weak self] in
+            self?.closeAllPanels()
+        }
+
         // Quick bar slot callback
     }
 
@@ -668,11 +673,10 @@ final class UISystem {
                           loadingMenu.isOpen ||
                           autoplayMenu.isOpen ||
                           helpMenu.isOpen ||
-                          (documentViewer?.isOpen ?? false) ||
-                          (activePanel != nil)
+                          (documentViewer?.isOpen ?? false)
 
         if anyPanelOpen {
-            // Allow panels to handle their own interactions, but consume the tap regardless
+            // Allow panels to handle their own interactions
             if let panel = activePanel {
                 switch panel {
                 case .loadingMenu:
@@ -700,8 +704,24 @@ final class UISystem {
                 }
             }
 
-            // Always consume the tap when panels are open
-            return true
+            // Check if panels are still open after handling (in case a panel closed itself)
+            let stillAnyPanelOpen = craftingMenu.isOpen ||
+                                   buildMenu.isOpen ||
+                                   researchUI.isOpen ||
+                                   inventoryUI.isOpen ||
+                                   machineUI.isOpen ||
+                                   (entitySelectionDialog?.isOpen ?? false) ||
+                                   (inserterConnectionDialog?.isOpen ?? false) ||
+                                   loadingMenu.isOpen ||
+                                   autoplayMenu.isOpen ||
+                                   helpMenu.isOpen ||
+                                   (documentViewer?.isOpen ?? false)
+
+            if stillAnyPanelOpen {
+                // Consume the tap if panels are still open
+                return true
+            }
+            // Panels were closed during handling, proceed to HUD handling
         }
 
         // No panels open - allow HUD and game world interaction
@@ -834,9 +854,6 @@ class EntitySelectionDialog {
     
     var isOpen: Bool = false
     
-    // Double-tap tracking
-    private var lastTapTime: [Entity: TimeInterval] = [:]
-    private let doubleTapInterval: TimeInterval = 0.3  // 300ms for double-tap detection
     
     init(screenSize: Vector2, gameLoop: GameLoop?, renderer: MetalRenderer?) {
         self.screenSize = screenSize
@@ -915,30 +932,8 @@ class EntitySelectionDialog {
             let entityGeneration = entity.generation
             button.onTap = { [weak self] in
                 guard let self = self else { return }
-                // Verify the captured entity is still the same (in case it changed)
-                // Use the captured entity directly since it's a struct value type
-                print("EntitySelectionDialog: Entity button tapped for entity \(capturedEntity) (id: \(entityId), generation: \(entityGeneration))")
-                
-                // Check for double-tap
-                let currentTime = Date().timeIntervalSince1970
-                if let lastTime = self.lastTapTime[capturedEntity],
-                   currentTime - lastTime < self.doubleTapInterval {
-                    // Double-tap detected
-                    print("EntitySelectionDialog: Double-tap detected for entity \(capturedEntity)")
-                    self.lastTapTime.removeValue(forKey: capturedEntity)
-                    self.onEntityDoubleTapped?(capturedEntity)
-                } else {
-                    // Single tap
-                    self.lastTapTime[capturedEntity] = currentTime
-                    
-                    // Clear the tap time after the double-tap window expires
-                    DispatchQueue.main.asyncAfter(deadline: .now() + self.doubleTapInterval) {
-                        if self.lastTapTime[capturedEntity] == currentTime {
-                            self.lastTapTime.removeValue(forKey: capturedEntity)
-                            self.onEntitySelected?(capturedEntity)
-                        }
-                    }
-                }
+                // Call the selection callback immediately
+                self.onEntitySelected?(capturedEntity)
             }
             
             entityButtons.append(button)
@@ -1017,6 +1012,7 @@ class EntitySelectionDialog {
         }
         
         // Tap outside dialog - close it
+        onCancel?()
         return true
     }
     

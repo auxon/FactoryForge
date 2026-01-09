@@ -54,10 +54,12 @@ The launch button dynamically changes based on rocket silo conditions:
 - **Rocket Launch Button**: Positioned below the main machine interface, centered horizontally with 200x50 pixel dimensions using system green color scheme
 
 ### Callback Integration
-The rocket launch functionality integrates with the existing callback system:
-- `onLaunchRocket` callback triggers the actual launch logic in `RocketSystem`
+The machine UI integrates with multiple callback systems:
+- `onLaunchRocket` callback triggers rocket launch logic in `RocketSystem`
+- `onClosePanel` callback allows closing the panel by tapping anywhere in empty space (inside or outside panel bounds)
+- `onOpenInventoryForMachine` callback handles inventory slot interactions
 - Button state updates after launch attempts
-- UI closes automatically after successful launch (handled in `UISystem`)
+- UI closes automatically after successful launch or when tapping in non-interactive areas
 
 ## Files Modified
 - `FactoryForge/UI/MachineUI.swift` - Major refactoring and rocket silo support
@@ -86,6 +88,11 @@ The MachineUI refactoring introduced several compilation errors that were subseq
 8. **Missing Tap Handling**: Added handleTap method for interactive elements
 9. **Layout Overlap**: Moved input slots further left (-200) and output slots further right (+200) to prevent overlap with recipe buttons
 10. **Button Centering**: Fixed recipe button centering formula to properly account for spacing (no spacing after last button)
+11. **Panel Closing**: Enhanced tap handling to close machine UI when tapping in empty space (anywhere not on interactive elements)
+12. **Tap Handling**: Fixed issue where taps were not detected after closing MachineUI by allowing taps to proceed to HUD when panels close themselves during tap handling
+13. **EntitySelectionDialog**: Fixed tap consumption issues by making entity selection synchronous and ensuring taps outside dialog properly close it
+14. **HUD Tap Handling**: Removed redundant panel state check that was preventing HUD taps after closing panels
+15. **Panel State Management**: Fixed activePanel state not being cleared when panels close themselves via close buttons
 
 ### Architecture Changes:
 - **UI Element Management**: Elements are stored in arrays and rendered directly in the panel's render method
