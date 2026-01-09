@@ -28,6 +28,9 @@ final class EnemyAISystem: System {
     /// Active biter objects for animation management
     private var activeBiters: [Entity: Biter] = [:]
 
+    /// Global enemy count limit to prevent overwhelming spawns
+    private let maxGlobalEnemies = 50
+
     init(world: World, chunkManager: ChunkManager, player: Player) {
         self.world = world
         self.chunkManager = chunkManager
@@ -161,7 +164,7 @@ final class EnemyAISystem: System {
         world.add(HealthComponent(maxHealth: 350), to: spawner)
         
         // Create spawner with all currently available enemy types
-        var spawnerComp = SpawnerComponent(maxEnemies: 10, spawnCooldown: 10)
+        var spawnerComp = SpawnerComponent(maxEnemies: 5, spawnCooldown: 20)
         spawnerComp.enemyTypes = getAvailableEnemyTypes()
         world.add(spawnerComp, to: spawner)
         
@@ -221,6 +224,13 @@ final class EnemyAISystem: System {
     }
 
     private func spawnEnemy(from spawnerEntity: Entity, spawner: inout SpawnerComponent, position: PositionComponent) {
+        // Check global enemy limit
+        let currentEnemyCount = world.query(EnemyComponent.self).count
+        guard currentEnemyCount < maxGlobalEnemies else {
+            // print("EnemyAISystem: Global enemy limit reached (\(currentEnemyCount)/\(maxGlobalEnemies)), skipping spawn")
+            return
+        }
+
         // print("EnemyAISystem: Spawning enemy from spawner at position \(position.worldPosition)")
 
         // Select enemy type based on evolution
@@ -338,11 +348,11 @@ final class EnemyAISystem: System {
 
             case EnemyState.wandering:
                 // Random movement - increased frequency for more active behavior
-                if Float.random(in: 0...1) < 0.1 {  // 10% chance per frame to change direction
+                if Float.random(in: 0...1) < 0.3 {  // 30% chance per frame to change direction
                     velocity.velocity = Vector2(
                         Float.random(in: -1...1),
                         Float.random(in: -1...1)
-                    ).normalized * enemy.speed * 0.5  // Slightly faster wandering
+                    ).normalized * enemy.speed * 0.7  // More active wandering
                 }
                 velocityModifications.append((entity, velocity))  // Collect for later
 
@@ -352,7 +362,7 @@ final class EnemyAISystem: System {
                 }
 
                 // While wandering, frequently check for targets
-                if Float.random(in: 0...1) < 0.2 {  // 20% chance per frame to check for targets
+                if Float.random(in: 0...1) < 0.4 {  // 40% chance per frame to check for targets
                     if let target = findTarget(for: entity, position: position, enemy: enemy) {
                         enemy.targetEntity = target
                         enemy.state = EnemyState.attacking
@@ -638,9 +648,16 @@ final class EnemyAISystem: System {
     
     private func triggerAttackWave(from origin: Vector2) {
         guard (player?.position) != nil else { return }
-        
-        // Determine wave size based on pollution and evolution
-        let waveSize = Int(5 + evolutionFactor * 15)
+
+        // Check global enemy limit
+        let currentEnemyCount = world.query(EnemyComponent.self).count
+        guard currentEnemyCount < maxGlobalEnemies else {
+            // print("EnemyAISystem: Global enemy limit reached (\(currentEnemyCount)/\(maxGlobalEnemies)), skipping attack wave")
+            return
+        }
+
+        // Determine wave size based on pollution and evolution (smaller waves)
+        let waveSize = Int(3 + evolutionFactor * 5)
         
         for _ in 0..<waveSize {
             let offset = Vector2(

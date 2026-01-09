@@ -204,8 +204,8 @@ final class WorldGenerator {
         // Increased base chance from 0.001 to 0.015 (15x more common)
         let nestChance = 0.015 * biome.nestModifier * min(distanceFromSpawn / 100, 3.0)
         
-        for y in stride(from: 0, to: Chunk.size, by: 8) {
-            for x in stride(from: 0, to: Chunk.size, by: 8) {
+        for y in stride(from: 0, to: Chunk.size, by: 16) {
+            for x in stride(from: 0, to: Chunk.size, by: 16) {
                 if rng.nextFloat() < nestChance {
                     // Clear area for nest
                     for dy in -2...2 {
