@@ -660,27 +660,27 @@ final class UISystem {
             if let panel = activePanel {
                 switch panel {
                 case .loadingMenu:
-                    loadingMenu.handleTap(at: screenPos)
+                    _ = loadingMenu.handleTap(at: screenPos)
                 case .autoplayMenu:
-                    autoplayMenu.handleTap(at: screenPos)
+                    _ = autoplayMenu.handleTap(at: screenPos)
                 case .helpMenu:
-                    helpMenu.handleTap(at: screenPos)
+                    _ = helpMenu.handleTap(at: screenPos)
                 case .documentViewer:
-                    documentViewer?.handleTap(at: screenPos)
+                    _ = documentViewer?.handleTap(at: screenPos)
                 case .inventory:
-                    inventoryUI.handleTap(at: screenPos)
+                    _ = inventoryUI.handleTap(at: screenPos)
                 case .crafting:
-                    craftingMenu.handleTap(at: screenPos)
+                    _ = craftingMenu.handleTap(at: screenPos)
                 case .build:
-                    buildMenu.handleTap(at: screenPos)
+                    _ = buildMenu.handleTap(at: screenPos)
                 case .research:
-                    researchUI.handleTap(at: screenPos)
+                    _ = researchUI.handleTap(at: screenPos)
                 case .machine:
-                    machineUI.handleTap(at: screenPos)
+                    _ = machineUI.handleTap(at: screenPos)
                 case .entitySelection:
-                    entitySelectionDialog?.handleTap(at: screenPos)
+                    _ = entitySelectionDialog?.handleTap(at: screenPos)
                 case .inserterConnection:
-                    inserterConnectionDialog?.handleTap(at: screenPos)
+                    _ = inserterConnectionDialog?.handleTap(at: screenPos)
                 }
             }
 
