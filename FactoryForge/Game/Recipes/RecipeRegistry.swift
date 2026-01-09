@@ -148,7 +148,21 @@ final class RecipeRegistry {
             category: .crafting,
             order: "d"
         ))
-        
+
+        register(Recipe(
+            id: "processing-unit",
+            name: "Processing Unit",
+            inputs: [
+                ItemStack(itemId: "advanced-circuit", count: 2),
+                ItemStack(itemId: "electronic-circuit", count: 20),
+                ItemStack(itemId: "sulfuric-acid", count: 5)
+            ],
+            outputs: [ItemStack(itemId: "processing-unit", count: 1)],
+            craftTime: 10,
+            category: .crafting,
+            order: "e"
+        ))
+
         // Science packs
         register(Recipe(
             id: "automation-science-pack",
@@ -674,7 +688,139 @@ final class RecipeRegistry {
             order: "j"
         ))
 
+        // Advanced machinery
+        register(Recipe(
+            id: "assembling-machine-2",
+            name: "Assembling Machine 2",
+            inputs: [
+                ItemStack(itemId: "assembling-machine-1", count: 1),
+                ItemStack(itemId: "electronic-circuit", count: 3),
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "steel-plate", count: 2)
+            ],
+            outputs: [ItemStack(itemId: "assembling-machine-2", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "o"
+        ))
+
+        register(Recipe(
+            id: "assembling-machine-3",
+            name: "Assembling Machine 3",
+            inputs: [
+                ItemStack(itemId: "assembling-machine-2", count: 2),
+                ItemStack(itemId: "advanced-circuit", count: 2),
+                ItemStack(itemId: "processing-unit", count: 2)
+            ],
+            outputs: [ItemStack(itemId: "assembling-machine-3", count: 1)],
+            craftTime: 1.5,
+            category: .crafting,
+            order: "p"
+        ))
+
+        register(Recipe(
+            id: "fast-inserter",
+            name: "Fast Inserter",
+            inputs: [
+                ItemStack(itemId: "inserter", count: 1),
+                ItemStack(itemId: "electronic-circuit", count: 2),
+                ItemStack(itemId: "iron-plate", count: 2)
+            ],
+            outputs: [ItemStack(itemId: "fast-inserter", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "i"
+        ))
+
+        register(Recipe(
+            id: "long-handed-inserter",
+            name: "Long Handed Inserter",
+            inputs: [
+                ItemStack(itemId: "inserter", count: 1),
+                ItemStack(itemId: "iron-gear-wheel", count: 1),
+                ItemStack(itemId: "iron-plate", count: 2)
+            ],
+            outputs: [ItemStack(itemId: "long-handed-inserter", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "j"
+        ))
+
+        register(Recipe(
+            id: "stack-inserter",
+            name: "Stack Inserter",
+            inputs: [
+                ItemStack(itemId: "fast-inserter", count: 1),
+                ItemStack(itemId: "advanced-circuit", count: 1),
+                ItemStack(itemId: "processing-unit", count: 1),
+                ItemStack(itemId: "steel-plate", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "stack-inserter", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "k"
+        ))
+
         // Chemical science pack
+        // Nuclear processing
+        register(Recipe(
+            id: "uranium-processing",
+            name: "Uranium Processing",
+            inputs: [
+                ItemStack(itemId: "uranium-ore", count: 10)
+            ],
+            outputs: [
+                ItemStack(itemId: "uranium-235", count: 1),
+                ItemStack(itemId: "uranium-238", count: 9)
+            ],
+            craftTime: 12,
+            category: .crafting,
+            order: "ab"
+        ))
+
+        register(Recipe(
+            id: "nuclear-fuel",
+            name: "Nuclear Fuel",
+            inputs: [
+                ItemStack(itemId: "uranium-235", count: 1),
+                ItemStack(itemId: "uranium-238", count: 19)
+            ],
+            outputs: [ItemStack(itemId: "nuclear-fuel", count: 1)],
+            craftTime: 60,
+            category: .crafting,
+            order: "ac"
+        ))
+
+        register(Recipe(
+            id: "nuclear-reactor",
+            name: "Nuclear Reactor",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 400),
+                ItemStack(itemId: "advanced-circuit", count: 400),
+                ItemStack(itemId: "copper-plate", count: 400),
+                ItemStack(itemId: "stone-brick", count: 400)
+            ],
+            outputs: [ItemStack(itemId: "nuclear-reactor", count: 1)],
+            craftTime: 8,
+            category: .crafting,
+            order: "ad"
+        ))
+
+        register(Recipe(
+            id: "centrifuge",
+            name: "Centrifuge",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 50),
+                ItemStack(itemId: "advanced-circuit", count: 100),
+                ItemStack(itemId: "processing-unit", count: 100),
+                ItemStack(itemId: "stone-brick", count: 100)
+            ],
+            outputs: [ItemStack(itemId: "centrifuge", count: 1)],
+            craftTime: 4,
+            category: .crafting,
+            order: "ae"
+        ))
+
         register(Recipe(
             id: "chemical-science-pack",
             name: "Chemical Science Pack",

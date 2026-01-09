@@ -63,6 +63,9 @@ final class ItemRegistry {
         register(Item(id: "sulfur", name: "Sulfur", stackSize: 50, category: .intermediate, order: "m"))
         register(Item(id: "battery", name: "Battery", stackSize: 200, category: .intermediate, order: "n"))
         register(Item(id: "explosives", name: "Explosives", stackSize: 50, category: .intermediate, order: "o"))
+        register(Item(id: "uranium-235", name: "Uranium-235", stackSize: 100, category: .intermediate, order: "p"))
+        register(Item(id: "uranium-238", name: "Uranium-238", stackSize: 100, category: .intermediate, order: "q"))
+        register(Item(id: "nuclear-fuel", name: "Nuclear Fuel", stackSize: 1, category: .intermediate, order: "r"))
 
         // Science packs
         register(Item(id: "automation-science-pack", name: "Automation Science Pack", stackSize: 200, category: .science, order: "a"))
@@ -83,9 +86,10 @@ final class ItemRegistry {
         register(Item(id: "inserter", name: "Inserter", stackSize: 50, category: .logistics, order: "d", placedAs: "inserter"))
         register(Item(id: "long-handed-inserter", name: "Long Handed Inserter", stackSize: 50, category: .logistics, order: "e", placedAs: "long-handed-inserter"))
         register(Item(id: "fast-inserter", name: "Fast Inserter", stackSize: 50, category: .logistics, order: "f", placedAs: "fast-inserter"))
-        register(Item(id: "wooden-chest", name: "Wooden Chest", stackSize: 50, category: .logistics, order: "g", placedAs: "wooden-chest"))
-        register(Item(id: "iron-chest", name: "Iron Chest", stackSize: 50, category: .logistics, order: "h", placedAs: "iron-chest"))
-        register(Item(id: "steel-chest", name: "Steel Chest", stackSize: 50, category: .logistics, order: "i", placedAs: "steel-chest"))
+        register(Item(id: "stack-inserter", name: "Stack Inserter", stackSize: 50, category: .logistics, order: "g", placedAs: "stack-inserter"))
+        register(Item(id: "wooden-chest", name: "Wooden Chest", stackSize: 50, category: .logistics, order: "h", placedAs: "wooden-chest"))
+        register(Item(id: "iron-chest", name: "Iron Chest", stackSize: 50, category: .logistics, order: "i", placedAs: "iron-chest"))
+        register(Item(id: "steel-chest", name: "Steel Chest", stackSize: 50, category: .logistics, order: "j", placedAs: "steel-chest"))
         
         // Production items
         register(Item(id: "burner-mining-drill", name: "Burner Mining Drill", stackSize: 50, category: .production, order: "a", placedAs: "burner-mining-drill"))
@@ -96,10 +100,15 @@ final class ItemRegistry {
         register(Item(id: "assembling-machine-1", name: "Assembling Machine 1", stackSize: 50, category: .production, order: "f", placedAs: "assembling-machine-1"))
         register(Item(id: "assembling-machine-2", name: "Assembling Machine 2", stackSize: 50, category: .production, order: "g", placedAs: "assembling-machine-2"))
         register(Item(id: "assembling-machine-3", name: "Assembling Machine 3", stackSize: 50, category: .production, order: "h", placedAs: "assembling-machine-3"))
-        register(Item(id: "lab", name: "Lab", stackSize: 10, category: .production, order: "i", placedAs: "lab"))
-        register(Item(id: "oil-well", name: "Oil Well", stackSize: 20, category: .production, order: "j", placedAs: "oil-well"))
-        register(Item(id: "oil-refinery", name: "Oil Refinery", stackSize: 10, category: .production, order: "k", placedAs: "oil-refinery"))
-        register(Item(id: "chemical-plant", name: "Chemical Plant", stackSize: 10, category: .production, order: "l", placedAs: "chemical-plant"))
+        register(Item(id: "inserter", name: "Inserter", stackSize: 50, category: .production, order: "i", placedAs: "inserter"))
+        register(Item(id: "fast-inserter", name: "Fast Inserter", stackSize: 50, category: .production, order: "j", placedAs: "fast-inserter"))
+        register(Item(id: "long-handed-inserter", name: "Long Handed Inserter", stackSize: 50, category: .production, order: "k", placedAs: "long-handed-inserter"))
+        register(Item(id: "lab", name: "Lab", stackSize: 10, category: .production, order: "l", placedAs: "lab"))
+        register(Item(id: "oil-well", name: "Oil Well", stackSize: 20, category: .production, order: "m", placedAs: "oil-well"))
+        register(Item(id: "oil-refinery", name: "Oil Refinery", stackSize: 10, category: .production, order: "n", placedAs: "oil-refinery"))
+        register(Item(id: "chemical-plant", name: "Chemical Plant", stackSize: 10, category: .production, order: "o", placedAs: "chemical-plant"))
+        register(Item(id: "nuclear-reactor", name: "Nuclear Reactor", stackSize: 10, category: .production, order: "p", placedAs: "nuclear-reactor"))
+        register(Item(id: "centrifuge", name: "Centrifuge", stackSize: 10, category: .production, order: "q", placedAs: "centrifuge"))
 
         // Power items
         register(Item(id: "boiler", name: "Boiler", stackSize: 50, category: .production, order: "j", placedAs: "boiler"))

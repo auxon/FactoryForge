@@ -261,7 +261,19 @@ final class BuildingRegistry {
         fastInserter.inserterStackSize = 1
         fastInserter.powerConsumption = 46
         register(fastInserter)
-        
+
+        var stackInserter = BuildingDefinition(
+            id: "stack-inserter",
+            name: "Stack Inserter",
+            type: .inserter,
+            maxHealth: 40,
+            cost: [ItemStack(itemId: "stack-inserter", count: 1)]
+        )
+        stackInserter.inserterSpeed = 1.5
+        stackInserter.inserterStackSize = 2
+        stackInserter.powerConsumption = 75
+        register(stackInserter)
+
         // Power poles
         var smallPole = BuildingDefinition(
             id: "small-electric-pole",
@@ -495,6 +507,32 @@ final class BuildingRegistry {
         chemicalPlant.powerConsumption = 210  // kW
         chemicalPlant.inventorySlots = 6      // Multiple inputs and outputs
         register(chemicalPlant)
+
+        // Nuclear buildings
+        var nuclearReactor = BuildingDefinition(
+            id: "nuclear-reactor",
+            name: "Nuclear Reactor",
+            type: .nuclearReactor,
+            width: 5,
+            height: 5,
+            maxHealth: 500,
+            cost: [ItemStack(itemId: "nuclear-reactor", count: 1)]
+        )
+        nuclearReactor.powerProduction = 40000  // 40 MW
+        register(nuclearReactor)
+
+        var centrifuge = BuildingDefinition(
+            id: "centrifuge",
+            name: "Centrifuge",
+            type: .centrifuge,
+            width: 3,
+            height: 3,
+            maxHealth: 300,
+            cost: [ItemStack(itemId: "centrifuge", count: 1)]
+        )
+        centrifuge.powerConsumption = 350  // kW
+        centrifuge.inventorySlots = 2      // Input and output slots
+        register(centrifuge)
     }
 }
 

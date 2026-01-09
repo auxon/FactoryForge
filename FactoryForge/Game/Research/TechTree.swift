@@ -120,6 +120,22 @@ final class TechnologyRegistry {
             order: "b",
             tier: 2
         ))
+
+        register(Technology(
+            id: "automation-3",
+            name: "Automation 3",
+            description: "Unlocks the fastest assembling machines",
+            prerequisites: ["automation-2", "advanced-electronics"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 100),
+                ScienceCost("logistic-science-pack", count: 100),
+                ScienceCost("chemical-science-pack", count: 100)
+            ],
+            researchTime: 60,
+            unlocks: TechnologyUnlocks(recipes: ["assembling-machine-3"]),
+            order: "c",
+            tier: 3
+        ))
         
         register(Technology(
             id: "logistics-2",
@@ -240,6 +256,21 @@ final class TechnologyRegistry {
             researchTime: 60,
             unlocks: TechnologyUnlocks(bonuses: [TechnologyBonus(type: .researchSpeed, modifier: 0.2)]),
             order: "z-b",
+            tier: 2
+        ))
+
+        register(Technology(
+            id: "advanced-electronics",
+            name: "Advanced Electronics",
+            description: "Unlocks advanced electronic circuits and processing units",
+            prerequisites: ["logistic-science-pack"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 75),
+                ScienceCost("logistic-science-pack", count: 75)
+            ],
+            researchTime: 45,
+            unlocks: TechnologyUnlocks(recipes: ["advanced-circuit", "processing-unit"]),
+            order: "h",
             tier: 2
         ))
 
@@ -369,6 +400,54 @@ final class TechnologyRegistry {
             researchTime: 30,
             unlocks: TechnologyUnlocks(recipes: ["lubricant"]),
             order: "h",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "stack-inserter",
+            name: "Stack Inserter",
+            description: "Unlocks stack inserters for moving multiple items",
+            prerequisites: ["advanced-electronics"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 150),
+                ScienceCost("logistic-science-pack", count: 150),
+                ScienceCost("chemical-science-pack", count: 150)
+            ],
+            researchTime: 30,
+            unlocks: TechnologyUnlocks(recipes: ["stack-inserter"]),
+            order: "i",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "nuclear-processing",
+            name: "Nuclear Processing",
+            description: "Unlocks uranium processing and nuclear fuel production",
+            prerequisites: ["chemistry"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 200),
+                ScienceCost("logistic-science-pack", count: 200),
+                ScienceCost("chemical-science-pack", count: 200)
+            ],
+            researchTime: 45,
+            unlocks: TechnologyUnlocks(recipes: ["uranium-processing", "nuclear-fuel"]),
+            order: "j",
+            tier: 3
+        ))
+
+        register(Technology(
+            id: "nuclear-power",
+            name: "Nuclear Power",
+            description: "Unlocks nuclear reactors and centrifuges",
+            prerequisites: ["nuclear-processing", "automation-3"],
+            cost: [
+                ScienceCost("automation-science-pack", count: 300),
+                ScienceCost("logistic-science-pack", count: 300),
+                ScienceCost("chemical-science-pack", count: 300)
+            ],
+            researchTime: 60,
+            unlocks: TechnologyUnlocks(recipes: ["nuclear-reactor", "centrifuge"]),
+            order: "k",
             tier: 3
         ))
     }

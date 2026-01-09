@@ -232,6 +232,20 @@ final class TextureAtlas {
             ("power_pole", nil),
             ("turret", nil),
             ("chest", nil),
+
+            // Advanced items
+            ("stack-inserter", nil),
+            ("centrifuge", nil),
+            ("nuclear-reactor", nil),
+            ("processing-unit", nil),
+            ("plastic-bar", nil),
+            ("sulfur", nil),
+            ("battery", nil),
+            ("explosives", nil),
+            ("uranium-ore", nil),
+            ("uranium-235", nil),
+            ("uranium-238", nil),
+            ("nuclear-fuel", nil),
         ]
         
         print("Loading \(spriteFiles.count) sprite files...")
