@@ -7,6 +7,7 @@ final class InventoryUI: UIPanel_Base {
     private var slots: [InventorySlot] = []
     private var countLabels: [UILabel] = []
     private var closeButton: CloseButton!
+    private var trashTarget: UIButton!
     private let slotsPerRow = 8
     private let maxSlots = 64  // Maximum slots for player inventory (supports expansion)
     private let screenSize: Vector2
@@ -28,6 +29,12 @@ final class InventoryUI: UIPanel_Base {
     // Current number of slots to display
     private var totalSlots = 48
 
+    // Drag and drop state
+    private var draggedItemStack: ItemStack?
+    private var draggedSlotIndex: Int?
+    private var isDragging = false
+    private var dragPreviewPosition: Vector2 = .zero
+
     // Callbacks for managing UIKit labels
     var onAddLabels: (([UILabel]) -> Void)?
     var onRemoveLabels: (([UILabel]) -> Void)?
@@ -47,6 +54,7 @@ final class InventoryUI: UIPanel_Base {
         setupCloseButton()
         setupSlots()
         setupCountLabels()
+        setupTrashTarget()
     }
 
     func enterMachineInputMode(entity: Entity, slotIndex: Int) {
@@ -305,6 +313,28 @@ final class InventoryUI: UIPanel_Base {
         }
     }
 
+    private func setupTrashTarget() {
+        let trashSize: Float = 60 * UIScale
+        let slotSize: Float = 40 * UIScale
+        let slotSpacing: Float = 5 * UIScale
+        let rows = (maxSlots + slotsPerRow - 1) / slotsPerRow
+        let totalWidth = Float(slotsPerRow) * slotSize + Float(slotsPerRow - 1) * slotSpacing
+        let gridStartX = (screenSize.x - totalWidth) / 2
+
+        // Position trash to the right of the inventory grid
+        let trashX = gridStartX + totalWidth + 30 * UIScale + trashSize / 2
+        let trashY = (screenSize.y - Float(rows) * (slotSize + slotSpacing) + slotSpacing) / 2 + trashSize / 2
+
+        trashTarget = UIButton(
+            frame: Rect(center: Vector2(trashX, trashY), size: Vector2(trashSize, trashSize)),
+            textureId: "trash"
+        )
+
+        trashTarget.onTap = { [weak self] in
+            // Trash can be tapped but no action needed - drag and drop only
+        }
+    }
+
     private func setupCloseButton() {
         let buttonSize: Float = 30 * UIScale
         let buttonX = frame.maxX - 25 * UIScale
@@ -429,6 +459,22 @@ final class InventoryUI: UIPanel_Base {
                 slot.render(renderer: renderer)
             }
         }
+
+        // Render trash target
+        trashTarget.render(renderer: renderer)
+
+        // Render drag preview
+        if isDragging, let draggedItem = draggedItemStack {
+            let textureRect = renderer.textureAtlas.getTextureRect(for: draggedItem.itemId.replacingOccurrences(of: "-", with: "_"))
+            let previewSize = Vector2(50, 50) // Slightly larger than slot size for visibility
+            renderer.queueSprite(SpriteInstance(
+                position: dragPreviewPosition,
+                size: previewSize,
+                textureRect: textureRect,
+                color: Color(r: 1, g: 1, b: 1, a: 0.8), // Semi-transparent
+                layer: .ui
+            ))
+        }
     }
     
     override func handleTap(at position: Vector2) -> Bool {
@@ -483,6 +529,7 @@ final class InventoryUI: UIPanel_Base {
         exitChestMode()
         exitChestOnlyMode()
         exitPendingChestMode()
+        endDrag() // Reset drag state
         super.close()
     }
 
@@ -549,6 +596,60 @@ final class InventoryUI: UIPanel_Base {
                 }
             }
         }
+    }
+
+    override func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
+        dragPreviewPosition = endPos
+
+        // Check if drag started from an inventory slot
+        if !isDragging {
+            // Find which slot the drag started from
+            for (index, slot) in slots.enumerated() {
+                if index < totalSlots && slot.frame.contains(startPos), let itemStack = slot.item {
+                    isDragging = true
+                    draggedSlotIndex = index
+                    draggedItemStack = itemStack
+                    return true
+                }
+            }
+        } else {
+            // Handle ongoing drag
+            // Check if drag ended on trash
+            if trashTarget.frame.contains(endPos), let draggedIndex = draggedSlotIndex {
+                // Drop on trash - remove the item
+                handleTrashDrop(slotIndex: draggedIndex)
+                endDrag()
+                return true
+            }
+        }
+
+        return false
+    }
+
+    private func handleTrashDrop(slotIndex: Int) {
+        guard let gameLoop = gameLoop else { return }
+
+        // Only allow trashing from player inventory slots (not chest inventory)
+        guard slotIndex < gameLoop.player.inventory.slots.count else { return }
+
+        var playerInventory = gameLoop.player.inventory
+
+        // Remove the item stack from the slot
+        if var itemStack = playerInventory.slots[slotIndex] {
+            playerInventory.slots[slotIndex] = nil
+            gameLoop.player.inventory = playerInventory
+
+            // Play sound effect
+            AudioManager.shared.playClickSound()
+
+            print("Trashed \(itemStack.count) \(itemStack.itemId)")
+        }
+    }
+
+    private func endDrag() {
+        isDragging = false
+        draggedSlotIndex = nil
+        draggedItemStack = nil
     }
 
     func getTooltip(at position: Vector2) -> String? {
