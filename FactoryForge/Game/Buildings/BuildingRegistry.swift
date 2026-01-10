@@ -82,7 +82,10 @@ final class BuildingRegistry {
             width: 2,
             height: 2,
             maxHealth: 300,
-            cost: [ItemStack(itemId: "steel-furnace", count: 1)]
+            cost: [
+                ItemStack(itemId: "steel-plate", count: 6),
+                ItemStack(itemId: "stone-brick", count: 10)
+            ]
         )
         steelFurnace.craftingSpeed = 2
         steelFurnace.craftingCategory = "smelting"
@@ -95,7 +98,11 @@ final class BuildingRegistry {
             width: 3,
             height: 3,
             maxHealth: 350,
-            cost: [ItemStack(itemId: "electric-furnace", count: 1)]
+            cost: [
+                ItemStack(itemId: "steel-plate", count: 10),
+                ItemStack(itemId: "advanced-circuit", count: 5),
+                ItemStack(itemId: "stone-brick", count: 10)
+            ]
         )
         electricFurnace.craftingSpeed = 2
         electricFurnace.craftingCategory = "smelting"
@@ -110,7 +117,11 @@ final class BuildingRegistry {
             width: 3,
             height: 3,
             maxHealth: 300,
-            cost: [ItemStack(itemId: "assembling-machine-1", count: 1)]
+            cost: [
+                ItemStack(itemId: "electronic-circuit", count: 3),
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "iron-plate", count: 9)
+            ]
         )
         assembler1.craftingSpeed = 0.5
         assembler1.craftingCategory = "crafting"
@@ -124,7 +135,12 @@ final class BuildingRegistry {
             width: 3,
             height: 3,
             maxHealth: 350,
-            cost: [ItemStack(itemId: "assembling-machine-2", count: 1)]
+            cost: [
+                ItemStack(itemId: "iron-plate", count: 9),
+                ItemStack(itemId: "electronic-circuit", count: 3),
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "assembling-machine-1", count: 1)
+            ]
         )
         assembler2.craftingSpeed = 0.75
         assembler2.craftingCategory = "advanced-crafting"
@@ -138,7 +154,10 @@ final class BuildingRegistry {
             width: 3,
             height: 3,
             maxHealth: 400,
-            cost: [ItemStack(itemId: "assembling-machine-3", count: 1)]
+            cost: [
+                ItemStack(itemId: "assembling-machine-2", count: 2),
+                ItemStack(itemId: "speed-module", count: 4)
+            ]
         )
         assembler3.craftingSpeed = 1.25
         assembler3.craftingCategory = "advanced-crafting"
@@ -220,7 +239,11 @@ final class BuildingRegistry {
             name: "Belt Bridge",
             type: .belt,
             maxHealth: 50,
-            cost: [ItemStack(itemId: "belt-bridge", count: 1)]
+            cost: [
+                ItemStack(itemId: "iron-plate", count: 1),
+                ItemStack(itemId: "iron-stick", count: 2),
+                ItemStack(itemId: "iron-gear-wheel", count: 2)
+            ]
         )
         beltBridge.beltSpeed = 1.875  // Same speed as transport belt
         register(beltBridge)
@@ -231,7 +254,11 @@ final class BuildingRegistry {
             name: "Inserter",
             type: .inserter,
             maxHealth: 40,
-            cost: [ItemStack(itemId: "inserter", count: 1)]
+            cost: [
+                ItemStack(itemId: "electronic-circuit", count: 1),
+                ItemStack(itemId: "iron-gear-wheel", count: 1),
+                ItemStack(itemId: "iron-plate", count: 1)
+            ]
         )
         inserter.inserterSpeed = 4.0
         inserter.inserterStackSize = 1
@@ -243,7 +270,11 @@ final class BuildingRegistry {
             name: "Long Handed Inserter",
             type: .inserter,
             maxHealth: 40,
-            cost: [ItemStack(itemId: "long-handed-inserter", count: 1)]
+            cost: [
+                ItemStack(itemId: "iron-gear-wheel", count: 1),
+                ItemStack(itemId: "iron-plate", count: 1),
+                ItemStack(itemId: "inserter", count: 1)
+            ]
         )
         longInserter.inserterSpeed = 1.2
         longInserter.inserterStackSize = 1
@@ -255,7 +286,11 @@ final class BuildingRegistry {
             name: "Fast Inserter",
             type: .inserter,
             maxHealth: 40,
-            cost: [ItemStack(itemId: "fast-inserter", count: 1)]
+            cost: [
+                ItemStack(itemId: "electronic-circuit", count: 2),
+                ItemStack(itemId: "iron-plate", count: 2),
+                ItemStack(itemId: "inserter", count: 1)
+            ]
         )
         fastInserter.inserterSpeed = 2.31
         fastInserter.inserterStackSize = 1
@@ -267,7 +302,12 @@ final class BuildingRegistry {
             name: "Stack Inserter",
             type: .inserter,
             maxHealth: 40,
-            cost: [ItemStack(itemId: "stack-inserter", count: 1)]
+            cost: [
+                ItemStack(itemId: "advanced-circuit", count: 1),
+                ItemStack(itemId: "electronic-circuit", count: 15),
+                ItemStack(itemId: "iron-gear-wheel", count: 15),
+                ItemStack(itemId: "fast-inserter", count: 1)
+            ]
         )
         stackInserter.inserterSpeed = 1.5
         stackInserter.inserterStackSize = 2
@@ -280,7 +320,10 @@ final class BuildingRegistry {
             name: "Small Electric Pole",
             type: .powerPole,
             maxHealth: 100,
-            cost: [ItemStack(itemId: "small-electric-pole", count: 1)]
+            cost: [
+                ItemStack(itemId: "wood", count: 2),
+                ItemStack(itemId: "copper-cable", count: 2)
+            ]
         )
         smallPole.wireReach = 7.5
         smallPole.supplyArea = 2.5
@@ -291,7 +334,10 @@ final class BuildingRegistry {
             name: "Medium Electric Pole",
             type: .powerPole,
             maxHealth: 100,
-            cost: [ItemStack(itemId: "medium-electric-pole", count: 1)]
+            cost: [
+                ItemStack(itemId: "steel-plate", count: 2),
+                ItemStack(itemId: "copper-plate", count: 2)
+            ]
         )
         mediumPole.wireReach = 9
         mediumPole.supplyArea = 3.5
@@ -304,7 +350,10 @@ final class BuildingRegistry {
             width: 2,
             height: 2,
             maxHealth: 150,
-            cost: [ItemStack(itemId: "big-electric-pole", count: 1)]
+            cost: [
+                ItemStack(itemId: "steel-plate", count: 5),
+                ItemStack(itemId: "copper-plate", count: 5)
+            ]
         )
         bigPole.wireReach = 30
         bigPole.supplyArea = 2
@@ -318,7 +367,10 @@ final class BuildingRegistry {
             width: 2,
             height: 3,
             maxHealth: 200,
-            cost: [ItemStack(itemId: "boiler", count: 1)]
+            cost: [
+                ItemStack(itemId: "stone-furnace", count: 1),
+                ItemStack(itemId: "pipe", count: 4)
+            ]
         )
         boiler.fuelCategory = "chemical"
         register(boiler)
@@ -330,7 +382,11 @@ final class BuildingRegistry {
             width: 3,
             height: 5,
             maxHealth: 400,
-            cost: [ItemStack(itemId: "steam-engine", count: 1)]
+            cost: [
+                ItemStack(itemId: "iron-gear-wheel", count: 8),
+                ItemStack(itemId: "iron-plate", count: 10),
+                ItemStack(itemId: "pipe", count: 5)
+            ]
         )
         steamEngine.powerProduction = 900
         register(steamEngine)
@@ -342,7 +398,11 @@ final class BuildingRegistry {
             width: 3,
             height: 3,
             maxHealth: 200,
-            cost: [ItemStack(itemId: "solar-panel", count: 1)]
+            cost: [
+                ItemStack(itemId: "steel-plate", count: 5),
+                ItemStack(itemId: "electronic-circuit", count: 15),
+                ItemStack(itemId: "copper-plate", count: 5)
+            ]
         )
         solarPanel.powerProduction = 60
         register(solarPanel)
@@ -354,7 +414,10 @@ final class BuildingRegistry {
             width: 2,
             height: 2,
             maxHealth: 150,
-            cost: [ItemStack(itemId: "accumulator", count: 1)]
+            cost: [
+                ItemStack(itemId: "iron-plate", count: 2),
+                ItemStack(itemId: "battery", count: 5)
+            ]
         )
         accumulator.accumulatorCapacity = 5000
         accumulator.accumulatorChargeRate = 300
@@ -368,7 +431,11 @@ final class BuildingRegistry {
             width: 3,
             height: 3,
             maxHealth: 150,
-            cost: [ItemStack(itemId: "lab", count: 1)]
+            cost: [
+                ItemStack(itemId: "electronic-circuit", count: 10),
+                ItemStack(itemId: "iron-gear-wheel", count: 10),
+                ItemStack(itemId: "transport-belt", count: 4)
+            ]
         )
         lab.researchSpeed = 1
         lab.powerConsumption = 60
@@ -382,7 +449,11 @@ final class BuildingRegistry {
             width: 2,
             height: 2,
             maxHealth: 400,
-            cost: [ItemStack(itemId: "gun-turret", count: 1)]
+            cost: [
+                ItemStack(itemId: "iron-gear-wheel", count: 10),
+                ItemStack(itemId: "copper-plate", count: 10),
+                ItemStack(itemId: "iron-plate", count: 20)
+            ]
         )
         gunTurret.turretRange = 18
         gunTurret.turretDamage = 6
@@ -396,7 +467,11 @@ final class BuildingRegistry {
             width: 2,
             height: 2,
             maxHealth: 1000,
-            cost: [ItemStack(itemId: "laser-turret", count: 1)]
+            cost: [
+                ItemStack(itemId: "steel-plate", count: 20),
+                ItemStack(itemId: "electronic-circuit", count: 20),
+                ItemStack(itemId: "battery", count: 12)
+            ]
         )
         laserTurret.turretRange = 24
         laserTurret.turretDamage = 20
@@ -410,7 +485,7 @@ final class BuildingRegistry {
             type: .wall,
             maxHealth: 350,
             textureId: "wall",
-            cost: [ItemStack(itemId: "wall", count: 1)]
+            cost: [ItemStack(itemId: "stone-brick", count: 5)]
         )
         register(wall)
         
@@ -420,7 +495,7 @@ final class BuildingRegistry {
             name: "Wooden Chest",
             type: .chest,
             maxHealth: 100,
-            cost: [ItemStack(itemId: "wooden-chest", count: 1)]
+            cost: [ItemStack(itemId: "wood", count: 2)]
         )
         woodenChest.inventorySlots = 16
         register(woodenChest)
@@ -430,7 +505,7 @@ final class BuildingRegistry {
             name: "Iron Chest",
             type: .chest,
             maxHealth: 200,
-            cost: [ItemStack(itemId: "iron-chest", count: 1)]
+            cost: [ItemStack(itemId: "iron-plate", count: 8)]
         )
         ironChest.inventorySlots = 32
         register(ironChest)
@@ -440,7 +515,7 @@ final class BuildingRegistry {
             name: "Steel Chest",
             type: .chest,
             maxHealth: 350,
-            cost: [ItemStack(itemId: "steel-chest", count: 1)]
+            cost: [ItemStack(itemId: "steel-plate", count: 8)]
         )
         steelChest.inventorySlots = 48
         register(steelChest)

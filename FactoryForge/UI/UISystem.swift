@@ -133,7 +133,11 @@ final class UISystem {
     func getCraftingMenu() -> CraftingMenu {
         return craftingMenu
     }
-    
+
+    func getBuildMenu() -> BuildMenu {
+        return buildMenu
+    }
+
     func getInserterConnectionDialog() -> InserterConnectionDialog? {
         return inserterConnectionDialog
     }

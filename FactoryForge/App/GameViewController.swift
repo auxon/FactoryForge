@@ -822,6 +822,25 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
+
+        // BuildMenu callbacks
+        uiSystem?.getBuildMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                self?.view.bringSubviewToFront($0)
+            }
+        }
+        uiSystem?.getBuildMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+        uiSystem?.getBuildMenu().onAddBuildButton = { [weak self] (button: UIView) -> Void in
+            self?.view.addSubview(button)
+            self?.view.bringSubviewToFront(button)
+        }
+        uiSystem?.getBuildMenu().onRemoveBuildButton = { (button: UIView) -> Void in
+            button.removeFromSuperview()
+        }
+
         // Ensure renderer has the correct uiSystem reference
         if let uiSystem = uiSystem {
             renderer.uiSystem = uiSystem
