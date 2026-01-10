@@ -276,53 +276,87 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Get machine inventory and building definition
-        if let inventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-           let buildingEntity = gameLoop.world.get(BuildingComponent.self, for: entity),
-           let buildingDef = gameLoop.buildingRegistry.get(buildingEntity.buildingId) {
+        guard let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { return }
 
-            let totalSlots = inventory.slots.count
-            var inventoryIndex = 0
-
-            // Map fuel slots (first in inventory)
-            for i in 0..<fuelSlots.count {
-                if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
-                    fuelSlots[i].item = item
-                } else {
-                    fuelSlots[i].item = nil
-                }
-                inventoryIndex += 1
-            }
-
-            // Map input slots (next in inventory)
-            for i in 0..<inputSlots.count {
-                if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
-                    inputSlots[i].item = item
-                } else {
-                    inputSlots[i].item = nil
-                }
-                inventoryIndex += 1
-            }
-
-            // Map output slots (remaining slots)
-            for i in 0..<outputSlots.count {
-                if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
-                    outputSlots[i].item = item
-                } else {
-                    outputSlots[i].item = nil
-                }
-                inventoryIndex += 1
-            }
+        // Try to get building component by checking specific types
+        let buildingEntity: BuildingComponent?
+        if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
+            buildingEntity = miner
+        } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+            buildingEntity = furnace
+        } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            buildingEntity = assembler
+        } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
+            buildingEntity = generator
+        } else if let lab = gameLoop.world.get(LabComponent.self, for: entity) {
+            buildingEntity = lab
+        } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
+            buildingEntity = rocketSilo
+        } else {
+            return
         }
 
+        guard let buildingDef = gameLoop.buildingRegistry.get(buildingEntity!.buildingId) else { return }
+
+        let totalSlots = inventory.slots.count
+        var inventoryIndex = 0
+
+        // Map fuel slots (first in inventory)
+        for i in 0..<fuelSlots.count {
+            if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
+                fuelSlots[i].item = item
+            } else {
+                fuelSlots[i].item = nil
+            }
+            inventoryIndex += 1
+        }
+
+        // Map input slots (next in inventory)
+        for i in 0..<inputSlots.count {
+            if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
+                inputSlots[i].item = item
+            } else {
+                inputSlots[i].item = nil
+            }
+            inventoryIndex += 1
+        }
+
+        // Map output slots (remaining slots)
+        for i in 0..<outputSlots.count {
+            if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
+                outputSlots[i].item = item
+            } else {
+                outputSlots[i].item = nil
+            }
+            inventoryIndex += 1
+        }
         // Update count labels
         updateCountLabels(entity)
     }
 
     private func updateCountLabels(_ entity: Entity) {
         guard let gameLoop = gameLoop,
-              let inventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-              let buildingEntity = gameLoop.world.get(BuildingComponent.self, for: entity),
-              let buildingDef = gameLoop.buildingRegistry.get(buildingEntity.buildingId) else { return }
+              let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { return }
+
+        // Try to get building component by checking specific types
+        let buildingEntity: BuildingComponent?
+        if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
+            buildingEntity = miner
+        } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+            buildingEntity = furnace
+        } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            buildingEntity = assembler
+        } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
+            buildingEntity = generator
+        } else if let lab = gameLoop.world.get(LabComponent.self, for: entity) {
+            buildingEntity = lab
+        } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
+            buildingEntity = rocketSilo
+        } else {
+            return
+        }
+
+        guard let buildingDef = gameLoop.buildingRegistry.get(buildingEntity!.buildingId) else { return }
 
         let totalSlots = inventory.slots.count
         var inventoryIndex = 0
@@ -598,22 +632,43 @@ final class MachineUI: UIPanel_Base {
             }
         }
 
+        // Get building component for inventory index calculations
+        guard let entity = currentEntity, let gameLoop = gameLoop else { return false }
+
+        // Try to get building component by checking specific types
+        let buildingEntity: BuildingComponent?
+        if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
+            buildingEntity = miner
+        } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+            buildingEntity = furnace
+        } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            buildingEntity = assembler
+        } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
+            buildingEntity = generator
+        } else if let lab = gameLoop.world.get(LabComponent.self, for: entity) {
+            buildingEntity = lab
+        } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
+            buildingEntity = rocketSilo
+        } else {
+            return false
+        }
+
+        guard let inventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+              let buildingDef = gameLoop.buildingRegistry.get(buildingEntity!.buildingId) else {
+            return false
+        }
+
         // Check fuel slots
         for (index, slot) in fuelSlots.enumerated() {
             if slot.handleTap(at: position) {
-                if let entity = currentEntity, let gameLoop = gameLoop,
-                   let inventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-                   let buildingEntity = gameLoop.world.get(BuildingComponent.self, for: entity),
-                   let buildingDef = gameLoop.buildingRegistry.get(buildingEntity.buildingId) {
-                    let inventoryIndex = index  // Fuel slots are first in inventory
-                    if inventoryIndex < inventory.slots.count,
-                       inventory.slots[inventoryIndex] != nil {
-                        // Slot has an item - remove it to player inventory
-                        handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
-                    } else {
-                        // Slot is empty - open inventory for fuel
-                        handleEmptySlotTap(entity: entity, slotIndex: inventoryIndex)
-                    }
+                let inventoryIndex = index  // Fuel slots are first in inventory
+                if inventoryIndex < inventory.slots.count,
+                   inventory.slots[inventoryIndex] != nil {
+                    // Slot has an item - remove it to player inventory
+                    handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
+                } else {
+                    // Slot is empty - open inventory for fuel
+                    handleEmptySlotTap(entity: entity, slotIndex: inventoryIndex)
                 }
                 return true
             }
@@ -622,19 +677,14 @@ final class MachineUI: UIPanel_Base {
         // Check input slots
         for (index, slot) in inputSlots.enumerated() {
             if slot.handleTap(at: position) {
-                if let entity = currentEntity, let gameLoop = gameLoop,
-                   let inventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-                   let buildingEntity = gameLoop.world.get(BuildingComponent.self, for: entity),
-                   let buildingDef = gameLoop.buildingRegistry.get(buildingEntity.buildingId) {
-                    let inventoryIndex = buildingDef.fuelSlots + index  // Input slots come after fuel slots
-                    if inventoryIndex < inventory.slots.count,
-                       inventory.slots[inventoryIndex] != nil {
-                        // Slot has an item - remove it to player inventory
-                        handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
-                    } else {
-                        // Slot is empty - open inventory for input
-                        handleEmptySlotTap(entity: entity, slotIndex: inventoryIndex)
-                    }
+                let inventoryIndex = buildingDef.fuelSlots + index  // Input slots come after fuel slots
+                if inventoryIndex < inventory.slots.count,
+                   inventory.slots[inventoryIndex] != nil {
+                    // Slot has an item - remove it to player inventory
+                    handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
+                } else {
+                    // Slot is empty - open inventory for input
+                    handleEmptySlotTap(entity: entity, slotIndex: inventoryIndex)
                 }
                 return true
             }
@@ -643,19 +693,14 @@ final class MachineUI: UIPanel_Base {
         // Check output slots
         for (slotIndex, slot) in outputSlots.enumerated() {
             if slot.handleTap(at: position) {
-                if let entity = currentEntity, let gameLoop = gameLoop,
-                   let inventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-                   let buildingEntity = gameLoop.world.get(BuildingComponent.self, for: entity),
-                   let buildingDef = gameLoop.buildingRegistry.get(buildingEntity.buildingId) {
-                    let inventoryIndex = buildingDef.fuelSlots + buildingDef.inputSlots + slotIndex  // Output slots come after fuel and input slots
-                    if inventoryIndex < inventory.slots.count,
-                       inventory.slots[inventoryIndex] != nil {
-                        // Slot has an item - remove it to player inventory
-                        handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
-                    } else {
-                        // Slot is empty - could potentially open inventory for output, but for now just ignore
-                        // Output slots are typically filled by machine production, not manual input
-                    }
+                let inventoryIndex = buildingDef.fuelSlots + buildingDef.inputSlots + slotIndex  // Output slots come after fuel and input slots
+                if inventoryIndex < inventory.slots.count,
+                   inventory.slots[inventoryIndex] != nil {
+                    // Slot has an item - remove it to player inventory
+                    handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
+                } else {
+                    // Slot is empty - could potentially open inventory for output, but for now just ignore
+                    // Output slots are typically filled by machine production, not manual input
                 }
                 return true
             }

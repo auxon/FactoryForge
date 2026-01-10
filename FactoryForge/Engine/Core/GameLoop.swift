@@ -672,7 +672,9 @@ final class GameLoop {
                 miningSpeed: buildingDef.miningSpeed,
                 resourceOutput: buildingDef.resourceOutput
             ), to: entity)
-            world.add(InventoryComponent(slots: 1, allowedItems: nil), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
             // Only add power consumer for electric miners (burner miners use fuel)
             if buildingDef.powerConsumption > 0 {
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
@@ -683,8 +685,9 @@ final class GameLoop {
                 buildingId: buildingDef.id,
                 smeltingSpeed: buildingDef.craftingSpeed
             ), to: entity)
-            // Furnace needs 2 input slots and 2 output slots (4 total)
-            world.add(InventoryComponent(slots: 4, allowedItems: nil), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
             
         case .assembler:
             world.add(AssemblerComponent(
@@ -692,7 +695,9 @@ final class GameLoop {
                 craftingSpeed: buildingDef.craftingSpeed,
                 craftingCategory: buildingDef.craftingCategory
             ), to: entity)
-            world.add(InventoryComponent(slots: 8, allowedItems: nil), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             
         case .belt:
@@ -794,7 +799,9 @@ final class GameLoop {
                 buildingId: buildingDef.id,
                 researchSpeed: buildingDef.researchSpeed
             ), to: entity)
-            world.add(InventoryComponent(slots: 6, allowedItems: ItemRegistry.allowedSciencePacks), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: ItemRegistry.allowedSciencePacks), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             
         case .turret:
@@ -852,7 +859,9 @@ final class GameLoop {
         case .centrifuge:
             world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "centrifuging"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
-            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
 
         case .nuclearReactor:
             world.add(GeneratorComponent(
