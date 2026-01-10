@@ -119,7 +119,9 @@ final class MachineUI: UIPanel_Base {
             let y = frame.center.y - 120 * UIScale + Float(i) * (slotSize + slotSpacing)
 
             let slotFrame = Rect(center: Vector2(x, y), size: Vector2(slotSize, slotSize))
-            let slot = InventorySlot(frame: slotFrame, index: i)
+            // Use lighter gray for fuel slots
+            let fuelSlotColor = Color(r: 0.35, g: 0.35, b: 0.35, a: 1)
+            let slot = InventorySlot(frame: slotFrame, index: i, backgroundColor: fuelSlotColor)
             fuelSlots.append(slot)
 
             // Count label

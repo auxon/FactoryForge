@@ -905,10 +905,12 @@ class InventorySlot: UIElement {
     let index: Int
     var item: ItemStack?
     var isSelected: Bool = false
-    
-    init(frame: Rect, index: Int) {
+    var backgroundColor: Color?
+
+    init(frame: Rect, index: Int, backgroundColor: Color? = nil) {
         self.frame = frame
         self.index = index
+        self.backgroundColor = backgroundColor
     }
     
     func handleTap(at position: Vector2) -> Bool {
@@ -918,10 +920,15 @@ class InventorySlot: UIElement {
     }
     
     func render(renderer: MetalRenderer) {
-        // Slot background
-        let bgColor = isSelected ?
-            Color(r: 0.3, g: 0.3, b: 0.4, a: 1) :
-            Color(r: 0.2, g: 0.2, b: 0.25, a: 1)
+        // Slot background - use custom color if provided, otherwise default
+        let bgColor: Color
+        if let customColor = backgroundColor {
+            bgColor = customColor
+        } else {
+            bgColor = isSelected ?
+                Color(r: 0.3, g: 0.3, b: 0.4, a: 1) :
+                Color(r: 0.2, g: 0.2, b: 0.25, a: 1)
+        }
         
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(

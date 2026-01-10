@@ -194,7 +194,9 @@ final class BuildingRegistry {
             name: "Transport Belt",
             type: .belt,
             maxHealth: 50,
-            cost: [ItemStack(itemId: "iron-plate", count: 1)]
+            cost: [ItemStack(itemId: "iron-gear-wheel", count: 1),
+                   ItemStack(itemId: "iron-plate", count: 1)
+            ]
         )
         transportBelt.beltSpeed = 1.875  // 15 items/s per lane
         register(transportBelt)
