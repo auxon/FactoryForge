@@ -110,12 +110,22 @@ final class BuildMenu: UIPanel_Base {
             let buttonX = startX + Float(col) * (buttonSize + buttonSpacing) + buttonSize / 2
             let buttonY = startY + Float(row) * (buttonSize + buttonSpacing) + buttonSize / 2
             
+            // Check if player can afford this building
+            let canAfford = gameLoop?.player.inventory.has(items: building.cost) ?? false
+
             let button = BuildingButton(
                 frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)),
                 building: building
             )
+            button.canBuild = canAfford
+
             button.onTap = { [weak self] in
-                self?.selectBuilding(building.id)
+                if canAfford {
+                    self?.selectBuilding(building.id)
+                } else {
+                    // Show tooltip about insufficient materials
+                    self?.gameLoop?.inputManager?.onTooltip?("Insufficient materials to place \(building.name)")
+                }
             }
             buildingButtons.append(button)
         }

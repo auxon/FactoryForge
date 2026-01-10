@@ -224,6 +224,13 @@ final class HelpMenu: UIPanel_Base {
         super.close()
         // Hide scroll view when menu closes
         scrollView?.isHidden = true
+
+        // Remove scroll view from parent view when closing
+        scrollView?.removeFromSuperview()
+        scrollView = nil
+
+        // Clear document labels
+        removeDocumentLabels()
     }
 
     override func render(renderer: MetalRenderer) {

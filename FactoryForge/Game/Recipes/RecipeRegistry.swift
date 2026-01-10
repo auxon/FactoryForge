@@ -319,58 +319,7 @@ final class RecipeRegistry {
             order: "j"
         ))
         
-        // Production buildings
-        register(Recipe(
-            id: "burner-mining-drill",
-            name: "Burner Mining Drill",
-            inputs: [
-                ItemStack(itemId: "iron-gear-wheel", count: 3),
-                ItemStack(itemId: "iron-plate", count: 3),
-                ItemStack(itemId: "stone-furnace", count: 1)
-            ],
-            outputs: [ItemStack(itemId: "burner-mining-drill", count: 1)],
-            craftTime: 2,
-            category: .crafting,
-            order: "k"
-        ))
-        
-        register(Recipe(
-            id: "electric-mining-drill",
-            name: "Electric Mining Drill",
-            inputs: [
-                ItemStack(itemId: "electronic-circuit", count: 3),
-                ItemStack(itemId: "iron-gear-wheel", count: 5),
-                ItemStack(itemId: "iron-plate", count: 10)
-            ],
-            outputs: [ItemStack(itemId: "electric-mining-drill", count: 1)],
-            craftTime: 2,
-            category: .crafting,
-            order: "l"
-        ))
-        
-        register(Recipe(
-            id: "stone-furnace",
-            name: "Stone Furnace",
-            inputs: [ItemStack(itemId: "stone", count: 5)],
-            outputs: [ItemStack(itemId: "stone-furnace", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "m"
-        ))
-        
-        register(Recipe(
-            id: "assembling-machine-1",
-            name: "Assembling Machine 1",
-            inputs: [
-                ItemStack(itemId: "electronic-circuit", count: 3),
-                ItemStack(itemId: "iron-gear-wheel", count: 5),
-                ItemStack(itemId: "iron-plate", count: 9)
-            ],
-            outputs: [ItemStack(itemId: "assembling-machine-1", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "n"
-        ))
+        // Building recipes removed - buildings are now placed directly via BuildMenu
         
         register(Recipe(
             id: "lab",
@@ -505,51 +454,6 @@ final class RecipeRegistry {
             order: "w"
         ))
 
-        register(Recipe(
-            id: "oil-well",
-            name: "Oil Well",
-            inputs: [
-                ItemStack(itemId: "steel-plate", count: 5),
-                ItemStack(itemId: "iron-gear-wheel", count: 10),
-                ItemStack(itemId: "electronic-circuit", count: 5),
-                ItemStack(itemId: "pipe", count: 10)
-            ],
-            outputs: [ItemStack(itemId: "oil-well", count: 1)],
-            craftTime: 10,
-            category: .crafting,
-            order: "x"
-        ))
-
-        register(Recipe(
-            id: "oil-refinery",
-            name: "Oil Refinery",
-            inputs: [
-                ItemStack(itemId: "steel-plate", count: 15),
-                ItemStack(itemId: "iron-gear-wheel", count: 10),
-                ItemStack(itemId: "electronic-circuit", count: 10),
-                ItemStack(itemId: "pipe", count: 10),
-                ItemStack(itemId: "stone-brick", count: 10)
-            ],
-            outputs: [ItemStack(itemId: "oil-refinery", count: 1)],
-            craftTime: 20,
-            category: .crafting,
-            order: "y"
-        ))
-
-        register(Recipe(
-            id: "chemical-plant",
-            name: "Chemical Plant",
-            inputs: [
-                ItemStack(itemId: "steel-plate", count: 5),
-                ItemStack(itemId: "iron-gear-wheel", count: 5),
-                ItemStack(itemId: "electronic-circuit", count: 5),
-                ItemStack(itemId: "pipe", count: 5)
-            ],
-            outputs: [ItemStack(itemId: "chemical-plant", count: 1)],
-            craftTime: 5,
-            category: .crafting,
-            order: "z"
-        ))
 
         // Oil processing recipes
         register(Recipe(
@@ -716,34 +620,6 @@ final class RecipeRegistry {
         ))
 
         // Advanced machinery
-        register(Recipe(
-            id: "assembling-machine-2",
-            name: "Assembling Machine 2",
-            inputs: [
-                ItemStack(itemId: "assembling-machine-1", count: 1),
-                ItemStack(itemId: "electronic-circuit", count: 3),
-                ItemStack(itemId: "iron-gear-wheel", count: 5),
-                ItemStack(itemId: "steel-plate", count: 2)
-            ],
-            outputs: [ItemStack(itemId: "assembling-machine-2", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "o"
-        ))
-
-        register(Recipe(
-            id: "assembling-machine-3",
-            name: "Assembling Machine 3",
-            inputs: [
-                ItemStack(itemId: "assembling-machine-2", count: 2),
-                ItemStack(itemId: "advanced-circuit", count: 2),
-                ItemStack(itemId: "processing-unit", count: 2)
-            ],
-            outputs: [ItemStack(itemId: "assembling-machine-3", count: 1)],
-            craftTime: 1.5,
-            category: .crafting,
-            order: "p"
-        ))
 
         register(Recipe(
             id: "fast-inserter",
