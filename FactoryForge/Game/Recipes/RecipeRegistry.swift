@@ -190,18 +190,6 @@ final class RecipeRegistry {
             order: "f"
         ))
         
-        // Logistics items - all belts are now buildings placed via Build Menu
-
-
-        
-        
-        // Building recipes removed - buildings are now placed directly via BuildMenu
-        
-        
-        // Power buildings
-        
-        
-        
         // Combat items
         register(Recipe(
             id: "firearm-magazine",
@@ -212,7 +200,6 @@ final class RecipeRegistry {
             category: .crafting,
             order: "t"
         ))
-        
         
 
         // Oil processing buildings

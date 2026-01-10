@@ -89,9 +89,13 @@ final class ItemRegistry {
         register(Item(id: "splitter", name: "Splitter", stackSize: 200, category: .logistics, order: "e", placedAs: "splitter"))
         register(Item(id: "merger", name: "Merger", stackSize: 200, category: .logistics, order: "f", placedAs: "merger"))
         register(Item(id: "belt-bridge", name: "Belt Bridge", stackSize: 200, category: .logistics, order: "g", placedAs: "belt-bridge"))
-        register(Item(id: "wooden-chest", name: "Wooden Chest", stackSize: 200, category: .logistics, order: "h", placedAs: "wooden-chest"))
-        register(Item(id: "iron-chest", name: "Iron Chest", stackSize: 200, category: .logistics, order: "i", placedAs: "iron-chest"))
-        register(Item(id: "steel-chest", name: "Steel Chest", stackSize: 200, category: .logistics, order: "j", placedAs: "steel-chest"))
+        register(Item(id: "inserter", name: "Inserter", stackSize: 100, category: .logistics, order: "h", placedAs: "inserter"))
+        register(Item(id: "long-handed-inserter", name: "Long Handed Inserter", stackSize: 100, category: .logistics, order: "i", placedAs: "long-handed-inserter"))
+        register(Item(id: "fast-inserter", name: "Fast Inserter", stackSize: 100, category: .logistics, order: "j", placedAs: "fast-inserter"))
+        register(Item(id: "stack-inserter", name: "Stack Inserter", stackSize: 50, category: .logistics, order: "k", placedAs: "stack-inserter"))
+        register(Item(id: "wooden-chest", name: "Wooden Chest", stackSize: 200, category: .logistics, order: "l", placedAs: "wooden-chest"))
+        register(Item(id: "iron-chest", name: "Iron Chest", stackSize: 200, category: .logistics, order: "m", placedAs: "iron-chest"))
+        register(Item(id: "steel-chest", name: "Steel Chest", stackSize: 200, category: .logistics, order: "n", placedAs: "steel-chest"))
         
         // Production items
         register(Item(id: "burner-mining-drill", name: "Burner Mining Drill", stackSize: 100, category: .production, order: "a", placedAs: "burner-mining-drill"))

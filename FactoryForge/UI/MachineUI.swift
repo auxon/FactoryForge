@@ -239,6 +239,37 @@ final class MachineUI: UIPanel_Base {
         super.close()
     }
 
+    private func createBuildingRecipes(for gameLoop: GameLoop) -> [Recipe] {
+        var buildingRecipes: [Recipe] = []
+
+        // Get all buildings that should be craftable in assemblers
+        // Include belts, inserters, power infrastructure, storage, and other buildings that benefit from mass production
+        let craftableBuildingTypes: [BuildingType] = [.belt, .inserter, .powerPole, .generator, .chest, .wall]
+
+        for buildingType in craftableBuildingTypes {
+            let buildings = gameLoop.buildingRegistry.buildings(ofType: buildingType)
+            for building in buildings {
+                // Only include buildings that are unlocked (have their prerequisites met)
+                if gameLoop.isRecipeUnlocked(building.id) {
+                    // Create a recipe from the building definition
+                    let recipe = Recipe(
+                        id: building.id,
+                        name: building.name,
+                        inputs: building.cost, // Use building cost as recipe inputs
+                        outputs: [ItemStack(itemId: building.id, count: 1)], // Output 1 building
+                        craftTime: 0.5, // Standard crafting time for buildings
+                        category: .crafting, // Buildings are crafted in assemblers
+                        enabled: true,
+                        order: "z" // Put buildings at the end of the recipe list
+                    )
+                    buildingRecipes.append(recipe)
+                }
+            }
+        }
+
+        return buildingRecipes.sorted { $0.order < $1.order }
+    }
+
     private func refreshRecipeButtons() {
         recipeButtons.removeAll()
 
@@ -252,6 +283,11 @@ final class MachineUI: UIPanel_Base {
             print("MachineUI: Machine is assembler with category: \(assembler.craftingCategory)")
             availableRecipes = gameLoop.recipeRegistry.recipes(in: CraftingCategory(rawValue: assembler.craftingCategory) ?? .crafting)
             print("MachineUI: Found \(availableRecipes.count) crafting recipes for assembler")
+
+            // Add building recipes for assemblers - buildings that can be mass-produced
+            let buildingRecipes = createBuildingRecipes(for: gameLoop)
+            availableRecipes += buildingRecipes
+            print("MachineUI: Added \(buildingRecipes.count) building recipes for assembler (total: \(availableRecipes.count))")
         } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
             print("MachineUI: Machine is furnace")
             availableRecipes = gameLoop.recipeRegistry.recipes(in: .smelting)
