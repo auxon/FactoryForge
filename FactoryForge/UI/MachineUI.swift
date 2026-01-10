@@ -242,28 +242,34 @@ final class MachineUI: UIPanel_Base {
     private func createBuildingRecipes(for gameLoop: GameLoop) -> [Recipe] {
         var buildingRecipes: [Recipe] = []
 
-        // Get advanced buildings that should be crafted in assemblers (not basic infrastructure)
+        // Advanced buildings that should be crafted in assemblers (not basic infrastructure)
         // These are complex buildings that require assembly rather than simple hand crafting
-        let craftableBuildingTypes: [BuildingType] = [.assembler, .furnace, .lab, .chemicalPlant, .oilRefinery, .centrifuge, .rocketSilo]
+        let advancedBuildingIds = [
+            "assembling-machine-1", "assembling-machine-2", "assembling-machine-3",
+            "electric-furnace",
+            "lab",
+            "oil-refinery", "chemical-plant",
+            "centrifuge",
+            "solar-panel", "accumulator",
+            "rocket-silo"
+        ]
 
-        for buildingType in craftableBuildingTypes {
-            let buildings = gameLoop.buildingRegistry.buildings(ofType: buildingType)
-            for building in buildings {
-                // Only include buildings that are unlocked (have their prerequisites met)
-                if gameLoop.isRecipeUnlocked(building.id) {
-                    // Create a recipe from the building definition
-                    let recipe = Recipe(
-                        id: building.id,
-                        name: building.name,
-                        inputs: building.cost, // Use building cost as recipe inputs
-                        outputs: [ItemStack(itemId: building.id, count: 1)], // Output 1 building
-                        craftTime: 0.5, // Standard crafting time for buildings
-                        category: .crafting, // Buildings are crafted in assemblers
-                        enabled: true,
-                        order: "z" // Put buildings at the end of the recipe list
-                    )
-                    buildingRecipes.append(recipe)
-                }
+        for buildingId in advancedBuildingIds {
+            // Only include buildings that are unlocked (have their prerequisites met)
+            if gameLoop.isRecipeUnlocked(buildingId),
+               let building = gameLoop.buildingRegistry.get(buildingId) {
+                // Create a recipe from the building definition
+                let recipe = Recipe(
+                    id: building.id,
+                    name: building.name,
+                    inputs: building.cost, // Use building cost as recipe inputs
+                    outputs: [ItemStack(itemId: building.id, count: 1)], // Output 1 building
+                    craftTime: 0.5, // Standard crafting time for buildings
+                    category: .crafting, // Buildings are crafted in assemblers
+                    enabled: true,
+                    order: "z" // Put buildings at the end of the recipe list
+                )
+                buildingRecipes.append(recipe)
             }
         }
 
@@ -284,7 +290,7 @@ final class MachineUI: UIPanel_Base {
             availableRecipes = gameLoop.recipeRegistry.recipes(in: CraftingCategory(rawValue: assembler.craftingCategory) ?? .crafting)
             print("MachineUI: Found \(availableRecipes.count) crafting recipes for assembler")
 
-            // Add building recipes for assemblers - buildings that can be mass-produced
+            // Add advanced building recipes for assemblers - complex machinery
             let buildingRecipes = createBuildingRecipes(for: gameLoop)
             availableRecipes += buildingRecipes
             print("MachineUI: Added \(buildingRecipes.count) building recipes for assembler (total: \(availableRecipes.count))")
