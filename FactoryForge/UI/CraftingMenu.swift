@@ -374,7 +374,7 @@ class RecipeButton: UIElement {
             // Crafting: brighter blue background
             bgColor = Color(r: 0.3, g: 0.4, b: 0.6, a: 1)
         } else if canCraft {
-            bgColor = Color(r: 0.2, g: 0.3, b: 0.2, a: 1)
+            bgColor = Color(r: 0.4, g: 0.7, b: 0.4, a: 1) // Brighter, more saturated green
         } else {
             bgColor = Color(r: 0.25, g: 0.2, b: 0.2, a: 1)
         }

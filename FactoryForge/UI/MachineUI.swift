@@ -480,6 +480,20 @@ final class MachineUI: UIPanel_Base {
         positionCountLabels()
     }
 
+    override func update(deltaTime: Float) {
+        guard isOpen else { return }
+
+        // Update button states based on craftability and crafting status
+        guard let player = gameLoop?.player else { return }
+
+        for button in recipeButtons {
+            button.canCraft = button.recipe.canCraft(with: player.inventory)
+            button.isCrafting = player.isCrafting(recipe: button.recipe)
+            button.craftingProgress = player.getCraftingProgress(recipe: button.recipe) ?? 0.0
+            button.queuedCount = player.getQueuedCount(recipe: button.recipe)
+        }
+    }
+
     override func render(renderer: MetalRenderer) {
         guard isOpen else { return }
 
