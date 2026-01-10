@@ -200,11 +200,12 @@ final class ResearchUI: UIPanel_Base {
         }
 
 
-        // Create research button below the scroll view
+        // Create research button below the scroll view (normal sized, centered)
+        let researchButtonWidth: CGFloat = 200
         let researchButtonFrame = CGRect(
-            x: screenBounds.width * 0.1, // Same x as scroll view
+            x: (screenBounds.width - researchButtonWidth) / 2, // Center horizontally
             y: scrollViewFrame.maxY + researchButtonSpacing, // Below scroll view
-            width: screenBounds.width * 0.8, // Same width as scroll view
+            width: researchButtonWidth,
             height: researchButtonHeight
         )
 
@@ -466,16 +467,19 @@ final class ResearchUI: UIPanel_Base {
                 progressLabel?.text = progressText.trimmingCharacters(in: .whitespacesAndNewlines)
                 progressLabel?.numberOfLines = 0  // Allow multiple lines
 
-                // Position the progress label with padding (wider and taller for detailed info)
-                let progressY = frame.maxY - 50 * UIScale
+                // Position the progress label on the left side, above the bottom
+                let progressY = frame.maxY - 100 * UIScale  // Higher up to avoid research button
                 let lineCount = progressDetails.packProgress.count + 1 + (progressDetails.researchSpeedBonus > 0 ? 1 : 0)
                 let labelHeight = (progressLabel?.font.lineHeight ?? 16) * CGFloat(lineCount)
                 let padding: CGFloat = 8
+                let labelWidth: CGFloat = 300
+                let leftMargin: CGFloat = 20
                 let labelY = (CGFloat(progressY) / screenScale) - (labelHeight + padding) / 2
+                let labelX = leftMargin  // Left side of screen
                 progressLabel?.frame = CGRect(
-                    x: CGFloat(frame.center.x) - 200, // Center horizontally, wider
+                    x: labelX,
                     y: labelY,
-                    width: 400, // Wider for detailed text
+                    width: labelWidth,
                     height: labelHeight + padding
                 )
             }

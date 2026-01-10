@@ -142,7 +142,7 @@ final class UISystem {
         return inserterConnectionDialog
     }
     
-    private func setupCallbacks() {
+    func setupCallbacks() {
         // HUD button callbacks
         hud.onInventoryPressed = { [weak self] in
             // Close machine UI if open when clicking any HUD button
@@ -561,7 +561,7 @@ final class UISystem {
         closeAllPanels()
         activePanel = panel
         isAnyPanelOpen = true
-        
+
         switch panel {
         case .loadingMenu:
             loadingMenu.open()

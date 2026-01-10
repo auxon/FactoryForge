@@ -102,10 +102,10 @@ final class BuildMenu: UIPanel_Base {
     
     private func refreshBuildingButtons() {
         buildingButtons.removeAll()
-        
+
         guard let category = selectedCategory,
               let registry = gameLoop?.buildingRegistry else { return }
-        
+
         let buildings = registry.buildings(ofType: category)
 
         let buttonSize: Float = 60 * UIScale
@@ -150,6 +150,11 @@ final class BuildMenu: UIPanel_Base {
 
         // Create and show new build button
         setupBuildButton()
+
+        // Check if player can afford this building and update button state
+        let canAfford = gameLoop?.player.inventory.has(items: building.cost) ?? false
+        buildButton?.isEnabled = canAfford
+        buildButton?.alpha = canAfford ? 1.0 : 0.5
     }
 
     private func buildSelectedBuilding() {
@@ -166,36 +171,28 @@ final class BuildMenu: UIPanel_Base {
     }
 
     private func setupBuildButton() {
-        // Position build button at bottom center of screen
-        let screenBounds = UIScreen.main.bounds
-        let buttonWidth: CGFloat = 180  // Smaller width
-        let buttonHeight: CGFloat = 60  // Smaller height
-        let buttonX = (screenBounds.width - buttonWidth) / 2  // Center horizontally
-        let buttonY = screenBounds.height - buttonHeight - 80  // Bottom with margin
+        // Create button with temporary frame - positioning will be handled by the callback
+        let buttonWidth: CGFloat = 180
+        let buttonHeight: CGFloat = 60
+        let button = UIKit.UIButton(frame: CGRect(x: 0, y: 0, width: buttonWidth, height: buttonHeight))
 
-        let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight))
         button.setTitle("Build", for: UIControl.State.normal)
         button.setTitleColor(UIColor.white, for: UIControl.State.normal)
         button.backgroundColor = UIColor(red: 0.2, green: 0.6, blue: 0.2, alpha: 1.0)
         button.layer.cornerRadius = 8
         button.layer.masksToBounds = true
-        button.translatesAutoresizingMaskIntoConstraints = false
+        button.translatesAutoresizingMaskIntoConstraints = true
 
         button.addTarget(self, action: #selector(buildButtonTapped), for: UIControl.Event.touchUpInside)
 
-        // Use frame-based positioning instead of Auto Layout
-        button.translatesAutoresizingMaskIntoConstraints = true
+        // Ensure button is visible
+        button.alpha = 1.0
+        button.isHidden = false
+        button.isUserInteractionEnabled = true
 
-        // Set properties
-        button.backgroundColor = UIColor(red: 0.2, green: 0.6, blue: 0.2, alpha: 1.0)
-
-        // Store and add to view
+        // Store and add to view - callback will handle positioning
         buildButton = button
         onAddBuildButton?(button)
-
-        // Set frame after adding to view (important for proper positioning)
-        button.frame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
-        button.isHidden = false
     }
 
     @objc private func buildButtonTapped() {
@@ -490,7 +487,7 @@ class BuildingButton: UIElement {
     }
     
     func handleTap(at position: Vector2) -> Bool {
-        guard frame.contains(position) && canBuild else { return false }
+        guard frame.contains(position) else { return false }
         onTap?()
         return true
     }

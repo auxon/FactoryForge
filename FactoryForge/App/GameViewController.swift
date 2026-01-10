@@ -691,8 +691,12 @@ class GameViewController: UIViewController {
 
         // Update UI system with game loop
         uiSystem?.setGameLoop(gameLoop!)
-        
-        // Setup input (this will also set up HUD callbacks)
+
+        // Re-setup HUD callbacks after UI components are recreated
+        uiSystem?.setupCallbacks()
+        setupHUDBuildingCallbacks()
+
+        // Setup input
         setupInput()
 
         // Exit build mode when starting a new game
@@ -783,6 +787,53 @@ class GameViewController: UIViewController {
         }
         uiSystem?.getCraftingMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
+        }
+
+        // BuildMenu callbacks
+        uiSystem?.getBuildMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                self?.view.bringSubviewToFront($0)
+            }
+        }
+        uiSystem?.getBuildMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+        uiSystem?.getBuildMenu().onAddBuildButton = { [weak self] (button: UIView) -> Void in
+            print("GameViewController: onAddBuildButton callback EXECUTED")
+            guard let self = self else {
+                print("GameViewController: self is nil in callback")
+                return
+            }
+            // Reposition button relative to view bounds instead of screen bounds
+            let viewBounds = self.view.bounds
+            let buttonWidth: CGFloat = 180
+            let buttonHeight: CGFloat = 60
+            let buttonX = (viewBounds.width - buttonWidth) / 2
+            let buttonY = viewBounds.height - buttonHeight - 80
+            let correctedFrame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
+
+            button.frame = correctedFrame
+
+            self.view.addSubview(button)
+            // Ensure button is above the Metal view
+            if let metalView = self.metalView {
+                self.view.insertSubview(button, aboveSubview: metalView)
+            }
+            self.view.bringSubviewToFront(button)
+            // Ensure tooltips stay on top after adding build button
+            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
+                self.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
+                self.view.bringSubviewToFront(tooltipIconView)
+            }
+            // Force layout to ensure frame is applied
+            button.setNeedsLayout()
+            button.layoutIfNeeded()
+        }
+        uiSystem?.getBuildMenu().onRemoveBuildButton = { (button: UIView) -> Void in
+            button.removeFromSuperview()
         }
 
         // Ensure renderer has the correct uiSystem reference before closing panels
@@ -913,32 +964,6 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
-
-        // BuildMenu callbacks
-        uiSystem?.getBuildMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-            labels.forEach {
-                self?.view.addSubview($0)
-                self?.view.bringSubviewToFront($0)
-            }
-        }
-        uiSystem?.getBuildMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in
-            labels.forEach { $0.removeFromSuperview() }
-        }
-        uiSystem?.getBuildMenu().onAddBuildButton = { [weak self] (button: UIView) -> Void in
-            self?.view.addSubview(button)
-            self?.view.bringSubviewToFront(button)
-            // Ensure tooltips stay on top after adding build button
-            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
-                self?.view.bringSubviewToFront(tooltipLabel)
-            }
-            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
-                self?.view.bringSubviewToFront(tooltipIconView)
-            }
-        }
-        uiSystem?.getBuildMenu().onRemoveBuildButton = { (button: UIView) -> Void in
-            button.removeFromSuperview()
-        }
-
         // Ensure renderer has the correct uiSystem reference
         if let uiSystem = uiSystem {
             renderer.uiSystem = uiSystem
@@ -951,8 +976,57 @@ class GameViewController: UIViewController {
         uiSystem?.setGameLoop(gameLoop!)
         renderer.uiSystem = uiSystem
 
-        // Setup UI callbacks for the updated uiSystem
+        // Setup UI callbacks for the updated uiSystem (HUD buttons, etc.)
+        uiSystem?.setupCallbacks()
         setupResearchUICallbacks()
+        setupHUDBuildingCallbacks()
+
+        // BuildMenu callbacks (must be set after final setGameLoop call)
+        uiSystem?.getBuildMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            labels.forEach {
+                self?.view.addSubview($0)
+                self?.view.bringSubviewToFront($0)
+            }
+        }
+        uiSystem?.getBuildMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+        uiSystem?.getBuildMenu().onAddBuildButton = { [weak self] (button: UIView) -> Void in
+            print("GameViewController: onAddBuildButton callback EXECUTED")
+            guard let self = self else {
+                print("GameViewController: self is nil in callback")
+                return
+            }
+            // Reposition button relative to view bounds instead of screen bounds
+            let viewBounds = self.view.bounds
+            let buttonWidth: CGFloat = 180
+            let buttonHeight: CGFloat = 60
+            let buttonX = (viewBounds.width - buttonWidth) / 2
+            let buttonY = viewBounds.height - buttonHeight - 80
+            let correctedFrame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
+
+            button.frame = correctedFrame
+
+            self.view.addSubview(button)
+            // Ensure button is above the Metal view
+            if let metalView = self.metalView {
+                self.view.insertSubview(button, aboveSubview: metalView)
+            }
+            self.view.bringSubviewToFront(button)
+            // Ensure tooltips stay on top after adding build button
+            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
+                self.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
+                self.view.bringSubviewToFront(tooltipIconView)
+            }
+            // Force layout to ensure frame is applied
+            button.setNeedsLayout()
+            button.layoutIfNeeded()
+        }
+        uiSystem?.getBuildMenu().onRemoveBuildButton = { (button: UIView) -> Void in
+            button.removeFromSuperview()
+        }
 
         // Update chunk manager with player position to load surrounding chunks
         gameLoop?.chunkManager.update(playerPosition: gameLoop!.player.position)
@@ -1137,7 +1211,6 @@ class GameViewController: UIViewController {
     }
     
     private func setupHUDBuildingCallbacks() {
-        print("GameViewController: setupHUDBuildingCallbacks() called, uiSystem=\(uiSystem != nil ? "exists" : "nil"), hud=\(uiSystem?.hud != nil ? "exists" : "nil")")
         
         // Setup move building callback
         uiSystem?.hud.onMoveBuildingPressed = { [weak self] in
