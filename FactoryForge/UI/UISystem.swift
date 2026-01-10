@@ -680,31 +680,37 @@ final class UISystem {
 
         if anyPanelOpen {
             // Allow panels to handle their own interactions
+            var tapHandled = false
             if let panel = activePanel {
                 switch panel {
                 case .loadingMenu:
-                    _ = loadingMenu.handleTap(at: screenPos)
+                    tapHandled = loadingMenu.handleTap(at: screenPos)
                 case .autoplayMenu:
-                    _ = autoplayMenu.handleTap(at: screenPos)
+                    tapHandled = autoplayMenu.handleTap(at: screenPos)
                 case .helpMenu:
-                    _ = helpMenu.handleTap(at: screenPos)
+                    tapHandled = helpMenu.handleTap(at: screenPos)
                 case .documentViewer:
-                    _ = documentViewer?.handleTap(at: screenPos)
+                    tapHandled = documentViewer?.handleTap(at: screenPos) ?? false
                 case .inventory:
-                    _ = inventoryUI.handleTap(at: screenPos)
+                    tapHandled = inventoryUI.handleTap(at: screenPos)
                 case .crafting:
-                    _ = craftingMenu.handleTap(at: screenPos)
+                    tapHandled = craftingMenu.handleTap(at: screenPos)
                 case .build:
-                    _ = buildMenu.handleTap(at: screenPos)
+                    tapHandled = buildMenu.handleTap(at: screenPos)
                 case .research:
-                    _ = researchUI.handleTap(at: screenPos)
+                    tapHandled = researchUI.handleTap(at: screenPos)
                 case .machine:
-                    _ = machineUI.handleTap(at: screenPos)
+                    tapHandled = machineUI.handleTap(at: screenPos)
                 case .entitySelection:
-                    _ = entitySelectionDialog?.handleTap(at: screenPos)
+                    tapHandled = entitySelectionDialog?.handleTap(at: screenPos) ?? false
                 case .inserterConnection:
-                    _ = inserterConnectionDialog?.handleTap(at: screenPos)
+                    tapHandled = inserterConnectionDialog?.handleTap(at: screenPos) ?? false
                 }
+            }
+
+            // If the panel handled the tap, consume it regardless of whether the panel is still open
+            if tapHandled {
+                return true
             }
 
             // Check if panels are still open after handling (in case a panel closed itself)
