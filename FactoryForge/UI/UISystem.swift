@@ -196,12 +196,7 @@ final class UISystem {
             self?.openPanel(.loadingMenu)
         }
         
-        // Build menu callbacks
-        buildMenu.onBuildingSelected = { [weak self] buildingId in
-            self?.closeAllPanels()
-            // Enter build mode via input manager
-            self?.gameLoop?.inputManager?.enterBuildMode(buildingId: buildingId)
-        }
+        // Build menu handles building selection directly
         
 
         // Machine UI callback for opening inventory

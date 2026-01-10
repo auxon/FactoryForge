@@ -190,205 +190,17 @@ final class RecipeRegistry {
             order: "f"
         ))
         
-        // Logistics items
-        register(Recipe(
-            id: "transport-belt",
-            name: "Transport Belt",
-            inputs: [
-                ItemStack(itemId: "iron-plate", count: 1),
-                ItemStack(itemId: "iron-gear-wheel", count: 1)
-            ],
-            outputs: [ItemStack(itemId: "transport-belt", count: 5)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "g"
-        ))
+        // Logistics items - all belts are now buildings placed via Build Menu
 
-        register(Recipe(
-            id: "fast-transport-belt",
-            name: "Fast Transport Belt",
-            inputs: [
-                ItemStack(itemId: "iron-gear-wheel", count: 5),
-                ItemStack(itemId: "iron-plate", count: 1)
-            ],
-            outputs: [ItemStack(itemId: "fast-transport-belt", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "g1"
-        ))
 
-        register(Recipe(
-            id: "express-transport-belt",
-            name: "Express Transport Belt",
-            inputs: [
-                ItemStack(itemId: "iron-gear-wheel", count: 10),
-                ItemStack(itemId: "advanced-circuit", count: 2),
-                ItemStack(itemId: "steel-plate", count: 1)
-            ],
-            outputs: [ItemStack(itemId: "express-transport-belt", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "g2"
-        ))
-
-        register(Recipe(
-            id: "underground-belt",
-            name: "Underground Belt",
-            inputs: [
-                ItemStack(itemId: "iron-plate", count: 10),
-                ItemStack(itemId: "transport-belt", count: 5)
-            ],
-            outputs: [ItemStack(itemId: "underground-belt", count: 2)],
-            craftTime: 1,
-            category: .crafting,
-            order: "g1"
-        ))
-
-        register(Recipe(
-            id: "splitter",
-            name: "Splitter",
-            inputs: [
-                ItemStack(itemId: "electronic-circuit", count: 5),
-                ItemStack(itemId: "iron-plate", count: 5),
-                ItemStack(itemId: "transport-belt", count: 4)
-            ],
-            outputs: [ItemStack(itemId: "splitter", count: 1)],
-            craftTime: 1,
-            category: .crafting,
-            order: "g2"
-        ))
-
-        register(Recipe(
-            id: "merger",
-            name: "Merger",
-            inputs: [
-                ItemStack(itemId: "electronic-circuit", count: 5),
-                ItemStack(itemId: "iron-plate", count: 5),
-                ItemStack(itemId: "transport-belt", count: 4)
-            ],
-            outputs: [ItemStack(itemId: "merger", count: 1)],
-            craftTime: 1,
-            category: .crafting,
-            order: "g3"
-        ))
-
-        register(Recipe(
-            id: "belt-bridge",
-            name: "Belt Bridge",
-            inputs: [
-                ItemStack(itemId: "iron-plate", count: 1),
-                ItemStack(itemId: "iron-gear-wheel", count: 1)
-            ],
-            outputs: [ItemStack(itemId: "belt-bridge", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "g4"
-        ))
-
-        register(Recipe(
-            id: "inserter",
-            name: "Inserter",
-            inputs: [
-                ItemStack(itemId: "electronic-circuit", count: 1),
-                ItemStack(itemId: "iron-gear-wheel", count: 1),
-                ItemStack(itemId: "iron-plate", count: 1)
-            ],
-            outputs: [ItemStack(itemId: "inserter", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "h"
-        ))
         
-        register(Recipe(
-            id: "wooden-chest",
-            name: "Wooden Chest",
-            inputs: [ItemStack(itemId: "wood", count: 2)],
-            outputs: [ItemStack(itemId: "wooden-chest", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "i"
-        ))
-        
-        register(Recipe(
-            id: "iron-chest",
-            name: "Iron Chest",
-            inputs: [ItemStack(itemId: "iron-plate", count: 8)],
-            outputs: [ItemStack(itemId: "iron-chest", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "j"
-        ))
         
         // Building recipes removed - buildings are now placed directly via BuildMenu
         
-        register(Recipe(
-            id: "lab",
-            name: "Lab",
-            inputs: [
-                ItemStack(itemId: "electronic-circuit", count: 10),
-                ItemStack(itemId: "iron-gear-wheel", count: 10),
-                ItemStack(itemId: "transport-belt", count: 4)
-            ],
-            outputs: [ItemStack(itemId: "lab", count: 1)],
-            craftTime: 2,
-            category: .crafting,
-            order: "o"
-        ))
         
         // Power buildings
-        register(Recipe(
-            id: "boiler",
-            name: "Boiler",
-            inputs: [
-                ItemStack(itemId: "stone-furnace", count: 1),
-                ItemStack(itemId: "pipe", count: 4)
-            ],
-            outputs: [ItemStack(itemId: "boiler", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "p"
-        ))
         
-        register(Recipe(
-            id: "steam-engine",
-            name: "Steam Engine",
-            inputs: [
-                ItemStack(itemId: "iron-gear-wheel", count: 8),
-                ItemStack(itemId: "iron-plate", count: 10),
-                ItemStack(itemId: "pipe", count: 5)
-            ],
-            outputs: [ItemStack(itemId: "steam-engine", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "q"
-        ))
         
-        register(Recipe(
-            id: "small-electric-pole",
-            name: "Small Electric Pole",
-            inputs: [
-                ItemStack(itemId: "wood", count: 1),
-                ItemStack(itemId: "copper-cable", count: 2)
-            ],
-            outputs: [ItemStack(itemId: "small-electric-pole", count: 5)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "r"
-        ))
-        
-        register(Recipe(
-            id: "solar-panel",
-            name: "Solar Panel",
-            inputs: [
-                ItemStack(itemId: "steel-plate", count: 5),
-                ItemStack(itemId: "electronic-circuit", count: 15),
-                ItemStack(itemId: "copper-plate", count: 5)
-            ],
-            outputs: [ItemStack(itemId: "solar-panel", count: 1)],
-            craftTime: 10,
-            category: .crafting,
-            order: "s"
-        ))
         
         // Combat items
         register(Recipe(
@@ -401,43 +213,7 @@ final class RecipeRegistry {
             order: "t"
         ))
         
-        register(Recipe(
-            id: "gun-turret",
-            name: "Gun Turret",
-            inputs: [
-                ItemStack(itemId: "iron-gear-wheel", count: 10),
-                ItemStack(itemId: "copper-plate", count: 10),
-                ItemStack(itemId: "iron-plate", count: 20)
-            ],
-            outputs: [ItemStack(itemId: "gun-turret", count: 1)],
-            craftTime: 8,
-            category: .crafting,
-            order: "u"
-        ))
         
-        register(Recipe(
-            id: "wall",
-            name: "Wall",
-            inputs: [ItemStack(itemId: "stone-brick", count: 5)],
-            outputs: [ItemStack(itemId: "wall", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "v"
-        ))
-        
-        register(Recipe(
-            id: "radar",
-            name: "Radar",
-            inputs: [
-                ItemStack(itemId: "electronic-circuit", count: 5),
-                ItemStack(itemId: "iron-gear-wheel", count: 5),
-                ItemStack(itemId: "iron-plate", count: 10)
-            ],
-            outputs: [ItemStack(itemId: "radar", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "w"
-        ))
 
         // Oil processing buildings
         register(Recipe(
@@ -621,48 +397,8 @@ final class RecipeRegistry {
 
         // Advanced machinery
 
-        register(Recipe(
-            id: "fast-inserter",
-            name: "Fast Inserter",
-            inputs: [
-                ItemStack(itemId: "inserter", count: 1),
-                ItemStack(itemId: "electronic-circuit", count: 2),
-                ItemStack(itemId: "iron-plate", count: 2)
-            ],
-            outputs: [ItemStack(itemId: "fast-inserter", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "i"
-        ))
 
-        register(Recipe(
-            id: "long-handed-inserter",
-            name: "Long Handed Inserter",
-            inputs: [
-                ItemStack(itemId: "inserter", count: 1),
-                ItemStack(itemId: "iron-gear-wheel", count: 1),
-                ItemStack(itemId: "iron-plate", count: 2)
-            ],
-            outputs: [ItemStack(itemId: "long-handed-inserter", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "j"
-        ))
 
-        register(Recipe(
-            id: "stack-inserter",
-            name: "Stack Inserter",
-            inputs: [
-                ItemStack(itemId: "fast-inserter", count: 1),
-                ItemStack(itemId: "advanced-circuit", count: 1),
-                ItemStack(itemId: "processing-unit", count: 1),
-                ItemStack(itemId: "steel-plate", count: 1)
-            ],
-            outputs: [ItemStack(itemId: "stack-inserter", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "k"
-        ))
 
         // Chemical science pack
         // Nuclear processing

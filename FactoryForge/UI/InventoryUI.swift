@@ -529,16 +529,8 @@ final class InventoryUI: UIPanel_Base {
                     // Pending chest transfer mode - transfer items from player to chest
                     handlePendingChestTransfer(slot: slot)
                 } else {
-                    // Normal inventory mode - check if item can be placed as a building
-                    if let itemStack = slot.item,
-                       let gameLoop = gameLoop,
-                       let itemDef = gameLoop.itemRegistry.get(itemStack.itemId),
-                       let buildingId = itemDef.placedAs,
-                       gameLoop.buildingRegistry.get(buildingId) != nil {
-                        // It's a placeable building - enter build mode
-                        gameLoop.inputManager?.enterBuildMode(buildingId: buildingId)
-                        close() // Close inventory when entering build mode
-                    }
+                    // Normal inventory mode - building placement is handled via Build Menu only
+                    // Placeable items in inventory are just managed as regular items
                 }
                 return true
             }

@@ -8,7 +8,6 @@ final class BuildMenu: UIPanel_Base {
     private var closeButton: CloseButton!
     private var selectedCategory: BuildingType?
     
-    var onBuildingSelected: ((String) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         // Use full screen size for background
@@ -132,8 +131,12 @@ final class BuildMenu: UIPanel_Base {
     }
     
     private func selectBuilding(_ buildingId: String) {
-        onBuildingSelected?(buildingId)
+        // Close the menu immediately
         close()
+        // Enter build mode with a delay to prevent tap passthrough
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.gameLoop?.inputManager?.enterBuildMode(buildingId: buildingId)
+        }
     }
     
     override func update(deltaTime: Float) {
