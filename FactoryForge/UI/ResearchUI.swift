@@ -42,6 +42,56 @@ final class ResearchUI: UIPanel_Base {
         setupCloseButton()
     }
 
+    private func addSciencePackIcons(to button: UIKit.UIButton, for tech: Technology) {
+        // Clear any existing icons
+        for subview in button.subviews where subview.tag == 999 {
+            subview.removeFromSuperview()
+        }
+
+        let iconSize: CGFloat = 20
+        let iconSpacing: CGFloat = 4
+        let countLabelHeight: CGFloat = 12
+        let totalIconHeight = iconSize + countLabelHeight + 2 // icon + label + spacing
+
+        var currentX = button.bounds.width - 10 // Start from right edge with margin
+
+        for scienceCost in tech.cost.reversed() { // Reverse to show from right to left
+            // Create icon image view
+            let iconView = UIKit.UIImageView()
+            iconView.tag = 999 // Tag for easy removal
+            iconView.contentMode = .scaleAspectFit
+
+            // Map pack ID to image name
+            let imageName = scienceCost.packId.replacingOccurrences(of: "-science-pack", with: "_science_pack")
+            if let image = UIKit.UIImage(named: imageName) {
+                iconView.image = image
+            }
+
+            // Position icon
+            let iconY = (button.bounds.height - totalIconHeight) / 2
+            iconView.frame = CGRect(x: currentX - iconSize, y: iconY, width: iconSize, height: iconSize)
+            button.addSubview(iconView)
+
+            // Create count label
+            let countLabel = UIKit.UILabel()
+            countLabel.tag = 999
+            countLabel.text = "\(scienceCost.count)"
+            countLabel.font = UIKit.UIFont.systemFont(ofSize: 10, weight: .bold)
+            countLabel.textColor = UIKit.UIColor.white
+            countLabel.textAlignment = .center
+            countLabel.backgroundColor = UIKit.UIColor.black.withAlphaComponent(0.7)
+            countLabel.layer.cornerRadius = 3
+            countLabel.layer.masksToBounds = true
+
+            // Position count label below icon
+            let labelY = iconY + iconSize + 2
+            countLabel.frame = CGRect(x: currentX - iconSize, y: labelY, width: iconSize, height: countLabelHeight)
+            button.addSubview(countLabel)
+
+            currentX -= (iconSize + iconSpacing)
+        }
+    }
+
     private func setupScrollView(in parentView: UIKit.UIView) {
         // Remove existing scroll view if any
         scrollView?.removeFromSuperview()
@@ -51,9 +101,9 @@ final class ResearchUI: UIPanel_Base {
         // Scroll view covers most of the screen, leaving space for close button and margins
         let scrollViewFrame = CGRect(
             x: 20 / screenScale, // Small margin
-            y: 60 / screenScale, // Leave space at top for close button
+            y: 4 / screenScale, // Leave space at top for close button
             width: (CGFloat(frame.width) - 40) / screenScale, // Leave margins
-            height: (CGFloat(frame.height) - 120) / screenScale // Leave space at top and bottom
+            height: (CGFloat(frame.height) + 38) / screenScale // Leave space at top and bottom, plus one button height
         )
 
         scrollView = UIKit.UIScrollView(frame: scrollViewFrame)
@@ -119,7 +169,9 @@ final class ResearchUI: UIPanel_Base {
 
         for (index, tech) in allTechs.enumerated() {
             let buttonY = CGFloat(index) * (buttonHeight + buttonSpacing)
-            let buttonFrame = CGRect(x: 100, y: buttonY, width: scrollViewFrame.width - 200, height: buttonHeight)
+            // Leave space on the right for science pack icons (up to 3 icons * ~24px each)
+            let iconSpace: CGFloat = 80
+            let buttonFrame = CGRect(x: 100, y: buttonY, width: scrollViewFrame.width - 200 - iconSpace, height: buttonHeight)
 
             let button: UIKit.UIButton = UIKit.UIButton(type: UIKit.UIButton.ButtonType.custom)
             button.frame = buttonFrame
@@ -133,6 +185,9 @@ final class ResearchUI: UIPanel_Base {
             button.titleLabel?.font = UIKit.UIFont.systemFont(ofSize: 14, weight: UIKit.UIFont.Weight.medium)
             button.titleLabel?.numberOfLines = 2
             button.titleLabel?.textAlignment = UIKit.NSTextAlignment.center
+
+            // Add science pack icons
+            addSciencePackIcons(to: button, for: tech)
 
             // Add tap gesture
             button.addTarget(self, action: #selector(techButtonTapped(_:)), for: UIKit.UIControl.Event.touchUpInside)
@@ -289,6 +344,9 @@ final class ResearchUI: UIPanel_Base {
 
         // Set button title with tech name
         button.setTitle(tech.name, for: UIKit.UIControl.State.normal)
+
+        // Update science pack icons
+        addSciencePackIcons(to: button, for: tech)
     }
 
     private func removeLabels() {
@@ -332,6 +390,13 @@ final class ResearchUI: UIPanel_Base {
                   let tech = registry.get(techId) else { continue }
 
             updateTechButtonAppearance(button, for: tech)
+        }
+
+        // Update research button state based on selected technology
+        if let selectedTech = selectedTech {
+            let canResearch = gameLoop?.researchSystem.canResearch(selectedTech) ?? false
+            researchButton?.isEnabled = canResearch
+            researchButton?.alpha = canResearch ? 1.0 : 0.3
         }
 
         // Update research info label
@@ -486,9 +551,18 @@ final class ResearchUI: UIPanel_Base {
         }
         onShowTooltip?(tooltip)
 
-        // Enable research button since we have a selected tech
-        researchButton?.isEnabled = true
-        researchButton?.alpha = 1.0
+        // Check if the technology can actually be researched (has all requirements)
+        let canResearch = gameLoop?.researchSystem.canResearch(tech) ?? false
+
+        if canResearch {
+            // Enable research button since we have a selected tech that can be researched
+            researchButton?.isEnabled = true
+            researchButton?.alpha = 1.0
+        } else {
+            // Disable research button since requirements are not met
+            researchButton?.isEnabled = false
+            researchButton?.alpha = 0.3 // More disabled-looking than 0.5
+        }
     }
 
     private func showTechnologyCost(_ tech: Technology) {
@@ -499,7 +573,15 @@ final class ResearchUI: UIPanel_Base {
             }
             costText += "\(scienceCost.count) \(scienceCost.packId.replacingOccurrences(of: "-", with: " ").capitalized)"
         }
-        costText += "\nTap Research button to start"
+
+        // Check if technology can be researched
+        let canResearch = gameLoop?.researchSystem.canResearch(tech) ?? false
+
+        if canResearch {
+            costText += "\nTap Research button to start"
+        } else {
+            costText += "\nRequirements not met"
+        }
 
         // Update the research info label to show cost
         researchInfoLabel?.text = costText

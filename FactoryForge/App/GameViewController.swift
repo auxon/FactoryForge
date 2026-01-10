@@ -134,15 +134,15 @@ class GameViewController: UIViewController {
         // Store tooltip info
         selectedEntityTooltip = (text, entity, persistent)
 
-        // Create attributed string with black text and white outline
+        // Create attributed string with white text and black outline
         let attributedString = NSMutableAttributedString(string: text)
         let range = NSRange(location: 0, length: text.count)
 
-        // Set black text color
-        attributedString.addAttribute(.foregroundColor, value: UIColor.black, range: range)
+        // Set white text color
+        attributedString.addAttribute(.foregroundColor, value: UIColor.white, range: range)
 
-        // Add white stroke/outline (negative stroke width creates an outline)
-        attributedString.addAttribute(.strokeColor, value: UIColor.white, range: range)
+        // Add black stroke/outline (negative stroke width creates an outline)
+        attributedString.addAttribute(.strokeColor, value: UIColor.black, range: range)
         attributedString.addAttribute(.strokeWidth, value: -3.0, range: range)
 
         tooltipLabel.attributedText = attributedString
