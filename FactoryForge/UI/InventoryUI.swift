@@ -445,8 +445,8 @@ final class InventoryUI: UIPanel_Base {
                     // Label position: bottom-right corner of slot
                     let labelWidth: Float = 24
                     let labelHeight: Float = 16
-                    let labelX = slotX + slotSize - labelWidth
-                    let labelY = slotY + slotSize - labelHeight
+                    let labelX = slotX + slotSize - labelWidth + 10
+                    let labelY = slotY + slotSize - labelHeight + 25
 
                     // Convert to UIView coordinates (pixels to points)
                     let scale = UIScreen.main.scale

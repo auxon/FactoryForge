@@ -450,7 +450,7 @@ final class BeltSystem: System {
                 continue
             }
 
-            print("BeltSystem: Checking output position: \(checkPos)")
+            // print("BeltSystem: Checking output position: \(checkPos)")
             // Check beltGraph for belts at exact adjacent positions
             if let beltNode = beltGraph[checkPos],
                beltNode.type == .normal || beltNode.type == .fast || beltNode.type == .express,
