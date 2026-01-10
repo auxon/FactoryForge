@@ -1045,7 +1045,6 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
         uiSystem?.getBuildMenu().onAddBuildButton = { [weak self] (button: UIView) -> Void in
-            print("GameViewController: onAddBuildButton callback EXECUTED")
             guard let self = self else {
                 print("GameViewController: self is nil in callback")
                 return

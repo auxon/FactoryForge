@@ -619,19 +619,8 @@ final class GameLoop {
                         continue
 
                     case .inserter, .powerPole:
-                        // Inserters and poles can be placed on belts
-                        if world.has(BeltComponent.self, for: entity) {
-                            continue
-                        }
-                        // Inserters and poles can be placed on other inserters/poles
-                        if world.has(InserterComponent.self, for: entity) ||
-                           world.has(PowerPoleComponent.self, for: entity) {
-                            continue
-                        }
-                        // Inserters and poles can be placed on buildings
-                        if isBuilding(entity) {
-                            continue
-                        }
+                        // Inserters and poles are buildings, placeable on empty ground like other buildings
+                        break
 
                     default:
                         break

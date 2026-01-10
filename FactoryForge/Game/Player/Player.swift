@@ -120,21 +120,7 @@ final class Player {
     
     private func giveStartingItems() {
         let startingItems = [
-            ("iron-plate", 100), ("iron-gear-wheel", 100), ("copper-plate", 100),
-            ("electronic-circuit", 100), ("copper-cable", 100), ("burner-mining-drill", 100),
-            ("stone-furnace", 100), ("steel-furnace", 100), ("electric-mining-drill", 100),
-            ("electric-furnace", 100), ("assembling-machine-1", 100), ("assembling-machine-2", 100),
-            ("assembling-machine-3", 100), ("lab", 100), ("oil-well", 100), ("oil-refinery", 100),
-            ("chemical-plant", 100), ("boiler", 100), ("steam-engine", 100), ("solar-panel", 100),
-            ("accumulator", 100), ("small-electric-pole", 100), ("medium-electric-pole", 100),
-            ("big-electric-pole", 100), ("gun-turret", 100), ("laser-turret", 100), ("wall", 100),
-            ("grenade", 100), ("radar", 100), ("automation-science-pack", 100),
-            ("logistic-science-pack", 100), ("chemical-science-pack", 100),
-            ("production-science-pack", 100), ("utility-science-pack", 100),
-            ("transport-belt", 200), ("firearm-magazine", 100), ("inserter", 100),
-            ("splitter", 100), ("merger", 100), ("belt-bridge", 100),
-            ("long-handed-inserter", 100), ("fast-inserter", 100), ("wooden-chest", 100),
-            ("iron-chest", 100), ("steel-chest", 100)
+            ("iron-plate", 10)  // 5 for stone furnace + 5 for burner mining drill
         ]
 
         for (itemId, count) in startingItems {
