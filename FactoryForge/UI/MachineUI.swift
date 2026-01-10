@@ -28,6 +28,7 @@ final class MachineUI: UIPanel_Base {
     var onOpenInventoryForMachine: ((Entity, Int) -> Void)?
     var onOpenResearchMenu: (() -> Void)?
     var onLaunchRocket: ((Entity) -> Void)?
+    var onSelectRecipeForMachine: ((Entity, Recipe) -> Void)?
     var onClosePanel: (() -> Void)?
 
     // Helper to check if current machine is a lab
@@ -257,6 +258,10 @@ final class MachineUI: UIPanel_Base {
 
             let buttonFrame = Rect(center: Vector2(x, y), size: Vector2(buttonSize, buttonSize))
             let button = RecipeButton(frame: buttonFrame, recipe: recipe)
+            button.onTap = { [weak self] in
+                guard let self = self, let entity = self.currentEntity else { return }
+                self.onSelectRecipeForMachine?(entity, recipe)
+            }
             recipeButtons.append(button)
         }
     }

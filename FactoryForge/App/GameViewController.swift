@@ -990,6 +990,9 @@ class GameViewController: UIViewController {
         uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
         }
+        uiSystem?.getMachineUI().onSelectRecipeForMachine = { [weak self] (entity: Entity, recipe: Recipe) -> Void in
+            self?.gameLoop?.setMachineRecipe(entity, recipe)
+        }
 
 
         // CraftingMenu callbacks

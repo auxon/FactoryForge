@@ -89,7 +89,7 @@ final class GameLoop {
         miningSystem = MiningSystem(world: world, chunkManager: chunkManager, itemRegistry: itemRegistry)
         beltSystem = BeltSystem(world: world)
         inserterSystem = InserterSystem(world: world, beltSystem: beltSystem, itemRegistry: itemRegistry)
-        craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry, itemRegistry: itemRegistry)
+        craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry, itemRegistry: itemRegistry, buildingRegistry: buildingRegistry)
         powerSystem = PowerSystem(world: world)
         researchSystem = ResearchSystem(world: world, technologyRegistry: technologyRegistry)
         pollutionSystem = PollutionSystem(world: world, chunkManager: chunkManager)
@@ -1433,6 +1433,22 @@ final class GameLoop {
     
     func isTechnologyResearched(_ techId: String) -> Bool {
         return researchSystem.completedTechnologies.contains(techId)
+    }
+
+    /// Sets a recipe for a machine entity
+    func setMachineRecipe(_ entity: Entity, _ recipe: Recipe) {
+        if var furnace = world.get(FurnaceComponent.self, for: entity) {
+            furnace.recipe = recipe
+            furnace.smeltingProgress = 0.001  // Start crafting immediately
+            world.add(furnace, to: entity)
+        } else if var assembler = world.get(AssemblerComponent.self, for: entity) {
+            assembler.recipe = recipe
+            assembler.craftingProgress = 0.001  // Start crafting immediately
+            world.add(assembler, to: entity)
+        } else if var lab = world.get(LabComponent.self, for: entity) {
+            // Labs don't use recipes the same way - they use research
+            // This might need different handling
+        }
     }
 
     // MARK: - IAP Integration

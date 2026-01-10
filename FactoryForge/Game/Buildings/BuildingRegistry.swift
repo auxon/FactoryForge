@@ -44,7 +44,7 @@ final class BuildingRegistry {
         burnerMiner.miningSpeed = 0.50
         burnerMiner.inputSlots = 0
         burnerMiner.outputSlots = 1
-        burnerMiner.fuelSlots = 1
+        burnerMiner.fuelSlots = 0
         register(burnerMiner)
         
         var electricMiner = BuildingDefinition(

@@ -18,8 +18,8 @@ class BuildingComponent: Component {
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        // buildingId must be provided by subclasses for backward compatibility
-        buildingId = ""
+        // Try to decode buildingId, but allow it to be missing for backward compatibility
+        buildingId = try container.decodeIfPresent(String.self, forKey: .buildingId) ?? ""
     }
 
     func encode(to encoder: Encoder) throws {

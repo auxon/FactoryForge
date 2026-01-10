@@ -9,6 +9,15 @@ The MachineUI has been significantly refactored and enhanced to support rocket s
 - **New Feature**: Added rocket silo launch button and functionality
 - **Improved Architecture**: Better separation of concerns and cleaner code organization
 
+## Recent Fixes
+
+### Output Slot Containment Fix
+- **Issue**: Assembler outputs were sometimes placed in input slots instead of output slots
+- **Root Cause**: `CraftingSystem.completeRecipe()` used `inventory.add()` which places items anywhere in inventory
+- **Solution**: Modified `completeRecipe()` to calculate output slot range and manually place outputs only in output slots
+- **Implementation**: Added `buildingRegistry` parameter to `CraftingSystem` and `placeOutputInSlots()` helper method
+- **Result**: Outputs now correctly stay in designated output slots, preventing input slot contamination
+
 ## Detailed Changes
 
 ### 1. Added Rocket Silo Support

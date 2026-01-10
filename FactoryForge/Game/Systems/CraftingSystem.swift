@@ -8,11 +8,13 @@ final class CraftingSystem: System {
     private let world: World
     private let recipeRegistry: RecipeRegistry
     private let itemRegistry: ItemRegistry
+    private let buildingRegistry: BuildingRegistry
 
-    init(world: World, recipeRegistry: RecipeRegistry, itemRegistry: ItemRegistry) {
+    init(world: World, recipeRegistry: RecipeRegistry, itemRegistry: ItemRegistry, buildingRegistry: BuildingRegistry) {
         self.world = world
         self.recipeRegistry = recipeRegistry
         self.itemRegistry = itemRegistry
+        self.buildingRegistry = buildingRegistry
     }
     
     func update(deltaTime: Float) {
@@ -43,7 +45,7 @@ final class CraftingSystem: System {
                 
                 if assembler.craftingProgress >= 1.0 {
                     // Complete crafting
-                    completeRecipe(recipe: recipe, inventory: &inventory, entity: entity, world: world)
+                    completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: assembler, world: world)
                     assembler.craftingProgress = 0
                     world.add(inventory, to: entity)
                 }
@@ -107,7 +109,7 @@ final class CraftingSystem: System {
 
                 if furnace.smeltingProgress >= 1.0 {
                     // Complete recipe
-                    completeRecipe(recipe: recipe, inventory: &inventory, entity: entity, world: world)
+                    completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: furnace, world: world)
                     furnace.smeltingProgress = 0
                     furnace.recipe = nil  // Reset to auto-select next
                     world.add(inventory, to: entity)
@@ -135,57 +137,17 @@ final class CraftingSystem: System {
     }
     
     private func canStartRecipe(recipe: Recipe, inventory: InventoryComponent, entity: Entity? = nil, world: World? = nil) -> Bool {
-        // Check if we have all inputs (from input slots only for machines)
-        if let entity = entity, let world = world, (world.has(FurnaceComponent.self, for: entity) || world.has(AssemblerComponent.self, for: entity)) {
-            // For machines, only count inputs from input slots (first half)
-            let inputSlotCount = inventory.slots.count / 2
-            for input in recipe.inputs {
-                var available = 0
-                for i in 0..<inputSlotCount {
-                    if let slot = inventory.slots[i], slot.itemId == input.itemId {
-                        available += slot.count
-                    }
-                }
-                if available < input.count {
-                    return false
-                }
-            }
-        } else {
-            // For non-machines, check anywhere in inventory
-            for input in recipe.inputs {
-                if inventory.count(of: input.itemId) < input.count {
-                    return false
-                }
+        // Check if we have all inputs (now check anywhere in inventory for all cases)
+        for input in recipe.inputs {
+            if inventory.count(of: input.itemId) < input.count {
+                return false
             }
         }
 
-        // Check if we have space for outputs
-        if let entity = entity, let world = world, let inventory = world.get(InventoryComponent.self, for: entity),
-           (world.has(FurnaceComponent.self, for: entity) || world.has(AssemblerComponent.self, for: entity) || inventory.slots.count >= 8) {
-            // For machines (furnaces and assemblers), check space only in output slots (second half)
-            let outputStartIndex = inventory.slots.count / 2
-            for output in recipe.outputs {
-                var hasSpace = false
-                let correctMaxStack = itemRegistry.get(output.itemId)?.stackSize ?? 200
-                for i in outputStartIndex..<inventory.slots.count {
-                    if let existing = inventory.slots[i], existing.itemId == output.itemId && existing.count < correctMaxStack {
-                        hasSpace = true
-                        break
-                    } else if inventory.slots[i] == nil {
-                        hasSpace = true
-                        break
-                    }
-                }
-                if !hasSpace {
-                    return false
-                }
-            }
-        } else {
-            // For other entities, check space anywhere in inventory
-            for output in recipe.outputs {
-                if !inventory.canAccept(itemId: output.itemId) {
-                    return false
-                }
+        // Check if we have space for outputs (now check anywhere in inventory for all cases)
+        for output in recipe.outputs {
+            if !inventory.canAccept(itemId: output.itemId) {
+                return false
             }
         }
 
@@ -193,105 +155,71 @@ final class CraftingSystem: System {
     }
 
     private func consumeInputsFromInputSlots(recipe: Recipe, inventory: inout InventoryComponent, world: World, entity: Entity) {
-        let hasFurnace = world.has(FurnaceComponent.self, for: entity)
-        let hasAssembler = world.has(AssemblerComponent.self, for: entity)
-        let isMachine = hasFurnace || hasAssembler
-        // Also check inventory size as fallback - machines have 8 slots, others have fewer
-        let inventorySizeIndicatesMachine = inventory.slots.count >= 8
-        let treatAsMachine = isMachine || inventorySizeIndicatesMachine
-
-        if treatAsMachine {
-            // For machines, only consume from input slots (first half)
-            let inputSlotCount = inventory.slots.count / 2
-            for input in recipe.inputs {
-                var remaining = input.count
-                for i in 0..<inputSlotCount {
-                    if remaining <= 0 { break }
-                    if var slot = inventory.slots[i], slot.itemId == input.itemId {
-                        let toRemove = min(remaining, slot.count)
-                        slot.count -= toRemove
-                        remaining -= toRemove
-                        inventory.slots[i] = slot.count > 0 ? slot : nil
-                    }
-                }
-            }
-        } else {
-            // For non-machines, consume from anywhere
-            for input in recipe.inputs {
-                inventory.remove(itemId: input.itemId, count: input.count)
-            }
+        // Now consume from anywhere in inventory for all cases
+        for input in recipe.inputs {
+            inventory.remove(itemId: input.itemId, count: input.count)
         }
     }
 
-    private func completeRecipe(recipe: Recipe, inventory: inout InventoryComponent, entity: Entity, world: World) {
-        // For machines (furnaces and assemblers), put outputs in the second half of inventory slots
-        let hasFurnace = world.has(FurnaceComponent.self, for: entity)
-        let hasAssembler = world.has(AssemblerComponent.self, for: entity)
-        let isMachine = hasFurnace || hasAssembler
-        // Also check inventory size as fallback
-        let inventorySizeIndicatesMachine = inventory.slots.count >= 8
-        let treatAsMachine = isMachine || inventorySizeIndicatesMachine
-        // Different machines have different output slot starts
-        let outputStartIndex = treatAsMachine ? (hasFurnace ? 2 : inventory.slots.count / 2) : 0
-
-        for var output in recipe.outputs {
-            if treatAsMachine {
-                // For machines (furnaces and assemblers), ONLY add to output slots (second half) - never to input slots
-                var added = false
-                for i in outputStartIndex..<inventory.slots.count {
-                    if let existing = inventory.slots[i], existing.itemId == output.itemId {
-                        // Check if maxStack needs updating
-                        let item = itemRegistry.get(output.itemId)
-                        let correctMaxStack = item?.stackSize ?? existing.maxStack
-                        if existing.maxStack != correctMaxStack {
-                            var updated = existing
-                            updated.maxStack = correctMaxStack
-                            inventory.slots[i] = updated
-                        }
-
-                        if existing.count < correctMaxStack {
-                            // Add to existing stack (up to maxStack)
-                            let spaceAvailable = correctMaxStack - existing.count
-                            let amountToAdd = min(output.count, spaceAvailable)
-                            inventory.slots[i]?.count += amountToAdd
-                            output.count -= amountToAdd
-                            if output.count == 0 {
-                                added = true
-                                break
-                            }
-                            // Continue to next slot if there's remaining output
-                        }
-                    } else if inventory.slots[i] == nil {
-                        // Add to empty slot
-                        let item = itemRegistry.get(output.itemId)
-                        let correctMaxStack = item?.stackSize ?? output.maxStack
-                        inventory.slots[i] = ItemStack(itemId: output.itemId, count: output.count, maxStack: correctMaxStack)
-                        added = true
-                        break
-                    } else if let existing = inventory.slots[i], existing.itemId == output.itemId && existing.count >= existing.maxStack {
-                        // Skip full stacks of the same item
-                    } else if let existing = inventory.slots[i], existing.itemId != output.itemId {
-                        // Skip slots with different items
-                    }
-                }
-                // If output slots are full, allow completion but use fallback (any available slot)
-                // This prevents machines from getting stuck with in-progress recipes
-                if !added {
-                    print("Warning: Machine output slots are full - using fallback placement for recipe \(recipe.id)")
-                    // Use regular add as fallback (will place in any available slot, including input slots if needed)
-                    let remaining = inventory.add(output)
-                    if remaining > 0 {
-                        print("Warning: Could not place machine output - no space anywhere in inventory")
-                        // In a real game, this might destroy the item or something
-                    }
-                }
-            } else {
-                // For non-machines, use regular add
-                inventory.add(output)
+    private func completeRecipe(recipe: Recipe, inventory: inout InventoryComponent, buildingComponent: BuildingComponent, world: World) {
+        // Get building definition using the component we already have
+        guard let buildingDef = buildingRegistry.get(buildingComponent.buildingId) else {
+            // Fallback: place outputs anywhere if we can't determine building type
+            print("CraftingSystem: FALLBACK - Building definition not found for '\(buildingComponent.buildingId)'")
+            for output in recipe.outputs {
+                let item = itemRegistry.get(output.itemId)
+                let maxStack = item?.stackSize ?? output.maxStack
+                inventory.add(itemId: output.itemId, count: output.count, maxStack: maxStack)
             }
+            return
+        }
+
+        // Calculate output slot range: fuel slots + input slots to end
+        let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
+        let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
+
+        // Place outputs only in output slots
+        for output in recipe.outputs {
+            let item = itemRegistry.get(output.itemId)
+            let maxStack = item?.stackSize ?? output.maxStack
+            placeOutputInSlots(output: output, maxStack: maxStack, inventory: &inventory, startIndex: outputStartIndex, endIndex: outputEndIndex)
         }
 
         // Inventory is saved by caller
+    }
+
+    private func placeOutputInSlots(output: ItemStack, maxStack: Int, inventory: inout InventoryComponent, startIndex: Int, endIndex: Int) {
+        var remaining = output.count
+
+        // First, try to fill existing stacks of the same item in output slots
+        for i in startIndex...endIndex {
+            if var existingStack = inventory.slots[i], existingStack.itemId == output.itemId {
+                let space = existingStack.maxStack - existingStack.count
+                let toAdd = min(space, remaining)
+                existingStack.count += toAdd
+                inventory.slots[i] = existingStack
+                remaining -= toAdd
+
+                if remaining == 0 { return }
+            }
+        }
+
+        // Then, use empty output slots
+        for i in startIndex...endIndex {
+            if inventory.slots[i] == nil {
+                let toAdd = min(maxStack, remaining)
+                inventory.slots[i] = ItemStack(itemId: output.itemId, count: toAdd, maxStack: maxStack)
+                remaining -= toAdd
+
+                if remaining == 0 { return }
+            }
+        }
+
+        // If we still have remaining items and no output slots available,
+        // this is an error - outputs should always fit in output slots
+        if remaining > 0 {
+            print("CraftingSystem: ERROR - Could not place \(remaining) \(output.itemId) in output slots \(startIndex)-\(endIndex)")
+        }
     }
     
     private func autoSelectSmeltingRecipe(inventory: InventoryComponent, recipeRegistry: RecipeRegistry) -> Recipe? {
