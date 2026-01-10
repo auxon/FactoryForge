@@ -203,6 +203,7 @@ final class UISystem {
             self?.gameLoop?.inputManager?.enterBuildMode(buildingId: buildingId)
         }
         
+
         // Machine UI callback for opening inventory
         machineUI.onOpenInventoryForMachine = { [weak self] entity, slotIndex in
             // Open inventory UI in machine input mode
@@ -405,7 +406,10 @@ final class UISystem {
         
         dialog.onEntitySelected = { [weak self] entity in
             onSelected(entity)
-            self?.closeEntitySelectionDialog()
+            // Delay closing the dialog to prevent the same tap from being processed by game world
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self?.closeEntitySelectionDialog()
+            }
         }
         
         dialog.onEntityDoubleTapped = { [weak self] entity in
@@ -845,7 +849,6 @@ class EntitySelectionDialog {
     private var screenSize: Vector2
     
     private var entities: [Entity] = []
-    private var entityButtons: [UIButton] = []
     private var cancelButton: UIButton
     
     var onEntitySelected: ((Entity) -> Void)?
@@ -884,59 +887,15 @@ class EntitySelectionDialog {
     
     func setEntities(_ entities: [Entity]) {
         self.entities = entities
-        entityButtons.removeAll()
-        
+
         guard let gameLoop = gameLoop else { return }
-        
+
         print("EntitySelectionDialog: setEntities called with \(entities.count) entities")
         for entity in entities {
             let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
             let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
             print("EntitySelectionDialog: Entity \(entity) - Inserter: \(hasInserter), Belt: \(hasBelt), Furnace: \(hasFurnace)")
-        }
-        
-        let iconSize: Float = 80 * UIScale
-        let spacing: Float = 20 * UIScale
-        let padding: Float = 40 * UIScale
-        
-        // Calculate grid layout
-        let cols = min(3, entities.count)  // Max 3 columns
-        let rows = (entities.count + cols - 1) / cols  // Ceiling division
-        
-        let totalWidth = Float(cols) * iconSize + Float(cols - 1) * spacing + padding * 2
-        let totalHeight = Float(rows) * iconSize + Float(rows - 1) * spacing + padding * 2 + 100  // Extra space for cancel button
-        
-        let startX = (screenSize.x - totalWidth) / 2 + padding
-        let startY = (screenSize.y - totalHeight) / 2 + padding
-        
-        // Create buttons for each entity
-        for (index, entity) in entities.enumerated() {
-            let row = index / cols
-            let col = index % cols
-            
-            let x = startX + Float(col) * (iconSize + spacing) + iconSize / 2
-            let y = startY + Float(row) * (iconSize + spacing) + iconSize / 2
-            
-            let button = UIButton(
-                frame: Rect(
-                    center: Vector2(x, y),
-                    size: Vector2(iconSize, iconSize)
-                ),
-                textureId: getEntityTextureId(entity: entity, gameLoop: gameLoop)
-            )
-            
-            // Capture the entity ID and generation to ensure we use the correct entity
-            let capturedEntity = entity
-            let entityId = entity.id
-            let entityGeneration = entity.generation
-            button.onTap = { [weak self] in
-                guard let self = self else { return }
-                // Call the selection callback immediately
-                self.onEntitySelected?(capturedEntity)
-            }
-            
-            entityButtons.append(button)
         }
     }
     
@@ -998,19 +957,65 @@ class EntitySelectionDialog {
     
     func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
-        
-        // Check entity buttons
-        for button in entityButtons {
-            if button.handleTap(at: position) {
+
+        // Calculate grid layout (same as in setEntities)
+        let iconSize: Float = 80 * UIScale
+        let spacing: Float = 20 * UIScale
+        let padding: Float = 40 * UIScale
+        let cols = min(3, entities.count)
+        let rows = (entities.count + cols - 1) / cols
+        let totalWidth = Float(cols) * iconSize + Float(cols - 1) * spacing + padding * 2
+        let totalHeight = Float(rows) * iconSize + Float(rows - 1) * spacing + padding * 2 + 100
+
+        let startX = (screenSize.x - totalWidth) / 2 + padding
+        let startY = (screenSize.y - totalHeight) / 2 + padding
+
+        // Check if tap is within the entity grid area
+        for (index, _) in entities.enumerated() {
+            let row = index / cols
+            let col = index % cols
+
+            let buttonCenterX = startX + Float(col) * (iconSize + spacing) + iconSize / 2
+            let buttonCenterY = startY + Float(row) * (iconSize + spacing) + iconSize / 2
+
+            // Simple bounding box check
+            let left = buttonCenterX - iconSize / 2
+            let right = buttonCenterX + iconSize / 2
+            let top = buttonCenterY - iconSize / 2
+            let bottom = buttonCenterY + iconSize / 2
+
+            if position.x >= left && position.x <= right && position.y >= top && position.y <= bottom {
+                // Entity button tapped - select it
+                onEntitySelected?(entities[index])
                 return true
             }
         }
-        
+
         // Check cancel button
-        if cancelButton.handleTap(at: position) {
+        let cancelLeft = cancelButton.frame.center.x - cancelButton.frame.size.x / 2
+        let cancelRight = cancelButton.frame.center.x + cancelButton.frame.size.x / 2
+        let cancelTop = cancelButton.frame.center.y - cancelButton.frame.size.y / 2
+        let cancelBottom = cancelButton.frame.center.y + cancelButton.frame.size.y / 2
+
+        if position.x >= cancelLeft && position.x <= cancelRight &&
+           position.y >= cancelTop && position.y <= cancelBottom {
+            onCancel?()
             return true
         }
-        
+
+        // Check if tap is within dialog area
+        let dialogLeft = screenSize.x / 2 - totalWidth / 2
+        let dialogRight = screenSize.x / 2 + totalWidth / 2
+        let dialogTop = screenSize.y / 2 - totalHeight / 2
+        let dialogBottom = screenSize.y / 2 + totalHeight / 2
+
+        if position.x >= dialogLeft && position.x <= dialogRight &&
+           position.y >= dialogTop && position.y <= dialogBottom {
+            // Tap is within dialog but not on any interactive element - consume the tap
+            print("EntitySelectionDialog: Tap consumed within dialog bounds at (\(position.x), \(position.y))")
+            return true
+        }
+
         // Tap outside dialog - close it
         onCancel?()
         return true
@@ -1018,28 +1023,47 @@ class EntitySelectionDialog {
     
     func handleDoubleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
-        
-        // Check entity buttons for double tap
-        for (index, button) in entityButtons.enumerated() {
-            if button.frame.contains(position) {
-                // Directly trigger double-tap callback for this entity
-                if index < entities.count {
-                    let entity = entities[index]
-                    print("EntitySelectionDialog: Double-tap detected on button for entity \(entity)")
-                    onEntityDoubleTapped?(entity)
-                    return true
-                }
+
+        // Calculate grid layout (same as in handleTap)
+        let iconSize: Float = 80 * UIScale
+        let spacing: Float = 20 * UIScale
+        let padding: Float = 40 * UIScale
+        let cols = min(3, entities.count)
+        let rows = (entities.count + cols - 1) / cols
+        let totalWidth = Float(cols) * iconSize + Float(cols - 1) * spacing + padding * 2
+        let totalHeight = Float(rows) * iconSize + Float(rows - 1) * spacing + padding * 2 + 100
+
+        let startX = (screenSize.x - totalWidth) / 2 + padding
+        let startY = (screenSize.y - totalHeight) / 2 + padding
+
+        // Check if double tap is within any entity area
+        for (index, _) in entities.enumerated() {
+            let row = index / cols
+            let col = index % cols
+
+            let buttonCenterX = startX + Float(col) * (iconSize + spacing) + iconSize / 2
+            let buttonCenterY = startY + Float(row) * (iconSize + spacing) + iconSize / 2
+
+            // Simple bounding box check
+            let left = buttonCenterX - iconSize / 2
+            let right = buttonCenterX + iconSize / 2
+            let top = buttonCenterY - iconSize / 2
+            let bottom = buttonCenterY + iconSize / 2
+
+            if position.x >= left && position.x <= right && position.y >= top && position.y <= bottom {
+                // Entity double-tapped
+                print("EntitySelectionDialog: Double-tap detected on entity \(index) at position (\(position.x), \(position.y))")
+                print("EntitySelectionDialog: Button bounds: left=\(left), right=\(right), top=\(top), bottom=\(bottom)")
+                onEntityDoubleTapped?(entities[index])
+                return true
             }
         }
-        
+
         // Double tap outside dialog - ignore it (don't close dialog)
         return false
     }
     
     func update(deltaTime: Float) {
-        for button in entityButtons {
-            button.update(deltaTime: deltaTime)
-        }
         cancelButton.update(deltaTime: deltaTime)
     }
     
@@ -1071,9 +1095,27 @@ class EntitySelectionDialog {
             layer: .ui
         ))
         
-        // Render entity buttons
-        for button in entityButtons {
-            button.render(renderer: renderer)
+        // Render entity icons directly
+        let startX = (screenSize.x - totalWidth) / 2 + padding
+        let startY = (screenSize.y - totalHeight) / 2 + padding
+
+        for (index, entity) in entities.enumerated() {
+            let row = index / cols
+            let col = index % cols
+
+            let x = startX + Float(col) * (iconSize + spacing) + iconSize / 2
+            let y = startY + Float(row) * (iconSize + spacing) + iconSize / 2
+
+            let textureId = getEntityTextureId(entity: entity, gameLoop: gameLoop!)
+            let textureRect = renderer.textureAtlas.getTextureRect(for: textureId)
+
+            renderer.queueSprite(SpriteInstance(
+                position: Vector2(x, y),
+                size: Vector2(iconSize, iconSize),
+                textureRect: textureRect,
+                color: .white,
+                layer: .ui
+            ))
         }
         
         // Render cancel button

@@ -801,7 +801,7 @@ final class RecipeRegistry {
                 ItemStack(itemId: "uranium-238", count: 9)
             ],
             craftTime: 12,
-            category: .crafting,
+            category: .centrifuging,
             order: "ab"
         ))
 
@@ -814,7 +814,7 @@ final class RecipeRegistry {
             ],
             outputs: [ItemStack(itemId: "nuclear-fuel", count: 1)],
             craftTime: 60,
-            category: .crafting,
+            category: .centrifuging,
             order: "ac"
         ))
 

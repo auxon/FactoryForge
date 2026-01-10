@@ -93,6 +93,10 @@ The MachineUI refactoring introduced several compilation errors that were subseq
 13. **EntitySelectionDialog**: Fixed tap consumption issues by making entity selection synchronous and ensuring taps outside dialog properly close it
 14. **HUD Tap Handling**: Removed redundant panel state check that was preventing HUD taps after closing panels
 15. **Panel State Management**: Fixed activePanel state not being cleared when panels close themselves via close buttons
+16. **Smart Slot Interaction**: Implemented intelligent slot tapping - occupied slots return items to inventory, empty input slots open inventory for item selection; added proper handling for partial item transfers when inventory is full; integrated with existing tooltip system for user feedback
+17. **Adaptive Slot Display**: Implemented dynamic slot creation that shows only the relevant number of slots for each machine - 1-slot machines show 1 slot, 4-slot machines show 4 slots, etc.
+18. **Centrifuge Enhancement**: Increased centrifuge inventory slots from 2 to 4 and moved uranium processing recipes to use centrifuging category for proper nuclear fuel production
+19. **Count Labels**: Restored stack count labels for machine inventory slots, positioned at bottom-right corner of each slot showing counts > 1
 
 ### Architecture Changes:
 - **UI Element Management**: Elements are stored in arrays and rendered directly in the panel's render method

@@ -55,11 +55,40 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func setupSlots() {
+        // Clear existing slots and labels
+        inputSlots.removeAll()
+        outputSlots.removeAll()
+        inputCountLabels.removeAll()
+        outputCountLabels.removeAll()
+
+        // Get machine inventory to determine how many slots to show
+        guard let entity = currentEntity,
+              let gameLoop = gameLoop,
+              let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else {
+            return
+        }
+
+        let totalSlots = inventory.slots.count
         let slotSize: Float = 40 * UIScale
         let slotSpacing: Float = 5 * UIScale
 
-        // Input slots (left side)
-        for i in 0..<4 {
+        var inputCount = 4
+        var outputCount = 4
+
+        // Adaptive slot count based on machine inventory size
+        if totalSlots <= 4 {
+            // Small machines: show all slots as inputs, no outputs
+            inputCount = totalSlots
+            outputCount = 0
+        } else if totalSlots <= 8 {
+            // Medium machines: split roughly in half
+            inputCount = totalSlots / 2
+            outputCount = totalSlots - inputCount
+        }
+        // Large machines: keep 4 inputs + 4 outputs
+
+        // Create input slots
+        for i in 0..<inputCount {
             let x = frame.center.x - 200 * UIScale - slotSize/2
             let y = frame.center.y - 80 * UIScale + Float(i) * (slotSize + slotSpacing)
 
@@ -77,8 +106,8 @@ final class MachineUI: UIPanel_Base {
             inputCountLabels.append(label)
         }
 
-        // Output slots (right side)
-        for i in 0..<4 {
+        // Create output slots
+        for i in 0..<outputCount {
             let x = frame.center.x + 200 * UIScale + slotSize/2
             let y = frame.center.y - 80 * UIScale + Float(i) * (slotSize + slotSpacing)
 
@@ -99,6 +128,7 @@ final class MachineUI: UIPanel_Base {
 
     func setEntity(_ entity: Entity) {
         currentEntity = entity
+        setupSlots() // Re-setup slots based on machine inventory size
         setupSlotsForMachine(entity)
         refreshRecipeButtons()
     }
@@ -111,6 +141,9 @@ final class MachineUI: UIPanel_Base {
             allLabels += researchProgressLabels
         }
         onAddLabels?(allLabels)
+
+        // Position the count labels
+        positionCountLabels()
 
         // Add rocket launch button for rocket silos
         if isRocketSilo {
@@ -206,23 +239,60 @@ final class MachineUI: UIPanel_Base {
 
         // Get machine inventory
         if let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
-            // Set up input slots
-            for i in 0..<min(inputSlots.count, inventory.slots.count) {
-                if let item = inventory.slots[i] {
-                    inputSlots[i].item = item
-                } else {
-                    inputSlots[i].item = nil
-                }
-            }
+            let totalSlots = inventory.slots.count
 
-            // Set up output slots (typically the last slots are outputs)
-            let outputStartIndex = max(0, inventory.slots.count - outputSlots.count)
-            for i in 0..<min(outputSlots.count, inventory.slots.count - outputStartIndex) {
-                let inventoryIndex = outputStartIndex + i
-                if let item = inventory.slots[inventoryIndex] {
-                    outputSlots[i].item = item
-                } else {
+            // Adaptive slot mapping based on machine inventory size
+            if totalSlots <= 4 {
+                // Small machines: all slots are inputs
+                for i in 0..<inputSlots.count {
+                    if i < totalSlots, let item = inventory.slots[i] {
+                        inputSlots[i].item = item
+                    } else {
+                        inputSlots[i].item = nil
+                    }
+                }
+                // No output slots
+                for i in 0..<outputSlots.count {
                     outputSlots[i].item = nil
+                }
+            } else if totalSlots <= 8 {
+                // Medium machines: first half inputs, second half outputs
+                let inputCount = totalSlots / 2
+
+                for i in 0..<inputSlots.count {
+                    if i < inputCount, let item = inventory.slots[i] {
+                        inputSlots[i].item = item
+                    } else {
+                        inputSlots[i].item = nil
+                    }
+                }
+
+                for i in 0..<outputSlots.count {
+                    let inventoryIndex = inputCount + i
+                    if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
+                        outputSlots[i].item = item
+                    } else {
+                        outputSlots[i].item = nil
+                    }
+                }
+            } else {
+                // Large machines: first 4 inputs, last 4 outputs
+                for i in 0..<inputSlots.count {
+                    if let item = inventory.slots[i] {
+                        inputSlots[i].item = item
+                    } else {
+                        inputSlots[i].item = nil
+                    }
+                }
+
+                let outputStartIndex = max(4, totalSlots - 4)
+                for i in 0..<outputSlots.count {
+                    let inventoryIndex = outputStartIndex + i
+                    if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
+                        outputSlots[i].item = item
+                    } else {
+                        outputSlots[i].item = nil
+                    }
                 }
             }
         }
@@ -235,9 +305,12 @@ final class MachineUI: UIPanel_Base {
         guard let gameLoop = gameLoop,
               let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { return }
 
+        let totalSlots = inventory.slots.count
+
         // Update input slot labels
-        for i in 0..<min(inputSlots.count, inventory.slots.count) {
-            if let item = inventory.slots[i] {
+        for i in 0..<inputCountLabels.count {
+            let inventoryIndex = getInputSlotInventoryIndex(slotIndex: i, totalSlots: totalSlots)
+            if inventoryIndex >= 0 && inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
                 inputCountLabels[i].text = "\(item.count)"
                 inputCountLabels[i].isHidden = false
             } else {
@@ -247,10 +320,9 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Update output slot labels
-        let outputStartIndex = max(0, inventory.slots.count - outputSlots.count)
-        for i in 0..<min(outputSlots.count, inventory.slots.count - outputStartIndex) {
-            let inventoryIndex = outputStartIndex + i
-            if let item = inventory.slots[inventoryIndex] {
+        for i in 0..<outputCountLabels.count {
+            let inventoryIndex = getOutputSlotInventoryIndex(slotIndex: i, totalSlots: totalSlots)
+            if inventoryIndex >= 0 && inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
                 outputCountLabels[i].text = "\(item.count)"
                 outputCountLabels[i].isHidden = false
             } else {
@@ -263,6 +335,7 @@ final class MachineUI: UIPanel_Base {
     func updateMachine(_ entity: Entity) {
         setupSlotsForMachine(entity)
         updateCountLabels(entity)
+        positionCountLabels()
     }
 
     override func render(renderer: MetalRenderer) {
@@ -271,15 +344,20 @@ final class MachineUI: UIPanel_Base {
         super.render(renderer: renderer)
 
         // Render input slots
-        for slot in inputSlots {
-            slot.render(renderer: renderer)
+        for i in 0..<inputSlots.count {
+            inputSlots[i].render(renderer: renderer)
         }
 
         // Render output slots
-        for slot in outputSlots {
-            slot.render(renderer: renderer)
+        for i in 0..<outputSlots.count {
+            outputSlots[i].render(renderer: renderer)
         }
 
+        // update count labels
+        if let entity = currentEntity {
+            updateMachine(entity)
+        }
+        
         // Render recipe buttons
         for button in recipeButtons {
             button.render(renderer: renderer)
@@ -344,6 +422,123 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
+    private func handleSlotTap(entity: Entity, slotIndex: Int, gameLoop: GameLoop) {
+        let world = gameLoop.world
+
+        // Get machine inventory
+        guard var machineInventory = world.get(InventoryComponent.self, for: entity),
+              slotIndex < machineInventory.slots.count,
+              let itemStack = machineInventory.slots[slotIndex] else {
+            return
+        }
+
+        // Try to add the item to player inventory
+        let remainingCount = gameLoop.player.inventory.add(itemStack)
+
+        if remainingCount == 0 {
+            // All items were successfully moved to player inventory
+            machineInventory.slots[slotIndex] = nil
+            world.add(machineInventory, to: entity)
+
+            // Update the UI
+            updateMachine(entity)
+
+            print("MachineUI: Returned \(itemStack.count) \(itemStack.itemId) to player inventory")
+        } else {
+            // Some items couldn't be moved - update the machine slot with remaining items
+            let remainingStack = ItemStack(itemId: itemStack.itemId, count: remainingCount, maxStack: itemStack.maxStack)
+            machineInventory.slots[slotIndex] = remainingStack
+            world.add(machineInventory, to: entity)
+
+            // Update the UI
+            updateMachine(entity)
+
+            // Show feedback that only partial items were moved
+            showInventoryFullTooltip()
+            print("MachineUI: Returned \(itemStack.count - remainingCount) \(itemStack.itemId) to player inventory, \(remainingCount) remaining in machine")
+        }
+    }
+
+    private func showInventoryFullTooltip() {
+        // Show tooltip using the existing tooltip system
+        gameLoop?.inputManager?.onTooltip?("Inventory is full!")
+    }
+
+    private func handleEmptySlotTap(entity: Entity, slotIndex: Int) {
+        // Open inventory UI in machine input mode for this slot
+        onOpenInventoryForMachine?(entity, slotIndex)
+    }
+
+    private func getInputSlotInventoryIndex(slotIndex: Int, totalSlots: Int) -> Int {
+        if totalSlots <= 4 {
+            // Small machines: all slots are inputs
+            return slotIndex
+        } else if totalSlots <= 8 {
+            // Medium machines: first half are inputs
+            let inputCount = totalSlots / 2
+            return slotIndex < inputCount ? slotIndex : -1
+        } else {
+            // Large machines: first 4 slots are inputs
+            return slotIndex < 4 ? slotIndex : -1
+        }
+    }
+
+    private func getOutputSlotInventoryIndex(slotIndex: Int, totalSlots: Int) -> Int {
+        if totalSlots <= 4 {
+            return -1 // No output slots for small machines
+        } else if totalSlots <= 8 {
+            // Medium machines: second half are outputs
+            let inputCount = totalSlots / 2
+            return inputCount + slotIndex
+        } else {
+            // Large machines: last 4 slots are outputs
+            let outputStartIndex = max(4, totalSlots - 4)
+            return outputStartIndex + slotIndex
+        }
+    }
+
+    private func positionCountLabels() {
+        let slotSize: Float = 40 * UIScale
+
+        // Position input slot labels
+        for i in 0..<inputSlots.count {
+            let slot = inputSlots[i]
+            let label = inputCountLabels[i]
+
+            // Label position: bottom-right corner of slot
+            let labelWidth: Float = 24
+            let labelHeight: Float = 12
+            let labelX = slot.frame.center.x - slotSize/2 + slotSize - labelWidth
+            let labelY = slot.frame.center.y - slotSize/2 + slotSize - labelHeight
+
+            // Convert to UIView coordinates
+            let scale = UIScreen.main.scale
+            let uiX = CGFloat(labelX) / scale
+            let uiY = CGFloat(labelY) / scale
+
+            label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
+        }
+
+        // Position output slot labels
+        for i in 0..<outputSlots.count {
+            let slot = outputSlots[i]
+            let label = outputCountLabels[i]
+
+            // Label position: bottom-right corner of slot
+            let labelWidth: Float = 20
+            let labelHeight: Float = 12
+            let labelX = slot.frame.center.x - slotSize/2 + slotSize - labelWidth
+            let labelY = slot.frame.center.y - slotSize/2 + slotSize - labelHeight
+
+            // Convert to UIView coordinates
+            let scale = UIScreen.main.scale
+            let uiX = CGFloat(labelX) / scale
+            let uiY = CGFloat(labelY) / scale
+
+            label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
+        }
+    }
+
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
 
@@ -362,9 +557,17 @@ final class MachineUI: UIPanel_Base {
         // Check input slots
         for (index, slot) in inputSlots.enumerated() {
             if slot.handleTap(at: position) {
-                // Handle inventory slot tap
-                if let entity = currentEntity {
-                    onOpenInventoryForMachine?(entity, index)
+                if let entity = currentEntity, let gameLoop = gameLoop,
+                   let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
+                    let inventoryIndex = getInputSlotInventoryIndex(slotIndex: index, totalSlots: inventory.slots.count)
+                    if inventoryIndex >= 0 && inventoryIndex < inventory.slots.count,
+                       inventory.slots[inventoryIndex] != nil {
+                        // Slot has an item - remove it to player inventory
+                        handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
+                    } else {
+                        // Slot is empty - open inventory for input
+                        handleEmptySlotTap(entity: entity, slotIndex: inventoryIndex)
+                    }
                 }
                 return true
             }
@@ -373,12 +576,17 @@ final class MachineUI: UIPanel_Base {
         // Check output slots
         for (slotIndex, slot) in outputSlots.enumerated() {
             if slot.handleTap(at: position) {
-                // Handle inventory slot tap
-                if let entity = currentEntity {
-                    let inventory = gameLoop?.world.get(InventoryComponent.self, for: entity)
-                    let outputStartIndex = max(0, inventory?.slots.count ?? 0 - outputSlots.count)
-                    let inventoryIndex = outputStartIndex + slotIndex
-                    onOpenInventoryForMachine?(entity, inventoryIndex)
+                if let entity = currentEntity, let gameLoop = gameLoop,
+                   let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
+                    let inventoryIndex = getOutputSlotInventoryIndex(slotIndex: slotIndex, totalSlots: inventory.slots.count)
+                    if inventoryIndex >= 0 && inventoryIndex < inventory.slots.count,
+                       inventory.slots[inventoryIndex] != nil {
+                        // Slot has an item - remove it to player inventory
+                        handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
+                    } else {
+                        // Slot is empty - could potentially open inventory for output, but for now just ignore
+                        // Output slots are typically filled by machine production, not manual input
+                    }
                 }
                 return true
             }
@@ -387,5 +595,29 @@ final class MachineUI: UIPanel_Base {
         // If tap didn't hit any UI elements, close the panel
         onClosePanel?()
         return true // Consume the tap to prevent other interactions
+    }
+
+    override func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
+        // Check if dragging to an empty input or output slot
+        guard let gameLoop = gameLoop, let entity = currentEntity else { return false }
+
+        // Check input slots
+        for (index, slot) in inputSlots.enumerated() {
+            if slot.frame.contains(endPos) && slot.item == nil {
+                // Dropped on empty input slot - this would require drag state from inventory
+                // For now, just return true to indicate drag was handled
+                return true
+            }
+        }
+
+        // Check output slots
+        for (slotIndex, slot) in outputSlots.enumerated() {
+            if slot.frame.contains(endPos) && slot.item == nil {
+                // Dropped on empty output slot - this would require drag state from inventory
+                return true
+            }
+        }
+
+        return false
     }
 }

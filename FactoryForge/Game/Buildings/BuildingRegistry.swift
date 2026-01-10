@@ -534,7 +534,7 @@ final class BuildingRegistry {
             cost: [ItemStack(itemId: "centrifuge", count: 1)]
         )
         centrifuge.powerConsumption = 350  // kW
-        centrifuge.inventorySlots = 2      // Input and output slots
+        centrifuge.inventorySlots = 4      // Input slots for uranium ore, output slots for U-235 and U-238
         register(centrifuge)
 
         // Rocket facilities
