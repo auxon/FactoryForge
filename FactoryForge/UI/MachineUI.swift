@@ -658,7 +658,7 @@ final class MachineUI: UIPanel_Base {
         if let powerLabel = powerLabel {
             let labelWidth: Float = 100
             let labelHeight: Float = 16
-            let labelX = frame.minX + labelWidth * 3.5
+            let labelX = frame.center.x - labelWidth/2  // Center the label
             let labelY = frame.center.y - 85 * UIScale  // Position above the power bar
 
             // Convert to UIView coordinates
@@ -846,27 +846,27 @@ final class MachineUI: UIPanel_Base {
         if isGenerator {
             // Power availability bar (blue with white border)
             let powerWidth = barWidth * powerAvailability
+
+            // White border showing full capacity (always full width)
+            let borderThickness: Float = 1.5 * UIScale
+            let borderRect = Rect(
+                center: barRect.center,
+                size: Vector2(barWidth + borderThickness, barHeight + borderThickness)
+            )
+            renderer.queueSprite(SpriteInstance(
+                position: borderRect.center,
+                size: borderRect.size,
+                textureRect: solidRect,
+                color: Color(r: 1.0, g: 1.0, b: 1.0, a: 1.0), // White border
+                layer: .ui
+            ))
+
+            // Blue fill showing available power
             if powerWidth > 0 {
                 let powerRect = Rect(
                     center: Vector2(barX + powerWidth/2, barY),
                     size: Vector2(powerWidth, barHeight)
                 )
-
-                // White border (slightly larger)
-                let borderThickness: Float = 1.5 * UIScale
-                let borderRect = Rect(
-                    center: powerRect.center,
-                    size: Vector2(powerWidth + borderThickness, barHeight + borderThickness)
-                )
-                renderer.queueSprite(SpriteInstance(
-                    position: borderRect.center,
-                    size: borderRect.size,
-                    textureRect: solidRect,
-                    color: Color(r: 1.0, g: 1.0, b: 1.0, a: 1.0), // White border
-                    layer: .ui
-                ))
-
-                // Blue fill
                 renderer.queueSprite(SpriteInstance(
                     position: powerRect.center,
                     size: powerRect.size,

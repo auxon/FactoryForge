@@ -113,15 +113,15 @@ final class PowerSystem: System {
                 for entity in allConsumers {
                     guard let entityPos = world.get(PositionComponent.self, for: entity),
                           let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
-                    
+
                     // For multi-tile buildings, check if any corner is within supply radius
                     let entityCenter = entityPos.worldPosition
                     let halfWidth = sprite.size.x * 0.5
                     let halfHeight = sprite.size.y * 0.5
-                    
+
                     // Check center distance
                     let centerDistance = polePos.worldPosition.distance(to: entityCenter)
-                    
+
                     // Check if any corner of the building is within supply radius
                     let corners = [
                         Vector2(entityCenter.x - halfWidth, entityCenter.y - halfHeight),
@@ -129,10 +129,10 @@ final class PowerSystem: System {
                         Vector2(entityCenter.x - halfWidth, entityCenter.y + halfHeight),
                         Vector2(entityCenter.x + halfWidth, entityCenter.y + halfHeight)
                     ]
-                    
+
                     let minCornerDistance = corners.map { polePos.worldPosition.distance(to: $0) }.min() ?? centerDistance
                     let isWithinRange = minCornerDistance <= supplyRadius
-                    
+
                     if isWithinRange {
                         if var consumer = world.get(PowerConsumerComponent.self, for: entity) {
                             if !network.consumers.contains(entity) {
@@ -201,13 +201,13 @@ final class PowerSystem: System {
     private func updateNetwork(_ network: inout PowerNetwork, deltaTime: Float) {
         // First, calculate total consumption (needed for generator update logic)
         var totalConsumption: Float = 0
-        
+
         for consumer in network.consumers {
             if let consumerComp = world.get(PowerConsumerComponent.self, for: consumer) {
                 totalConsumption += consumerComp.consumption
             }
         }
-        
+
         network.totalConsumption = totalConsumption
         
         // Then update generators (this sets their currentOutput based on consumption)
@@ -313,18 +313,12 @@ final class PowerSystem: System {
                     guard let comp = world.get(AccumulatorComponent.self, for: acc) else { return false }
                     return comp.chargePercentage < 1.0
                 })
-                
+
                 if hasFuel && (hasConsumption || needsCharging) {
                     genComp.fuelRemaining -= deltaTime
                     genComp.currentOutput = genComp.powerOutput
-                    // print("PowerSystem: Generator \(generator.id) burning fuel, output: \(genComp.currentOutput) kW, fuel remaining: \(genComp.fuelRemaining)")
                 } else {
                     genComp.currentOutput = 0
-                    if !hasFuel {
-                        // print("PowerSystem: Generator \(generator.id) not burning - no fuel")
-                    } else if !hasConsumption && !needsCharging {
-                        // print("PowerSystem: Generator \(generator.id) not burning - no demand (consumption: \(network.totalConsumption) kW)")
-                    }
                 }
                 
                 world.add(genComp, to: generator)
@@ -365,17 +359,32 @@ final class PowerSystem: System {
     // MARK: - Public Interface
     
     func getNetworkInfo(for entity: Entity) -> PowerNetworkInfo? {
-        guard let consumer = world.get(PowerConsumerComponent.self, for: entity),
-              let networkId = consumer.networkId,
-              networkId < networks.count else { return nil }
+        // First try to get network from PowerConsumerComponent
+        if let consumer = world.get(PowerConsumerComponent.self, for: entity),
+           let networkId = consumer.networkId,
+           networkId < networks.count {
+            let network = networks[networkId]
+            return PowerNetworkInfo(
+                production: network.totalProduction,
+                consumption: network.totalConsumption,
+                satisfaction: network.satisfaction,
+                powerAvailability: network.powerAvailability
+            )
+        }
 
-        let network = networks[networkId]
-        return PowerNetworkInfo(
-            production: network.totalProduction,
-            consumption: network.totalConsumption,
-            satisfaction: network.satisfaction,
-            powerAvailability: network.powerAvailability
-        )
+        // If not a consumer, check if it's a generator in any network
+        for network in networks {
+            if network.generators.contains(entity) {
+                return PowerNetworkInfo(
+                    production: network.totalProduction,
+                    consumption: network.totalConsumption,
+                    satisfaction: network.satisfaction,
+                    powerAvailability: network.powerAvailability
+                )
+            }
+        }
+
+        return nil
     }
 }
 
