@@ -5,17 +5,13 @@ import UIKit
 final class HelpMenu: UIPanel_Base {
     private var screenSize: Vector2 // Store screen size for coordinate conversion
 
-    // Document list
-    private let documents = [
-        "INSTRUCTIONS.md",
-        "Belt Mechanics.md",
-        "Research.md",
-        "How to Use a Furnace.md",
-        "autoplay_plan.md"
-    ]
+    // Document list - dynamically loaded
+    private var documents: [String] = []
 
-    private var documentButtons: [UIButton] = []
-    private var documentLabels: [UILabel] = []
+    // UIKit scrolling for documents (like LoadingMenu)
+    private var scrollView: UIScrollView?
+    private var documentLabels: [UILabel] = [] // Clickable labels for documents
+
     private var closeButton: CloseButton!
 
     var onDocumentSelected: ((String) -> Void)? // Called when a document is selected
@@ -32,8 +28,53 @@ final class HelpMenu: UIPanel_Base {
 
         super.init(frame: panelFrame)
 
+        loadDocumentList()
         setupCloseButton()
-        setupDocumentButtons()
+        // Document buttons are created in setupLabels() when parent view is available
+    }
+
+    private func loadDocumentList() {
+        // Try to load documents from the app bundle root (files are copied individually)
+        if let resourcePath = Bundle.main.resourcePath,
+           let fileManager = Optional(FileManager.default) {
+            do {
+                let files = try fileManager.contentsOfDirectory(atPath: resourcePath)
+                documents = files.filter { $0.hasSuffix(".md") }.sorted()
+                if !documents.isEmpty {
+                    print("Successfully loaded \(documents.count) documents from bundle: \(documents)")
+                }
+            } catch {
+                print("Could not load documents from bundle: \(error)")
+            }
+        }
+
+        // If no documents found in bundle, try from source directory (for development)
+        if documents.isEmpty {
+            let fileManager = FileManager.default
+            if let currentDir = fileManager.currentDirectoryPath as NSString? {
+                let sourceDocsPath = currentDir.appendingPathComponent("FactoryForge/Docs")
+                do {
+                    let files = try fileManager.contentsOfDirectory(atPath: sourceDocsPath)
+                    documents = files.filter { $0.hasSuffix(".md") }.sorted()
+                    print("Loaded documents from source directory: \(documents)")
+                } catch {
+                    print("Could not load documents from source: \(error)")
+                }
+            }
+        }
+
+        // Fallback to hardcoded list if nothing found
+        if documents.isEmpty {
+            documents = [
+                "INSTRUCTIONS.md",
+                "Belt Mechanics.md",
+                "Research.md",
+                "How to Use a Furnace.md",
+                "autoplay_plan.md"
+            ]
+        }
+
+        print("HelpMenu: Loaded \(documents.count) documents: \(documents)")
     }
 
     private func setupCloseButton() {
@@ -48,90 +89,116 @@ final class HelpMenu: UIPanel_Base {
         }
     }
 
-    private func setupDocumentButtons() {
-        let buttonHeight: Float = 60 * UIScale
-        let buttonWidth: Float = frame.width * 0.8 // 80% of panel width
-        let buttonSpacing: Float = 10 * UIScale
-        let startY = frame.center.y - 150 * UIScale // Start above center
-
-        for (index, documentName) in documents.enumerated() {
-            let buttonY = startY + Float(index) * (buttonHeight + buttonSpacing)
-
-            let button = UIButton(
-                frame: Rect(
-                    center: Vector2(frame.center.x, buttonY + buttonHeight / 2),
-                    size: Vector2(buttonWidth, buttonHeight)
-                ),
-                textureId: "solid_white"
-            )
-
-            button.onTap = { [weak self] in
-                AudioManager.shared.playClickSound()
-                self?.onDocumentSelected?(documentName)
-            }
-
-            documentButtons.append(button)
-        }
-    }
+    // Document buttons are now created in setupLabels() as UIKit components
 
     private weak var parentView: UIView?
 
-    /// Sets up UILabel overlays for document names
-    func setupLabels(in parentView: UIView) {
-        self.parentView = parentView
-        removeDocumentLabels()
-        updateDocumentLabels()
-    }
-
-    private func updateDocumentLabels() {
-        guard let parentView = parentView else { return }
+    private func setupScrollView(in parentView: UIView) {
+        // Remove existing scroll view if any
+        scrollView?.removeFromSuperview()
 
         let screenScale = CGFloat(UIScreen.main.scale)
 
-        for (index, button) in documentButtons.enumerated() {
-            let documentName = documents[index]
+        // Scroll view covers most of the screen, leaving space for close button and margins
+        let scrollViewFrame = CGRect(
+            x: 20 / screenScale, // Small margin
+            y: 60 / screenScale, // Leave space at top for close button
+            width: (CGFloat(screenSize.x) - 40) / screenScale, // Leave margins
+            height: (CGFloat(screenSize.y) - 120) / screenScale // Leave space at top and bottom
+        )
 
-            // Create label if it doesn't exist
-            if index >= documentLabels.count {
-                let label = UILabel()
-                label.font = UIFont.systemFont(ofSize: 18, weight: .medium)
-                label.textColor = .white
-                label.textAlignment = .center
-                label.backgroundColor = .clear
-                label.numberOfLines = 0
-                parentView.addSubview(label)
-                documentLabels.append(label)
-            }
+        scrollView = UIScrollView(frame: scrollViewFrame)
+        scrollView?.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.9)
+        scrollView?.layer.borderColor = UIColor.white.cgColor
+        scrollView?.layer.borderWidth = 1.0
+        scrollView?.layer.cornerRadius = 8.0
+        scrollView?.showsVerticalScrollIndicator = true
+        scrollView?.showsHorizontalScrollIndicator = false
+        scrollView?.alwaysBounceVertical = true
 
-            let label = documentLabels[index]
-            label.text = documentName.replacingOccurrences(of: ".md", with: "").replacingOccurrences(of: "_", with: " ")
-
-            // Position label centered on button
-            let buttonCenterXPixels = CGFloat(button.frame.center.x)
-            let buttonCenterYPixels = CGFloat(button.frame.center.y)
-
-            let buttonCenterXPoints = buttonCenterXPixels / screenScale
-            let buttonCenterYPoints = buttonCenterYPixels / screenScale
-
-            let buttonWidthPoints = CGFloat(button.frame.size.x) / screenScale
-            let buttonHeightPoints = CGFloat(button.frame.size.y) / screenScale
-
-            label.frame = CGRect(
-                x: buttonCenterXPoints - buttonWidthPoints / 2,
-                y: buttonCenterYPoints - buttonHeightPoints / 2,
-                width: buttonWidthPoints,
-                height: buttonHeightPoints
-            )
-
-            label.isHidden = !isOpen
-        }
-
-        // Remove excess labels
-        while documentLabels.count > documentButtons.count {
-            documentLabels.last?.removeFromSuperview()
-            documentLabels.removeLast()
+        if let scrollView = scrollView {
+            parentView.addSubview(scrollView)
+            parentView.bringSubviewToFront(scrollView)
         }
     }
+
+    /// Sets up UIScrollView with clickable UILabels for documents (like LoadingMenu)
+    func setupLabels(in parentView: UIView) {
+        self.parentView = parentView
+        removeDocumentLabels()
+
+        if documents.isEmpty {
+            return
+        }
+
+        // Create scroll view for documents (similar to LoadingMenu)
+        let scrollViewHeight: CGFloat = 400 // Taller scroll area for documents
+        let scrollViewY = (parentView.bounds.height - scrollViewHeight) / 2 - 50 // Position above center
+        let scrollViewFrame = CGRect(
+            x: parentView.bounds.width * 0.1, // 10% margin on sides
+            y: scrollViewY,
+            width: parentView.bounds.width * 0.8, // 80% width
+            height: scrollViewHeight
+        )
+
+        let scrollView = UIScrollView(frame: scrollViewFrame)
+        scrollView.backgroundColor = UIColor(white: 0.1, alpha: 0.8)
+        scrollView.layer.borderColor = UIColor(white: 0.3, alpha: 1).cgColor
+        scrollView.layer.borderWidth = 2
+        scrollView.layer.cornerRadius = 8
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.alwaysBounceVertical = true
+
+        parentView.addSubview(scrollView)
+        self.scrollView = scrollView
+
+        // Calculate content size and create labels
+        let labelHeight: CGFloat = 50
+        let labelSpacing: CGFloat = 8
+        let totalHeight = CGFloat(documents.count) * (labelHeight + labelSpacing) - labelSpacing
+
+        scrollView.contentSize = CGSize(width: scrollViewFrame.width, height: max(totalHeight, scrollViewHeight))
+
+        for (index, documentName) in documents.enumerated() {
+            let labelY = CGFloat(index) * (labelHeight + labelSpacing)
+            let labelFrame = CGRect(x: 8, y: labelY, width: scrollViewFrame.width - 16, height: labelHeight)
+
+            let label = UILabel(frame: labelFrame)
+            label.text = documentName.replacingOccurrences(of: ".md", with: "").replacingOccurrences(of: "_", with: " ")
+            label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+            label.textColor = .white
+            label.backgroundColor = UIColor(white: 0.2, alpha: 0.8)
+            label.textAlignment = .center
+            label.layer.borderColor = UIColor(white: 0.4, alpha: 1).cgColor
+            label.layer.borderWidth = 1
+            label.layer.cornerRadius = 4
+            label.isUserInteractionEnabled = true
+
+            // Add tap gesture recognizer
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(documentLabelTapped(_:)))
+            label.addGestureRecognizer(tapGesture)
+
+            // Store document name for identification
+            label.accessibilityIdentifier = documentName
+
+            scrollView.addSubview(label)
+            documentLabels.append(label)
+        }
+
+        scrollView.isHidden = !isOpen
+    }
+
+    @objc private func documentLabelTapped(_ gesture: UITapGestureRecognizer) {
+        guard let label = gesture.view as? UILabel,
+              let documentName = label.accessibilityIdentifier else { return }
+
+        AudioManager.shared.playClickSound()
+        print("HelpMenu: Document label tapped: \(documentName)")
+        onDocumentSelected?(documentName)
+    }
+
+    // Labels are now created in setupLabels() and don't need separate updating
 
     private func removeDocumentLabels() {
         for label in documentLabels {
@@ -140,20 +207,23 @@ final class HelpMenu: UIPanel_Base {
         documentLabels.removeAll()
     }
 
+    private func removeScrollView() {
+        scrollView?.removeFromSuperview()
+        scrollView = nil
+    }
+
     override func open() {
         super.open()
-        // Show labels when menu opens
-        for label in documentLabels {
-            label.isHidden = false
-        }
+        // Show scroll view when menu opens
+        scrollView?.isHidden = false
+        // Scroll to top when opening
+        scrollView?.setContentOffset(.zero, animated: false)
     }
 
     override func close() {
         super.close()
-        // Hide labels when menu closes
-        for label in documentLabels {
-            label.isHidden = true
-        }
+        // Hide scroll view when menu closes
+        scrollView?.isHidden = true
     }
 
     override func render(renderer: MetalRenderer) {
@@ -167,10 +237,7 @@ final class HelpMenu: UIPanel_Base {
         // Render title
         renderTitle(renderer: renderer)
 
-        // Render document buttons
-        for button in documentButtons {
-            renderDocumentButton(button, renderer: renderer)
-        }
+        // Document buttons are now UIKit labels in the scroll view
     }
 
     private func renderTitle(renderer: MetalRenderer) {
@@ -178,59 +245,7 @@ final class HelpMenu: UIPanel_Base {
         // For now, just leave space for title
     }
 
-    private func renderDocumentButton(_ button: UIButton, renderer: MetalRenderer) {
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-
-        // Button background
-        let bgColor = Color(r: 0.15, g: 0.15, b: 0.2, a: 1)
-        renderer.queueSprite(SpriteInstance(
-            position: button.frame.center,
-            size: button.frame.size,
-            textureRect: solidRect,
-            color: bgColor,
-            layer: .ui
-        ))
-
-        // Button border
-        let borderColor = Color(r: 0.25, g: 0.25, b: 0.3, a: 1)
-        let borderThickness: Float = 2 * UIScale
-
-        // Top border
-        renderer.queueSprite(SpriteInstance(
-            position: Vector2(button.frame.center.x, button.frame.minY + borderThickness / 2),
-            size: Vector2(button.frame.width, borderThickness),
-            textureRect: solidRect,
-            color: borderColor,
-            layer: .ui
-        ))
-
-        // Bottom border
-        renderer.queueSprite(SpriteInstance(
-            position: Vector2(button.frame.center.x, button.frame.maxY - borderThickness / 2),
-            size: Vector2(button.frame.width, borderThickness),
-            textureRect: solidRect,
-            color: borderColor,
-            layer: .ui
-        ))
-
-        // Left border
-        renderer.queueSprite(SpriteInstance(
-            position: Vector2(button.frame.minX + borderThickness / 2, button.frame.center.y),
-            size: Vector2(borderThickness, button.frame.height),
-            textureRect: solidRect,
-            color: borderColor,
-            layer: .ui
-        ))
-
-        // Right border
-        renderer.queueSprite(SpriteInstance(
-            position: Vector2(button.frame.maxX - borderThickness / 2, button.frame.center.y),
-            size: Vector2(borderThickness, button.frame.height),
-            textureRect: solidRect,
-            color: borderColor,
-            layer: .ui
-        ))
-    }
+    // Document rendering is now handled by UIKit scroll view
 
     override func handleTap(at position: Vector2) -> Bool {
         guard frame.contains(position) else { return false }
@@ -240,13 +255,8 @@ final class HelpMenu: UIPanel_Base {
             return true
         }
 
-        // Check document buttons
-        for button in documentButtons {
-            if button.handleTap(at: position) {
-                return true
-            }
-        }
-
-        return true // Consume tap within panel bounds
+        // Document taps are handled by UIKit gesture recognizers on the labels
+        // Consume tap within panel bounds to prevent it from going to game world
+        return true
     }
 }

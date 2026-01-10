@@ -19,11 +19,6 @@
 		0D18B5632F0D9219006B70A5 /* AutoPlayTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5622F0D9219006B70A5 /* AutoPlayTypes.swift */; };
 		0D18B5642F0D9219006B70A5 /* AutoPlaySystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5612F0D9219006B70A5 /* AutoPlaySystem.swift */; };
 		0D18B5662F0D96A4006B70A5 /* AutoPlayMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */; };
-		0D18B56D2F0DD7DE006B70A5 /* Research.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B56B2F0DD7DE006B70A5 /* Research.md */; };
-		0D18B56E2F0DD7DE006B70A5 /* How to Use a Furnace.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5692F0DD7DE006B70A5 /* How to Use a Furnace.md */; };
-		0D18B56F2F0DD7DE006B70A5 /* INSTRUCTIONS.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B56A2F0DD7DE006B70A5 /* INSTRUCTIONS.md */; };
-		0D18B5702F0DD7DE006B70A5 /* autoplay_plan.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5672F0DD7DE006B70A5 /* autoplay_plan.md */; };
-		0D18B5712F0DD7DE006B70A5 /* Belt Mechanics.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5682F0DD7DE006B70A5 /* Belt Mechanics.md */; };
 		0D18B5742F0DD8E2006B70A5 /* DocumentViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */; };
 		0D18B5752F0DD8E2006B70A5 /* HelpMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */; };
 		0D18B5772F0DE412006B70A5 /* help.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B5762F0DE412006B70A5 /* help.png */; };
@@ -143,6 +138,16 @@
 		0D778B4D2F11A14E003BC642 /* explosives.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B352F11A14E003BC642 /* explosives.png */; };
 		0D778B4E2F11A14E003BC642 /* nuclear_reactor.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B372F11A14E003BC642 /* nuclear_reactor.png */; };
 		0D778B502F11A607003BC642 /* rocket_silo.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B4F2F11A607003BC642 /* rocket_silo.png */; };
+		0D778B642F11D2B9003BC642 /* Belt Mechanics.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B5B2F11D2B9003BC642 /* Belt Mechanics.md */; };
+		0D778B652F11D2B9003BC642 /* How to Use a Furnace.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B5E2F11D2B9003BC642 /* How to Use a Furnace.md */; };
+		0D778B662F11D2B9003BC642 /* Drag Operations.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B5C2F11D2B9003BC642 /* Drag Operations.md */; };
+		0D778B672F11D2B9003BC642 /* mining.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B602F11D2B9003BC642 /* mining.md */; };
+		0D778B682F11D2B9003BC642 /* rocketry.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B632F11D2B9003BC642 /* rocketry.md */; };
+		0D778B692F11D2B9003BC642 /* INSTRUCTIONS.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B5F2F11D2B9003BC642 /* INSTRUCTIONS.md */; };
+		0D778B6A2F11D2B9003BC642 /* Oil.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B612F11D2B9003BC642 /* Oil.md */; };
+		0D778B6B2F11D2B9003BC642 /* Research.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B622F11D2B9003BC642 /* Research.md */; };
+		0D778B6C2F11D2B9003BC642 /* Entity Selection.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B5D2F11D2B9003BC642 /* Entity Selection.md */; };
+		0D778B7D2F11DA87003BC642 /* Crafting.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B7C2F11DA87003BC642 /* Crafting.md */; };
 		0D841AD62F0F2FE600F499B6 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D841AD52F0F2FE600F499B6 /* wall.png */; };
 		0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
@@ -322,11 +327,6 @@
 		0D18B5612F0D9219006B70A5 /* AutoPlaySystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPlaySystem.swift; sourceTree = "<group>"; };
 		0D18B5622F0D9219006B70A5 /* AutoPlayTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPlayTypes.swift; sourceTree = "<group>"; };
 		0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoPlayMenu.swift; sourceTree = "<group>"; };
-		0D18B5672F0DD7DE006B70A5 /* autoplay_plan.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = autoplay_plan.md; sourceTree = "<group>"; };
-		0D18B5682F0DD7DE006B70A5 /* Belt Mechanics.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Belt Mechanics.md"; sourceTree = "<group>"; };
-		0D18B5692F0DD7DE006B70A5 /* How to Use a Furnace.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "How to Use a Furnace.md"; sourceTree = "<group>"; };
-		0D18B56A2F0DD7DE006B70A5 /* INSTRUCTIONS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTRUCTIONS.md; sourceTree = "<group>"; };
-		0D18B56B2F0DD7DE006B70A5 /* Research.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Research.md; sourceTree = "<group>"; };
 		0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentViewer.swift; sourceTree = "<group>"; };
 		0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelpMenu.swift; sourceTree = "<group>"; };
 		0D18B5762F0DE412006B70A5 /* help.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = help.png; sourceTree = "<group>"; };
@@ -445,6 +445,27 @@
 		0D778B3F2F11A14E003BC642 /* uranium_238.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = uranium_238.png; sourceTree = "<group>"; };
 		0D778B402F11A14E003BC642 /* uranium_processing.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = uranium_processing.png; sourceTree = "<group>"; };
 		0D778B4F2F11A607003BC642 /* rocket_silo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = rocket_silo.png; sourceTree = "<group>"; };
+		0D778B5B2F11D2B9003BC642 /* Belt Mechanics.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Belt Mechanics.md"; sourceTree = "<group>"; };
+		0D778B5C2F11D2B9003BC642 /* Drag Operations.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Drag Operations.md"; sourceTree = "<group>"; };
+		0D778B5D2F11D2B9003BC642 /* Entity Selection.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Entity Selection.md"; sourceTree = "<group>"; };
+		0D778B5E2F11D2B9003BC642 /* How to Use a Furnace.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "How to Use a Furnace.md"; sourceTree = "<group>"; };
+		0D778B5F2F11D2B9003BC642 /* INSTRUCTIONS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTRUCTIONS.md; sourceTree = "<group>"; };
+		0D778B602F11D2B9003BC642 /* mining.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = mining.md; sourceTree = "<group>"; };
+		0D778B612F11D2B9003BC642 /* Oil.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Oil.md; sourceTree = "<group>"; };
+		0D778B622F11D2B9003BC642 /* Research.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Research.md; sourceTree = "<group>"; };
+		0D778B632F11D2B9003BC642 /* rocketry.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = rocketry.md; sourceTree = "<group>"; };
+		0D778B702F11D499003BC642 /* autoplay_plan.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = autoplay_plan.md; sourceTree = "<group>"; };
+		0D778B712F11D499003BC642 /* Belt Mechanics.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Belt Mechanics.md"; sourceTree = "<group>"; };
+		0D778B722F11D499003BC642 /* Drag Operations.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Drag Operations.md"; sourceTree = "<group>"; };
+		0D778B732F11D499003BC642 /* Entity Selection.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Entity Selection.md"; sourceTree = "<group>"; };
+		0D778B742F11D499003BC642 /* How to Use a Furnace.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "How to Use a Furnace.md"; sourceTree = "<group>"; };
+		0D778B752F11D499003BC642 /* INSTRUCTIONS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSTRUCTIONS.md; sourceTree = "<group>"; };
+		0D778B762F11D499003BC642 /* mining.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = mining.md; sourceTree = "<group>"; };
+		0D778B772F11D499003BC642 /* Oil.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Oil.md; sourceTree = "<group>"; };
+		0D778B782F11D499003BC642 /* Research.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Research.md; sourceTree = "<group>"; };
+		0D778B792F11D499003BC642 /* robotics_plan.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = robotics_plan.md; sourceTree = "<group>"; };
+		0D778B7A2F11D499003BC642 /* rocketry.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = rocketry.md; sourceTree = "<group>"; };
+		0D778B7C2F11DA87003BC642 /* Crafting.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Crafting.md; sourceTree = "<group>"; };
 		0D841AD52F0F2FE600F499B6 /* wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wall.png; sourceTree = "<group>"; };
 		0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FactoryForge Storekit Configuration.storekit"; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
@@ -614,11 +635,15 @@
 		0D18B56C2F0DD7DE006B70A5 /* Docs */ = {
 			isa = PBXGroup;
 			children = (
-				0D18B5672F0DD7DE006B70A5 /* autoplay_plan.md */,
-				0D18B5682F0DD7DE006B70A5 /* Belt Mechanics.md */,
-				0D18B5692F0DD7DE006B70A5 /* How to Use a Furnace.md */,
-				0D18B56A2F0DD7DE006B70A5 /* INSTRUCTIONS.md */,
-				0D18B56B2F0DD7DE006B70A5 /* Research.md */,
+				0D778B5B2F11D2B9003BC642 /* Belt Mechanics.md */,
+				0D778B5C2F11D2B9003BC642 /* Drag Operations.md */,
+				0D778B5D2F11D2B9003BC642 /* Entity Selection.md */,
+				0D778B5E2F11D2B9003BC642 /* How to Use a Furnace.md */,
+				0D778B5F2F11D2B9003BC642 /* INSTRUCTIONS.md */,
+				0D778B602F11D2B9003BC642 /* mining.md */,
+				0D778B612F11D2B9003BC642 /* Oil.md */,
+				0D778B622F11D2B9003BC642 /* Research.md */,
+				0D778B632F11D2B9003BC642 /* rocketry.md */,
 			);
 			path = Docs;
 			sourceTree = "<group>";
@@ -781,6 +806,26 @@
 				0D6FDBD42EFDD03C00576EC3 /* player.png */,
 			);
 			path = Assets;
+			sourceTree = "<group>";
+		};
+		0D778B7B2F11D499003BC642 /* Docs */ = {
+			isa = PBXGroup;
+			children = (
+				0D778B7C2F11DA87003BC642 /* Crafting.md */,
+				0D778B702F11D499003BC642 /* autoplay_plan.md */,
+				0D778B712F11D499003BC642 /* Belt Mechanics.md */,
+				0D778B722F11D499003BC642 /* Drag Operations.md */,
+				0D778B732F11D499003BC642 /* Entity Selection.md */,
+				0D778B742F11D499003BC642 /* How to Use a Furnace.md */,
+				0D778B752F11D499003BC642 /* INSTRUCTIONS.md */,
+				0D778B762F11D499003BC642 /* mining.md */,
+				0D778B772F11D499003BC642 /* Oil.md */,
+				0D778B782F11D499003BC642 /* Research.md */,
+				0D778B792F11D499003BC642 /* robotics_plan.md */,
+				0D778B7A2F11D499003BC642 /* rocketry.md */,
+			);
+			name = Docs;
+			path = FactoryForge/Docs;
 			sourceTree = "<group>";
 		};
 		0DE229422F001B9F00BD619D /* east */ = {
@@ -999,6 +1044,7 @@
 		A0000200000 = {
 			isa = PBXGroup;
 			children = (
+				0D778B7B2F11D499003BC642 /* Docs */,
 				A0000200001 /* FactoryForge */,
 				0D18B5872F0EFE55006B70A5 /* Frameworks */,
 				A0000200002 /* Products */,
@@ -1335,11 +1381,6 @@
 				0DFF59BD2F02CAC000A8699D /* transport_belt_east_004.png in Resources */,
 				0DFF59BE2F02CAC000A8699D /* transport_belt_east_010.png in Resources */,
 				0DFF59BF2F02CAC000A8699D /* transport_belt_east_007.png in Resources */,
-				0D18B56D2F0DD7DE006B70A5 /* Research.md in Resources */,
-				0D18B56E2F0DD7DE006B70A5 /* How to Use a Furnace.md in Resources */,
-				0D18B56F2F0DD7DE006B70A5 /* INSTRUCTIONS.md in Resources */,
-				0D18B5702F0DD7DE006B70A5 /* autoplay_plan.md in Resources */,
-				0D18B5712F0DD7DE006B70A5 /* Belt Mechanics.md in Resources */,
 				0DFF59C02F02CAC000A8699D /* transport_belt_east_008.png in Resources */,
 				0DFF59C12F02CAC000A8699D /* transport_belt_east_016.png in Resources */,
 				0DFF59C22F02CAC000A8699D /* transport_belt_east_014.png in Resources */,
@@ -1393,6 +1434,15 @@
 				0DFF59AB2F02C08F00A8699D /* bullet_up.png in Resources */,
 				0DE2296F2F001B9F00BD619D /* transport_belt_north_007.png in Resources */,
 				0DE229702F001B9F00BD619D /* transport_belt_north_010.png in Resources */,
+				0D778B642F11D2B9003BC642 /* Belt Mechanics.md in Resources */,
+				0D778B652F11D2B9003BC642 /* How to Use a Furnace.md in Resources */,
+				0D778B662F11D2B9003BC642 /* Drag Operations.md in Resources */,
+				0D778B672F11D2B9003BC642 /* mining.md in Resources */,
+				0D778B682F11D2B9003BC642 /* rocketry.md in Resources */,
+				0D778B692F11D2B9003BC642 /* INSTRUCTIONS.md in Resources */,
+				0D778B6A2F11D2B9003BC642 /* Oil.md in Resources */,
+				0D778B6B2F11D2B9003BC642 /* Research.md in Resources */,
+				0D778B6C2F11D2B9003BC642 /* Entity Selection.md in Resources */,
 				0DE229712F001B9F00BD619D /* transport_belt_north_004.png in Resources */,
 				0D6FDC322EFDE1B500576EC3 /* iron_ore.png in Resources */,
 				0D6FDC332EFDE1B500576EC3 /* solid_white.png in Resources */,
@@ -1405,6 +1455,7 @@
 				0DE229752F0064D200BD619D /* mining.m4a in Resources */,
 				0D6FDC382EFDE1B500576EC3 /* electric_mining_drill.png in Resources */,
 				0D6FDC392EFDE1B500576EC3 /* copper_cable.png in Resources */,
+				0D778B7D2F11DA87003BC642 /* Crafting.md in Resources */,
 				0DE2297F2F0177B900BD619D /* miner.png in Resources */,
 				0D6FDC3A2EFDE1B500576EC3 /* production_science_pack.png in Resources */,
 				0DE229792F0173B500BD619D /* inventory.png in Resources */,

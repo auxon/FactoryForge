@@ -33,9 +33,8 @@ final class DocumentViewer: UIPanel_Base {
     private func loadDocumentContent() {
         // Try multiple approaches to load the markdown file
 
-        // First, try from the app bundle (if Docs folder is added to Xcode project)
-        if let bundlePath = Bundle.main.path(forResource: documentName, ofType: nil, inDirectory: "Docs")
-            ?? Bundle.main.path(forResource: documentName, ofType: nil),
+        // First, try from the app bundle root (files are copied individually)
+        if let bundlePath = Bundle.main.path(forResource: documentName, ofType: nil),
            let content = try? String(contentsOfFile: bundlePath, encoding: .utf8) {
             documentContent = content
             return

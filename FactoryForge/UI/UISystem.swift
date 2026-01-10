@@ -1145,7 +1145,12 @@ class UIButton: UIElement {
     }
     
     func handleTap(at position: Vector2) -> Bool {
-        guard isEnabled && frame.contains(position) else { return false }
+        print("UIButton: handleTap called at (\(position.x), \(position.y)), frame: center=(\(frame.center.x), \(frame.center.y)) size=(\(frame.size.x), \(frame.size.y)), enabled=\(isEnabled)")
+        guard isEnabled && frame.contains(position) else {
+            print("UIButton: Tap not detected - enabled: \(isEnabled), contains: \(frame.contains(position))")
+            return false
+        }
+        print("UIButton: Tap detected, calling onTap")
         onTap?()
         return true
     }
