@@ -1380,9 +1380,19 @@ class GameViewController: UIViewController {
             // Check if it's a chest - open chest inventory instead of machine UI
             if self.gameLoop!.world.has(ChestComponent.self, for: selectedEntity) {
                 self.uiSystem?.openChestInventory(for: selectedEntity)
-            } else {
-                // Otherwise, open the machine UI for the selected entity
+            }
+            // Check if it's a machine with crafting capabilities, generator with slots, or miner with fuel
+            else if self.gameLoop!.world.has(AssemblerComponent.self, for: selectedEntity) ||
+                    self.gameLoop!.world.has(FurnaceComponent.self, for: selectedEntity) ||
+                    self.gameLoop!.world.has(LabComponent.self, for: selectedEntity) ||
+                    self.gameLoop!.world.has(RocketSiloComponent.self, for: selectedEntity) ||
+                    self.gameLoop!.world.has(GeneratorComponent.self, for: selectedEntity) ||
+                    self.gameLoop!.world.has(MinerComponent.self, for: selectedEntity) {
                 self.uiSystem?.openMachineUI(for: selectedEntity)
+            }
+            // Otherwise, don't open any UI for this entity
+            else {
+                print("GameViewController: No UI available for selected entity")
             }
         }
         

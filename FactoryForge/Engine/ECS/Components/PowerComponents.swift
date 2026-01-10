@@ -39,13 +39,26 @@ class GeneratorComponent: BuildingComponent {
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        powerOutput = try container.decode(Float.self, forKey: .powerOutput)
+        let decodedPowerOutput = try container.decode(Float.self, forKey: .powerOutput)
+        powerOutput = decodedPowerOutput
         currentOutput = try container.decode(Float.self, forKey: .currentOutput)
         fuelCategory = try container.decode(String.self, forKey: .fuelCategory)
         burnProgress = try container.decode(Float.self, forKey: .burnProgress)
         currentFuel = try container.decodeIfPresent(String.self, forKey: .currentFuel)
         fuelRemaining = try container.decode(Float.self, forKey: .fuelRemaining)
+
         try super.init(from: decoder)
+
+        // For backward compatibility, always infer buildingId based on properties
+        if decodedPowerOutput >= 40000 {
+            buildingId = "nuclear-reactor"
+        } else if decodedPowerOutput >= 1000 {
+            buildingId = "boiler"
+        } else if decodedPowerOutput >= 900 {
+            buildingId = "steam-engine"
+        } else {
+            buildingId = "boiler"
+        }
     }
 
     override func encode(to encoder: Encoder) throws {

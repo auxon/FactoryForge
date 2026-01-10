@@ -5,7 +5,7 @@ import Foundation
 /// Base component for all buildings, providing common building identification
 class BuildingComponent: Component {
     /// The building ID that identifies this building type in the registry
-    let buildingId: String
+    var buildingId: String
 
     init(buildingId: String) {
         self.buildingId = buildingId
@@ -18,7 +18,8 @@ class BuildingComponent: Component {
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        buildingId = try container.decode(String.self, forKey: .buildingId)
+        // buildingId must be provided by subclasses for backward compatibility
+        buildingId = ""
     }
 
     func encode(to encoder: Encoder) throws {
@@ -46,7 +47,7 @@ class MinerComponent: BuildingComponent {
     /// Fuel remaining (for burner miners)
     var fuelRemaining: Float
 
-    init(buildingId: String, miningSpeed: Float = 0.5, resourceOutput: String? = nil) {
+    init(buildingId: String = "", miningSpeed: Float = 0.5, resourceOutput: String? = nil) {
         self.miningSpeed = miningSpeed
         self.resourceOutput = resourceOutput
         self.progress = 0
@@ -62,12 +63,17 @@ class MinerComponent: BuildingComponent {
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        miningSpeed = try container.decode(Float.self, forKey: .miningSpeed)
+        let decodedMiningSpeed = try container.decode(Float.self, forKey: .miningSpeed)
+        miningSpeed = decodedMiningSpeed
         resourceOutput = try container.decodeIfPresent(String.self, forKey: .resourceOutput)
         progress = try container.decode(Float.self, forKey: .progress)
         isActive = try container.decode(Bool.self, forKey: .isActive)
         fuelRemaining = try container.decode(Float.self, forKey: .fuelRemaining)
+
         try super.init(from: decoder)
+
+        // For backward compatibility, always infer buildingId based on properties
+        buildingId = decodedMiningSpeed >= 0.7 ? "electric-mining-drill" : "burner-mining-drill"
     }
 
     override func encode(to encoder: Encoder) throws {
@@ -97,7 +103,7 @@ class FurnaceComponent: BuildingComponent {
     /// Fuel remaining
     var fuelRemaining: Float
 
-    init(buildingId: String, smeltingSpeed: Float = 1.0) {
+    init(buildingId: String = "", smeltingSpeed: Float = 1.0) {
         self.smeltingSpeed = smeltingSpeed
         self.recipe = nil
         self.smeltingProgress = 0
@@ -112,12 +118,20 @@ class FurnaceComponent: BuildingComponent {
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let buildingId = try container.decode(String.self, forKey: .buildingId)
-        smeltingSpeed = try container.decode(Float.self, forKey: .smeltingSpeed)
+        let decodedSmeltingSpeed = try container.decode(Float.self, forKey: .smeltingSpeed)
+        smeltingSpeed = decodedSmeltingSpeed
         recipe = try container.decodeIfPresent(Recipe.self, forKey: .recipe)
         smeltingProgress = try container.decode(Float.self, forKey: .smeltingProgress)
         fuelRemaining = try container.decode(Float.self, forKey: .fuelRemaining)
-        super.init(buildingId: buildingId)
+
+        try super.init(from: decoder)
+
+        // For backward compatibility, always infer buildingId based on properties
+        if decodedSmeltingSpeed >= 2.0 {
+            buildingId = "electric-furnace"  // Prioritize electric over steel for slot compatibility
+        } else {
+            buildingId = "stone-furnace"
+        }
     }
 
     override func encode(to encoder: Encoder) throws {
@@ -146,7 +160,7 @@ class AssemblerComponent: BuildingComponent {
     /// Crafting progress (0-1)
     var craftingProgress: Float
 
-    init(buildingId: String, craftingSpeed: Float = 1.0, craftingCategory: String = "crafting") {
+    init(buildingId: String = "", craftingSpeed: Float = 1.0, craftingCategory: String = "crafting") {
         self.craftingSpeed = craftingSpeed
         self.craftingCategory = craftingCategory
         self.recipe = nil
@@ -161,11 +175,22 @@ class AssemblerComponent: BuildingComponent {
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        craftingSpeed = try container.decode(Float.self, forKey: .craftingSpeed)
+        let decodedCraftingSpeed = try container.decode(Float.self, forKey: .craftingSpeed)
+        craftingSpeed = decodedCraftingSpeed
         craftingCategory = try container.decode(String.self, forKey: .craftingCategory)
         recipe = try container.decodeIfPresent(Recipe.self, forKey: .recipe)
         craftingProgress = try container.decode(Float.self, forKey: .craftingProgress)
+
         try super.init(from: decoder)
+
+        // For backward compatibility, always infer buildingId based on properties
+        if decodedCraftingSpeed >= 1.25 {
+            buildingId = "assembling-machine-3"
+        } else if decodedCraftingSpeed >= 0.75 {
+            buildingId = "assembling-machine-2"
+        } else {
+            buildingId = "assembling-machine-1"
+        }
     }
 
     override func encode(to encoder: Encoder) throws {
@@ -222,7 +247,7 @@ class BeltComponent: BuildingComponent {
     var inputConnections: [Entity]
     var outputConnections: [Entity]
 
-    init(buildingId: String, speed: Float = 1.0, direction: Direction = .north, type: BeltType = .normal) {
+    init(buildingId: String = "", speed: Float = 1.0, direction: Direction = .north, type: BeltType = .normal) {
         self.speed = speed
         self.direction = direction
         self.type = type
@@ -266,7 +291,9 @@ class BeltComponent: BuildingComponent {
         inputConnections = try container.decodeIfPresent([Entity].self, forKey: .inputConnections) ?? []
         outputConnections = try container.decodeIfPresent([Entity].self, forKey: .outputConnections) ?? []
 
-        try super.init(from: decoder)
+        // For backward compatibility, buildingId is optional and defaults to empty string
+        let buildingId = try container.decodeIfPresent(String.self, forKey: .buildingId) ?? ""
+        super.init(buildingId: buildingId)
     }
 
     override func encode(to encoder: Encoder) throws {
@@ -515,7 +542,9 @@ class ChestComponent: BuildingComponent {
     }
 
     required init(from decoder: Decoder) throws {
-        try super.init(from: decoder)
+        // For backward compatibility, buildingId is optional and defaults to empty string
+        let buildingId = try decoder.container(keyedBy: CodingKeys.self).decodeIfPresent(String.self, forKey: .buildingId) ?? ""
+        super.init(buildingId: buildingId)
     }
 
     override func encode(to encoder: Encoder) throws {
@@ -578,7 +607,7 @@ class PumpjackComponent: BuildingComponent {
     /// Whether the pumpjack is currently active
     var isActive: Bool
 
-    init(buildingId: String, extractionRate: Float = 1.0, oilRemaining: Float = 0, resourceType: String = "crude-oil") {
+    init(buildingId: String = "", extractionRate: Float = 1.0, oilRemaining: Float = 0, resourceType: String = "crude-oil") {
         self.extractionRate = extractionRate
         self.oilRemaining = oilRemaining
         self.resourceType = resourceType
@@ -599,7 +628,9 @@ class PumpjackComponent: BuildingComponent {
         resourceType = try container.decode(String.self, forKey: .resourceType)
         progress = try container.decode(Float.self, forKey: .progress)
         isActive = try container.decode(Bool.self, forKey: .isActive)
-        try super.init(from: decoder)
+        // For backward compatibility, buildingId is optional and defaults to empty string
+        let buildingId = try container.decodeIfPresent(String.self, forKey: .buildingId) ?? ""
+        super.init(buildingId: buildingId)
     }
 
     override func encode(to encoder: Encoder) throws {
@@ -620,7 +651,7 @@ class LabComponent: BuildingComponent {
     var researchSpeed: Float
     var isResearching: Bool
 
-    init(buildingId: String, researchSpeed: Float = 1.0) {
+    init(buildingId: String = "", researchSpeed: Float = 1.0) {
         self.researchSpeed = researchSpeed
         self.isResearching = false
         super.init(buildingId: buildingId)
@@ -635,7 +666,9 @@ class LabComponent: BuildingComponent {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         researchSpeed = try container.decode(Float.self, forKey: .researchSpeed)
         isResearching = try container.decode(Bool.self, forKey: .isResearching)
-        try super.init(from: decoder)
+        // For backward compatibility, buildingId is optional and defaults to empty string
+        let buildingId = try container.decodeIfPresent(String.self, forKey: .buildingId) ?? ""
+        super.init(buildingId: buildingId)
     }
 
     override func encode(to encoder: Encoder) throws {
@@ -652,7 +685,7 @@ class LabComponent: BuildingComponent {
 class WallComponent: BuildingComponent {
     // Marker component - uses HealthComponent for durability
 
-    override init(buildingId: String) {
+    override init(buildingId: String = "") {
         super.init(buildingId: buildingId)
     }
 
@@ -662,7 +695,9 @@ class WallComponent: BuildingComponent {
     }
 
     required init(from decoder: Decoder) throws {
-        try super.init(from: decoder)
+        // For backward compatibility, buildingId is optional and defaults to empty string
+        let buildingId = try decoder.container(keyedBy: CodingKeys.self).decodeIfPresent(String.self, forKey: .buildingId) ?? ""
+        super.init(buildingId: buildingId)
     }
 
     override func encode(to encoder: Encoder) throws {

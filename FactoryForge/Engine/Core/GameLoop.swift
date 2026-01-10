@@ -407,21 +407,9 @@ final class GameLoop {
         // Check if player has required items
         guard player.inventory.has(items: buildingDef.cost) else { return false }
 
-        // For buildings that are placed as items, also consume the building item itself
-        // (e.g., placing a stone-furnace consumes 1 stone-furnace item)
-        var totalCost = buildingDef.cost
-        if let itemDef = itemRegistry.get(buildingId),
-           itemDef.placedAs == buildingId {
-            // This building is placed as an item, so consume one of the item
-            totalCost.append(ItemStack(itemId: buildingId, count: 1, maxStack: itemDef.stackSize))
-        }
-
-        // Check if player has all required items (including the building item)
-        guard player.inventory.has(items: totalCost) else { return false }
-
         // Remove items from player inventory (must reassign since InventoryComponent is a struct)
         var playerInventory = player.inventory
-        playerInventory.remove(items: totalCost)
+        playerInventory.remove(items: buildingDef.cost)
         player.inventory = playerInventory
         
         // Create the building entity

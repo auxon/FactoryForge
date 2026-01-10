@@ -397,6 +397,9 @@ final class BuildingRegistry {
             ]
         )
         boiler.fuelCategory = "chemical"
+        boiler.inputSlots = 0  // Takes fuel from fuel category
+        boiler.outputSlots = 0  // Produces steam (fluid)
+        boiler.fuelSlots = 1
         register(boiler)
         
         var steamEngine = BuildingDefinition(
@@ -413,6 +416,9 @@ final class BuildingRegistry {
             ]
         )
         steamEngine.powerProduction = 900
+        steamEngine.inputSlots = 0  // Takes steam (fluid)
+        steamEngine.outputSlots = 0  // Produces power
+        steamEngine.fuelSlots = 0
         register(steamEngine)
         
         var solarPanel = BuildingDefinition(
@@ -429,6 +435,9 @@ final class BuildingRegistry {
             ]
         )
         solarPanel.powerProduction = 60
+        solarPanel.inputSlots = 0
+        solarPanel.outputSlots = 0
+        solarPanel.fuelSlots = 0
         register(solarPanel)
         
         var accumulator = BuildingDefinition(
@@ -445,6 +454,9 @@ final class BuildingRegistry {
         )
         accumulator.accumulatorCapacity = 5000
         accumulator.accumulatorChargeRate = 300
+        accumulator.inputSlots = 0
+        accumulator.outputSlots = 0
+        accumulator.fuelSlots = 0
         register(accumulator)
         
         // Lab
@@ -485,6 +497,9 @@ final class BuildingRegistry {
         gunTurret.turretRange = 18
         gunTurret.turretDamage = 6
         gunTurret.turretFireRate = 10
+        gunTurret.inputSlots = 1  // Ammo slot
+        gunTurret.outputSlots = 0
+        gunTurret.fuelSlots = 0
         register(gunTurret)
         
         var laserTurret = BuildingDefinition(
@@ -504,6 +519,9 @@ final class BuildingRegistry {
         laserTurret.turretDamage = 20
         laserTurret.turretFireRate = 20
         laserTurret.powerConsumption = 800
+        laserTurret.inputSlots = 1  // Ammo slot
+        laserTurret.outputSlots = 0
+        laserTurret.fuelSlots = 0
         register(laserTurret)
         
         let wall = BuildingDefinition(
@@ -645,6 +663,9 @@ final class BuildingRegistry {
                    ItemStack(itemId: "stone-brick", count: 400)]
         )
         nuclearReactor.powerProduction = 40000  // 40 MW
+        nuclearReactor.inputSlots = 0
+        nuclearReactor.outputSlots = 0
+        nuclearReactor.fuelSlots = 1  // Uranium fuel cells
         register(nuclearReactor)
 
         var centrifuge = BuildingDefinition(

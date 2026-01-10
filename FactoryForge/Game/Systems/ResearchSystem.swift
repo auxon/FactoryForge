@@ -53,13 +53,6 @@ final class ResearchSystem: System {
     func update(deltaTime: Float) {
         guard currentResearch != nil else { return }
 
-        // Throttle debug output for performance
-        #if DEBUG
-        if Int(Time.shared.frameCount) % 60 == 0 {  // Only log every 60 frames
-            print("ResearchSystem: Update called, current research: \(currentResearch?.name ?? "none")")
-        }
-        #endif
-
         // Collect updates to apply after iteration
         var pendingUpdates: [(Entity, LabComponent, InventoryComponent)] = []
 
@@ -76,11 +69,6 @@ final class ResearchSystem: System {
             if let power = world.get(PowerConsumerComponent.self, for: entity) {
                 speedMultiplier = power.satisfaction
                 if speedMultiplier <= 0 {
-                    #if DEBUG
-                    if Int(Time.shared.frameCount) % 60 == 0 {  // Only log every 60 frames
-                        print("ResearchSystem: Lab \(entity) has no power")
-                    }
-                    #endif
                     return
                 }
             }
@@ -107,10 +95,7 @@ final class ResearchSystem: System {
         // Check if research is complete
         if let tech = currentResearch {
             let progress = getResearchProgress()
-            print("ResearchSystem: Research progress: \(progress * 100)%")
-
             if isResearchComplete(tech) {
-                print("ResearchSystem: Research completed!")
                 completeResearch(tech)
             }
         }
@@ -133,14 +118,12 @@ final class ResearchSystem: System {
             if currentCount < cost.count {
                 // Try to consume a pack
                 let hasPack = inventory.has(itemId: cost.packId)
-                print("ResearchSystem: Lab inventory has '\(cost.packId)': \(hasPack)")
 
                 if hasPack {
                     inventory.remove(itemId: cost.packId, count: 1)
                     researchProgress[cost.packId, default: 0] += 1
                     inventoryUpdated = true
                     lab.isResearching = true
-                    print("ResearchSystem: Consumed 1 '\(cost.packId)', progress now: \(researchProgress[cost.packId] ?? 0)/\(cost.count)")
                 }
             }
         }

@@ -65,12 +65,34 @@ final class MachineUI: UIPanel_Base {
         outputCountLabels.removeAll()
         fuelCountLabels.removeAll()
 
-        // Get machine inventory and building definition
+        // Get machine building definition
         guard let entity = currentEntity,
-              let gameLoop = gameLoop,
-              let _ = gameLoop.world.get(InventoryComponent.self, for: entity),
-              let buildingEntity = gameLoop.world.get(BuildingComponent.self, for: entity),
-              let buildingDef = gameLoop.buildingRegistry.get(buildingEntity.buildingId) else {
+              let gameLoop = gameLoop else {
+            print("MachineUI: Missing entity or gameLoop")
+            return
+        }
+
+        // Try to get building component (check specific types since inheritance might not work in ECS)
+        let buildingEntity: BuildingComponent?
+        if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
+            buildingEntity = miner
+        } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+            buildingEntity = furnace
+        } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            buildingEntity = assembler
+        } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
+            buildingEntity = generator
+        } else if let lab = gameLoop.world.get(LabComponent.self, for: entity) {
+            buildingEntity = lab
+        } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
+            buildingEntity = rocketSilo
+        } else {
+            print("MachineUI: No building component found for entity")
+            return
+        }
+
+        guard let buildingDef = gameLoop.buildingRegistry.get(buildingEntity!.buildingId) else {
+            print("MachineUI: Failed to get building definition for entity \(entity.id) buildingId: '\(buildingEntity!.buildingId)'")
             return
         }
 
@@ -352,6 +374,18 @@ final class MachineUI: UIPanel_Base {
         guard isOpen else { return }
 
         super.render(renderer: renderer)
+
+        // Debug: Render slot backgrounds to show positions
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        for slot in fuelSlots + inputSlots + outputSlots {
+            renderer.queueSprite(SpriteInstance(
+                position: slot.frame.center,
+                size: slot.frame.size,
+                textureRect: solidRect,
+                color: Color(r: 0.5, g: 0.5, b: 0.5, a: 0.3), // Semi-transparent gray
+                layer: .ui
+            ))
+        }
 
         // Render fuel slots
         for i in 0..<fuelSlots.count {
