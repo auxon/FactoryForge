@@ -242,9 +242,9 @@ final class MachineUI: UIPanel_Base {
     private func createBuildingRecipes(for gameLoop: GameLoop) -> [Recipe] {
         var buildingRecipes: [Recipe] = []
 
-        // Get all buildings that should be craftable in assemblers
-        // Include belts, inserters, power infrastructure, storage, and other buildings that benefit from mass production
-        let craftableBuildingTypes: [BuildingType] = [.belt, .inserter, .powerPole, .generator, .chest, .wall]
+        // Get advanced buildings that should be crafted in assemblers (not basic infrastructure)
+        // These are complex buildings that require assembly rather than simple hand crafting
+        let craftableBuildingTypes: [BuildingType] = [.assembler, .furnace, .lab, .chemicalPlant, .oilRefinery, .centrifuge, .rocketSilo]
 
         for buildingType in craftableBuildingTypes {
             let buildings = gameLoop.buildingRegistry.buildings(ofType: buildingType)

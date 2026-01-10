@@ -112,6 +112,7 @@ final class ItemRegistry {
         register(Item(id: "chemical-plant", name: "Chemical Plant", stackSize: 50, category: .production, order: "o", placedAs: "chemical-plant"))
         register(Item(id: "nuclear-reactor", name: "Nuclear Reactor", stackSize: 20, category: .production, order: "p", placedAs: "nuclear-reactor"))
         register(Item(id: "centrifuge", name: "Centrifuge", stackSize: 20, category: .production, order: "q", placedAs: "centrifuge"))
+        register(Item(id: "rocket-silo", name: "Rocket Silo", stackSize: 1, category: .production, order: "r", placedAs: "rocket-silo"))
 
         // Power items
         register(Item(id: "boiler", name: "Boiler", stackSize: 100, category: .production, order: "j", placedAs: "boiler"))

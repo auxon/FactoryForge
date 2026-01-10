@@ -189,7 +189,485 @@ final class RecipeRegistry {
             category: .crafting,
             order: "f"
         ))
-        
+
+        // Logistics items - basic buildings are hand-crafted
+        register(Recipe(
+            id: "transport-belt",
+            name: "Transport Belt",
+            inputs: [
+                ItemStack(itemId: "iron-gear-wheel", count: 1),
+                ItemStack(itemId: "iron-plate", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "transport-belt", count: 2)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "g"
+        ))
+
+        register(Recipe(
+            id: "fast-transport-belt",
+            name: "Fast Transport Belt",
+            inputs: [
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "iron-plate", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "fast-transport-belt", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "g1"
+        ))
+
+        register(Recipe(
+            id: "express-transport-belt",
+            name: "Express Transport Belt",
+            inputs: [
+                ItemStack(itemId: "iron-gear-wheel", count: 10),
+                ItemStack(itemId: "advanced-circuit", count: 2),
+                ItemStack(itemId: "steel-plate", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "express-transport-belt", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "g2"
+        ))
+
+        register(Recipe(
+            id: "underground-belt",
+            name: "Underground Belt",
+            inputs: [
+                ItemStack(itemId: "iron-plate", count: 10),
+                ItemStack(itemId: "transport-belt", count: 5)
+            ],
+            outputs: [ItemStack(itemId: "underground-belt", count: 2)],
+            craftTime: 1,
+            category: .crafting,
+            order: "g3"
+        ))
+
+        register(Recipe(
+            id: "splitter",
+            name: "Splitter",
+            inputs: [
+                ItemStack(itemId: "electronic-circuit", count: 5),
+                ItemStack(itemId: "iron-plate", count: 5),
+                ItemStack(itemId: "transport-belt", count: 4)
+            ],
+            outputs: [ItemStack(itemId: "splitter", count: 1)],
+            craftTime: 1,
+            category: .crafting,
+            order: "g4"
+        ))
+
+        register(Recipe(
+            id: "merger",
+            name: "Merger",
+            inputs: [
+                ItemStack(itemId: "electronic-circuit", count: 5),
+                ItemStack(itemId: "iron-plate", count: 5),
+                ItemStack(itemId: "transport-belt", count: 4)
+            ],
+            outputs: [ItemStack(itemId: "merger", count: 1)],
+            craftTime: 1,
+            category: .crafting,
+            order: "g5"
+        ))
+
+        register(Recipe(
+            id: "belt-bridge",
+            name: "Belt Bridge",
+            inputs: [
+                ItemStack(itemId: "iron-plate", count: 1),
+                ItemStack(itemId: "iron-stick", count: 2),
+                ItemStack(itemId: "iron-gear-wheel", count: 2)
+            ],
+            outputs: [ItemStack(itemId: "belt-bridge", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "g6"
+        ))
+
+        // Inserters - hand crafted
+        register(Recipe(
+            id: "inserter",
+            name: "Inserter",
+            inputs: [
+                ItemStack(itemId: "electronic-circuit", count: 1),
+                ItemStack(itemId: "iron-gear-wheel", count: 1),
+                ItemStack(itemId: "iron-plate", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "inserter", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "h"
+        ))
+
+        register(Recipe(
+            id: "long-handed-inserter",
+            name: "Long Handed Inserter",
+            inputs: [
+                ItemStack(itemId: "iron-gear-wheel", count: 1),
+                ItemStack(itemId: "iron-plate", count: 1),
+                ItemStack(itemId: "inserter", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "long-handed-inserter", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "h1"
+        ))
+
+        register(Recipe(
+            id: "fast-inserter",
+            name: "Fast Inserter",
+            inputs: [
+                ItemStack(itemId: "electronic-circuit", count: 2),
+                ItemStack(itemId: "iron-plate", count: 2),
+                ItemStack(itemId: "inserter", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "fast-inserter", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "h2"
+        ))
+
+        register(Recipe(
+            id: "stack-inserter",
+            name: "Stack Inserter",
+            inputs: [
+                ItemStack(itemId: "advanced-circuit", count: 1),
+                ItemStack(itemId: "electronic-circuit", count: 15),
+                ItemStack(itemId: "iron-gear-wheel", count: 15),
+                ItemStack(itemId: "fast-inserter", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "stack-inserter", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "h3"
+        ))
+
+        // Storage - hand crafted
+        register(Recipe(
+            id: "wooden-chest",
+            name: "Wooden Chest",
+            inputs: [ItemStack(itemId: "wood", count: 2)],
+            outputs: [ItemStack(itemId: "wooden-chest", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "i"
+        ))
+
+        register(Recipe(
+            id: "iron-chest",
+            name: "Iron Chest",
+            inputs: [ItemStack(itemId: "iron-plate", count: 8)],
+            outputs: [ItemStack(itemId: "iron-chest", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "i1"
+        ))
+
+        register(Recipe(
+            id: "steel-chest",
+            name: "Steel Chest",
+            inputs: [ItemStack(itemId: "steel-plate", count: 8)],
+            outputs: [ItemStack(itemId: "steel-chest", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "i2"
+        ))
+
+        // Power poles - hand crafted
+        register(Recipe(
+            id: "small-electric-pole",
+            name: "Small Electric Pole",
+            inputs: [
+                ItemStack(itemId: "wood", count: 2),
+                ItemStack(itemId: "copper-cable", count: 2)
+            ],
+            outputs: [ItemStack(itemId: "small-electric-pole", count: 2)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "j"
+        ))
+
+        register(Recipe(
+            id: "medium-electric-pole",
+            name: "Medium Electric Pole",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 2),
+                ItemStack(itemId: "copper-plate", count: 2)
+            ],
+            outputs: [ItemStack(itemId: "medium-electric-pole", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "j1"
+        ))
+
+        register(Recipe(
+            id: "big-electric-pole",
+            name: "Big Electric Pole",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 5),
+                ItemStack(itemId: "copper-plate", count: 5)
+            ],
+            outputs: [ItemStack(itemId: "big-electric-pole", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "j2"
+        ))
+
+        // Basic furnaces - hand crafted
+        register(Recipe(
+            id: "stone-furnace",
+            name: "Stone Furnace",
+            inputs: [ItemStack(itemId: "iron-plate", count: 5)],
+            outputs: [ItemStack(itemId: "stone-furnace", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "k"
+        ))
+
+        register(Recipe(
+            id: "steel-furnace",
+            name: "Steel Furnace",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 6),
+                ItemStack(itemId: "stone-brick", count: 10)
+            ],
+            outputs: [ItemStack(itemId: "steel-furnace", count: 1)],
+            craftTime: 3,
+            category: .crafting,
+            order: "k1"
+        ))
+
+        // Basic power generation - hand crafted
+        register(Recipe(
+            id: "boiler",
+            name: "Boiler",
+            inputs: [
+                ItemStack(itemId: "stone-furnace", count: 1),
+                ItemStack(itemId: "pipe", count: 4)
+            ],
+            outputs: [ItemStack(itemId: "boiler", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "l"
+        ))
+
+        register(Recipe(
+            id: "steam-engine",
+            name: "Steam Engine",
+            inputs: [
+                ItemStack(itemId: "iron-gear-wheel", count: 8),
+                ItemStack(itemId: "iron-plate", count: 10),
+                ItemStack(itemId: "pipe", count: 5)
+            ],
+            outputs: [ItemStack(itemId: "steam-engine", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "l1"
+        ))
+
+        // Basic mining - hand crafted
+        register(Recipe(
+            id: "burner-mining-drill",
+            name: "Burner Mining Drill",
+            inputs: [ItemStack(itemId: "iron-plate", count: 5)],
+            outputs: [ItemStack(itemId: "burner-mining-drill", count: 1)],
+            craftTime: 2,
+            category: .crafting,
+            order: "m"
+        ))
+
+        register(Recipe(
+            id: "electric-mining-drill",
+            name: "Electric Mining Drill",
+            inputs: [
+                ItemStack(itemId: "electronic-circuit", count: 3),
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "iron-plate", count: 10)
+            ],
+            outputs: [ItemStack(itemId: "electric-mining-drill", count: 1)],
+            craftTime: 2,
+            category: .crafting,
+            order: "m1"
+        ))
+
+        // Defense - hand crafted
+        register(Recipe(
+            id: "stone-wall",
+            name: "Wall",
+            inputs: [ItemStack(itemId: "stone-brick", count: 5)],
+            outputs: [ItemStack(itemId: "stone-wall", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "n"
+        ))
+
+        // Advanced machinery - crafted in assemblers
+        register(Recipe(
+            id: "assembling-machine-1",
+            name: "Assembling Machine 1",
+            inputs: [
+                ItemStack(itemId: "electronic-circuit", count: 3),
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "iron-plate", count: 9)
+            ],
+            outputs: [ItemStack(itemId: "assembling-machine-1", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "o"
+        ))
+
+        register(Recipe(
+            id: "assembling-machine-2",
+            name: "Assembling Machine 2",
+            inputs: [
+                ItemStack(itemId: "iron-plate", count: 9),
+                ItemStack(itemId: "electronic-circuit", count: 3),
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "assembling-machine-1", count: 1)
+            ],
+            outputs: [ItemStack(itemId: "assembling-machine-2", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "o1"
+        ))
+
+        register(Recipe(
+            id: "assembling-machine-3",
+            name: "Assembling Machine 3",
+            inputs: [
+                ItemStack(itemId: "assembling-machine-2", count: 2),
+                ItemStack(itemId: "speed-module", count: 4)
+            ],
+            outputs: [ItemStack(itemId: "assembling-machine-3", count: 1)],
+            craftTime: 0.5,
+            category: .crafting,
+            order: "o2"
+        ))
+
+        // Advanced furnaces - crafted in assemblers
+        register(Recipe(
+            id: "electric-furnace",
+            name: "Electric Furnace",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 10),
+                ItemStack(itemId: "advanced-circuit", count: 5),
+                ItemStack(itemId: "stone-brick", count: 10)
+            ],
+            outputs: [ItemStack(itemId: "electric-furnace", count: 1)],
+            craftTime: 5,
+            category: .crafting,
+            order: "p"
+        ))
+
+        // Research - crafted in assemblers
+        register(Recipe(
+            id: "lab",
+            name: "Lab",
+            inputs: [
+                ItemStack(itemId: "electronic-circuit", count: 10),
+                ItemStack(itemId: "iron-gear-wheel", count: 10),
+                ItemStack(itemId: "transport-belt", count: 4)
+            ],
+            outputs: [ItemStack(itemId: "lab", count: 1)],
+            craftTime: 2,
+            category: .crafting,
+            order: "q"
+        ))
+
+        // Oil processing - crafted in assemblers
+        register(Recipe(
+            id: "oil-refinery",
+            name: "Oil Refinery",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 15),
+                ItemStack(itemId: "iron-gear-wheel", count: 10),
+                ItemStack(itemId: "electronic-circuit", count: 10),
+                ItemStack(itemId: "pipe", count: 10),
+                ItemStack(itemId: "stone-brick", count: 10)
+            ],
+            outputs: [ItemStack(itemId: "oil-refinery", count: 1)],
+            craftTime: 8,
+            category: .crafting,
+            order: "r"
+        ))
+
+        register(Recipe(
+            id: "chemical-plant",
+            name: "Chemical Plant",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 5),
+                ItemStack(itemId: "iron-gear-wheel", count: 5),
+                ItemStack(itemId: "electronic-circuit", count: 5),
+                ItemStack(itemId: "pipe", count: 5)
+            ],
+            outputs: [ItemStack(itemId: "chemical-plant", count: 1)],
+            craftTime: 5,
+            category: .crafting,
+            order: "s"
+        ))
+
+        // Nuclear - crafted in assemblers
+        register(Recipe(
+            id: "centrifuge",
+            name: "Centrifuge",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 50),
+                ItemStack(itemId: "advanced-circuit", count: 100),
+                ItemStack(itemId: "processing-unit", count: 100),
+                ItemStack(itemId: "stone-brick", count: 100)
+            ],
+            outputs: [ItemStack(itemId: "centrifuge", count: 1)],
+            craftTime: 4,
+            category: .crafting,
+            order: "t"
+        ))
+
+        // Advanced power - crafted in assemblers
+        register(Recipe(
+            id: "solar-panel",
+            name: "Solar Panel",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 5),
+                ItemStack(itemId: "electronic-circuit", count: 15),
+                ItemStack(itemId: "copper-plate", count: 5)
+            ],
+            outputs: [ItemStack(itemId: "solar-panel", count: 1)],
+            craftTime: 10,
+            category: .crafting,
+            order: "u"
+        ))
+
+        register(Recipe(
+            id: "accumulator",
+            name: "Accumulator",
+            inputs: [
+                ItemStack(itemId: "iron-plate", count: 2),
+                ItemStack(itemId: "battery", count: 5)
+            ],
+            outputs: [ItemStack(itemId: "accumulator", count: 1)],
+            craftTime: 10,
+            category: .crafting,
+            order: "v"
+        ))
+
+        // Rocket facilities - crafted in assemblers
+        register(Recipe(
+            id: "rocket-silo",
+            name: "Rocket Silo",
+            inputs: [
+                ItemStack(itemId: "steel-plate", count: 1000),
+                ItemStack(itemId: "stone-brick", count: 1000),
+                ItemStack(itemId: "pipe", count: 100),
+                ItemStack(itemId: "processing-unit", count: 200)
+            ],
+            outputs: [ItemStack(itemId: "rocket-silo", count: 1)],
+            craftTime: 30,
+            category: .crafting,
+            order: "w"
+        ))
+
         // Combat items
         register(Recipe(
             id: "firearm-magazine",
