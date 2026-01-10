@@ -168,10 +168,10 @@ final class BuildMenu: UIPanel_Base {
     private func setupBuildButton() {
         // Position build button at bottom center of screen
         let screenBounds = UIScreen.main.bounds
-        let buttonWidth: CGFloat = 240
-        let buttonHeight: CGFloat = 80
-        let buttonX = (screenBounds.width - buttonWidth) / 2
-        let buttonY = screenBounds.height - buttonHeight - 120  // 120 points from bottom
+        let buttonWidth: CGFloat = 180  // Smaller width
+        let buttonHeight: CGFloat = 60  // Smaller height
+        let buttonX = (screenBounds.width - buttonWidth) / 2  // Center horizontally
+        let buttonY = screenBounds.height - buttonHeight - 80  // Bottom with margin
 
         let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight))
         button.setTitle("Build", for: UIControl.State.normal)
@@ -183,10 +183,19 @@ final class BuildMenu: UIPanel_Base {
 
         button.addTarget(self, action: #selector(buildButtonTapped), for: UIControl.Event.touchUpInside)
 
-        // Store and show the button
+        // Use frame-based positioning instead of Auto Layout
+        button.translatesAutoresizingMaskIntoConstraints = true
+
+        // Set properties
+        button.backgroundColor = UIColor(red: 0.2, green: 0.6, blue: 0.2, alpha: 1.0)
+
+        // Store and add to view
         buildButton = button
-        button.isHidden = false
         onAddBuildButton?(button)
+
+        // Set frame after adding to view (important for proper positioning)
+        button.frame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
+        button.isHidden = false
     }
 
     @objc private func buildButtonTapped() {
