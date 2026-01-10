@@ -98,8 +98,6 @@ final class ResearchSystem: System {
             }
         }
 
-        print("ResearchSystem: Found \(activeLabCount) active labs, \(pendingUpdates.count) updates to apply")
-
         // Apply updates after iteration completes
         for (entity, lab, inventory) in pendingUpdates {
             world.add(lab, to: entity)
@@ -217,19 +215,16 @@ final class ResearchSystem: System {
         world.forEach(LabComponent.self) { entity, lab in
             labCount += 1
         }
-        print("ResearchSystem: Found \(labCount) labs in the world")
-
+        
         // Collect lab updates to apply after iteration
         var pendingLabUpdates: [(Entity, LabComponent)] = []
 
         // Activate labs
         world.forEach(LabComponent.self) { entity, lab in
-            var updatedLab = lab
+            let updatedLab = lab
             updatedLab.isResearching = true
             pendingLabUpdates.append((entity, updatedLab))
         }
-
-        print("ResearchSystem: Activated \(pendingLabUpdates.count) labs for research")
 
         // Apply updates after iteration completes
         for (entity, lab) in pendingLabUpdates {

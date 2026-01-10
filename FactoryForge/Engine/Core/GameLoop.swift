@@ -680,6 +680,7 @@ final class GameLoop {
         switch buildingDef.type {
         case .miner:
             world.add(MinerComponent(
+                buildingId: buildingDef.id,
                 miningSpeed: buildingDef.miningSpeed,
                 resourceOutput: buildingDef.resourceOutput
             ), to: entity)
@@ -691,6 +692,7 @@ final class GameLoop {
             
         case .furnace:
             world.add(FurnaceComponent(
+                buildingId: buildingDef.id,
                 smeltingSpeed: buildingDef.craftingSpeed
             ), to: entity)
             // Furnace needs 2 input slots and 2 output slots (4 total)
@@ -698,6 +700,7 @@ final class GameLoop {
             
         case .assembler:
             world.add(AssemblerComponent(
+                buildingId: buildingDef.id,
                 craftingSpeed: buildingDef.craftingSpeed,
                 craftingCategory: buildingDef.craftingCategory
             ), to: entity)
@@ -721,6 +724,7 @@ final class GameLoop {
             }
 
             world.add(BeltComponent(
+                buildingId: buildingDef.id,
                 speed: buildingDef.beltSpeed,
                 direction: direction,
                 type: beltType
@@ -766,6 +770,7 @@ final class GameLoop {
             
         case .powerPole:
             world.add(PowerPoleComponent(
+                buildingId: buildingDef.id,
                 wireReach: buildingDef.wireReach,
                 supplyArea: buildingDef.supplyArea
             ), to: entity)
@@ -775,6 +780,7 @@ final class GameLoop {
             // For now, set a default power output for generators
             let powerOutput = buildingDef.powerProduction > 0 ? buildingDef.powerProduction : 1800.0  // Default 1.8 MW for boilers
             world.add(GeneratorComponent(
+                buildingId: buildingDef.id,
                 powerOutput: powerOutput,
                 fuelCategory: buildingDef.fuelCategory ?? "chemical"
             ), to: entity)
@@ -784,17 +790,20 @@ final class GameLoop {
             
         case .solarPanel:
             world.add(SolarPanelComponent(
+                buildingId: buildingDef.id,
                 powerOutput: buildingDef.powerProduction
             ), to: entity)
             
         case .accumulator:
             world.add(AccumulatorComponent(
+                buildingId: buildingDef.id,
                 capacity: buildingDef.accumulatorCapacity,
                 chargeRate: buildingDef.accumulatorChargeRate
             ), to: entity)
             
         case .lab:
             world.add(LabComponent(
+                buildingId: buildingDef.id,
                 researchSpeed: buildingDef.researchSpeed
             ), to: entity)
             world.add(InventoryComponent(slots: 6, allowedItems: ItemRegistry.allowedSciencePacks), to: entity)
@@ -802,6 +811,7 @@ final class GameLoop {
             
         case .turret:
             world.add(TurretComponent(
+                buildingId: buildingDef.id,
                 range: buildingDef.turretRange,
                 damage: buildingDef.turretDamage,
                 fireRate: buildingDef.turretFireRate
@@ -809,17 +819,18 @@ final class GameLoop {
             world.add(InventoryComponent(slots: 1, allowedItems: ItemRegistry.allowedAmmo), to: entity)
             
         case .wall:
-            world.add(WallComponent(), to: entity)
+            world.add(WallComponent(buildingId: buildingDef.id), to: entity)
             
         case .chest:
-            world.add(ChestComponent(), to: entity)
+            world.add(ChestComponent(buildingId: buildingDef.id), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
             
         case .pipe:
-            world.add(PipeComponent(direction: direction), to: entity)
+            world.add(PipeComponent(buildingId: buildingDef.id, direction: direction), to: entity)
             
         case .pumpjack:
             world.add(PumpjackComponent(
+                buildingId: buildingDef.id,
                 extractionRate: buildingDef.extractionRate,
                 resourceType: "crude-oil"
             ), to: entity)
@@ -828,6 +839,7 @@ final class GameLoop {
 
         case .waterPump:
             world.add(PumpjackComponent(
+                buildingId: buildingDef.id,
                 extractionRate: buildingDef.extractionRate,
                 resourceType: "water"
             ), to: entity)
@@ -835,27 +847,28 @@ final class GameLoop {
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
 
         case .oilRefinery:
-            world.add(AssemblerComponent(craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "oil-processing"), to: entity)
+            world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "oil-processing"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
 
         case .chemicalPlant:
-            world.add(AssemblerComponent(craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "chemistry"), to: entity)
+            world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "chemistry"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
 
         case .rocketSilo:
-            world.add(RocketSiloComponent(), to: entity)
+            world.add(RocketSiloComponent(buildingId: buildingDef.id), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
 
         case .centrifuge:
-            world.add(AssemblerComponent(craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "centrifuging"), to: entity)
+            world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "centrifuging"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
 
         case .nuclearReactor:
             world.add(GeneratorComponent(
+                buildingId: buildingDef.id,
                 powerOutput: buildingDef.powerProduction,
                 fuelCategory: buildingDef.fuelCategory ?? "nuclear"
             ), to: entity)
@@ -865,6 +878,7 @@ final class GameLoop {
 
     private func addInserterComponents(entity: Entity, buildingDef: BuildingDefinition, type: InserterType) {
         world.add(InserterComponent(
+            buildingId: buildingDef.id,
             type: type,
             speed: buildingDef.inserterSpeed,
             stackSize: buildingDef.inserterStackSize,

@@ -1,37 +1,90 @@
 import Foundation
 
+// MARK: - Base Building Component
+
+/// Base component for all buildings, providing common building identification
+class BuildingComponent: Component {
+    /// The building ID that identifies this building type in the registry
+    let buildingId: String
+
+    init(buildingId: String) {
+        self.buildingId = buildingId
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        buildingId = try container.decode(String.self, forKey: .buildingId)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(buildingId, forKey: .buildingId)
+    }
+}
+
 // MARK: - Mining
 
 /// Component for mining drills
-struct MinerComponent: Component {
+class MinerComponent: BuildingComponent {
     /// Mining speed in items per second
     var miningSpeed: Float
-    
+
     /// Resource being mined (nil if not on a resource)
     var resourceOutput: String?
-    
+
     /// Mining progress (0-1)
     var progress: Float
-    
+
     /// Whether the miner is currently active
     var isActive: Bool
-    
+
     /// Fuel remaining (for burner miners)
     var fuelRemaining: Float
-    
-    init(miningSpeed: Float = 0.5, resourceOutput: String? = nil) {
+
+    init(buildingId: String, miningSpeed: Float = 0.5, resourceOutput: String? = nil) {
         self.miningSpeed = miningSpeed
         self.resourceOutput = resourceOutput
         self.progress = 0
         self.isActive = true
         self.fuelRemaining = 0
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, miningSpeed, resourceOutput, progress, isActive, fuelRemaining
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        miningSpeed = try container.decode(Float.self, forKey: .miningSpeed)
+        resourceOutput = try container.decodeIfPresent(String.self, forKey: .resourceOutput)
+        progress = try container.decode(Float.self, forKey: .progress)
+        isActive = try container.decode(Bool.self, forKey: .isActive)
+        fuelRemaining = try container.decode(Float.self, forKey: .fuelRemaining)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(miningSpeed, forKey: .miningSpeed)
+        try container.encode(resourceOutput, forKey: .resourceOutput)
+        try container.encode(progress, forKey: .progress)
+        try container.encode(isActive, forKey: .isActive)
+        try container.encode(fuelRemaining, forKey: .fuelRemaining)
+        try super.encode(to: encoder)
     }
 }
 
 // MARK: - Smelting
 
 /// Component for furnaces
-struct FurnaceComponent: Component, Codable {
+class FurnaceComponent: BuildingComponent {
     /// Smelting speed multiplier
     var smeltingSpeed: Float
 
@@ -44,35 +97,84 @@ struct FurnaceComponent: Component, Codable {
     /// Fuel remaining
     var fuelRemaining: Float
 
-    init(smeltingSpeed: Float = 1.0) {
+    init(buildingId: String, smeltingSpeed: Float = 1.0) {
         self.smeltingSpeed = smeltingSpeed
         self.recipe = nil
         self.smeltingProgress = 0
         self.fuelRemaining = 0
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, smeltingSpeed, recipe, smeltingProgress, fuelRemaining
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let buildingId = try container.decode(String.self, forKey: .buildingId)
+        smeltingSpeed = try container.decode(Float.self, forKey: .smeltingSpeed)
+        recipe = try container.decodeIfPresent(Recipe.self, forKey: .recipe)
+        smeltingProgress = try container.decode(Float.self, forKey: .smeltingProgress)
+        fuelRemaining = try container.decode(Float.self, forKey: .fuelRemaining)
+        super.init(buildingId: buildingId)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(buildingId, forKey: .buildingId)
+        try container.encode(smeltingSpeed, forKey: .smeltingSpeed)
+        try container.encode(recipe, forKey: .recipe)
+        try container.encode(smeltingProgress, forKey: .smeltingProgress)
+        try container.encode(fuelRemaining, forKey: .fuelRemaining)
     }
 }
 
 // MARK: - Assembling
 
 /// Component for assemblers
-struct AssemblerComponent: Component {
+class AssemblerComponent: BuildingComponent {
     /// Crafting speed multiplier
     var craftingSpeed: Float
-    
+
     /// Allowed crafting categories
     var craftingCategory: String
-    
+
     /// Current recipe
     var recipe: Recipe?
-    
+
     /// Crafting progress (0-1)
     var craftingProgress: Float
-    
-    init(craftingSpeed: Float = 1.0, craftingCategory: String = "crafting") {
+
+    init(buildingId: String, craftingSpeed: Float = 1.0, craftingCategory: String = "crafting") {
         self.craftingSpeed = craftingSpeed
         self.craftingCategory = craftingCategory
         self.recipe = nil
         self.craftingProgress = 0
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, craftingSpeed, craftingCategory, recipe, craftingProgress
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        craftingSpeed = try container.decode(Float.self, forKey: .craftingSpeed)
+        craftingCategory = try container.decode(String.self, forKey: .craftingCategory)
+        recipe = try container.decodeIfPresent(Recipe.self, forKey: .recipe)
+        craftingProgress = try container.decode(Float.self, forKey: .craftingProgress)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(craftingSpeed, forKey: .craftingSpeed)
+        try container.encode(craftingCategory, forKey: .craftingCategory)
+        try container.encode(recipe, forKey: .recipe)
+        try container.encode(craftingProgress, forKey: .craftingProgress)
+        try super.encode(to: encoder)
     }
 }
 
@@ -90,7 +192,7 @@ enum BeltType: Codable {
     case bridge
 }
 
-struct BeltComponent: Component {
+class BeltComponent: BuildingComponent {
     /// Belt speed in tiles per second
     var speed: Float
 
@@ -120,7 +222,7 @@ struct BeltComponent: Component {
     var inputConnections: [Entity]
     var outputConnections: [Entity]
 
-    init(speed: Float = 1.0, direction: Direction = .north, type: BeltType = .normal) {
+    init(buildingId: String, speed: Float = 1.0, direction: Direction = .north, type: BeltType = .normal) {
         self.speed = speed
         self.direction = direction
         self.type = type
@@ -132,17 +234,18 @@ struct BeltComponent: Component {
         self.undergroundOutputPosition = nil
         self.inputConnections = []
         self.outputConnections = []
+        super.init(buildingId: buildingId)
     }
 
     // Custom Codable conformance for backward compatibility
     enum CodingKeys: String, CodingKey {
-        case speed, direction, type, leftLane, rightLane
+        case buildingId, speed, direction, type, leftLane, rightLane
         case inputConnection, outputConnection
         case undergroundInputPosition, undergroundOutputPosition
         case inputConnections, outputConnections
     }
 
-    init(from decoder: Decoder) throws {
+    required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         speed = try container.decode(Float.self, forKey: .speed)
@@ -162,9 +265,11 @@ struct BeltComponent: Component {
         undergroundOutputPosition = try container.decodeIfPresent(IntVector2.self, forKey: .undergroundOutputPosition)
         inputConnections = try container.decodeIfPresent([Entity].self, forKey: .inputConnections) ?? []
         outputConnections = try container.decodeIfPresent([Entity].self, forKey: .outputConnections) ?? []
+
+        try super.init(from: decoder)
     }
 
-    func encode(to encoder: Encoder) throws {
+    override func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         try container.encode(speed, forKey: .speed)
@@ -178,10 +283,11 @@ struct BeltComponent: Component {
         try container.encode(undergroundOutputPosition, forKey: .undergroundOutputPosition)
         try container.encode(inputConnections, forKey: .inputConnections)
         try container.encode(outputConnections, forKey: .outputConnections)
+        try super.encode(to: encoder)
     }
     
     /// Adds an item to the belt
-    mutating func addItem(_ itemId: String, lane: BeltLane, position: Float = 0) -> Bool {
+    func addItem(_ itemId: String, lane: BeltLane, position: Float = 0) -> Bool {
         let item = BeltItem(itemId: itemId, progress: position)
         
         switch lane {
@@ -212,7 +318,7 @@ struct BeltComponent: Component {
     }
     
     /// Takes an item from the end of the belt
-    mutating func takeItem(from lane: BeltLane) -> BeltItem? {
+    func takeItem(from lane: BeltLane) -> BeltItem? {
         switch lane {
         case .left:
             if let last = leftLane.last, last.progress >= 0.9 {
@@ -227,7 +333,7 @@ struct BeltComponent: Component {
     }
 
     /// For splitters: distributes items to output lanes in round-robin fashion
-    mutating func addItemToSplitter(_ itemId: String) -> Bool {
+    func addItemToSplitter(_ itemId: String) -> Bool {
         guard type == .splitter else { return false }
 
         // Alternate between left and right lanes for even distribution
@@ -244,7 +350,7 @@ struct BeltComponent: Component {
     }
 
     /// For mergers: combines items from multiple inputs
-    mutating func takeItemFromMerger() -> BeltItem? {
+    func takeItemFromMerger() -> BeltItem? {
         guard type == .merger else { return nil }
 
         // Check both lanes and take from the one with items ready
@@ -271,7 +377,7 @@ enum BeltLane: Codable {
 }
 
 /// Component for inserters
-struct InserterComponent: Component {
+class InserterComponent: BuildingComponent {
     /// Type of inserter (input or output)
     var type: InserterType
 
@@ -283,34 +389,34 @@ struct InserterComponent: Component {
 
     /// Direction (from which side it picks up)
     var direction: Direction
-    
+
     /// Current rotation angle
     var armAngle: Float
-    
+
     /// Item currently being held
     var heldItem: ItemStack?
-    
+
     /// Current state
     var state: InserterState
-    
+
     /// Entity we picked up from (to avoid dropping back to it)
     var sourceEntity: Entity?
-    
+
     /// Configured input target entity (belt, miner, machine output)
     var inputTarget: Entity?
-    
+
     /// Configured output target entity (belt, machine input)
     var outputTarget: Entity?
-    
+
     /// Configured input position (for belts when no entity at that position)
     var inputPosition: IntVector2?
-    
+
     /// Configured output position (for belts)
     var outputPosition: IntVector2?
 
     /// Time spent trying to drop current item (for timeout logic)
     var dropTimeout: Float = 0
-    
+
     /// Target position for the arm
     var targetAngle: Float {
         switch state {
@@ -322,8 +428,8 @@ struct InserterComponent: Component {
             return heldItem != nil ? 0 : .pi
         }
     }
-    
-    init(type: InserterType = .input, speed: Float = 2.0, stackSize: Int = 1, direction: Direction = .north) {
+
+    init(buildingId: String, type: InserterType = .input, speed: Float = 2.0, stackSize: Int = 1, direction: Direction = .north) {
         self.type = type
         self.speed = speed
         self.stackSize = stackSize
@@ -336,6 +442,48 @@ struct InserterComponent: Component {
         self.outputTarget = nil
         self.inputPosition = nil
         self.outputPosition = nil
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, type, speed, stackSize, direction, armAngle, heldItem, state, sourceEntity, inputTarget, outputTarget, inputPosition, outputPosition, dropTimeout
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        type = try container.decode(InserterType.self, forKey: .type)
+        speed = try container.decode(Float.self, forKey: .speed)
+        stackSize = try container.decode(Int.self, forKey: .stackSize)
+        direction = try container.decode(Direction.self, forKey: .direction)
+        armAngle = try container.decode(Float.self, forKey: .armAngle)
+        heldItem = try container.decodeIfPresent(ItemStack.self, forKey: .heldItem)
+        state = try container.decode(InserterState.self, forKey: .state)
+        sourceEntity = try container.decodeIfPresent(Entity.self, forKey: .sourceEntity)
+        inputTarget = try container.decodeIfPresent(Entity.self, forKey: .inputTarget)
+        outputTarget = try container.decodeIfPresent(Entity.self, forKey: .outputTarget)
+        inputPosition = try container.decodeIfPresent(IntVector2.self, forKey: .inputPosition)
+        outputPosition = try container.decodeIfPresent(IntVector2.self, forKey: .outputPosition)
+        dropTimeout = try container.decode(Float.self, forKey: .dropTimeout)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(type, forKey: .type)
+        try container.encode(speed, forKey: .speed)
+        try container.encode(stackSize, forKey: .stackSize)
+        try container.encode(direction, forKey: .direction)
+        try container.encode(armAngle, forKey: .armAngle)
+        try container.encode(heldItem, forKey: .heldItem)
+        try container.encode(state, forKey: .state)
+        try container.encode(sourceEntity, forKey: .sourceEntity)
+        try container.encode(inputTarget, forKey: .inputTarget)
+        try container.encode(outputTarget, forKey: .outputTarget)
+        try container.encode(inputPosition, forKey: .inputPosition)
+        try container.encode(outputPosition, forKey: .outputPosition)
+        try container.encode(dropTimeout, forKey: .dropTimeout)
+        try super.encode(to: encoder)
     }
 }
 
@@ -354,29 +502,70 @@ enum InserterState: Codable {
 // MARK: - Storage
 
 /// Component for chests
-struct ChestComponent: Component {
+class ChestComponent: BuildingComponent {
     // Just a marker - uses InventoryComponent for storage
+
+    override init(buildingId: String) {
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId
+    }
+
+    required init(from decoder: Decoder) throws {
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        try super.encode(to: encoder)
+    }
 }
 
 // MARK: - Fluids
 
 /// Component for pipes
-struct PipeComponent: Component {
+class PipeComponent: BuildingComponent {
     var direction: Direction
     var fluidType: String?
     var fluidAmount: Float
     var maxCapacity: Float
-    
-    init(direction: Direction, maxCapacity: Float = 100) {
+
+    init(buildingId: String, direction: Direction, maxCapacity: Float = 100) {
         self.direction = direction
         self.fluidType = nil
         self.fluidAmount = 0
         self.maxCapacity = maxCapacity
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, direction, fluidType, fluidAmount, maxCapacity
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        direction = try container.decode(Direction.self, forKey: .direction)
+        fluidType = try container.decodeIfPresent(String.self, forKey: .fluidType)
+        fluidAmount = try container.decode(Float.self, forKey: .fluidAmount)
+        maxCapacity = try container.decode(Float.self, forKey: .maxCapacity)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(direction, forKey: .direction)
+        try container.encode(fluidType, forKey: .fluidType)
+        try container.encode(fluidAmount, forKey: .fluidAmount)
+        try container.encode(maxCapacity, forKey: .maxCapacity)
+        try super.encode(to: encoder)
     }
 }
 
 /// Component for pumpjacks
-struct PumpjackComponent: Component {
+class PumpjackComponent: BuildingComponent {
     var extractionRate: Float
     var oilRemaining: Float
 
@@ -389,32 +578,95 @@ struct PumpjackComponent: Component {
     /// Whether the pumpjack is currently active
     var isActive: Bool
 
-    init(extractionRate: Float = 1.0, oilRemaining: Float = 0, resourceType: String = "crude-oil") {
+    init(buildingId: String, extractionRate: Float = 1.0, oilRemaining: Float = 0, resourceType: String = "crude-oil") {
         self.extractionRate = extractionRate
         self.oilRemaining = oilRemaining
         self.resourceType = resourceType
         self.progress = 0
         self.isActive = true
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, extractionRate, oilRemaining, resourceType, progress, isActive
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        extractionRate = try container.decode(Float.self, forKey: .extractionRate)
+        oilRemaining = try container.decode(Float.self, forKey: .oilRemaining)
+        resourceType = try container.decode(String.self, forKey: .resourceType)
+        progress = try container.decode(Float.self, forKey: .progress)
+        isActive = try container.decode(Bool.self, forKey: .isActive)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(extractionRate, forKey: .extractionRate)
+        try container.encode(oilRemaining, forKey: .oilRemaining)
+        try container.encode(resourceType, forKey: .resourceType)
+        try container.encode(progress, forKey: .progress)
+        try container.encode(isActive, forKey: .isActive)
+        try super.encode(to: encoder)
     }
 }
 
 // MARK: - Research
 
 /// Component for labs
-struct LabComponent: Component {
+class LabComponent: BuildingComponent {
     var researchSpeed: Float
     var isResearching: Bool
-    
-    init(researchSpeed: Float = 1.0) {
+
+    init(buildingId: String, researchSpeed: Float = 1.0) {
         self.researchSpeed = researchSpeed
         self.isResearching = false
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, researchSpeed, isResearching
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        researchSpeed = try container.decode(Float.self, forKey: .researchSpeed)
+        isResearching = try container.decode(Bool.self, forKey: .isResearching)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(researchSpeed, forKey: .researchSpeed)
+        try container.encode(isResearching, forKey: .isResearching)
+        try super.encode(to: encoder)
     }
 }
 
 // MARK: - Defense
 
 /// Component for walls
-struct WallComponent: Component {
+class WallComponent: BuildingComponent {
     // Marker component - uses HealthComponent for durability
+
+    override init(buildingId: String) {
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId
+    }
+
+    required init(from decoder: Decoder) throws {
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        try super.encode(to: encoder)
+    }
 }
 

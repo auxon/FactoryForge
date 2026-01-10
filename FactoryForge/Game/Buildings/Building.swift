@@ -50,6 +50,11 @@ struct BuildingDefinition: Identifiable, Codable {
     
     // Fluid extraction
     var extractionRate: Float = 0
+
+    // UI slot counts
+    var inputSlots: Int = 0
+    var outputSlots: Int = 0
+    var fuelSlots: Int = 0
     
     init(
         id: String,

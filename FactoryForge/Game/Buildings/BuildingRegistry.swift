@@ -42,6 +42,9 @@ final class BuildingRegistry {
             cost: [ItemStack(itemId: "iron-plate", count: 5)]
         )
         burnerMiner.miningSpeed = 0.50
+        burnerMiner.inputSlots = 0
+        burnerMiner.outputSlots = 1
+        burnerMiner.fuelSlots = 1
         register(burnerMiner)
         
         var electricMiner = BuildingDefinition(
@@ -59,6 +62,9 @@ final class BuildingRegistry {
         )
         electricMiner.miningSpeed = 0.75
         electricMiner.powerConsumption = 90
+        electricMiner.inputSlots = 0
+        electricMiner.outputSlots = 1
+        electricMiner.fuelSlots = 0
         register(electricMiner)
         
         // Furnaces
@@ -73,6 +79,9 @@ final class BuildingRegistry {
         )
         stoneFurnace.craftingSpeed = 1
         stoneFurnace.craftingCategory = "smelting"
+        stoneFurnace.inputSlots = 1
+        stoneFurnace.outputSlots = 1
+        stoneFurnace.fuelSlots = 1
         register(stoneFurnace)
         
         var steelFurnace = BuildingDefinition(
@@ -89,6 +98,9 @@ final class BuildingRegistry {
         )
         steelFurnace.craftingSpeed = 2
         steelFurnace.craftingCategory = "smelting"
+        steelFurnace.inputSlots = 1
+        steelFurnace.outputSlots = 1
+        steelFurnace.fuelSlots = 1
         register(steelFurnace)
         
         var electricFurnace = BuildingDefinition(
@@ -107,6 +119,9 @@ final class BuildingRegistry {
         electricFurnace.craftingSpeed = 2
         electricFurnace.craftingCategory = "smelting"
         electricFurnace.powerConsumption = 180
+        electricFurnace.inputSlots = 1
+        electricFurnace.outputSlots = 1
+        electricFurnace.fuelSlots = 0
         register(electricFurnace)
         
         // Assemblers
@@ -126,6 +141,9 @@ final class BuildingRegistry {
         assembler1.craftingSpeed = 0.5
         assembler1.craftingCategory = "crafting"
         assembler1.powerConsumption = 75
+        assembler1.inputSlots = 4
+        assembler1.outputSlots = 1
+        assembler1.fuelSlots = 0
         register(assembler1)
         
         var assembler2 = BuildingDefinition(
@@ -145,6 +163,9 @@ final class BuildingRegistry {
         assembler2.craftingSpeed = 0.75
         assembler2.craftingCategory = "advanced-crafting"
         assembler2.powerConsumption = 150
+        assembler2.inputSlots = 4
+        assembler2.outputSlots = 1
+        assembler2.fuelSlots = 0
         register(assembler2)
         
         var assembler3 = BuildingDefinition(
@@ -162,6 +183,9 @@ final class BuildingRegistry {
         assembler3.craftingSpeed = 1.25
         assembler3.craftingCategory = "advanced-crafting"
         assembler3.powerConsumption = 375
+        assembler3.inputSlots = 4
+        assembler3.outputSlots = 1
+        assembler3.fuelSlots = 0
         register(assembler3)
         
         // Belts
@@ -439,6 +463,9 @@ final class BuildingRegistry {
         )
         lab.researchSpeed = 1
         lab.powerConsumption = 60
+        lab.inputSlots = 4  // Science pack slots
+        lab.outputSlots = 0
+        lab.fuelSlots = 0
         register(lab)
         
         // Combat
@@ -498,6 +525,9 @@ final class BuildingRegistry {
             cost: [ItemStack(itemId: "wood", count: 2)]
         )
         woodenChest.inventorySlots = 16
+        woodenChest.inputSlots = 0
+        woodenChest.outputSlots = 0
+        woodenChest.fuelSlots = 0
         register(woodenChest)
         
         var ironChest = BuildingDefinition(
@@ -508,6 +538,9 @@ final class BuildingRegistry {
             cost: [ItemStack(itemId: "iron-plate", count: 8)]
         )
         ironChest.inventorySlots = 32
+        ironChest.inputSlots = 0
+        ironChest.outputSlots = 0
+        ironChest.fuelSlots = 0
         register(ironChest)
         
         var steelChest = BuildingDefinition(
@@ -518,6 +551,9 @@ final class BuildingRegistry {
             cost: [ItemStack(itemId: "steel-plate", count: 8)]
         )
         steelChest.inventorySlots = 48
+        steelChest.inputSlots = 0
+        steelChest.outputSlots = 0
+        steelChest.fuelSlots = 0
         register(steelChest)
 
         // Oil processing buildings
@@ -534,6 +570,9 @@ final class BuildingRegistry {
         oilWell.powerConsumption = 90  // kW
         oilWell.extractionRate = 1.0   // 1 crude oil per second at full power
         oilWell.inventorySlots = 1     // Output slot for crude oil
+        oilWell.inputSlots = 0
+        oilWell.outputSlots = 1
+        oilWell.fuelSlots = 0
         register(oilWell)
 
         var waterPump = BuildingDefinition(
@@ -548,6 +587,9 @@ final class BuildingRegistry {
         waterPump.powerConsumption = 30  // kW - less than oil well
         waterPump.extractionRate = 1.0   // 1 water per second at full power
         waterPump.inventorySlots = 1     // Output slot for water
+        waterPump.inputSlots = 0
+        waterPump.outputSlots = 1
+        waterPump.fuelSlots = 0
         register(waterPump)
 
         var oilRefinery = BuildingDefinition(
@@ -565,6 +607,9 @@ final class BuildingRegistry {
         )
         oilRefinery.powerConsumption = 420  // kW
         oilRefinery.inventorySlots = 6      // Input + outputs for various fluids
+        oilRefinery.inputSlots = 2
+        oilRefinery.outputSlots = 2
+        oilRefinery.fuelSlots = 0
         register(oilRefinery)
 
         var chemicalPlant = BuildingDefinition(
@@ -581,6 +626,9 @@ final class BuildingRegistry {
         )
         chemicalPlant.powerConsumption = 210  // kW
         chemicalPlant.inventorySlots = 6      // Multiple inputs and outputs
+        chemicalPlant.inputSlots = 3
+        chemicalPlant.outputSlots = 2
+        chemicalPlant.fuelSlots = 0
         register(chemicalPlant)
 
         // Nuclear buildings
@@ -610,6 +658,9 @@ final class BuildingRegistry {
         )
         centrifuge.powerConsumption = 350  // kW
         centrifuge.inventorySlots = 4      // Input slots for uranium ore, output slots for U-235 and U-238
+        centrifuge.inputSlots = 2
+        centrifuge.outputSlots = 2
+        centrifuge.fuelSlots = 0
         register(centrifuge)
 
         // Rocket facilities
@@ -627,6 +678,9 @@ final class BuildingRegistry {
         )
         rocketSilo.powerConsumption = 1000  // kW - high power for rocket launches
         rocketSilo.inventorySlots = 10      // Large inventory for rocket parts and fuel
+        rocketSilo.inputSlots = 4
+        rocketSilo.outputSlots = 0
+        rocketSilo.fuelSlots = 1  // Rocket fuel
         register(rocketSilo)
     }
 }

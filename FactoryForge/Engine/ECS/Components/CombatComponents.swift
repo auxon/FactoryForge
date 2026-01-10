@@ -3,32 +3,32 @@ import Foundation
 // MARK: - Turrets
 
 /// Component for turrets
-struct TurretComponent: Component {
+class TurretComponent: BuildingComponent {
     /// Attack range in tiles
     var range: Float
-    
+
     /// Damage per shot
     var damage: Float
-    
+
     /// Shots per second
     var fireRate: Float
-    
+
     /// Time since last shot
     var cooldown: Float
-    
+
     /// Current target entity
     var targetEntity: Entity?
-    
+
     /// Turret rotation angle
     var rotation: Float
-    
+
     /// Target rotation angle
     var targetRotation: Float
-    
+
     /// Rotation speed in radians per second
     var rotationSpeed: Float
-    
-    init(range: Float = 18, damage: Float = 6, fireRate: Float = 10) {
+
+    init(buildingId: String, range: Float = 18, damage: Float = 6, fireRate: Float = 10) {
         self.range = range
         self.damage = damage
         self.fireRate = fireRate
@@ -37,19 +37,51 @@ struct TurretComponent: Component {
         self.rotation = 0
         self.targetRotation = 0
         self.rotationSpeed = .pi * 2  // Full rotation per second
+        super.init(buildingId: buildingId)
     }
-    
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, range, damage, fireRate, cooldown, targetEntity, rotation, targetRotation, rotationSpeed
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        range = try container.decode(Float.self, forKey: .range)
+        damage = try container.decode(Float.self, forKey: .damage)
+        fireRate = try container.decode(Float.self, forKey: .fireRate)
+        cooldown = try container.decode(Float.self, forKey: .cooldown)
+        targetEntity = try container.decodeIfPresent(Entity.self, forKey: .targetEntity)
+        rotation = try container.decode(Float.self, forKey: .rotation)
+        targetRotation = try container.decode(Float.self, forKey: .targetRotation)
+        rotationSpeed = try container.decode(Float.self, forKey: .rotationSpeed)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(range, forKey: .range)
+        try container.encode(damage, forKey: .damage)
+        try container.encode(fireRate, forKey: .fireRate)
+        try container.encode(cooldown, forKey: .cooldown)
+        try container.encode(targetEntity, forKey: .targetEntity)
+        try container.encode(rotation, forKey: .rotation)
+        try container.encode(targetRotation, forKey: .targetRotation)
+        try container.encode(rotationSpeed, forKey: .rotationSpeed)
+        try super.encode(to: encoder)
+    }
+
     var isReady: Bool {
         return cooldown <= 0
     }
-    
-    mutating func fire() {
+
+    func fire() {
         cooldown = 1.0 / fireRate
     }
-    
-    mutating func update(deltaTime: Float) {
+
+    func update(deltaTime: Float) {
         cooldown = max(0, cooldown - deltaTime)
-        
+
         // Rotate toward target
         let angleDiff = (targetRotation - rotation).truncatingRemainder(dividingBy: .pi * 2)
         let shortestAngle = angleDiff > .pi ? angleDiff - .pi * 2 : (angleDiff < -.pi ? angleDiff + .pi * 2 : angleDiff)
