@@ -676,6 +676,9 @@ class GameViewController: UIViewController {
         gameLoop = GameLoop(renderer: renderer, seed: randomSeed)
         renderer.gameLoop = gameLoop
 
+        // Close all panels before recreating UI system to prevent overlay issues
+        uiSystem?.closeAllPanels()
+
         // Recreate UISystem with the actual gameLoop now that it's available
         uiSystem = UISystem(gameLoop: gameLoop, renderer: renderer)
         renderer.uiSystem = uiSystem
@@ -876,13 +879,10 @@ class GameViewController: UIViewController {
             button.removeFromSuperview()
         }
 
-        // Ensure renderer has the correct uiSystem reference before closing panels
+        // Ensure renderer has the correct uiSystem reference
         if let uiSystem = uiSystem {
             renderer.uiSystem = uiSystem
         }
-
-        // Close loading menu
-        uiSystem?.closeAllPanels()
 
         // Force multiple redraws to ensure HUD renders properly after menu closes
         metalView.setNeedsDisplay()

@@ -210,7 +210,6 @@ final class BuildMenu: UIPanel_Base {
 
     override func open() {
         super.open()
-        onAddLabels?(buildingLabels)
     }
 
     override func close() {
@@ -258,6 +257,8 @@ final class BuildMenu: UIPanel_Base {
                 }
                 // Create new labels for this building
                 createBuildingLabels(building: building, renderer: renderer)
+                // Add the new labels to the view
+                onAddLabels?(buildingLabels)
                 lastRenderedBuilding = building
             }
             // If building hasn't changed, labels already exist and persist
@@ -389,12 +390,14 @@ final class BuildMenu: UIPanel_Base {
         let labelWidth = label.frame.width + padding * 2
         let labelHeight = label.frame.height + padding
 
-        // Convert to UIView coordinates
-        let scale = Float(UIScreen.main.scale)
-        let halfWidth = Float(labelWidth) / 2
-        let halfHeight = Float(labelHeight) / 2
-        let uiX = CGFloat(centerX - halfWidth / scale)
-        let uiY = CGFloat(centerY - halfHeight / scale)
+        // Convert to UIView coordinates (centerX/Y are in Metal pixels, convert to UIKit points)
+        let scale = UIScreen.main.scale
+        let uiCenterX = CGFloat(centerX) / scale
+        let uiCenterY = CGFloat(centerY) / scale
+        let halfWidth = labelWidth / 2
+        let halfHeight = labelHeight / 2
+        let uiX = uiCenterX - halfWidth
+        let uiY = uiCenterY - halfHeight
 
         label.frame = CGRect(x: uiX, y: uiY, width: labelWidth, height: labelHeight)
 
@@ -419,12 +422,14 @@ final class BuildMenu: UIPanel_Base {
         let labelWidth = label.frame.width + padding * 2
         let labelHeight = label.frame.height + padding
 
-        // Convert to UIView coordinates
-        let scale = Float(UIScreen.main.scale)
-        let halfWidth = Float(labelWidth) / 2
-        let halfHeight = Float(labelHeight) / 2
-        let uiX = CGFloat(centerX - halfWidth / scale)
-        let uiY = CGFloat(centerY - halfHeight / scale)
+        // Convert to UIView coordinates (centerX/Y are in Metal pixels, convert to UIKit points)
+        let scale = UIScreen.main.scale
+        let uiCenterX = CGFloat(centerX) / scale
+        let uiCenterY = CGFloat(centerY) / scale
+        let halfWidth = labelWidth / 2
+        let halfHeight = labelHeight / 2
+        let uiX = uiCenterX - halfWidth
+        let uiY = uiCenterY - halfHeight
 
         label.frame = CGRect(x: uiX, y: uiY, width: labelWidth, height: labelHeight)
 
