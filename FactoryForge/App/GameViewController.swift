@@ -441,21 +441,8 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
-        // Set up research UI label callbacks
-        uiSystem?.getResearchUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-            labels.forEach {
-                self?.view.addSubview($0)
-                // Bring labels to front so they're above the metal view
-                self?.view.bringSubviewToFront($0)
-                // Also ensure they're above the Metal view by inserting at the top
-                if let metalView = self?.metalView {
-                    self?.view.insertSubview($0, aboveSubview: metalView)
-                }
-            }
-        }
-        uiSystem?.getResearchUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
-            labels.forEach { $0.removeFromSuperview() }
-        }
+        // Set up research UI callbacks
+        setupResearchUICallbacks()
 
         // Set up crafting menu label callbacks
         print("GameViewController: Setting up CraftingMenu callbacks in setupUISystem")
@@ -549,11 +536,50 @@ class GameViewController: UIViewController {
 
         // Setup UILabel overlays for save slot information
         loadingMenu.setupLabels(in: view)
-        
+
+        // Note: ResearchUI.setupLabels is called later in startNewGame/loadGame after gameLoop is created
+
         // Setup input manager for loading menu (before gameLoop exists)
         setupInputForLoadingMenu()
     }
-    
+
+    private func setupResearchUICallbacks() {
+        let researchUI = uiSystem?.getResearchUI()
+
+        // Set up research UI label callbacks
+        researchUI?.onAddLabels = { [weak self] (labels: [UIKit.UILabel]) -> Void in
+            print("GameViewController: onAddLabels executed with \(labels.count) labels")
+            labels.forEach {
+                self?.view.addSubview($0)
+                // Bring labels to front so they're above the metal view
+                self?.view.bringSubviewToFront($0)
+                // Also ensure they're above the Metal view by inserting at the top
+                if let metalView = self?.metalView {
+                    self?.view.insertSubview($0, aboveSubview: metalView)
+                }
+            }
+        }
+        researchUI?.onRemoveLabels = { (labels: [UIKit.UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+
+        // Set up research UI view callbacks for scroll view and research button
+        researchUI?.onAddViews = { [weak self] (views: [UIKit.UIView]) -> Void in
+            views.forEach {
+                self?.view.addSubview($0)
+                // Bring views to front so they're above the metal view
+                self?.view.bringSubviewToFront($0)
+                // Also ensure they're above the Metal view by inserting at the top
+                if let metalView = self?.metalView {
+                    self?.view.insertSubview($0, aboveSubview: metalView)
+                }
+            }
+        }
+        researchUI?.onRemoveViews = { (views: [UIKit.UIView]) -> Void in
+            views.forEach { $0.removeFromSuperview() }
+        }
+    }
+
     private func setupInputForLoadingMenu() {
         // Create InputManager without GameLoop initially (it will be set later)
         inputManager = InputManager(view: metalView, gameLoop: nil, renderer: renderer)
@@ -589,6 +615,13 @@ class GameViewController: UIViewController {
         print("  - SecRandomCopyBytes result: \(result == errSecSuccess ? "SUCCESS" : "FAILED")")
         gameLoop = GameLoop(renderer: renderer, seed: randomSeed)
         renderer.gameLoop = gameLoop
+
+        // Recreate UISystem with the actual gameLoop now that it's available
+        uiSystem = UISystem(gameLoop: gameLoop, renderer: renderer)
+        renderer.uiSystem = uiSystem
+
+        // Re-setup UI callbacks for the new uiSystem instance
+        setupResearchUICallbacks()
 
         // Start a new autosave session for this game
         gameLoop?.saveSystem.startNewGameSession()
@@ -849,8 +882,18 @@ class GameViewController: UIViewController {
         // Close loading menu
         uiSystem?.closeAllPanels()
 
+        // Update uiSystem with gameLoop (this recreates UI components)
+        uiSystem?.setGameLoop(gameLoop!)
+        renderer.uiSystem = uiSystem
+
+        // Setup UI callbacks for the updated uiSystem
+        setupResearchUICallbacks()
+
         // Update chunk manager with player position to load surrounding chunks
         gameLoop?.chunkManager.update(playerPosition: gameLoop!.player.position)
+
+        // Close any panels that were opened during loading
+        uiSystem?.closeAllPanels()
     }
     
     private func saveCurrentGame(to slotName: String? = nil) {

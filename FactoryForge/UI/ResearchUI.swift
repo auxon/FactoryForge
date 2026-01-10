@@ -4,18 +4,27 @@ import UIKit
 /// Research/Technology tree UI
 final class ResearchUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?
-    private var techButtons: [TechButton] = []
     private var closeButton: CloseButton!
     private var selectedTech: Technology?
 
+    // UIKit scrolling components (like HelpMenu)
+    private var scrollView: UIKit.UIScrollView?
+    private var techButtonViews: [UIKit.UIButton] = [] // UIKit buttons for scrolling
+    private var researchButton: UIKit.UIButton? // Button to start research
+
     // Text labels
-    private var techLabels: [UILabel] = []
-    private var researchInfoLabel: UILabel?
-    private var progressLabel: UILabel?
+    private var researchInfoLabel: UIKit.UILabel?
+    private var progressLabel: UIKit.UILabel?
 
     // Label management callbacks
-    var onAddLabels: (([UILabel]) -> Void)?
-    var onRemoveLabels: (([UILabel]) -> Void)?
+    var onAddLabels: (([UIKit.UILabel]) -> Void)?
+    var onRemoveLabels: (([UIKit.UILabel]) -> Void)?
+
+    // View management callbacks for scroll view and research button
+    var onAddViews: (([UIKit.UIView]) -> Void)?
+    var onRemoveViews: (([UIKit.UIView]) -> Void)?
+
+    private weak var parentView: UIKit.UIView?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         // Use full screen size for background
@@ -30,72 +39,165 @@ final class ResearchUI: UIPanel_Base {
         setupCloseButton()
     }
 
-    /// Sets up UILabel overlays for research UI text
+    private func setupScrollView(in parentView: UIKit.UIView) {
+        // Remove existing scroll view if any
+        scrollView?.removeFromSuperview()
+
+        let screenScale = CGFloat(UIScreen.main.scale)
+
+        // Scroll view covers most of the screen, leaving space for close button and margins
+        let scrollViewFrame = CGRect(
+            x: 20 / screenScale, // Small margin
+            y: 60 / screenScale, // Leave space at top for close button
+            width: (CGFloat(frame.width) - 40) / screenScale, // Leave margins
+            height: (CGFloat(frame.height) - 120) / screenScale // Leave space at top and bottom
+        )
+
+        scrollView = UIKit.UIScrollView(frame: scrollViewFrame)
+        scrollView?.backgroundColor = UIKit.UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.9)
+        scrollView?.layer.borderColor = UIKit.UIColor.white.cgColor
+        scrollView?.layer.borderWidth = 1.0
+        scrollView?.layer.cornerRadius = 8.0
+        scrollView?.showsVerticalScrollIndicator = true
+        scrollView?.showsHorizontalScrollIndicator = false
+        scrollView?.alwaysBounceVertical = true
+
+        if let scrollView = scrollView {
+            parentView.addSubview(scrollView)
+            parentView.bringSubviewToFront(scrollView)
+        }
+    }
+
+    /// Sets up UIScrollView with clickable UIButton overlays for tech selection
     /// Must be called from GameViewController after ResearchUI is created
     func setupLabels() {
-        // Remove existing labels
         removeLabels()
 
-            // Create labels for each tech button
-        for (index, button) in techButtons.enumerated() {
-            if index >= techLabels.count {
-                let label = UILabel()
-                label.font = UIFont.systemFont(ofSize: 15, weight: .medium)
-                label.textColor = .white  // White text for dark theme
-                label.numberOfLines = 1
-                // Dark background matching panel aesthetic (dark blue-gray)
-                label.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.2, alpha: 0.85)
-                label.textAlignment = .center
-                label.lineBreakMode = .byTruncatingMiddle
-                // Add subtle shadow for better readability
-                label.layer.shadowColor = UIColor.black.cgColor
-                label.layer.shadowOffset = CGSize(width: 1, height: 1)
-                label.layer.shadowRadius = 2
-                label.layer.shadowOpacity = 0.8
-                techLabels.append(label)
-            }
+        guard let registry = gameLoop?.technologyRegistry else {
+            print("ResearchUI: No technology registry available")
+            return
+        }
+        // Create scroll view for technologies (similar to HelpMenu)
+        let screenBounds = UIScreen.main.bounds
+        print("ResearchUI: Screen bounds: \(screenBounds)")
+        let scrollViewHeight: CGFloat = 200 // Smaller height to fit on screen
+        let researchButtonHeight: CGFloat = 40
+        let researchButtonSpacing: CGFloat = 10
+        let startY: CGFloat = 80 // Fixed position below close button area
+        let scrollViewFrame = CGRect(
+            x: screenBounds.width * 0.1, // 10% margin on sides
+            y: startY,
+            width: screenBounds.width * 0.8, // 80% width
+            height: scrollViewHeight
+        )
 
-            let label = techLabels[index]
-            // Set text
-            label.text = button.technology.name
-            // Position will be set in updateLabels
+        print("ResearchUI: ScrollView frame: \(scrollViewFrame)")
+
+        let scrollView = UIKit.UIScrollView(frame: scrollViewFrame)
+        print("ResearchUI: Created scrollView with frame \(scrollViewFrame)")
+        scrollView.backgroundColor = UIKit.UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.9)
+        scrollView.layer.borderColor = UIKit.UIColor.white.cgColor
+        scrollView.layer.borderWidth = 2.0
+        scrollView.layer.cornerRadius = 8.0
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.alwaysBounceVertical = true
+
+        self.scrollView = scrollView
+        print("ResearchUI: Assigned scrollView to self.scrollView")
+
+        // Get all technologies sorted by tier and order
+        let allTechs = registry.all
+
+        // Calculate content size and create buttons
+        let buttonHeight: CGFloat = 50
+        let buttonSpacing: CGFloat = 8
+        let contentHeight = CGFloat(allTechs.count) * (buttonHeight + buttonSpacing) - buttonSpacing
+
+        scrollView.contentSize = CGSize(width: scrollViewFrame.width, height: max(contentHeight, scrollViewHeight))
+
+        for (index, tech) in allTechs.enumerated() {
+            let buttonY = CGFloat(index) * (buttonHeight + buttonSpacing)
+            let buttonFrame = CGRect(x: 8, y: buttonY, width: scrollViewFrame.width - 16, height: buttonHeight)
+
+            let button: UIKit.UIButton = UIKit.UIButton(type: UIKit.UIButton.ButtonType.custom)
+            button.frame = buttonFrame
+
+            // Set initial appearance
+            updateTechButtonAppearance(button, for: tech)
+
+            button.layer.borderWidth = 1
+            button.layer.borderColor = UIKit.UIColor(white: 0.4, alpha: 1).cgColor
+            button.layer.cornerRadius = 4
+            button.titleLabel?.font = UIKit.UIFont.systemFont(ofSize: 14, weight: UIKit.UIFont.Weight.medium)
+            button.titleLabel?.numberOfLines = 2
+            button.titleLabel?.textAlignment = UIKit.NSTextAlignment.center
+
+            // Add tap gesture
+            button.addTarget(self, action: #selector(techButtonTapped(_:)), for: UIKit.UIControl.Event.touchUpInside)
+
+            // Store technology for identification
+            button.accessibilityIdentifier = tech.id
+
+            scrollView.addSubview(button)
+            techButtonViews.append(button)
         }
 
-        // Remove excess labels
-        while techLabels.count > techButtons.count {
-            techLabels.removeLast()
-        }
+        // Create research button below the scroll view
+        let researchButtonFrame = CGRect(
+            x: screenBounds.width * 0.1, // Same x as scroll view
+            y: scrollViewFrame.maxY + researchButtonSpacing, // Below scroll view
+            width: screenBounds.width * 0.8, // Same width as scroll view
+            height: researchButtonHeight
+        )
 
-        // Create research info label
+        let researchBtn: UIKit.UIButton = UIKit.UIButton(type: UIKit.UIButton.ButtonType.custom)
+        researchBtn.frame = researchButtonFrame
+        print("ResearchUI: Created researchBtn with frame \(researchButtonFrame)")
+        researchBtn.setTitle("Research", for: UIKit.UIControl.State.normal)
+        researchBtn.setTitleColor(UIKit.UIColor.white, for: UIKit.UIControl.State.normal)
+        researchBtn.backgroundColor = UIKit.UIColor(red: 0.3, green: 0.5, blue: 0.8, alpha: 0.8) // Blue background
+        researchBtn.layer.borderWidth = 2
+        researchBtn.layer.borderColor = UIKit.UIColor.white.cgColor
+        researchBtn.layer.cornerRadius = 8
+        researchBtn.titleLabel?.font = UIKit.UIFont.systemFont(ofSize: 18, weight: UIKit.UIFont.Weight.bold)
+        researchBtn.addTarget(self, action: #selector(researchButtonTapped), for: UIKit.UIControl.Event.touchUpInside)
+        researchBtn.isEnabled = false // Initially disabled until tech is selected
+        researchBtn.alpha = 0.5 // Visually indicate disabled state
+
+        self.researchButton = researchBtn
+        print("ResearchUI: Assigned researchBtn to self.researchButton")
+
+        // Create research info label (positioned outside scroll view)
         if researchInfoLabel == nil {
-            let label = UILabel()
-            label.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-            label.textColor = UIColor(red: 0.9, green: 0.9, blue: 1.0, alpha: 1.0)  // Light blue-white
+            let label = UIKit.UILabel()
+            label.font = UIKit.UIFont.systemFont(ofSize: 16, weight: UIKit.UIFont.Weight.semibold)
+            label.textColor = UIKit.UIColor(red: 0.9, green: 0.9, blue: 1.0, alpha: 1.0)  // Light blue-white
             label.numberOfLines = 1
-            label.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.8)  // Dark panel background
-            label.textAlignment = .right  // Right-aligned since label is on right side
+            label.backgroundColor = UIKit.UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.8)  // Dark panel background
+            label.textAlignment = UIKit.NSTextAlignment.right  // Right-aligned since label is on right side
             label.layer.cornerRadius = 4
             label.layer.masksToBounds = true
             // Add subtle shadow
-            label.layer.shadowColor = UIColor.black.cgColor
+            label.layer.shadowColor = UIKit.UIColor.black.cgColor
             label.layer.shadowOffset = CGSize(width: 1, height: 1)
             label.layer.shadowRadius = 2
             label.layer.shadowOpacity = 0.6
             researchInfoLabel = label
         }
 
-        // Create progress label
+        // Create progress label (positioned outside scroll view)
         if progressLabel == nil {
-            let label = UILabel()
-            label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-            label.textColor = UIColor(red: 1.0, green: 0.9, blue: 0.4, alpha: 1.0)  // Gold/yellow for progress
-            label.numberOfLines = 1
-            label.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.8)  // Dark panel background
-            label.textAlignment = .center
+            let label = UIKit.UILabel()
+            label.font = UIKit.UIFont.systemFont(ofSize: 14, weight: UIKit.UIFont.Weight.medium)
+            label.textColor = UIKit.UIColor(red: 1.0, green: 0.9, blue: 0.4, alpha: 1.0)  // Gold/yellow for progress
+            label.numberOfLines = 0  // Allow multiple lines
+            label.backgroundColor = UIKit.UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.8)  // Dark panel background
+            label.textAlignment = UIKit.NSTextAlignment.center
             label.layer.cornerRadius = 4
             label.layer.masksToBounds = true
             // Add subtle shadow
-            label.layer.shadowColor = UIColor.black.cgColor
+            label.layer.shadowColor = UIKit.UIColor.black.cgColor
             label.layer.shadowOffset = CGSize(width: 1, height: 1)
             label.layer.shadowRadius = 2
             label.layer.shadowOpacity = 0.6
@@ -103,7 +205,7 @@ final class ResearchUI: UIPanel_Base {
         }
 
         // Add labels to view using callback
-        var allLabels = techLabels
+        var allLabels: [UIKit.UILabel] = []
         if let infoLabel = researchInfoLabel {
             allLabels.append(infoLabel)
         }
@@ -112,12 +214,93 @@ final class ResearchUI: UIPanel_Base {
         }
         onAddLabels?(allLabels)
 
+        // Add scroll view and research button through callback
+        var allViews: [UIKit.UIView] = []
+        if let scrollView = self.scrollView {
+            allViews.append(scrollView)
+            print("ResearchUI: Adding scrollView to allViews")
+        } else {
+            print("ResearchUI: scrollView is nil")
+        }
+        if let researchButton = self.researchButton {
+            allViews.append(researchButton)
+            print("ResearchUI: Adding researchButton to allViews")
+        } else {
+            print("ResearchUI: researchButton is nil")
+        }
+        onAddViews?(allViews)
+
+        scrollView.isHidden = !isOpen
         updateLabels()
     }
 
+    @objc private func techButtonTapped(_ button: UIKit.UIButton) {
+        guard let techId = button.accessibilityIdentifier,
+              let registry = gameLoop?.technologyRegistry,
+              let tech = registry.get(techId) else { return }
+
+        AudioManager.shared.playClickSound()
+        selectTechnology(tech)
+    }
+
+    @objc private func researchButtonTapped() {
+        guard let tech = selectedTech else { return }
+
+        AudioManager.shared.playClickSound()
+        startResearch(tech)
+    }
+
+    private func updateTechButtonAppearance(_ button: UIKit.UIButton, for tech: Technology) {
+        guard let researchSystem = gameLoop?.researchSystem else { return }
+
+        let isCompleted = researchSystem.completedTechnologies.contains(tech.id)
+        let isResearching = researchSystem.currentResearch?.id == tech.id
+        let isAvailable = researchSystem.canResearch(tech) && !isResearching
+
+        // Set background color based on state
+        if isCompleted {
+            button.backgroundColor = UIKit.UIColor(red: 0.2, green: 0.4, blue: 0.2, alpha: 0.8) // Green for completed
+        } else if isResearching {
+            button.backgroundColor = UIKit.UIColor(red: 0.45, green: 0.45, blue: 0.15, alpha: 0.9) // Yellow/gold for researching
+        } else if isAvailable {
+            button.backgroundColor = UIKit.UIColor(red: 0.25, green: 0.25, blue: 0.3, alpha: 0.7) // Light blue for available
+        } else {
+            button.backgroundColor = UIKit.UIColor(red: 0.2, green: 0.15, blue: 0.15, alpha: 0.5) // Dark red for unavailable
+        }
+
+        // Set text color
+        if isCompleted {
+            button.setTitleColor(UIKit.UIColor(red: 0.6, green: 0.9, blue: 0.6, alpha: 1.0), for: UIKit.UIControl.State.normal) // Green tint
+        } else if isResearching {
+            button.setTitleColor(UIKit.UIColor(red: 1.0, green: 0.9, blue: 0.4, alpha: 1.0), for: UIKit.UIControl.State.normal) // Yellow/gold
+        } else if isAvailable {
+            button.setTitleColor(UIKit.UIColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 1.0), for: UIKit.UIControl.State.normal) // Light blue
+        } else {
+            button.setTitleColor(UIKit.UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0), for: UIKit.UIControl.State.normal) // Gray
+        }
+
+        // Set button title with tech name
+        button.setTitle(tech.name, for: UIKit.UIControl.State.normal)
+    }
+
     private func removeLabels() {
+        // Use callbacks to remove views from view
+        var allViews: [UIKit.UIView] = []
+        if let scrollView = self.scrollView {
+            allViews.append(scrollView)
+        }
+        if let researchButton = self.researchButton {
+            allViews.append(researchButton)
+        }
+        onRemoveViews?(allViews)
+
+        // Clear references
+        scrollView = nil
+        techButtonViews.removeAll()
+        researchButton = nil
+
         // Use callbacks to remove labels from view
-        var allLabels = techLabels
+        var allLabels: [UIKit.UILabel] = []
         if let infoLabel = researchInfoLabel {
             allLabels.append(infoLabel)
         }
@@ -126,7 +309,6 @@ final class ResearchUI: UIPanel_Base {
         }
         onRemoveLabels?(allLabels)
 
-        techLabels.removeAll()
         researchInfoLabel = nil
         progressLabel = nil
     }
@@ -134,51 +316,14 @@ final class ResearchUI: UIPanel_Base {
     private func updateLabels() {
         let screenScale = CGFloat(UIScreen.main.scale)
 
-        // Update tech button labels
-        for (index, label) in techLabels.enumerated() {
-            guard index < techButtons.count else { break }
+        // Update tech button appearances
+        guard let registry = gameLoop?.technologyRegistry else { return }
 
-            let button = techButtons[index]
+        for button: UIKit.UIButton in techButtonViews {
+            guard let techId = button.accessibilityIdentifier,
+                  let tech = registry.get(techId) else { continue }
 
-            // Set text
-            label.text = button.technology.name
-            
-            // Set text color based on button state to match game aesthetic
-            if button.isCompleted {
-                // Green tint for completed technologies
-                label.textColor = UIColor(red: 0.6, green: 0.9, blue: 0.6, alpha: 1.0)
-            } else if button.isResearching {
-                // Yellow/gold for currently researching
-                label.textColor = UIColor(red: 1.0, green: 0.9, blue: 0.4, alpha: 1.0)
-            } else if button.isAvailable {
-                // Light blue for available technologies
-                label.textColor = UIColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 1.0)
-            } else {
-                // Gray for unavailable/locked technologies
-                label.textColor = UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
-            }
-
-            // Convert button frame from Metal coordinates to UIKit coordinates
-            let buttonMinXPixels = CGFloat(button.frame.minX)
-            let buttonCenterYPixels = CGFloat(button.frame.center.y)
-
-            // Add padding for better visual appearance
-            let padding: CGFloat = 4
-            let labelXPoints = buttonMinXPixels / screenScale
-            let labelYPoints = (buttonCenterYPixels / screenScale) - (label.font.lineHeight / 2) - padding / 2
-
-            label.frame = CGRect(
-                x: labelXPoints,
-                y: labelYPoints,
-                width: CGFloat(button.frame.width) / screenScale,
-                height: label.font.lineHeight + padding
-            )
-            
-            // Add corner radius for rounded background
-            label.layer.cornerRadius = 4
-            label.layer.masksToBounds = true
-
-            label.isHidden = !isOpen
+            updateTechButtonAppearance(button, for: tech)
         }
 
         // Update research info label
@@ -281,78 +426,44 @@ final class ResearchUI: UIPanel_Base {
 
     override func open() {
         super.open()
-        refreshTechTree()
-        setupLabels() // Set up labels when opening
+
+        // Create UIKit views if they don't exist yet and we have the necessary data
+        if scrollView == nil && gameLoop?.technologyRegistry != nil {
+            setupLabels()
+        }
+
+        // Show scroll view and research button when menu opens
+        scrollView?.isHidden = false
+        researchButton?.isHidden = false
+        // Scroll to top when opening
+        scrollView?.setContentOffset(.zero, animated: false)
+        // Reset selection state
+        selectedTech = nil
+        researchButton?.isEnabled = false
+        researchButton?.alpha = 0.5
         // Force update to set initial button states
         update(deltaTime: 0)
     }
 
     override func close() {
         super.close()
-        // Hide all labels when menu closes
-        for label in techLabels {
-            label.isHidden = true
-        }
+        // Hide scroll view and research button when menu closes
+        scrollView?.isHidden = true
+        researchButton?.isHidden = true
+        // Hide labels when menu closes
         researchInfoLabel?.isHidden = true
         progressLabel?.isHidden = true
     }
     
-    private func refreshTechTree() {
-        techButtons.removeAll()
-        
-        guard let registry = gameLoop?.technologyRegistry else {
-            print("ResearchUI: No technology registry available")
-            return
-        }
-        
-        let buttonWidth: Float = 120 * UIScale
-        let buttonHeight: Float = 40 * UIScale
-        let tierSpacing: Float = 150 * UIScale
-        let buttonSpacing: Float = 50 * UIScale
-
-        // Calculate total width of all tiers and center them
-        let totalTiersWidth = 3 * buttonWidth + 2 * tierSpacing
-        let startTierX = frame.center.x - totalTiersWidth / 2 + buttonWidth / 2
-
-        var totalTechs = 0
-
-        // Group by tier
-        for tier in 1...3 {
-            let techs = registry.technologies(tier: tier)
-            totalTechs += techs.count
-
-            if techs.isEmpty {
-                continue
-            }
-
-            let tierX = startTierX + Float(tier - 1) * (buttonWidth + tierSpacing)
-            var currentY = frame.center.y - 150 * UIScale
-            
-            for tech in techs {
-                let button = TechButton(
-                    frame: Rect(center: Vector2(tierX, currentY), size: Vector2(buttonWidth, buttonHeight)),
-                    technology: tech
-                )
-                button.onTap = { [weak self] in
-                    self?.selectTechnology(tech)
-                }
-                techButtons.append(button)
-                currentY += buttonHeight + buttonSpacing / 2
-            }
-        }
-        
-        print("ResearchUI: Loaded \(totalTechs) technologies, created \(techButtons.count) buttons")
-    }
     
     private func selectTechnology(_ tech: Technology) {
-        // If this technology is already selected, start research
-        if selectedTech?.id == tech.id {
-            startResearch(tech)
-        } else {
-            // Show cost information for the selected technology
-            selectedTech = tech
-            showTechnologyCost(tech)
-        }
+        // Just select the technology and show cost info - research button will start it
+        selectedTech = tech
+        showTechnologyCost(tech)
+
+        // Enable research button since we have a selected tech
+        researchButton?.isEnabled = true
+        researchButton?.alpha = 1.0
     }
 
     private func showTechnologyCost(_ tech: Technology) {
@@ -363,7 +474,7 @@ final class ResearchUI: UIPanel_Base {
             }
             costText += "\(scienceCost.count) \(scienceCost.packId.replacingOccurrences(of: "-", with: " ").capitalized)"
         }
-        costText += "\nTap again to start research"
+        costText += "\nTap Research button to start"
 
         // Update the research info label to show cost
         researchInfoLabel?.text = costText
@@ -412,6 +523,9 @@ final class ResearchUI: UIPanel_Base {
             if success {
                 AudioManager.shared.playClickSound()
                 selectedTech = nil  // Clear selection
+                // Disable research button since no tech is selected
+                researchButton?.isEnabled = false
+                researchButton?.alpha = 0.5
                 // Immediately update button states to reflect the change
                 update(deltaTime: 0)
             } else {
@@ -432,30 +546,9 @@ final class ResearchUI: UIPanel_Base {
     }
     
     override func update(deltaTime: Float) {
-        guard isOpen, let researchSystem = gameLoop?.researchSystem else { return }
+        guard isOpen else { return }
 
-        // Update button states based on research system
-        for button in techButtons {
-            let tech = button.technology
-
-            // Check if completed
-            _ = button.isCompleted
-            button.isCompleted = researchSystem.completedTechnologies.contains(tech.id)
-
-            // Check if currently researching (this takes priority)
-            let wasResearching = button.isResearching
-            button.isResearching = researchSystem.currentResearch?.id == tech.id
-
-            // Check if available for research (prerequisites met, not completed, not already researching)
-            button.isAvailable = researchSystem.canResearch(tech) && !button.isResearching
-
-            // Debug: log state changes
-            if wasResearching != button.isResearching {
-                print("ResearchUI: Tech '\(tech.name)' researching state changed: \(wasResearching) -> \(button.isResearching)")
-            }
-        }
-
-        // Update text labels
+        // Update UIKit button appearances and labels
         updateLabels()
     }
     
@@ -467,15 +560,8 @@ final class ResearchUI: UIPanel_Base {
         // Render close button
         closeButton.render(renderer: renderer)
 
-        // Render tech buttons
-        for button in techButtons {
-            button.render(renderer: renderer)
-        }
-        
-        // Research info and progress are now rendered as text labels
-        
-        // Render connections between techs
-        renderConnections(renderer: renderer)
+        // Tech buttons are now UIKit buttons in the scroll view
+        // Research info and progress are rendered as text labels
     }
     
     
@@ -491,85 +577,15 @@ final class ResearchUI: UIPanel_Base {
             return true
         }
 
-        for button in techButtons {
-            if button.handleTap(at: position) {
-                return true
-            }
-        }
-
+        // Tech button taps are handled by UIKit gesture recognizers
+        // Consume tap within panel bounds to prevent it from going to game world
         return super.handleTap(at: position)
     }
 
     func getTooltip(at position: Vector2) -> String? {
-        guard isOpen else { return nil }
-
-        for button in techButtons {
-            if button.frame.contains(position) {
-                let tech = button.technology
-                var tooltip = "\(tech.name)\n\(tech.description)\n\nCost:"
-
-                for scienceCost in tech.cost {
-                    tooltip += " \(scienceCost.count) \(scienceCost.packId.replacingOccurrences(of: "-", with: " ").capitalized)"
-                }
-
-                if !tech.prerequisites.isEmpty {
-                    tooltip += "\n\nRequires:"
-                    for prereq in tech.prerequisites {
-                        if let prereqTech = gameLoop?.technologyRegistry.get(prereq) {
-                            tooltip += " \(prereqTech.name)"
-                        }
-                    }
-                }
-
-                return tooltip
-            }
-        }
-
+        // Tooltips are now handled by UIKit button interactions
+        // This method is kept for compatibility but returns nil
         return nil
     }
 }
 
-class TechButton: UIElement {
-    var frame: Rect
-    let technology: Technology
-    var isCompleted: Bool = false
-    var isAvailable: Bool = false
-    var isResearching: Bool = false
-    var onTap: (() -> Void)?
-    
-    init(frame: Rect, technology: Technology) {
-        self.frame = frame
-        self.technology = technology
-    }
-    
-    func handleTap(at position: Vector2) -> Bool {
-        guard frame.contains(position) && isAvailable else { return false }
-        onTap?()
-        return true
-    }
-    
-    func render(renderer: MetalRenderer) {
-        var bgColor: Color
-        // Priority: completed > researching > available > unavailable
-        // Use very subtle backgrounds so text labels are clearly visible
-        if isCompleted {
-            bgColor = Color(r: 0.2, g: 0.4, b: 0.2, a: 0.3) // Green, very transparent
-        } else if isResearching {
-            bgColor = Color(r: 0.45, g: 0.45, b: 0.15, a: 0.4) // Bright yellow/gold, slightly more visible
-        } else if isAvailable {
-            bgColor = Color(r: 0.25, g: 0.25, b: 0.3, a: 0.2) // Light blue, very transparent
-        } else {
-            // Unavailable - barely visible to indicate locked state
-            bgColor = Color(r: 0.2, g: 0.15, b: 0.15, a: 0.1) // Dark red, almost invisible
-        }
-
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-        renderer.queueSprite(SpriteInstance(
-            position: frame.center,
-            size: frame.size,
-            textureRect: solidRect,
-            color: bgColor,
-            layer: .ui
-        ))
-    }
-}
