@@ -676,14 +676,14 @@ class GameViewController: UIViewController {
         gameLoop = GameLoop(renderer: renderer, seed: randomSeed)
         renderer.gameLoop = gameLoop
 
-        // Close all panels before recreating UI system to prevent overlay issues
+        // Close all panels before updating UI system
         uiSystem?.closeAllPanels()
 
-        // Recreate UISystem with the actual gameLoop now that it's available
-        uiSystem = UISystem(gameLoop: gameLoop, renderer: renderer)
+        // Update the existing UI system with the gameLoop
+        uiSystem?.setGameLoop(gameLoop!)
         renderer.uiSystem = uiSystem
 
-        // Re-setup UI callbacks for the new uiSystem instance
+        // Re-setup UI callbacks for the updated uiSystem
         setupResearchUICallbacks()
 
         // Start a new autosave session for this game
@@ -707,9 +707,6 @@ class GameViewController: UIViewController {
 
         // Set UI system on game loop
         gameLoop?.uiSystem = uiSystem
-
-        // Update UI system with game loop
-        uiSystem?.setGameLoop(gameLoop!)
 
         // Re-setup HUD callbacks after UI components are recreated
         uiSystem?.setupCallbacks()
@@ -1196,6 +1193,10 @@ class GameViewController: UIViewController {
 
         // Show loading menu
         uiSystem?.openPanel(.loadingMenu)
+
+        // Setup UIKit labels for the loading menu (needed when reopening after game)
+        let loadingMenu = uiSystem?.getLoadingMenu()
+        loadingMenu?.setupLabels(in: view)
     }
     
     private func setupInput() {
