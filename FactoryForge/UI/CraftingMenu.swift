@@ -196,6 +196,7 @@ final class CraftingMenu: UIPanel_Base {
             position: Vector2(inputX + 20 * UIScale, detailsY),
             size: Vector2(iconSize, iconSize),
             textureRect: arrowRect,
+            color: .white, // Make arrow bright white against black background
             layer: .ui
         ))
 

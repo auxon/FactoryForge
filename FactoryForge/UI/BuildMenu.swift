@@ -338,6 +338,7 @@ final class BuildMenu: UIPanel_Base {
             position: Vector2(inputX + 20 * UIScale, detailsY),
             size: Vector2(iconSize, iconSize),
             textureRect: arrowRect,
+            color: .white, // Make arrow bright white against black background
             layer: .ui
         ))
 
@@ -397,7 +398,7 @@ final class BuildMenu: UIPanel_Base {
         let halfWidth = labelWidth / 2
         let halfHeight = labelHeight / 2
         let uiX = uiCenterX - halfWidth
-        let uiY = uiCenterY - halfHeight
+        let uiY = uiCenterY - halfHeight - 50
 
         label.frame = CGRect(x: uiX, y: uiY, width: labelWidth, height: labelHeight)
 
@@ -405,7 +406,7 @@ final class BuildMenu: UIPanel_Base {
     }
 
     private func createBuildingCostLabel(itemName: String, count: Int, centerX: Float, centerY: Float) -> UILabel {
-        let text = "\(count) × \(itemName)"
+        let text = "\(count)"
         let label = UILabel()
         label.text = text
         label.font = UIFont.systemFont(ofSize: 12, weight: UIFont.Weight.regular)
