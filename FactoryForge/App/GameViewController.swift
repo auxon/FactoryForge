@@ -97,13 +97,20 @@ class GameViewController: UIViewController {
         tooltipLabel.numberOfLines = 0  // Allow unlimited lines
         tooltipLabel.isHidden = true
         tooltipLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(tooltipLabel)
-        
+
         tooltipIconView = UIImageView()
         tooltipIconView.contentMode = .scaleAspectFit
         tooltipIconView.isHidden = true
         tooltipIconView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(tooltipIconView)
+
+        // Add tooltip views above the Metal view so they're always on top
+        if let metalView = metalView {
+            view.insertSubview(tooltipLabel, aboveSubview: metalView)
+            view.insertSubview(tooltipIconView, aboveSubview: metalView)
+        } else {
+            view.addSubview(tooltipLabel)
+            view.addSubview(tooltipIconView)
+        }
 
         // Set up icon view constraints (relative to label)
         tooltipIconView.widthAnchor.constraint(equalToConstant: 32).isActive = true
@@ -140,6 +147,10 @@ class GameViewController: UIViewController {
 
         tooltipLabel.attributedText = attributedString
         tooltipLabel.isHidden = false
+
+        // Bring tooltip views to front so they appear above all UI panels
+        view.bringSubviewToFront(tooltipLabel)
+        view.bringSubviewToFront(tooltipIconView)
 
         // Show/hide icon based on entity
         if let entity = entity, let gameLoop = gameLoop {
@@ -424,6 +435,13 @@ class GameViewController: UIViewController {
                 // Bring labels to front so they're above the metal view
                 self?.view.bringSubviewToFront($0)
             }
+            // Ensure tooltips stay on top after adding inventory UI labels
+            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
+                self?.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
+                self?.view.bringSubviewToFront(tooltipIconView)
+            }
         }
         uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
@@ -435,6 +453,13 @@ class GameViewController: UIViewController {
                 self?.view.addSubview($0)
                 // Bring labels to front so they're above the metal view
                 self?.view.bringSubviewToFront($0)
+            }
+            // Ensure tooltips stay on top after adding machine UI labels
+            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
+                self?.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
+                self?.view.bringSubviewToFront(tooltipIconView)
             }
         }
         uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
@@ -469,6 +494,13 @@ class GameViewController: UIViewController {
                 // Force layout to ensure frame is applied
                 $0.setNeedsLayout()
                 $0.layoutIfNeeded()
+            }
+            // Ensure tooltips stay on top after adding crafting menu labels
+            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
+                self.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
+                self.view.bringSubviewToFront(tooltipIconView)
             }
         }
         craftingMenu?.onRemoveLabels = { (labels: [UILabel]) -> Void in
@@ -574,9 +606,21 @@ class GameViewController: UIViewController {
                     self?.view.insertSubview($0, aboveSubview: metalView)
                 }
             }
+            // Ensure tooltips stay on top after adding ResearchUI views
+            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
+                self?.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
+                self?.view.bringSubviewToFront(tooltipIconView)
+            }
         }
         researchUI?.onRemoveViews = { (views: [UIKit.UIView]) -> Void in
             views.forEach { $0.removeFromSuperview() }
+        }
+
+        // Set up research UI tooltip callback
+        researchUI?.onShowTooltip = { [weak self] (tooltip: String) -> Void in
+            self?.showTooltip(tooltip, duration: 5.0) // Show for 5 seconds for selected tech
         }
     }
 
@@ -664,6 +708,13 @@ class GameViewController: UIViewController {
                 // Bring labels to front so they're above the metal view
                 self?.view.bringSubviewToFront($0)
             }
+            // Ensure tooltips stay on top after adding inventory UI labels
+            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
+                self?.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
+                self?.view.bringSubviewToFront(tooltipIconView)
+            }
         }
         uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
@@ -675,6 +726,13 @@ class GameViewController: UIViewController {
                 self?.view.addSubview($0)
                 // Bring labels to front so they're above the metal view
                 self?.view.bringSubviewToFront($0)
+            }
+            // Ensure tooltips stay on top after adding machine UI labels
+            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
+                self?.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
+                self?.view.bringSubviewToFront(tooltipIconView)
             }
         }
         uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
@@ -869,6 +927,13 @@ class GameViewController: UIViewController {
         uiSystem?.getBuildMenu().onAddBuildButton = { [weak self] (button: UIView) -> Void in
             self?.view.addSubview(button)
             self?.view.bringSubviewToFront(button)
+            // Ensure tooltips stay on top after adding build button
+            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
+                self?.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
+                self?.view.bringSubviewToFront(tooltipIconView)
+            }
         }
         uiSystem?.getBuildMenu().onRemoveBuildButton = { (button: UIView) -> Void in
             button.removeFromSuperview()
