@@ -22,8 +22,11 @@ final class GameLoop {
     let beltSystem: BeltSystem  // Internal access for save system to register belts after loading
     private let inserterSystem: InserterSystem
     private let craftingSystem: CraftingSystem
-    private let powerSystem: PowerSystem
+    private let _powerSystem: PowerSystem
     let researchSystem: ResearchSystem // Public for UI access
+
+    /// Public access to power system for UI components
+    var powerSystem: PowerSystem { _powerSystem }
     private let pollutionSystem: PollutionSystem
     private let enemyAISystem: EnemyAISystem
     private let combatSystem: CombatSystem
@@ -90,7 +93,7 @@ final class GameLoop {
         beltSystem = BeltSystem(world: world)
         inserterSystem = InserterSystem(world: world, beltSystem: beltSystem, itemRegistry: itemRegistry)
         craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry, itemRegistry: itemRegistry, buildingRegistry: buildingRegistry)
-        powerSystem = PowerSystem(world: world)
+        _powerSystem = PowerSystem(world: world)
         researchSystem = ResearchSystem(world: world, technologyRegistry: technologyRegistry)
         pollutionSystem = PollutionSystem(world: world, chunkManager: chunkManager)
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
@@ -108,7 +111,7 @@ final class GameLoop {
             beltSystem,
             inserterSystem,
             craftingSystem,
-            powerSystem,
+            _powerSystem,
             researchSystem,
             pollutionSystem,
             enemyAISystem,
@@ -391,7 +394,7 @@ final class GameLoop {
 
         // Trigger power network rebuild if needed
         if buildingDef.powerConsumption > 0 {
-            powerSystem.markNetworksDirty()
+            _powerSystem.markNetworksDirty()
         }
 
         print("GameLoop: placeInserter succeeded - entity: \(entity)")
@@ -428,7 +431,7 @@ final class GameLoop {
         
         // Trigger power network rebuild if needed
         if buildingDef.type == .powerPole || buildingDef.powerConsumption > 0 || buildingDef.powerProduction > 0 {
-            powerSystem.markNetworksDirty()
+            _powerSystem.markNetworksDirty()
         }
 
         return true

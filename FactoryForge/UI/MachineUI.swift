@@ -18,6 +18,9 @@ final class MachineUI: UIPanel_Base {
     // Research progress labels for labs
     private var researchProgressLabels: [UILabel] = []
 
+    // Power label for generators
+    private var powerLabel: UILabel?
+
     // Rocket launch button for rocket silos
     private var launchButton: UIButton?
 
@@ -41,6 +44,12 @@ final class MachineUI: UIPanel_Base {
     private var isRocketSilo: Bool {
         guard let entity = currentEntity, let gameLoop = gameLoop else { return false }
         return gameLoop.world.has(RocketSiloComponent.self, for: entity)
+    }
+
+    // Helper to check if current machine is a generator
+    private var isGenerator: Bool {
+        guard let entity = currentEntity, let gameLoop = gameLoop else { return false }
+        return gameLoop.world.has(GeneratorComponent.self, for: entity)
     }
 
     init(screenSize: Vector2, gameLoop: GameLoop?) {
@@ -167,6 +176,24 @@ final class MachineUI: UIPanel_Base {
         setupSlots() // Re-setup slots based on machine inventory size
         setupSlotsForMachine(entity)
         refreshRecipeButtons()
+
+        // Setup power label for generators
+        setupPowerLabel(for: entity)
+    }
+
+    private func setupPowerLabel(for entity: Entity) {
+        // Remove existing power label if any
+        powerLabel = nil
+
+        // Create power label if this is a generator
+        if isGenerator {
+            let label = UILabel()
+            label.text = "Power"
+            label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+            label.textColor = .white
+            label.textAlignment = .center
+            powerLabel = label
+        }
     }
 
     override func open() {
@@ -175,6 +202,9 @@ final class MachineUI: UIPanel_Base {
         var allLabels = inputCountLabels + outputCountLabels + fuelCountLabels
         if isLab {
             allLabels += researchProgressLabels
+        }
+        if isGenerator, let powerLabel = powerLabel {
+            allLabels.append(powerLabel)
         }
         onAddLabels?(allLabels)
 
@@ -189,7 +219,10 @@ final class MachineUI: UIPanel_Base {
 
     override func close() {
         // Remove all count labels from the view
-        let allLabels = inputCountLabels + outputCountLabels + fuelCountLabels + researchProgressLabels
+        var allLabels = inputCountLabels + outputCountLabels + fuelCountLabels + researchProgressLabels
+        if let powerLabel = powerLabel {
+            allLabels.append(powerLabel)
+        }
         onRemoveLabels?(allLabels)
 
         // Clear label text to ensure they're properly reset
@@ -620,6 +653,21 @@ final class MachineUI: UIPanel_Base {
 
             label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
         }
+
+        // Position power label above the power bar
+        if let powerLabel = powerLabel {
+            let labelWidth: Float = 100
+            let labelHeight: Float = 16
+            let labelX = frame.minX + labelWidth * 3.5
+            let labelY = frame.center.y - 85 * UIScale  // Position above the power bar
+
+            // Convert to UIView coordinates
+            let scale = UIScreen.main.scale
+            let uiX = CGFloat(labelX) / scale
+            let uiY = CGFloat(labelY) / scale
+
+            powerLabel.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
+        }
     }
 
     override func handleTap(at position: Vector2) -> Bool {
@@ -754,6 +802,8 @@ final class MachineUI: UIPanel_Base {
 
         // Get progress from the appropriate component
         var progress: Float = 0
+        var isGenerator = false
+        var powerAvailability: Float = 1.0
 
         if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
             progress = miner.progress
@@ -763,19 +813,22 @@ final class MachineUI: UIPanel_Base {
             progress = assembler.craftingProgress
         } else if let pumpjack = gameLoop.world.get(PumpjackComponent.self, for: entity) {
             progress = pumpjack.progress
+        } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
+            // For generators, show power availability bar instead of progress
+            isGenerator = true
+            if let networkInfo = gameLoop.powerSystem.getNetworkInfo(for: entity) {
+                powerAvailability = networkInfo.powerAvailability
+            }
         } else {
-            // No progress to show
+            // No progress or power info to show
             return
         }
 
-        // Only show progress bar if there's actual progress
-        guard progress > 0 else { return }
-
-        // Position the progress bar above the slots
+        // Position the progress/power bar above the slots
         let barWidth: Float = 300 * UIScale
         let barHeight: Float = 20 * UIScale
         let barX = frame.center.x - barWidth/2
-        let barY = frame.center.y - 30 * UIScale
+        let barY = frame.center.y - 60 * UIScale
 
         let barRect = Rect(center: Vector2(frame.center.x, barY), size: Vector2(barWidth, barHeight))
 
@@ -789,20 +842,55 @@ final class MachineUI: UIPanel_Base {
             layer: .ui
         ))
 
-        // Progress fill (green)
-        if progress > 0 {
-            let progressWidth = barWidth * progress
-            let progressRect = Rect(
-                center: Vector2(barX + progressWidth/2, barY),
-                size: Vector2(progressWidth, barHeight)
-            )
-            renderer.queueSprite(SpriteInstance(
-                position: progressRect.center,
-                size: progressRect.size,
-                textureRect: solidRect,
-                color: Color(r: 0.2, g: 0.8, b: 0.2, a: 1.0),
-                layer: .ui
-            ))
+        // Progress/Power fill
+        if isGenerator {
+            // Power availability bar (blue with white border)
+            let powerWidth = barWidth * powerAvailability
+            if powerWidth > 0 {
+                let powerRect = Rect(
+                    center: Vector2(barX + powerWidth/2, barY),
+                    size: Vector2(powerWidth, barHeight)
+                )
+
+                // White border (slightly larger)
+                let borderThickness: Float = 1.5 * UIScale
+                let borderRect = Rect(
+                    center: powerRect.center,
+                    size: Vector2(powerWidth + borderThickness, barHeight + borderThickness)
+                )
+                renderer.queueSprite(SpriteInstance(
+                    position: borderRect.center,
+                    size: borderRect.size,
+                    textureRect: solidRect,
+                    color: Color(r: 1.0, g: 1.0, b: 1.0, a: 1.0), // White border
+                    layer: .ui
+                ))
+
+                // Blue fill
+                renderer.queueSprite(SpriteInstance(
+                    position: powerRect.center,
+                    size: powerRect.size,
+                    textureRect: solidRect,
+                    color: Color(r: 0.2, g: 0.4, b: 0.9, a: 1.0), // Blue for power availability
+                    layer: .ui
+                ))
+            }
+        } else {
+            // Progress fill (green) for other machines
+            if progress > 0 {
+                let progressWidth = barWidth * progress
+                let progressRect = Rect(
+                    center: Vector2(barX + progressWidth/2, barY),
+                    size: Vector2(progressWidth, barHeight)
+                )
+                renderer.queueSprite(SpriteInstance(
+                    position: progressRect.center,
+                    size: progressRect.size,
+                    textureRect: solidRect,
+                    color: Color(r: 0.2, g: 0.8, b: 0.2, a: 1.0),
+                    layer: .ui
+                ))
+            }
         }
     }
 }

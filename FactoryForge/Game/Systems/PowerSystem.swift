@@ -231,10 +231,19 @@ final class PowerSystem: System {
         }
         
         network.totalProduction = totalProduction
-        
+
+        // Calculate power availability (percentage of power remaining after consumption)
+        // Power availability shows how much excess power is available relative to total production
+        if totalProduction > 0 {
+            let availablePower = totalProduction - totalConsumption
+            network.powerAvailability = max(0, min(1, availablePower / totalProduction))
+        } else {
+            network.powerAvailability = 0
+        }
+
         // Calculate satisfaction
         var availablePower = totalProduction
-        
+
         // Draw from accumulators if needed
         if availablePower < totalConsumption {
             let deficit = totalConsumption - availablePower
@@ -359,12 +368,13 @@ final class PowerSystem: System {
         guard let consumer = world.get(PowerConsumerComponent.self, for: entity),
               let networkId = consumer.networkId,
               networkId < networks.count else { return nil }
-        
+
         let network = networks[networkId]
         return PowerNetworkInfo(
             production: network.totalProduction,
             consumption: network.totalConsumption,
-            satisfaction: network.satisfaction
+            satisfaction: network.satisfaction,
+            powerAvailability: network.powerAvailability
         )
     }
 }
@@ -380,11 +390,13 @@ struct PowerNetwork {
     var totalProduction: Float = 0
     var totalConsumption: Float = 0
     var satisfaction: Float = 1.0
+    var powerAvailability: Float = 1.0  // Percentage of power available (0-1, where 1 = full available, 0 = none available)
 }
 
 struct PowerNetworkInfo {
     let production: Float
     let consumption: Float
     let satisfaction: Float
+    let powerAvailability: Float
 }
 
