@@ -34,6 +34,7 @@ final class InventoryUI: UIPanel_Base {
     private var draggedSlotIndex: Int?
     private var isDragging = false
     private var dragPreviewPosition: Vector2 = .zero
+    private var hoveredSlotIndex: Int? = nil
 
     // Callbacks for managing UIKit labels
     var onAddLabels: (([UILabel]) -> Void)?
@@ -478,7 +479,13 @@ final class InventoryUI: UIPanel_Base {
         // Render slots (only up to totalSlots)
         for (index, slot) in slots.enumerated() {
             if index < totalSlots {
+                // Highlight hovered slot during drag operations
+                let originalSelected = slot.isSelected
+                if isDragging && hoveredSlotIndex == index {
+                    slot.isSelected = true
+                }
                 slot.render(renderer: renderer)
+                slot.isSelected = originalSelected
             }
         }
 
@@ -640,6 +647,15 @@ final class InventoryUI: UIPanel_Base {
             }
         } else {
             // Handle ongoing drag
+            // Update hover state for visual feedback
+            hoveredSlotIndex = nil
+            for (index, slot) in slots.enumerated() {
+                if index < totalSlots && slot.frame.contains(endPos) {
+                    hoveredSlotIndex = index
+                    break
+                }
+            }
+
             // Check if drag ended on trash
             if trashTarget.frame.contains(endPos), let draggedIndex = draggedSlotIndex {
                 // Drop on trash - remove the item
@@ -647,9 +663,208 @@ final class InventoryUI: UIPanel_Base {
                 endDrag()
                 return true
             }
+
+            // Check if drag ended on an inventory slot
+            for (index, slot) in slots.enumerated() {
+                if index < totalSlots && slot.frame.contains(endPos), let draggedIndex = draggedSlotIndex, draggedIndex != index {
+                    // Drop on inventory slot - handle move/combine/swap
+                    handleInventoryDrop(fromSlotIndex: draggedIndex, toSlotIndex: index)
+                    endDrag()
+                    return true
+                }
+            }
         }
 
         return false
+    }
+
+    private func handleInventoryDrop(fromSlotIndex: Int, toSlotIndex: Int) {
+        guard let gameLoop = gameLoop else { return }
+
+        // Determine which inventories are involved
+        let playerSlotsCount = gameLoop.player.inventory.slots.count
+
+        // Check if we're in chest mode
+        let isChestMode = chestEntity != nil || chestOnlyEntity != nil || pendingChestEntity != nil
+
+        if isChestMode {
+            // Handle chest inventory drag and drop
+            handleChestInventoryDrop(fromSlotIndex: fromSlotIndex, toSlotIndex: toSlotIndex, playerSlotsCount: playerSlotsCount)
+        } else {
+            // Handle player-only inventory drag and drop
+            handlePlayerInventoryDrop(fromSlotIndex: fromSlotIndex, toSlotIndex: toSlotIndex)
+        }
+    }
+
+    private func handlePlayerInventoryDrop(fromSlotIndex: Int, toSlotIndex: Int) {
+        guard let gameLoop = gameLoop else { return }
+        guard fromSlotIndex < gameLoop.player.inventory.slots.count,
+              toSlotIndex < gameLoop.player.inventory.slots.count else { return }
+
+        var playerInventory = gameLoop.player.inventory
+
+        let sourceStack = playerInventory.slots[fromSlotIndex]
+        let destStack = playerInventory.slots[toSlotIndex]
+
+
+        if sourceStack == nil {
+            // Nothing to move
+            return
+        }
+
+        if destStack == nil {
+            // Move to empty slot
+            playerInventory.slots[toSlotIndex] = sourceStack
+            playerInventory.slots[fromSlotIndex] = nil
+        } else if destStack!.itemId == sourceStack!.itemId {
+            // Combine stacks of same item - use correct maxStack from ItemRegistry
+            let maxStack = gameLoop.itemRegistry.get(sourceStack!.itemId)?.stackSize ?? sourceStack!.maxStack
+            let totalItems = destStack!.count + sourceStack!.count
+            let itemsInDest = min(totalItems, maxStack)
+            let remainingItems = totalItems - itemsInDest
+
+            if itemsInDest > 0 {
+                playerInventory.slots[toSlotIndex] = ItemStack(itemId: destStack!.itemId, count: itemsInDest, maxStack: maxStack)
+            }
+
+            if remainingItems > 0 {
+                playerInventory.slots[fromSlotIndex] = ItemStack(itemId: sourceStack!.itemId, count: remainingItems, maxStack: maxStack)
+            } else {
+                playerInventory.slots[fromSlotIndex] = nil
+            }
+        } else {
+            // Swap different items
+            playerInventory.slots[toSlotIndex] = sourceStack
+            playerInventory.slots[fromSlotIndex] = destStack
+        }
+
+        gameLoop.player.inventory = playerInventory
+        AudioManager.shared.playClickSound()
+    }
+
+    private func handleChestInventoryDrop(fromSlotIndex: Int, toSlotIndex: Int, playerSlotsCount: Int) {
+        guard let gameLoop = gameLoop else { return }
+
+        var playerInventory = gameLoop.player.inventory
+        var chestInventory: InventoryComponent?
+
+        // Get the appropriate chest inventory
+        if let chestEntity = chestEntity {
+            chestInventory = gameLoop.world.get(InventoryComponent.self, for: chestEntity)
+        } else if let chestOnlyEntity = chestOnlyEntity {
+            chestInventory = gameLoop.world.get(InventoryComponent.self, for: chestOnlyEntity)
+        } else if let pendingChestEntity = pendingChestEntity {
+            chestInventory = gameLoop.world.get(InventoryComponent.self, for: pendingChestEntity)
+        }
+
+        guard var chestInventory = chestInventory else { return }
+
+        // Determine source and destination
+        let isSourcePlayerSlot = fromSlotIndex < playerSlotsCount
+        let isDestPlayerSlot = toSlotIndex < playerSlotsCount
+
+        let sourceStack: ItemStack?
+        let destStack: ItemStack?
+
+        if isSourcePlayerSlot {
+            sourceStack = fromSlotIndex < playerInventory.slots.count ? playerInventory.slots[fromSlotIndex] : nil
+        } else {
+            let chestIndex = fromSlotIndex - playerSlotsCount
+            sourceStack = chestIndex < chestInventory.slots.count ? chestInventory.slots[chestIndex] : nil
+        }
+
+        if isDestPlayerSlot {
+            destStack = toSlotIndex < playerInventory.slots.count ? playerInventory.slots[toSlotIndex] : nil
+        } else {
+            let chestIndex = toSlotIndex - playerSlotsCount
+            destStack = chestIndex < chestInventory.slots.count ? chestInventory.slots[chestIndex] : nil
+        }
+
+        if sourceStack == nil {
+            // Nothing to move
+            return
+        }
+
+        // Perform the move/combine/swap operation
+        if destStack == nil {
+            // Move to empty slot
+            if isDestPlayerSlot {
+                playerInventory.slots[toSlotIndex] = sourceStack
+            } else {
+                let chestIndex = toSlotIndex - playerSlotsCount
+                chestInventory.slots[chestIndex] = sourceStack
+            }
+
+            // Clear source
+            if isSourcePlayerSlot {
+                playerInventory.slots[fromSlotIndex] = nil
+            } else {
+                let chestIndex = fromSlotIndex - playerSlotsCount
+                chestInventory.slots[chestIndex] = nil
+            }
+        } else if destStack!.itemId == sourceStack!.itemId {
+            // Combine stacks of same item - use correct maxStack from ItemRegistry
+            let maxStack = gameLoop.itemRegistry.get(sourceStack!.itemId)?.stackSize ?? sourceStack!.maxStack
+            let totalItems = destStack!.count + sourceStack!.count
+            let itemsInDest = min(totalItems, maxStack)
+            let remainingItems = totalItems - itemsInDest
+
+            let combinedStack = ItemStack(itemId: destStack!.itemId, count: itemsInDest, maxStack: maxStack)
+
+            if isDestPlayerSlot {
+                playerInventory.slots[toSlotIndex] = combinedStack
+            } else {
+                let chestIndex = toSlotIndex - playerSlotsCount
+                chestInventory.slots[chestIndex] = combinedStack
+            }
+
+            if remainingItems > 0 {
+                let remainingStack = ItemStack(itemId: sourceStack!.itemId, count: remainingItems, maxStack: maxStack)
+                if isSourcePlayerSlot {
+                    playerInventory.slots[fromSlotIndex] = remainingStack
+                } else {
+                    let chestIndex = fromSlotIndex - playerSlotsCount
+                    chestInventory.slots[chestIndex] = remainingStack
+                }
+            } else {
+                // Clear source
+                if isSourcePlayerSlot {
+                    playerInventory.slots[fromSlotIndex] = nil
+                } else {
+                    let chestIndex = fromSlotIndex - playerSlotsCount
+                    chestInventory.slots[chestIndex] = nil
+                }
+            }
+        } else {
+            // Swap different items
+            if isDestPlayerSlot {
+                playerInventory.slots[toSlotIndex] = sourceStack
+            } else {
+                let chestIndex = toSlotIndex - playerSlotsCount
+                chestInventory.slots[chestIndex] = sourceStack
+            }
+
+            if isSourcePlayerSlot {
+                playerInventory.slots[fromSlotIndex] = destStack
+            } else {
+                let chestIndex = fromSlotIndex - playerSlotsCount
+                chestInventory.slots[chestIndex] = destStack
+            }
+        }
+
+        // Save changes
+        gameLoop.player.inventory = playerInventory
+
+        // Save chest changes if applicable
+        if let chestEntity = chestEntity {
+            gameLoop.world.add(chestInventory, to: chestEntity)
+        } else if let chestOnlyEntity = chestOnlyEntity {
+            gameLoop.world.add(chestInventory, to: chestOnlyEntity)
+        } else if let pendingChestEntity = pendingChestEntity {
+            gameLoop.world.add(chestInventory, to: pendingChestEntity)
+        }
+
+        AudioManager.shared.playClickSound()
     }
 
     private func handleTrashDrop(slotIndex: Int) {
@@ -676,6 +891,7 @@ final class InventoryUI: UIPanel_Base {
         isDragging = false
         draggedSlotIndex = nil
         draggedItemStack = nil
+        hoveredSlotIndex = nil
     }
 
     func getTooltip(at position: Vector2) -> String? {

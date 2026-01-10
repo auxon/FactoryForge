@@ -148,6 +148,8 @@
 		0D778B6B2F11D2B9003BC642 /* Research.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B622F11D2B9003BC642 /* Research.md */; };
 		0D778B6C2F11D2B9003BC642 /* Entity Selection.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B5D2F11D2B9003BC642 /* Entity Selection.md */; };
 		0D778B7D2F11DA87003BC642 /* Crafting.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B7C2F11DA87003BC642 /* Crafting.md */; };
+		0D778B802F11E644003BC642 /* rocket_parts.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B7E2F11E644003BC642 /* rocket_parts.png */; };
+		0D778B812F11E644003BC642 /* solid_fuel.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B7F2F11E644003BC642 /* solid_fuel.png */; };
 		0D841AD62F0F2FE600F499B6 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D841AD52F0F2FE600F499B6 /* wall.png */; };
 		0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
@@ -466,6 +468,8 @@
 		0D778B792F11D499003BC642 /* robotics_plan.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = robotics_plan.md; sourceTree = "<group>"; };
 		0D778B7A2F11D499003BC642 /* rocketry.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = rocketry.md; sourceTree = "<group>"; };
 		0D778B7C2F11DA87003BC642 /* Crafting.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Crafting.md; sourceTree = "<group>"; };
+		0D778B7E2F11E644003BC642 /* rocket_parts.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = rocket_parts.png; sourceTree = "<group>"; };
+		0D778B7F2F11E644003BC642 /* solid_fuel.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = solid_fuel.png; sourceTree = "<group>"; };
 		0D841AD52F0F2FE600F499B6 /* wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wall.png; sourceTree = "<group>"; };
 		0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FactoryForge Storekit Configuration.storekit"; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
@@ -667,6 +671,8 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D778B7E2F11E644003BC642 /* rocket_parts.png */,
+				0D778B7F2F11E644003BC642 /* solid_fuel.png */,
 				0D778B4F2F11A607003BC642 /* rocket_silo.png */,
 				0D778B332F11A14E003BC642 /* battery.png */,
 				0D778B342F11A14E003BC642 /* centrifuge.png */,
@@ -1449,6 +1455,8 @@
 				0D6FDC342EFDE1B500576EC3 /* tree.png in Resources */,
 				0D6FDC352EFDE1B500576EC3 /* boiler.png in Resources */,
 				0DE2299E2F024C6000BD619D /* player_fire.m4a in Resources */,
+				0D778B802F11E644003BC642 /* rocket_parts.png in Resources */,
+				0D778B812F11E644003BC642 /* solid_fuel.png in Resources */,
 				0D6FDC362EFDE1B500576EC3 /* logistic_science_pack.png in Resources */,
 				0D6FDC372EFDE1B500576EC3 /* sand.png in Resources */,
 				0DE2297B2F01760A00BD619D /* gear.png in Resources */,
