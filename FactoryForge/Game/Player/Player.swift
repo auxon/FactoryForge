@@ -3,6 +3,7 @@ import Foundation
 /// The player character
 final class Player {
     private var world: World
+    private var itemRegistry: ItemRegistry
     private var entity: Entity
 
     /// The player's entity (for external systems)
@@ -55,18 +56,20 @@ final class Player {
     private var playerAnimationLeft: SpriteAnimation?
     private var playerAnimationRight: SpriteAnimation?
     
-    init(world: World) {
+    init(world: World, itemRegistry: ItemRegistry) {
         self.world = world
+        self.itemRegistry = itemRegistry
         self.entity = world.spawn()
         self.inventory = InventoryComponent(slots: 56, allowedItems: nil)
-        
+
         // Set up player entity
         setupPlayerEntity()
     }
     
     /// Recreates the player entity (used when loading a game after world deserialization)
-    func recreateEntity(in world: World) {
+    func recreateEntity(in world: World, itemRegistry: ItemRegistry) {
         self.world = world
+        self.itemRegistry = itemRegistry
         self.entity = world.spawn()
         setupPlayerEntity()
     }
@@ -116,60 +119,31 @@ final class Player {
     }
     
     private func giveStartingItems() {
-        inventory.add(itemId: "iron-plate", count: 100)  // Enough to build lots of stuff
-        inventory.add(itemId: "iron-gear-wheel", count: 100)  // for testing
-        inventory.add(itemId: "copper-plate", count: 100)  // for testing
-        inventory.add(itemId: "electronic-circuit", count: 100)  // for testing
-        inventory.add(itemId: "copper-cable", count: 100)  // for testing
-        inventory.add(itemId: "burner-mining-drill", count: 100)
-        inventory.add(itemId: "stone-furnace", count: 100)
-        inventory.add(itemId: "steel-furnace", count: 100)
-        inventory.add(itemId: "electric-mining-drill", count: 100)
-        inventory.add(itemId: "electric-furnace", count: 100)
-        inventory.add(itemId: "assembling-machine-1", count: 100)
-        inventory.add(itemId: "assembling-machine-2", count: 100)
-        inventory.add(itemId: "assembling-machine-3", count: 100)
-        inventory.add(itemId: "lab", count: 100)
-        inventory.add(itemId: "oil-well", count: 100)
-        inventory.add(itemId: "oil-refinery", count: 100)
-        inventory.add(itemId: "chemical-plant", count: 100)
-        inventory.add(itemId: "boiler", count: 100)
-        inventory.add(itemId: "steam-engine", count: 100)
-        inventory.add(itemId: "solar-panel", count: 100)
-        inventory.add(itemId: "accumulator", count: 100)
-        inventory.add(itemId: "small-electric-pole", count: 100)
-        inventory.add(itemId: "medium-electric-pole", count: 100)
-        inventory.add(itemId: "big-electric-pole", count: 100)
-        inventory.add(itemId: "gun-turret", count: 100)
-        inventory.add(itemId: "laser-turret", count: 100)
-        inventory.add(itemId: "wall", count: 100)
-        inventory.add(itemId: "grenade", count: 100)
-        inventory.add(itemId: "radar", count: 100)
-        inventory.add(itemId: "automation-science-pack", count: 100)
-        inventory.add(itemId: "logistic-science-pack", count: 100)
-        inventory.add(itemId: "chemical-science-pack", count: 100)
-        inventory.add(itemId: "production-science-pack", count: 100)
-        inventory.add(itemId: "utility-science-pack", count: 100)
-        inventory.add(itemId: "transport-belt", count: 100)
-        inventory.add(itemId: "firearm-magazine", count: 100)  // Starting ammo for self-defense
-        inventory.add(itemId: "transport-belt", count: 100)  // Starting belts
-        inventory.add(itemId: "inserter", count: 100)  // Starting inserters
-        inventory.add(itemId: "boiler", count: 100)  // Boiler for testing
-        inventory.add(itemId: "small-electric-pole", count: 100)  // Small electric pole for testing
-        inventory.add(itemId: "automation-science-pack", count: 100)  // Automation science pack for testing
-        inventory.add(itemId: "lab", count: 100)  // Lab for testing
-        inventory.add(itemId: "assembling-machine-1", count: 100)  // Assembling machine 1 for testing
-        inventory.add(itemId: "splitter", count: 100)
-        inventory.add(itemId: "merger", count: 100)
-        inventory.add(itemId: "belt-bridge", count: 100)
-        inventory.add(itemId: "long-handed-inserter", count: 100)
-        inventory.add(itemId: "fast-inserter", count: 100)
-        inventory.add(itemId: "wooden-chest", count: 100)
-        inventory.add(itemId: "iron-chest", count: 100)
-        inventory.add(itemId: "steel-chest", count: 100)
-        inventory.add(itemId: "electric-furnace", count: 100)
-        inventory.add(itemId: "electric-mining-drill", count: 100)
-        inventory.add(itemId: "electric-furnace", count: 100)
+        let startingItems = [
+            ("iron-plate", 100), ("iron-gear-wheel", 100), ("copper-plate", 100),
+            ("electronic-circuit", 100), ("copper-cable", 100), ("burner-mining-drill", 100),
+            ("stone-furnace", 100), ("steel-furnace", 100), ("electric-mining-drill", 100),
+            ("electric-furnace", 100), ("assembling-machine-1", 100), ("assembling-machine-2", 100),
+            ("assembling-machine-3", 100), ("lab", 100), ("oil-well", 100), ("oil-refinery", 100),
+            ("chemical-plant", 100), ("boiler", 100), ("steam-engine", 100), ("solar-panel", 100),
+            ("accumulator", 100), ("small-electric-pole", 100), ("medium-electric-pole", 100),
+            ("big-electric-pole", 100), ("gun-turret", 100), ("laser-turret", 100), ("wall", 100),
+            ("grenade", 100), ("radar", 100), ("automation-science-pack", 100),
+            ("logistic-science-pack", 100), ("chemical-science-pack", 100),
+            ("production-science-pack", 100), ("utility-science-pack", 100),
+            ("transport-belt", 200), ("firearm-magazine", 100), ("inserter", 100),
+            ("splitter", 100), ("merger", 100), ("belt-bridge", 100),
+            ("long-handed-inserter", 100), ("fast-inserter", 100), ("wooden-chest", 100),
+            ("iron-chest", 100), ("steel-chest", 100)
+        ]
+
+        for (itemId, count) in startingItems {
+            if let itemDef = itemRegistry.get(itemId) {
+                inventory.add(itemId: itemId, count: count, maxStack: itemDef.stackSize)
+            } else {
+                inventory.add(itemId: itemId, count: count, maxStack: 100) // fallback
+            }
+        }
 
     }
     

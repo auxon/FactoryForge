@@ -15,7 +15,7 @@ struct Item: Identifiable, Codable {
     init(
         id: String,
         name: String,
-        stackSize: Int = 100,
+        stackSize: Int = 1000,
         category: ItemCategory = .intermediate,
         subgroup: String = "other",
         order: String = "a",

@@ -145,7 +145,9 @@ final class RocketSystem: System {
                world.get(RocketSiloComponent.self, for: entity) != nil {
 
                 // Add space science packs to the silo inventory
-                inventory.add(itemId: "space-science-pack", count: packsToGenerate)
+                if let itemDef = itemRegistry.get("space-science-pack") {
+                    inventory.add(itemId: "space-science-pack", count: packsToGenerate, maxStack: itemDef.stackSize)
+                }
                 world.add(inventory, to: entity)
                 print("📦 \(packsToGenerate) space science packs added to rocket silo inventory, at silo at (\(siloPos.tilePosition.x), \(siloPos.tilePosition.y))")
                 return

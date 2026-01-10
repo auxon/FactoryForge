@@ -130,7 +130,12 @@ final class InventoryUI: UIPanel_Base {
                 gameLoop.player.inventory = playerInventory
 
                 // Add to chest
-                let remaining = chestInventory.add(itemId: itemStack.itemId, count: itemsToTransfer)
+                let remaining: Int
+                if let itemDef = gameLoop.itemRegistry.get(itemStack.itemId) {
+                    remaining = chestInventory.add(itemId: itemStack.itemId, count: itemsToTransfer, maxStack: itemDef.stackSize)
+                } else {
+                    remaining = chestInventory.add(itemId: itemStack.itemId, count: itemsToTransfer, maxStack: 100) // fallback
+                }
                 if remaining == 0 {  // All items were added
                     gameLoop.world.add(chestInventory, to: chestEntity)
                     AudioManager.shared.playClickSound()
@@ -167,7 +172,12 @@ final class InventoryUI: UIPanel_Base {
                 gameLoop.world.add(chestInventory, to: chestEntity)
 
                 // Add to player
-                let remaining = playerInventory.add(itemId: chestItemStack.itemId, count: itemsToTransfer)
+                let remaining: Int
+                if let itemDef = gameLoop.itemRegistry.get(chestItemStack.itemId) {
+                    remaining = playerInventory.add(itemId: chestItemStack.itemId, count: itemsToTransfer, maxStack: itemDef.stackSize)
+                } else {
+                    remaining = playerInventory.add(itemId: chestItemStack.itemId, count: itemsToTransfer, maxStack: 100) // fallback
+                }
                 if remaining == 0 {  // All items were added
                     gameLoop.player.inventory = playerInventory
                     AudioManager.shared.playClickSound()
@@ -217,7 +227,12 @@ final class InventoryUI: UIPanel_Base {
                 gameLoop.world.add(chestInventory, to: chestOnlyEntity)
 
                 // Add to player
-                let remaining = playerInventory.add(itemId: chestItemStack.itemId, count: itemsToTransfer)
+                let remaining: Int
+                if let itemDef = gameLoop.itemRegistry.get(chestItemStack.itemId) {
+                    remaining = playerInventory.add(itemId: chestItemStack.itemId, count: itemsToTransfer, maxStack: itemDef.stackSize)
+                } else {
+                    remaining = playerInventory.add(itemId: chestItemStack.itemId, count: itemsToTransfer, maxStack: 100) // fallback
+                }
                 if remaining == 0 {  // All items were added
                     gameLoop.player.inventory = playerInventory
                     AudioManager.shared.playClickSound()
@@ -266,7 +281,12 @@ final class InventoryUI: UIPanel_Base {
             gameLoop.player.inventory = playerInventory
 
             // Add to chest
-            let remaining = chestInventory.add(itemId: itemStack.itemId, count: itemsToTransfer)
+            let remaining: Int
+            if let itemDef = gameLoop.itemRegistry.get(itemStack.itemId) {
+                remaining = chestInventory.add(itemId: itemStack.itemId, count: itemsToTransfer, maxStack: itemDef.stackSize)
+            } else {
+                remaining = chestInventory.add(itemId: itemStack.itemId, count: itemsToTransfer, maxStack: 100) // fallback
+            }
             if remaining == 0 {  // All items were added
                 gameLoop.world.add(chestInventory, to: pendingChestEntity)
                 AudioManager.shared.playClickSound()
@@ -330,7 +350,7 @@ final class InventoryUI: UIPanel_Base {
             textureId: "trash"
         )
 
-        trashTarget.onTap = { [weak self] in
+        trashTarget.onTap = {
             // Trash can be tapped but no action needed - drag and drop only
         }
     }
@@ -589,7 +609,11 @@ final class InventoryUI: UIPanel_Base {
 
                     // Return any items that couldn't be added back to player (shouldn't happen)
                     if remaining > 0 {
-                        gameLoop.player.inventory.add(itemId: slotItem.itemId, count: remaining)
+                        if let itemDef = gameLoop.itemRegistry.get(slotItem.itemId) {
+                            gameLoop.player.inventory.add(itemId: slotItem.itemId, count: remaining, maxStack: itemDef.stackSize)
+                        } else {
+                            gameLoop.player.inventory.add(itemId: slotItem.itemId, count: remaining, maxStack: 100) // fallback
+                        }
                     }
 
                     // Signal completion but DON'T close inventory - let player add more items

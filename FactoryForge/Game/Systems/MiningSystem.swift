@@ -4,9 +4,10 @@ import QuartzCore
 /// System that handles mining drills extracting resources
 final class MiningSystem: System {
     let priority = SystemPriority.mining.rawValue
-    
+
     private let world: World
     private let chunkManager: ChunkManager
+    private let itemRegistry: ItemRegistry
 
     // Cache for performance optimization
     private var resourceCache: [IntVector2: ResourceDeposit] = [:]
@@ -15,9 +16,10 @@ final class MiningSystem: System {
     private let cacheUpdateInterval: TimeInterval = 0.5  // Update cache every 0.5 seconds
     private var lastCacheUpdate: TimeInterval = 0
 
-    init(world: World, chunkManager: ChunkManager) {
+    init(world: World, chunkManager: ChunkManager, itemRegistry: ItemRegistry) {
         self.world = world
         self.chunkManager = chunkManager
+        self.itemRegistry = itemRegistry
     }
 
     /// Called when chunks are loaded/unloaded to invalidate resource cache
@@ -137,7 +139,9 @@ final class MiningSystem: System {
                     let mined = chunkManager.mineResource(at: position.tilePosition)
                     if mined > 0 {
                         // Add to output inventory
-                        inventory.add(itemId: outputItemId, count: mined)
+                        if let itemDef = itemRegistry.get(outputItemId) {
+                            inventory.add(itemId: outputItemId, count: mined, maxStack: itemDef.stackSize)
+                        }
                         inventoryModifications.append((entity, inventory))
                     }
                 } else if let treeEntity = targetTree, var tree = world.get(TreeComponent.self, for: treeEntity) {
@@ -145,7 +149,9 @@ final class MiningSystem: System {
                     if tree.woodYield > 0 {
                         // Harvest 1 wood from the tree
                         tree.woodYield -= 1
-                        inventory.add(itemId: "wood", count: 1)
+                        if let itemDef = itemRegistry.get("wood") {
+                            inventory.add(itemId: "wood", count: 1, maxStack: itemDef.stackSize)
+                        }
                         inventoryModifications.append((entity, inventory))
 
                         // Damage the tree's health
@@ -239,7 +245,9 @@ final class MiningSystem: System {
                 updatedPumpjack.progress = 0
 
                 // Extract resource (deposits are infinite in Factorio, so we don't reduce the deposit amount)
-                inventory.add(itemId: resourceItem, count: 1)
+                if let itemDef = itemRegistry.get(resourceItem) {
+                    inventory.add(itemId: resourceItem, count: 1, maxStack: itemDef.stackSize)
+                }
                 inventoryModifications.append((entity, inventory))
             }
 

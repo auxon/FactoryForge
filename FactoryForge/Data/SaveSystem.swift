@@ -7,8 +7,9 @@ final class SaveSystem {
     private var lastAutosaveTime: TimeInterval = 0
     private var displayNames: [String: String] = [:] // Maps slot name to display name
     var currentAutosaveSlot: String? // Current game's autosave slot name
-    
+
     init() {
+
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         if let documentsDir = paths.first {
             saveDirectory = documentsDir.appendingPathComponent("saves")
@@ -98,7 +99,7 @@ final class SaveSystem {
         removePlayerEntityFromWorld(gameLoop.world)
         
         // Recreate the player entity (since it was cleared during deserialize)
-        recreatePlayerEntity(gameLoop.player, in: gameLoop.world)
+        recreatePlayerEntity(gameLoop.player, in: gameLoop.world, itemRegistry: gameLoop.itemRegistry)
         
         // Load player state (position, inventory, health)
         gameLoop.player.loadState(saveData.playerData)
@@ -195,10 +196,10 @@ final class SaveSystem {
         }
     }
     
-    private func recreatePlayerEntity(_ player: Player, in world: World) {
+    private func recreatePlayerEntity(_ player: Player, in world: World, itemRegistry: ItemRegistry) {
         // Use reflection or a public method to recreate the player entity
         // For now, we'll need to add a method to Player to recreate its entity
-        player.recreateEntity(in: world)
+        player.recreateEntity(in: world, itemRegistry: itemRegistry)
     }
     
     func loadFromSlot(_ slotName: String) -> GameSave? {

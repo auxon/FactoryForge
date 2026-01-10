@@ -1059,7 +1059,9 @@ final class InputManager: NSObject {
                         
                         // Add to player inventory (after a delay to match animation)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
-                            gameLoop?.player.inventory.add(itemId: itemId, count: mined)
+                            if let gameLoop = gameLoop, let itemDef = gameLoop.itemRegistry.get(itemId) {
+                                gameLoop.player.inventory.add(itemId: itemId, count: mined, maxStack: itemDef.stackSize)
+                            }
                         }
                     }
                 } else {

@@ -96,7 +96,7 @@ struct InventoryComponent: Component {
     
     /// Adds a single item
     @discardableResult
-    mutating func add(itemId: String, count: Int = 1, maxStack: Int = 100) -> Int {
+    mutating func add(itemId: String, count: Int = 1, maxStack: Int) -> Int {
         return add(ItemStack(itemId: itemId, count: count, maxStack: maxStack))
     }
     

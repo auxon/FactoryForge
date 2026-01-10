@@ -300,7 +300,7 @@ class GameViewController: UIViewController {
         let autoplayMenu = uiSystem.getAutoplayMenu()
         print("GameViewController: Setting up AutoPlayMenu callbacks")
 
-        autoplayMenu.onScenarioSelected = { [weak self] (scenarioId: String) in
+        autoplayMenu.onScenarioSelected = { (scenarioId: String) in
             // Scenario selection handled - will be used when starting auto-play
         }
 
@@ -502,7 +502,7 @@ class GameViewController: UIViewController {
             self?.startNewGame()
         }
         
-        loadingMenu.onSaveSlotSelected = { [weak self] slotName in
+        loadingMenu.onSaveSlotSelected = { slotName in
             // Slot selection - just for UI feedback, actual actions come from buttons
             print("Selected save slot: \(slotName)")
         }

@@ -83,10 +83,10 @@ final class GameLoop {
         chunkManager = ChunkManager(seed: worldSeed)
         
         // Initialize player
-        player = Player(world: world)
+        player = Player(world: world, itemRegistry: itemRegistry)
 
         // Initialize game systems
-        miningSystem = MiningSystem(world: world, chunkManager: chunkManager)
+        miningSystem = MiningSystem(world: world, chunkManager: chunkManager, itemRegistry: itemRegistry)
         beltSystem = BeltSystem(world: world)
         inserterSystem = InserterSystem(world: world, beltSystem: beltSystem, itemRegistry: itemRegistry)
         craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry, itemRegistry: itemRegistry)
@@ -1439,7 +1439,9 @@ final class GameLoop {
 
     /// Adds items to the player's inventory (used for IAP deliveries)
     func addItemToInventory(itemId: String, quantity: Int) {
-        player.inventory.add(itemId: itemId, count: quantity)
+        if let itemDef = itemRegistry.get(itemId) {
+            player.inventory.add(itemId: itemId, count: quantity, maxStack: itemDef.stackSize)
+        }
     }
 }
 
