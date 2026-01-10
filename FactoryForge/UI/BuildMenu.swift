@@ -358,20 +358,8 @@ final class BuildMenu: UIPanel_Base {
         let nameLabel = createBuildingNameLabel(text: building.name, centerX: frame.minX + 100 * UIScale, centerY: frame.maxY - 120 * UIScale)
         buildingLabels.append(nameLabel)
 
-        // Create labels for building requirements
-        var yOffset: Float = 100 * UIScale
-        for itemStack in building.cost {
-            if let itemDef = gameLoop?.itemRegistry.get(itemStack.itemId) {
-                let costLabel = createBuildingCostLabel(
-                    itemName: itemDef.name,
-                    count: itemStack.count,
-                    centerX: frame.minX + 100 * UIScale,
-                    centerY: frame.maxY - yOffset
-                )
-                buildingLabels.append(costLabel)
-                yOffset += 25 * UIScale
-            }
-        }
+        // Create count labels for building cost icons
+        createBuildingCostCountLabels(building: building, renderer: renderer)
     }
 
     private func createBuildingNameLabel(text: String, centerX: Float, centerY: Float) -> UILabel {
@@ -405,35 +393,63 @@ final class BuildMenu: UIPanel_Base {
         return label
     }
 
-    private func createBuildingCostLabel(itemName: String, count: Int, centerX: Float, centerY: Float) -> UILabel {
-        let text = "\(count)"
+    private func createBuildingCostCountLabels(building: BuildingDefinition, renderer: MetalRenderer) {
+        // Create count labels for building cost icons (like in CraftingMenu)
+        let iconSize: Float = 30 * UIScale
+        let iconSpacing: Float = 40 * UIScale
+        let detailsY = frame.maxY - 120 * UIScale
+
+        // Cost count labels
+        var costX = frame.minX + 50 * UIScale
+        for itemStack in building.cost {
+            if itemStack.count > 1 {
+                let countLabel = createCountLabel(
+                    text: "\(itemStack.count)",
+                    iconCenterX: costX,
+                    iconCenterY: detailsY,
+                    iconSize: iconSize,
+                    screenHeight: Float(frame.height)
+                )
+                buildingLabels.append(countLabel)
+            }
+            costX += iconSpacing
+        }
+    }
+
+    private func createCountLabel(text: String, iconCenterX: Float, iconCenterY: Float, iconSize: Float, screenHeight: Float) -> UILabel {
         let label = UILabel()
         label.text = text
-        label.font = UIFont.systemFont(ofSize: 12, weight: UIFont.Weight.regular)
-        label.textColor = UIColor.white
-        label.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.2, alpha: 0.8)
-        label.textAlignment = NSTextAlignment.left
-        label.layer.cornerRadius = 3
+        label.font = UIFont.systemFont(ofSize: 8, weight: .bold)  // Match CraftingMenu font size
+        label.textColor = .white
+        label.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 1.0)
+        label.textAlignment = .center
+        label.layer.cornerRadius = 2
         label.layer.masksToBounds = true
-        label.translatesAutoresizingMaskIntoConstraints = true
+        label.translatesAutoresizingMaskIntoConstraints = true  // Match CraftingMenu
+        label.isHidden = false
+        label.alpha = 1.0
+        label.isOpaque = false
 
         label.sizeToFit()
 
-        let padding: CGFloat = 6
+        // Minimal padding
+        let padding: CGFloat = 2
         let labelWidth = label.frame.width + padding * 2
         let labelHeight = label.frame.height + padding
 
-        // Convert to UIView coordinates (centerX/Y are in Metal pixels, convert to UIKit points)
+        // Convert to UIKit coordinates (iconCenterX/Y are in Metal pixels, convert to points)
         let scale = UIScreen.main.scale
-        let uiCenterX = CGFloat(centerX) / scale
-        let uiCenterY = CGFloat(centerY) / scale
-        let halfWidth = labelWidth / 2
-        let halfHeight = labelHeight / 2
-        let uiX = uiCenterX - halfWidth
-        let uiY = uiCenterY - halfHeight
+        let uiIconCenterX = CGFloat(iconCenterX) / scale
+        let uiIconCenterY = CGFloat(iconCenterY) / scale
+        let uiIconSize = CGFloat(iconSize) / scale
 
-        label.frame = CGRect(x: uiX, y: uiY, width: labelWidth, height: labelHeight)
+        // Calculate label position in UIKit coordinates (bottom-right corner of icon)
+        let uiIconTopLeftX = uiIconCenterX - uiIconSize / 2
+        let uiIconTopLeftY = uiIconCenterY - uiIconSize / 2
+        let uiLabelX = uiIconTopLeftX + uiIconSize - labelWidth  // Right edge - label width
+        let uiLabelY = uiIconTopLeftY + uiIconSize - labelHeight  // Bottom edge - label height
 
+        label.frame = CGRect(x: uiLabelX, y: uiLabelY, width: labelWidth, height: labelHeight)
         return label
     }
 }

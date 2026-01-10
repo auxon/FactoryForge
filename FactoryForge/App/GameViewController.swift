@@ -853,7 +853,7 @@ class GameViewController: UIViewController {
             let buttonWidth: CGFloat = 180
             let buttonHeight: CGFloat = 60
             let buttonX = (viewBounds.width - buttonWidth) / 2
-            let buttonY = viewBounds.height - buttonHeight - 80
+            let buttonY = viewBounds.height - buttonHeight
             let correctedFrame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
 
             button.frame = correctedFrame
@@ -1055,7 +1055,7 @@ class GameViewController: UIViewController {
             let buttonWidth: CGFloat = 180
             let buttonHeight: CGFloat = 60
             let buttonX = (viewBounds.width - buttonWidth) / 2
-            let buttonY = viewBounds.height - buttonHeight - 80
+            let buttonY = viewBounds.height - buttonHeight
             let correctedFrame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
 
             button.frame = correctedFrame
