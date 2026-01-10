@@ -73,12 +73,6 @@ final class ResearchSystem: System {
                 }
             }
 
-            #if DEBUG
-            if Int(Time.shared.frameCount) % 60 == 0 {  // Only log every 60 frames
-                print("ResearchSystem: Processing lab \(entity), has power multiplier: \(speedMultiplier)")
-            }
-            #endif
-
             // Try to consume science packs
             var mutableLab = lab
             if let updated = consumeSciencePacks(lab: &mutableLab, inventory: &inventory, entity: entity, speedMultiplier: speedMultiplier, deltaTime: deltaTime) {
@@ -106,15 +100,9 @@ final class ResearchSystem: System {
 
         var inventoryUpdated = false
 
-        print("ResearchSystem: Consuming science packs for tech '\(tech.name)'")
-        print("ResearchSystem: Required: \(tech.cost)")
-        print("ResearchSystem: Current progress: \(researchProgress)")
-
         // Try to consume each required science pack type
         for cost in tech.cost {
             let currentCount = researchProgress[cost.packId] ?? 0
-            print("ResearchSystem: Pack '\(cost.packId)': have \(currentCount)/\(cost.count)")
-
             if currentCount < cost.count {
                 // Try to consume a pack
                 let hasPack = inventory.has(itemId: cost.packId)

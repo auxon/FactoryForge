@@ -25,6 +25,11 @@ class RocketSiloComponent: BuildingComponent {
         launchTimer = try container.decode(Float.self, forKey: .launchTimer)
         launchDuration = try container.decode(Float.self, forKey: .launchDuration)
         try super.init(from: decoder)
+
+        // For backward compatibility, infer buildingId if it's empty
+        if buildingId.isEmpty {
+            buildingId = "rocket-silo"
+        }
     }
 
     override func encode(to encoder: Encoder) throws {

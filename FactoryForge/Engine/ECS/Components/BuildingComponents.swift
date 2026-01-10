@@ -628,9 +628,14 @@ class PumpjackComponent: BuildingComponent {
         resourceType = try container.decode(String.self, forKey: .resourceType)
         progress = try container.decode(Float.self, forKey: .progress)
         isActive = try container.decode(Bool.self, forKey: .isActive)
-        // For backward compatibility, buildingId is optional and defaults to empty string
-        let buildingId = try container.decodeIfPresent(String.self, forKey: .buildingId) ?? ""
-        super.init(buildingId: buildingId)
+
+        try super.init(from: decoder)
+
+        // For backward compatibility, infer buildingId if it's empty
+        if buildingId.isEmpty {
+            // Pumpjacks typically extract crude-oil
+            buildingId = "pumpjack"
+        }
     }
 
     override func encode(to encoder: Encoder) throws {
@@ -666,9 +671,13 @@ class LabComponent: BuildingComponent {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         researchSpeed = try container.decode(Float.self, forKey: .researchSpeed)
         isResearching = try container.decode(Bool.self, forKey: .isResearching)
-        // For backward compatibility, buildingId is optional and defaults to empty string
-        let buildingId = try container.decodeIfPresent(String.self, forKey: .buildingId) ?? ""
-        super.init(buildingId: buildingId)
+
+        try super.init(from: decoder)
+
+        // For backward compatibility, infer buildingId if it's empty
+        if buildingId.isEmpty {
+            buildingId = "lab"
+        }
     }
 
     override func encode(to encoder: Encoder) throws {

@@ -56,6 +56,16 @@ class TurretComponent: BuildingComponent {
         targetRotation = try container.decode(Float.self, forKey: .targetRotation)
         rotationSpeed = try container.decode(Float.self, forKey: .rotationSpeed)
         try super.init(from: decoder)
+
+        // For backward compatibility, infer buildingId if it's empty
+        if buildingId.isEmpty {
+            // Infer turret type based on range
+            if range >= 24 {
+                buildingId = "laser-turret"
+            } else {
+                buildingId = "gun-turret"
+            }
+        }
     }
 
     override func encode(to encoder: Encoder) throws {
