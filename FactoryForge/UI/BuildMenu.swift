@@ -517,7 +517,7 @@ class BuildingButton: UIElement {
     func render(renderer: MetalRenderer) {
         let bgColor = canBuild ?
             Color(r: 0.2, g: 0.25, b: 0.2, a: 1) :
-            Color(r: 0.25, g: 0.2, b: 0.2, a: 1)
+            Color(r: 0.25, g: 0.2, b: 0.2, a: 0.5)
         
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
