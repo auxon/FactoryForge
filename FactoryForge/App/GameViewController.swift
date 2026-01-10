@@ -430,17 +430,25 @@ class GameViewController: UIViewController {
 
         // Set up inventory label callbacks
         uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
             labels.forEach {
-                self?.view.addSubview($0)
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
                 // Bring labels to front so they're above the metal view
-                self?.view.bringSubviewToFront($0)
+                self.view.bringSubviewToFront($0)
             }
             // Ensure tooltips stay on top after adding inventory UI labels
-            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
-                self?.view.bringSubviewToFront(tooltipLabel)
+            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
+                self.view.bringSubviewToFront(tooltipLabel)
             }
-            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
-                self?.view.bringSubviewToFront(tooltipIconView)
+            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
+                self.view.bringSubviewToFront(tooltipIconView)
             }
         }
         uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
@@ -449,17 +457,25 @@ class GameViewController: UIViewController {
 
         // Set up machine UI label callbacks
         uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
             labels.forEach {
-                self?.view.addSubview($0)
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
                 // Bring labels to front so they're above the metal view
-                self?.view.bringSubviewToFront($0)
+                self.view.bringSubviewToFront($0)
             }
             // Ensure tooltips stay on top after adding machine UI labels
-            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
-                self?.view.bringSubviewToFront(tooltipLabel)
+            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
+                self.view.bringSubviewToFront(tooltipLabel)
             }
-            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
-                self?.view.bringSubviewToFront(tooltipIconView)
+            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
+                self.view.bringSubviewToFront(tooltipIconView)
             }
         }
         uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
@@ -707,17 +723,25 @@ class GameViewController: UIViewController {
 
         // Re-set up inventory label callbacks (UI system was recreated)
         uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
             labels.forEach {
-                self?.view.addSubview($0)
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
                 // Bring labels to front so they're above the metal view
-                self?.view.bringSubviewToFront($0)
+                self.view.bringSubviewToFront($0)
             }
             // Ensure tooltips stay on top after adding inventory UI labels
-            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
-                self?.view.bringSubviewToFront(tooltipLabel)
+            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
+                self.view.bringSubviewToFront(tooltipLabel)
             }
-            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
-                self?.view.bringSubviewToFront(tooltipIconView)
+            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
+                self.view.bringSubviewToFront(tooltipIconView)
             }
         }
         uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
@@ -726,17 +750,25 @@ class GameViewController: UIViewController {
 
         // Re-set up machine UI label callbacks
         uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
             labels.forEach {
-                self?.view.addSubview($0)
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
                 // Bring labels to front so they're above the metal view
-                self?.view.bringSubviewToFront($0)
+                self.view.bringSubviewToFront($0)
             }
             // Ensure tooltips stay on top after adding machine UI labels
-            if let tooltipLabel = self?.tooltipLabel, !tooltipLabel.isHidden {
-                self?.view.bringSubviewToFront(tooltipLabel)
+            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
+                self.view.bringSubviewToFront(tooltipLabel)
             }
-            if let tooltipIconView = self?.tooltipIconView, !tooltipIconView.isHidden {
-                self?.view.bringSubviewToFront(tooltipIconView)
+            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
+                self.view.bringSubviewToFront(tooltipIconView)
             }
         }
         uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
@@ -791,9 +823,17 @@ class GameViewController: UIViewController {
 
         // BuildMenu callbacks
         uiSystem?.getBuildMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
             labels.forEach {
-                self?.view.addSubview($0)
-                self?.view.bringSubviewToFront($0)
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
+                self.view.bringSubviewToFront($0)
             }
         }
         uiSystem?.getBuildMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in
@@ -884,7 +924,7 @@ class GameViewController: UIViewController {
 
         // Update UI system with game loop
         uiSystem?.setGameLoop(gameLoop!)
-        
+
         // Setup input
         setupInput()
 
@@ -894,46 +934,68 @@ class GameViewController: UIViewController {
         // Update UI system with game loop to ensure HUD has correct reference
         // NOTE: This recreates the HUD, so callbacks must be set AFTER this
         uiSystem?.setGameLoop(gameLoop!)
-        
+
         // Re-setup HUD callbacks after HUD is recreated by setGameLoop
         setupHUDBuildingCallbacks()
 
-        // Re-set up label callbacks (UI system was recreated)
+        // Ensure renderer has the correct uiSystem reference
+        if let uiSystem = uiSystem {
+            renderer.uiSystem = uiSystem
+        }
+
+        // Close loading menu
+        uiSystem?.closeAllPanels()
+
+        // Update uiSystem with gameLoop (this recreates UI components)
+        uiSystem?.setGameLoop(gameLoop!)
+        renderer.uiSystem = uiSystem
+
+        // Setup UI callbacks for the updated uiSystem (HUD buttons, etc.)
+        uiSystem?.setupCallbacks()
+        setupResearchUICallbacks()
+        setupHUDBuildingCallbacks()
+
+        // Set up all label callbacks after final UI system recreation
+        // InventoryUI callbacks
         uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
             labels.forEach {
-                self?.view.addSubview($0)
-                self?.view.bringSubviewToFront($0)
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
+                self.view.bringSubviewToFront($0)
             }
         }
         uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
         }
+
+        // MachineUI callbacks
         uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
             labels.forEach {
-                self?.view.addSubview($0)
-                self?.view.bringSubviewToFront($0)
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
+                self.view.bringSubviewToFront($0)
             }
         }
         uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
         }
-        uiSystem?.getResearchUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-            labels.forEach {
-                self?.view.addSubview($0)
-                self?.view.bringSubviewToFront($0)
-                if let metalView = self?.metalView {
-                    self?.view.insertSubview($0, aboveSubview: metalView)
-                }
-            }
-        }
-        uiSystem?.getResearchUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
-            labels.forEach { $0.removeFromSuperview() }
-        }
 
-        // Inserter type dialog uses Metal rendering - no view setup needed
 
-        // Re-set up crafting menu label callbacks
-        print("GameViewController: Setting up CraftingMenu callbacks in loadGame")
+        // CraftingMenu callbacks
         uiSystem?.getCraftingMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             print("GameViewController: onAddLabels callback called with \(labels.count) labels")
             guard let self = self else {
@@ -964,28 +1026,19 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
-        // Ensure renderer has the correct uiSystem reference
-        if let uiSystem = uiSystem {
-            renderer.uiSystem = uiSystem
-        }
-
-        // Close loading menu
-        uiSystem?.closeAllPanels()
-
-        // Update uiSystem with gameLoop (this recreates UI components)
-        uiSystem?.setGameLoop(gameLoop!)
-        renderer.uiSystem = uiSystem
-
-        // Setup UI callbacks for the updated uiSystem (HUD buttons, etc.)
-        uiSystem?.setupCallbacks()
-        setupResearchUICallbacks()
-        setupHUDBuildingCallbacks()
-
-        // BuildMenu callbacks (must be set after final setGameLoop call)
+        // BuildMenu callbacks
         uiSystem?.getBuildMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
             labels.forEach {
-                self?.view.addSubview($0)
-                self?.view.bringSubviewToFront($0)
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
+                self.view.bringSubviewToFront($0)
             }
         }
         uiSystem?.getBuildMenu().onRemoveLabels = { (labels: [UILabel]) -> Void in
