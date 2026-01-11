@@ -152,6 +152,7 @@
 		0D778B812F11E644003BC642 /* solid_fuel.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B7F2F11E644003BC642 /* solid_fuel.png */; };
 		0D841AD62F0F2FE600F499B6 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D841AD52F0F2FE600F499B6 /* wall.png */; };
 		0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */; };
+		0DC1FB702F13217A0010585F /* low_density_structure.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FB6F2F13217A0010585F /* low_density_structure.png */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
 		0DE229632F001B9F00BD619D /* transport_belt_north_013.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229592F001B9F00BD619D /* transport_belt_north_013.png */; };
 		0DE229642F001B9F00BD619D /* transport_belt_north_002.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */; };
@@ -472,6 +473,7 @@
 		0D778B7F2F11E644003BC642 /* solid_fuel.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = solid_fuel.png; sourceTree = "<group>"; };
 		0D841AD52F0F2FE600F499B6 /* wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wall.png; sourceTree = "<group>"; };
 		0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FactoryForge Storekit Configuration.storekit"; sourceTree = "<group>"; };
+		0DC1FB6F2F13217A0010585F /* low_density_structure.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = low_density_structure.png; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
 		0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_002.png; sourceTree = "<group>"; };
 		0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_003.png; sourceTree = "<group>"; };
@@ -671,6 +673,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DC1FB6F2F13217A0010585F /* low_density_structure.png */,
 				0D778B7E2F11E644003BC642 /* rocket_parts.png */,
 				0D778B7F2F11E644003BC642 /* solid_fuel.png */,
 				0D778B4F2F11A607003BC642 /* rocket_silo.png */,
@@ -1385,6 +1388,7 @@
 				0D6FDC6B2EFEE52D00576EC3 /* load_game.png in Resources */,
 				0DFF59BC2F02CAC000A8699D /* transport_belt_east_003.png in Resources */,
 				0DFF59BD2F02CAC000A8699D /* transport_belt_east_004.png in Resources */,
+				0DC1FB702F13217A0010585F /* low_density_structure.png in Resources */,
 				0DFF59BE2F02CAC000A8699D /* transport_belt_east_010.png in Resources */,
 				0DFF59BF2F02CAC000A8699D /* transport_belt_east_007.png in Resources */,
 				0DFF59C02F02CAC000A8699D /* transport_belt_east_008.png in Resources */,
