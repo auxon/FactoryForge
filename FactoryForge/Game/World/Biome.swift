@@ -166,7 +166,10 @@ struct BiomeGenerator {
         let distanceFromSpawn = max(abs(chunkCoord.x), abs(chunkCoord.y))
         if distanceFromSpawn >= 2 && distanceFromSpawn <= 5 {
             // Create a deterministic pattern to ensure at least one desert biome near spawn
-            let seedValue = UInt32(chunkCoord.x + chunkCoord.y * 31) % 10
+            // Use coordinate values mapped to positive range to avoid casting issues
+            let x = UInt64(chunkCoord.x & 0x7FFFFFFF)  // Mask to positive range
+            let y = UInt64(chunkCoord.y & 0x7FFFFFFF)  // Mask to positive range
+            let seedValue = UInt32((x + y * 31) % 10)
             if seedValue < 3 {  // 30% chance for desert in this ring
                 return .desert
             }

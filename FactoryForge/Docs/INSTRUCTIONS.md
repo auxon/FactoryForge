@@ -17,6 +17,7 @@
 - [Inventory Management](#-inventory-management)
 
 ### ⚡ Advanced Systems
+- [Fluid Systems & Water Management](#-fluid-systems--water-management)
 - [Oil Processing & Chemical Production](#️-oil-processing--chemical-production)
 - [Power Systems](#-power-systems)
 - [Research & Progression](#-research--progression)
@@ -44,6 +45,7 @@ FactoryForge is a factory automation game where you start with basic resources a
 - **⛏️ Resource Mining** - Extract iron, copper, coal, stone, uranium, and crude oil
 - **🏭 Automated Production** - Build multiple tiers of assemblers and furnaces
 - **🔄 Advanced Factory Automation** - Use belts, inserters, underground belts, splitters, and mergers
+- **🌊 Fluid Systems** - Realistic fluid simulation with pipes, pumps, and networks
 - **🛢️ Oil Processing** - Extract and refine crude oil into advanced materials
 - **⚗️ Chemical Production** - Create plastics, explosives, batteries, and more
 - **⚔️ Combat System** - Defend against enemies with firearms, gun turrets, and laser turrets
@@ -263,32 +265,114 @@ Use **Burner Mining Drills** for automated resource extraction:
 
 ---
 
+## 🌊 Fluid Systems & Water Management
+
+### How Fluids Work
+FactoryForge features a realistic fluid simulation system inspired by Factorio. Unlike items that are transported via belts, fluids flow through pipes and are stored in specialized containers. Fluid systems require careful planning and infrastructure.
+
+### Key Fluid Concepts
+- **Fluid Networks**: Connected pipes automatically form networks that share fluid
+- **Pressure**: Fluids flow from high-pressure to low-pressure areas
+- **Viscosity**: Different fluids flow at different speeds (water flows easily, oil is viscous)
+- **Storage**: Fluids are stored in tanks and transported through pipes
+- **Consumption**: Machines consume fluids at specific rates
+
+### Fluid Buildings
+
+#### Pipes
+- **Cost**: 1 Iron Plate
+- **Function**: Transport fluids between buildings
+- **Capacity**: 100 units per pipe segment
+- **Connections**: Up to 4 directions (north, south, east, west)
+- **Flow**: Automatic pressure-based distribution
+
+#### Water Pumps
+- **Cost**: 5 Iron Plates + 5 Pipes + 2 Electronic Circuits
+- **Placement**: **Must be placed directly on water tiles** (shoreline only)
+- **Power**: No power required (passive extraction)
+- **Output**: 20 water/second directly into connected pipes
+- **Function**: Infinite water source - extracts from the ocean/lakes
+
+#### Boilers
+- **Cost**: 1 Stone Furnace + 4 Pipes
+- **Function**: Converts fuel + water into steam for power generation
+- **Fuel**: Coal or Wood (4000/2000 energy units respectively)
+- **Water Input**: 1.8 water/second (540L tank capacity = 5 minutes runtime)
+- **Steam Output**: 1.8 steam/second (connects to steam engines)
+- **Power**: No electricity required (chemical reaction)
+- **Requirements**: Both fuel AND water must be available to produce steam
+
+#### Steam Engines
+- **Cost**: 8 Iron Gear Wheels + 10 Iron Plates + 5 Pipes
+- **Function**: Converts steam into electrical power
+- **Steam Input**: 1.8 steam/second
+- **Power Output**: 900 kW electricity
+- **Efficiency**: 100% (no energy loss in conversion)
+
+#### Fluid Tanks
+- **Cost**: 20 Iron Plates + 5 Steel Plates
+- **Capacity**: 2500 units per tank
+- **Function**: Store fluids for buffering production
+- **Connections**: Connect to pipes for fluid input/output
+
+### Steam Power Setup
+The complete steam power chain requires careful fluid management:
+
+1. **Place Water Pump** on water tile
+2. **Connect Pipes** from water pump to boiler
+3. **Add Fuel** to boiler (coal/wood)
+4. **Connect Pipes** from boiler to steam engine
+5. **Power Generated** automatically when water + fuel are available
+
+**Critical Notes:**
+- Boilers will stop producing steam if they run out of water
+- Water pumps must be placed on actual water tiles (not just anywhere)
+- Steam engines require continuous steam flow for power generation
+- The 540L boiler water tank provides ~5 minutes of runtime without water input
+
+### Fluid Network Tips
+- **Plan Ahead**: Design fluid networks before building
+- **Monitor Flow**: Check pipe connections and fluid levels
+- **Buffer Storage**: Use fluid tanks to prevent production interruptions
+- **Pressure Management**: High-pressure areas push fluid to low-pressure areas
+- **Network Size**: Large pipe networks may need pumps for proper flow
+
+---
+
 ## 🛢️ Oil Processing & Chemical Production
 
-### Water Extraction
-- **Water Pumps**: Extract water from any location (available from start)
-- **Cost**: 5 Iron Plates + 5 Pipes + 2 Electronic Circuits
-- **Power**: 30 kW electricity required
-- **Output**: Water at 1 unit per second (at full power)
-
 ### Oil Extraction
-- **Oil Wells**: Extract crude oil from deposits (requires Oil Processing research)
+- **Pumpjacks**: Extract crude oil from deposits (requires Oil Processing research)
 - **Cost**: 5 Steel Plates + 10 Iron Gear Wheels + 5 Electronic Circuits + 10 Pipes
 - **Power**: 90 kW electricity required
-- **Output**: Crude oil at 1 unit per second (at full power)
+- **Output**: 10 crude oil/second directly into connected pipes
+- **Placement**: Must be placed directly over oil deposits
+- **Resource**: Oil wells are infinite (unlike Factorio's depleting wells)
 
 ### Oil Refining
 - **Oil Refineries**: Process crude oil into petroleum gas, light oil, and heavy oil
 - **Cost**: 15 Steel Plates + 10 Iron Gear Wheels + 10 Electronic Circuits + 10 Pipes + 10 Stone Bricks
 - **Power**: 420 kW electricity required
+- **Fluid Input**: Crude oil from pumpjacks via pipes
+- **Fluid Output**: Petroleum gas, light oil, heavy oil via pipes
 - **Recipes**:
   - **Basic Oil Processing**: 100 Crude Oil → 45 Petroleum Gas + 30 Light Oil + 25 Heavy Oil
   - **Advanced Oil Processing**: 100 Crude Oil + 50 Water → 55 Petroleum Gas + 45 Light Oil + 25 Heavy Oil
+- **Processing Time**: 5 seconds per batch
 
 ### Oil Cracking
+- **Chemical Plants**: Process fluids for advanced oil products (210 kW power)
+- **Cost**: 5 Steel Plates + 5 Iron Gear Wheels + 5 Electronic Circuits + 5 Pipes
 - **Light Oil Cracking**: 30 Light Oil + 30 Water → 20 Petroleum Gas
 - **Heavy Oil Cracking**: 40 Heavy Oil + 30 Water → 30 Light Oil
-- **Chemical Plants**: Required for cracking processes (210 kW power)
+- **Processing Time**: 5 seconds per batch
+
+### Fluid Storage
+- **Storage Tanks**: Store large quantities of fluids
+- **Cost**: 20 Iron Plates + 5 Steel Plates
+- **Capacity**: 2500 units per tank
+- **Function**: Buffer fluids to prevent production interruptions
+- **Connections**: Connect to pipes for input/output
 
 ### Chemical Products
 - **Plastic Bar**: 20 Petroleum Gas + 1 Coal → 2 Plastic Bars
@@ -307,9 +391,26 @@ Use **Burner Mining Drills** for automated resource extraction:
 ## ⚡ Power Systems
 
 ### Steam Power (Early Game)
-- **Boiler**: Converts water + fuel into steam (1 Boiler + 4 Pipes)
-- **Steam Engine**: Generates 900 kW from steam (8 Iron Gear Wheels + 10 Iron Plates + 5 Pipes)
-- **Fuel**: Coal or Wood (4000/2000 energy units respectively)
+Steam power is the first power generation method and requires careful fluid management:
+
+- **Boiler Setup**:
+  - **Building**: 1 Stone Furnace + 4 Pipes
+  - **Water Input**: 1.8 water/second (from water pump via pipes)
+  - **Fuel**: Coal (4000 energy) or Wood (2000 energy) in fuel slot
+  - **Steam Output**: 1.8 steam/second via pipes
+  - **Water Tank**: 540L internal capacity (5 minutes runtime)
+
+- **Steam Engine**:
+  - **Building**: 8 Iron Gear Wheels + 10 Iron Plates + 5 Pipes
+  - **Steam Input**: 1.8 steam/second via pipes
+  - **Power Output**: 900 kW electricity
+  - **Efficiency**: 100% conversion rate
+
+**Complete Setup Requirements:**
+1. Water Pump placed on water tile
+2. Pipes connecting water pump → boiler → steam engine
+3. Fuel in boiler inventory
+4. All buildings connected to power network
 
 ### Solar Power (Mid Game)
 - **Solar Panels**: Generate 60 kW each during daylight
@@ -483,9 +584,15 @@ Use **Burner Mining Drills** for automated resource extraction:
 - **Research priority**: Focus on automation first, then defense
 
 ### Power Management
-- **Steam Power**: Boiler + Steam Engine (early game)
+- **Steam Power**: Boiler + Steam Engine (early game) - requires water pump + pipes
 - **Solar Power**: Free energy but limited capacity
 - **Accumulator**: Store excess power for nighttime
+
+### Fluid System Management
+- **Water Supply**: Always place water pumps on water tiles, not land
+- **Pipe Networks**: Plan complete pipe connections before building fluid machines
+- **Buffer Tanks**: Use storage tanks to prevent production interruptions
+- **Monitor Boiler Water**: Boilers stop producing steam when water runs out
 
 ---
 
@@ -516,6 +623,10 @@ Use **Burner Mining Drills** for automated resource extraction:
 - **Machines not working**: Ensure proper power connection and input materials
 - **No resources showing**: Mine manually first to discover deposits
 - **Combat not working**: Check ammo in inventory and enemy proximity
+- **Boilers not producing steam**: Check water pump placement (must be on water tiles) and pipe connections
+- **No water flow**: Ensure water pumps are placed on actual water tiles, not just land
+- **Oil wells not working**: Must be placed directly over oil deposits (not adjacent)
+- **Fluids not flowing**: Check pipe connections form complete networks
 
 ### Performance Tips
 - **Zoom out** for better overview of large factories
@@ -573,6 +684,8 @@ FactoryForge includes detailed guides for specific game mechanics:
 
 ### 📖 Available Guides
 - **[Belt Mechanics Guide](Belt Mechanics.md)** - Advanced belt systems (underground belts, splitters, mergers)
+- **[Fluid Mechanics](Fluid Mechanics.md)** - Complete guide to fluid systems, pipes, and networks
+- **[Oil Processing Guide](Oil.md)** - Detailed oil extraction and refining instructions
 - **[Research Guide](Research.md)** - Complete research tree and technology details
 - **[Furnace Usage Guide](How to Use a Furnace.md)** - Detailed furnace operation instructions
 - **[Auto-Play Plan](autoplay_plan.md)** - Automated testing and demo system documentation
@@ -591,6 +704,7 @@ FactoryForge includes detailed guides for specific game mechanics:
 - ✅ Resource mining (manual + automated, including uranium)
 - ✅ Multi-tier crafting and production (stone/steel/electric furnaces, 3 assembler tiers)
 - ✅ Advanced factory automation (underground belts, splitters, mergers, belt bridges)
+- ✅ Realistic fluid systems (pipes, pumps, networks, pressure simulation)
 - ✅ Complete oil processing (extraction, refining, and cracking)
 - ✅ Full chemical production (plastics, sulfur, sulfuric acid, batteries, explosives)
 - ✅ Research tree (3 tiers, 20+ technologies, some advanced tech locked)

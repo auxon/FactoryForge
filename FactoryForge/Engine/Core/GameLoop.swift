@@ -580,6 +580,15 @@ final class GameLoop {
                 }
             }
             // No trees found in the expanded search area
+            return false
+        }
+
+        // Special case for water pumps: must be placed on water tiles
+        if building.type == .waterPump {
+            // Check if the tile is water
+            guard let tile = chunkManager.getTile(at: position), tile.type == .water else {
+                return false
+            }
         }
 
         // Standard building placement validation
@@ -790,9 +799,16 @@ final class GameLoop {
                     productionRate: 1.8,  // 1.8 steam/s when fueled + water available (Factorio balanced)
                     powerConsumption: 0  // Boilers don't consume electricity
                 ), to: entity)
-                // Boiler consumes fuel (coal, wood, solid-fuel) and water (fluid)
+                // Boiler consumes water as fluid input
+                world.add(FluidConsumerComponent(
+                    buildingId: buildingDef.id,
+                    inputType: .water,
+                    consumptionRate: 1.8,  // 1.8 water/s to match steam production
+                    efficiency: 1.0
+                ), to: entity)
+                // Boiler consumes fuel (coal, wood, solid-fuel)
                 world.add(InventoryComponent(slots: 1, allowedItems: ItemRegistry.allowedFuel), to: entity)
-                // Add a fluid tank for water input (enough for ~5 minutes of operation)
+                // Add a fluid tank for water storage (enough for ~5 minutes of operation)
                 world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 540), to: entity)  // 540L = 1.8L/s * 300s
                 print("GameLoop: Added FluidProducerComponent (steam) to boiler entity \(entity)")
             } else if buildingDef.id == "steam-engine" {
@@ -880,19 +896,13 @@ final class GameLoop {
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
 
         case .waterPump:
-            world.add(PumpjackComponent(
-                buildingId: buildingDef.id,
-                extractionRate: buildingDef.extractionRate,
-                resourceType: "water"
-            ), to: entity)
             world.add(FluidProducerComponent(
                 buildingId: buildingDef.id,
                 outputType: .water,
-                productionRate: 20.0,  // 20 water/s
-                powerConsumption: buildingDef.powerConsumption
+                productionRate: 20.0,  // 20 water/s - matches Factorio's 1200/minute rate
+                powerConsumption: 0  // No power required, like Factorio offshore pumps
             ), to: entity)
-            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
-            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+            // No inventory needed - water pumps output fluid directly to pipes
 
         case .oilRefinery:
             world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "oil-processing"), to: entity)

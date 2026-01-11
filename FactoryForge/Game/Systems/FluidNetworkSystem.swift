@@ -899,7 +899,9 @@ final class FluidNetworkSystem: System {
 
                         if hasFuel && hasWater {
                             productionThisTick = producer.productionRate * deltaTime
-                            // Mark water for consumption (will be consumed during transfer)
+                            // Consume water at the same rate as steam production
+                            let waterConsumed = productionThisTick
+                            _ = removeFluidFromTank(producerEntity, amount: waterConsumed, fluidType: .water)
                         }
                     }
                 } else {
