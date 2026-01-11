@@ -136,7 +136,7 @@ final class LoadingMenu: UIPanel_Base {
         let slots = saveSystem.getSaveSlots()
 
         // Always setup action buttons first (including New button)
-        setupActionButtons()
+        setupActionButtons(hasScrollView: !slots.isEmpty)
 
         if slots.isEmpty {
             // Setup help button label even when no slots
@@ -200,21 +200,27 @@ final class LoadingMenu: UIPanel_Base {
 
         scrollView.isHidden = !isOpen
 
+        // Reposition action buttons below the scroll view now that it exists
+        repositionActionButtons()
+
         // Setup help button label
         setupHelpButtonLabel()
     }
 
-    private func setupActionButtons() {
+    private func setupActionButtons(hasScrollView: Bool) {
         guard let parentView = parentView else { return }
 
         let buttonHeight: CGFloat = 40
         let buttonWidth: CGFloat = 80
         let buttonSpacing: CGFloat = 20
 
-        // Position buttons below scroll view if it exists, otherwise center them vertically
+        // Position buttons based on whether scroll view will exist
         let buttonsY: CGFloat
-        if let scrollView = scrollView {
-            buttonsY = scrollView.frame.maxY + 20
+        if hasScrollView {
+            // Position below where scroll view will be (temporary positioning)
+            let scrollViewHeight: CGFloat = 300
+            let scrollViewY = (parentView.bounds.height - scrollViewHeight) / 2 - 50
+            buttonsY = scrollViewY + scrollViewHeight + 10 // Below scroll view with spacing
         } else {
             // Center the buttons vertically when no scroll view exists
             buttonsY = parentView.bounds.height / 2 + 50
@@ -267,6 +273,32 @@ final class LoadingMenu: UIPanel_Base {
 
         // Initially disable action buttons (no selection)
         updateActionButtonStates()
+    }
+
+    private func repositionActionButtons() {
+        guard let parentView = parentView, let scrollView = scrollView else { return }
+
+        let buttonHeight: CGFloat = 40
+        let buttonWidth: CGFloat = 80
+        let buttonSpacing: CGFloat = 20
+        let buttonsY = scrollView.frame.maxY + 60 // Position below scroll view with adequate spacing
+
+        // Update positions of existing buttons
+        if let newButton = newButtonLabel {
+            newButton.frame = CGRect(x: parentView.bounds.width * 0.1, y: buttonsY, width: buttonWidth, height: buttonHeight)
+        }
+        if let saveButton = saveButtonLabel {
+            saveButton.frame = CGRect(x: parentView.bounds.width * 0.1 + buttonWidth + buttonSpacing, y: buttonsY, width: buttonWidth, height: buttonHeight)
+        }
+        if let loadButton = loadButtonLabel {
+            loadButton.frame = CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 2, y: buttonsY, width: buttonWidth, height: buttonHeight)
+        }
+        if let renameButton = renameButtonLabel {
+            renameButton.frame = CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 3, y: buttonsY, width: buttonWidth, height: buttonHeight)
+        }
+        if let deleteButton = deleteButtonLabel {
+            deleteButton.frame = CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 4, y: buttonsY, width: buttonWidth, height: buttonHeight)
+        }
     }
 
     private func createActionButton(title: String, frame: CGRect, parentView: UIView) -> UILabel {
