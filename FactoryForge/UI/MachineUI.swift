@@ -308,12 +308,24 @@ final class MachineUI: UIPanel_Base {
         recipeScrollView = nil
         recipeUIButtons.removeAll()
 
-        // Create scroll view at a fixed visible position on screen
+        // Position scrollview right under the progress bar
+        // Panel is centered on screen, progress bar is positioned relative to panel center
         let screenBounds = UIScreen.main.bounds
-        let scrollViewWidth: CGFloat = 400
-        let scrollViewHeight: CGFloat = 200
-        let scrollViewX = (screenBounds.width - scrollViewWidth) / 2
-        let scrollViewY = screenBounds.height / 2 + 100 // Below screen center
+        let panelWidth: CGFloat = 600 * CGFloat(UIScale)
+        let panelHeight: CGFloat = 350 * CGFloat(UIScale)
+        let panelX = (screenBounds.width - panelWidth) / 2
+        let panelY = (screenBounds.height - panelHeight) / 2
+
+        // Progress bar is at panel center Y - 30 * UIScale, height 20 * UIScale
+        // So progress bar bottom is at panel center Y - 20 * UIScale
+        let progressBarBottomY = panelY + panelHeight/2 - 20 * CGFloat(UIScale)
+        let scrollViewTopMargin: CGFloat = 10 * CGFloat(UIScale) // Small gap below progress bar
+
+        // Position scrollview under progress bar, centered horizontally
+        let scrollViewWidth: CGFloat = 300 // Fixed width that fits within typical panel
+        let scrollViewHeight: CGFloat = 140 // Fixed height to fit nicely
+        let scrollViewX = panelX + (panelWidth - scrollViewWidth) / 2 // Center horizontally in panel
+        let scrollViewY = progressBarBottomY + scrollViewTopMargin
 
         let scrollViewFrame = CGRect(x: scrollViewX, y: scrollViewY, width: scrollViewWidth, height: scrollViewHeight)
 
@@ -375,7 +387,7 @@ final class MachineUI: UIPanel_Base {
         // Create UIKit buttons inside scroll view
         let buttonSize: CGFloat = 32 // Fixed 32x32 pixels for icons
         let buttonSpacing: CGFloat = 4
-        let buttonsPerRow = 8  // More per row since buttons are smaller
+        let buttonsPerRow = 6  // Fewer per row to ensure they fit
 
         var totalHeight: CGFloat = 0
 
