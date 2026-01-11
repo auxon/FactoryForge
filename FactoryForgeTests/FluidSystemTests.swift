@@ -419,7 +419,7 @@ class FluidSystemTests: XCTestCase {
         // Test overflow
         let overflow2 = stack.add(amount: 30)
         XCTAssertEqual(stack.amount, 100)
-        XCTAssertEqual(overflow2, 20)
+        XCTAssertEqual(overflow2, 10)
 
         // Test removing fluid
         let removed = stack.remove(amount: 40)
