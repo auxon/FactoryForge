@@ -161,6 +161,17 @@ struct BiomeGenerator {
             Float(chunkCoord.y) * Chunk.sizeFloat + Chunk.sizeFloat / 2
         )
         let biome = getBiome(at: worldPos)
+
+        // Force desert biome near spawn for testing oil accessibility
+        let distanceFromSpawn = max(abs(chunkCoord.x), abs(chunkCoord.y))
+        if distanceFromSpawn >= 2 && distanceFromSpawn <= 5 {
+            // Create a deterministic pattern to ensure at least one desert biome near spawn
+            let seedValue = UInt32(chunkCoord.x + chunkCoord.y * 31) % 10
+            if seedValue < 3 {  // 30% chance for desert in this ring
+                return .desert
+            }
+        }
+
         // Debug logging for spawn chunk (0,0)
         if chunkCoord.x == 0 && chunkCoord.y == 0 {
             print("BiomeGenerator: Spawn chunk (0,0) has biome: \(biome)")
