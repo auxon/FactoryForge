@@ -1083,7 +1083,7 @@ final class InputManager: NSObject {
                         }
                     }
                 } else {
-                    print("Inventory full, cannot mine")
+                    onTooltip?("Inventory full, cannot mine")
                 }
             } else {
                 selectedEntity = nil
