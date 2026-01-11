@@ -38,7 +38,7 @@ final class ItemRegistry {
         register(Item(id: "stone", name: "Stone", stackSize: 1000, category: .raw, order: "d"))
         register(Item(id: "wood", name: "Wood", stackSize: 1000, category: .raw, order: "e", fuelValue: 2000, fuelCategory: "chemical"))
         register(Item(id: "water", name: "Water", stackSize: 0, category: .fluid, order: "f"))
-        register(Item(id: "crude-oil", name: "Crude Oil", stackSize: 0, category: .fluid, order: "g"))
+        register(Item(id: "crude-oil", name: "Crude Oil", stackSize: 100, category: .fluid, order: "g"))
         register(Item(id: "petroleum-gas", name: "Petroleum Gas", stackSize: 0, category: .fluid, order: "g"))
         register(Item(id: "light-oil", name: "Light Oil", stackSize: 0, category: .fluid, order: "h"))
         register(Item(id: "heavy-oil", name: "Heavy Oil", stackSize: 0, category: .fluid, order: "i"))

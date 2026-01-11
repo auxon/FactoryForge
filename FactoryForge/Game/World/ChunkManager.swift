@@ -14,8 +14,8 @@ final class ChunkManager {
     /// Biome generator
     private var biomeGenerator: BiomeGenerator
     
-    /// Load radius in chunks (reduced for performance)
-    let loadRadius: Int = 1
+    /// Load radius in chunks (increased to prevent black bars when moving)
+    let loadRadius: Int = 3
     
     /// Currently loaded chunk coordinates
     private var loadedChunks: Set<ChunkCoord> = []
@@ -190,7 +190,7 @@ final class ChunkManager {
     
     func render(renderer: MetalRenderer, camera: Camera2D) {
         // Expand visible rect significantly to ensure all visible chunks are included
-        let visibleRect = camera.visibleRect.expanded(by: Chunk.sizeFloat * 2)
+        let visibleRect = camera.visibleRect.expanded(by: Chunk.sizeFloat * 4)
 
         for chunk in chunks.values {
             if chunk.worldBounds.intersects(visibleRect) {

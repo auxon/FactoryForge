@@ -64,7 +64,7 @@ final class GameLoop {
 
     // Chunk loading optimization
     private var lastChunkUpdatePosition: Vector2 = .zero
-    private let chunkUpdateThreshold: Float = 2.0  // Only update chunks if player moved more than 2 units
+    private let chunkUpdateThreshold: Float = 1.0  // Only update chunks if player moved more than 1 unit (decreased for better responsiveness)
 
     // Performance profiling
     private var frameCount: Int = 0
