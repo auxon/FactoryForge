@@ -61,7 +61,7 @@ final class SpriteRenderer {
         // Collect sprites from world entities
         let visibleRect = camera.visibleRect.expanded(by: 3)  // Reduced from 5 for performance
         let cameraCenter = camera.position
-        let maxRenderDistance = camera.zoom * 20.0  // Increased slightly but still conservative
+        let maxRenderDistance = 100.0 / camera.zoom  // Increased render distance when zoomed out
 
         var spritesCollected = 0
         var spritesCulledDistance = 0
@@ -262,7 +262,7 @@ final class SpriteRenderer {
     
     private func renderBeltItems(world: World, visibleRect: Rect, camera: Camera2D) {
         let cameraCenter = camera.position
-        let maxRenderDistance = camera.zoom * 15.0
+        let maxRenderDistance = 60.0 / camera.zoom
 
         for entity in world.query(BeltComponent.self) {
             guard let position = world.get(PositionComponent.self, for: entity),
@@ -330,7 +330,7 @@ final class SpriteRenderer {
 
     private func renderMiningProgressBars(world: World, visibleRect: Rect, camera: Camera2D) {
         let cameraCenter = camera.position
-        let maxRenderDistance = camera.zoom * 15.0
+        let maxRenderDistance = 60.0 / camera.zoom
 
         // Query entities with MinerComponent and SpriteComponent
         for entity in world.query(MinerComponent.self, SpriteComponent.self) {
@@ -385,7 +385,7 @@ final class SpriteRenderer {
 
     private func renderFluidVisualizations(world: World, visibleRect: Rect, camera: Camera2D) {
         let cameraCenter = camera.position
-        let maxRenderDistance = camera.zoom * 15.0
+        let maxRenderDistance = 60.0 / camera.zoom
 
         // Query entities with PipeComponent and SpriteComponent
         for entity in world.query(PipeComponent.self, SpriteComponent.self) {
@@ -545,7 +545,7 @@ final class SpriteRenderer {
 
     private func renderNetworkBoundaries(world: World, visibleRect: Rect, camera: Camera2D) {
         let cameraCenter = camera.position
-        let maxRenderDistance = camera.zoom * 20.0
+        let maxRenderDistance = 80.0 / camera.zoom
 
         // Group pipes by network (simplified - in real implementation we'd use FluidNetworkSystem)
         var networkGroups: [Int: [Entity]] = [:]
@@ -608,7 +608,7 @@ final class SpriteRenderer {
 
     private func renderPressureVisualization(world: World, visibleRect: Rect, camera: Camera2D) {
         let cameraCenter = camera.position
-        let maxRenderDistance = camera.zoom * 15.0
+        let maxRenderDistance = 60.0 / camera.zoom
 
         // Render pressure indicators for pipes
         for entity in world.query(PipeComponent.self) {
@@ -697,7 +697,7 @@ final class SpriteRenderer {
 
     private func renderCraftingProgressBars(world: World, visibleRect: Rect, camera: Camera2D) {
         let cameraCenter = camera.position
-        let maxRenderDistance = camera.zoom * 15.0
+        let maxRenderDistance = 60.0 / camera.zoom
 
         // Query entities with crafting components and sprite components
 

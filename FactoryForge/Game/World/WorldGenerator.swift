@@ -121,8 +121,11 @@ final class WorldGenerator {
     }
     
     private func selectResourceType(at worldPos: Vector2, distanceFromSpawn: Float, biome: Biome, nearOilLocations: [Vector2] = []) -> ResourceType? {
-        // Filter by distance
-        let availableResources = ResourceType.allCases.filter { $0.minimumSpawnDistance <= distanceFromSpawn }
+        // Filter by distance, but allow oil in desert biomes early
+        var availableResources = ResourceType.allCases.filter { $0.minimumSpawnDistance <= distanceFromSpawn }
+        if biome == .desert && !availableResources.contains(.oil) {
+            availableResources.append(.oil)
+        }
         guard !availableResources.isEmpty else { return nil }
         
         // Use noise to determine if we should place a resource
@@ -152,6 +155,11 @@ final class WorldGenerator {
 
         if isNearOil {
             weights[.coal] = 2.0  // Significantly boost coal near oil
+        }
+
+        // Boost oil probability in desert biomes
+        if biome == .desert {
+            weights[.oil] = 1.5  // Significantly boost oil in desert biomes
         }
         
         var totalWeight: Float = 0

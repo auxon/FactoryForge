@@ -80,7 +80,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         let screenWidth = Float(UIScreen.main.bounds.width) * screenScale
         let screenHeight = Float(UIScreen.main.bounds.height) * screenScale
         camera = Camera2D(screenWidth: screenWidth, screenHeight: screenHeight)
-        camera.setZoom(4.0, animated: false) // Start fully zoomed in on player
+        camera.setZoom(5.0, animated: false) // Start fully zoomed in on player (25% more than before)
         screenSize = Vector2(screenWidth, screenHeight)
         
         // Initialize sub-renderers

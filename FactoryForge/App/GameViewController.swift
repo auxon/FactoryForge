@@ -696,8 +696,8 @@ class GameViewController: UIViewController {
         if let playerPosition = gameLoop?.player.position {
             renderer.camera.position = playerPosition
             renderer.camera.target = playerPosition
-            renderer.camera.zoom = 1.0  // Reset to default zoom
-            renderer.camera.targetZoom = 1.0
+            renderer.camera.zoom = 5.0  // Reset to default zoom (25% more than before)
+            renderer.camera.targetZoom = 5.0
             // Force camera to snap immediately by resetting its first update flag
             renderer.camera.resetForNewGame()
         }

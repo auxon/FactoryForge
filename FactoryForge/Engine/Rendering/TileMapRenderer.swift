@@ -58,7 +58,7 @@ final class TileMapRenderer {
         // Expand visible rect modestly (reduced from 5 to 2 for performance)
         let visibleRect = camera.visibleRect.expanded(by: 2)
         let cameraCenter = camera.position
-        let maxTileDistance = camera.zoom * 25.0  // Reduced render distance based on zoom
+        let maxTileDistance = 100.0 / camera.zoom  // Increased render distance when zoomed out
 
         // Frustum cull with distance culling for performance
         var visibleTiles: [TileInstance] = []
