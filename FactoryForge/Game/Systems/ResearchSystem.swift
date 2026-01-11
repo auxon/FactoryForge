@@ -88,7 +88,7 @@ final class ResearchSystem: System {
 
         // Check if research is complete
         if let tech = currentResearch {
-            let progress = getResearchProgress()
+            _ = getResearchProgress()
             if isResearchComplete(tech) {
                 completeResearch(tech)
             }
@@ -151,7 +151,7 @@ final class ResearchSystem: System {
         
         // Notify labs to stop
         world.forEach(LabComponent.self) { entity, lab in
-            var updatedLab = lab
+            let updatedLab = lab
             updatedLab.isResearching = false
             pendingLabUpdates.append((entity, updatedLab))
         }
@@ -213,7 +213,7 @@ final class ResearchSystem: System {
         var pendingLabUpdates: [(Entity, LabComponent)] = []
         
         world.forEach(LabComponent.self) { entity, lab in
-            var updatedLab = lab
+            let updatedLab = lab
             updatedLab.isResearching = false
             pendingLabUpdates.append((entity, updatedLab))
         }

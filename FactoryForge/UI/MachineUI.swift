@@ -303,7 +303,7 @@ final class MachineUI: UIPanel_Base {
         let indicatorSpacing: Float = 8 * UIScale
 
         // Check for fluid producers (boilers, oil wells, water pumps)
-        if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+        if gameLoop.world.get(FluidProducerComponent.self, for: entity) != nil {
             // Create output fluid indicator (right side, above outputs)
             let outputX = frame.center.x + 200 * UIScale + indicatorSize/2
             let outputY = frame.center.y - 120 * UIScale
@@ -314,7 +314,7 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Check for fluid consumers (steam engines, chemical plants with fluid inputs)
-        if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+        if gameLoop.world.get(FluidConsumerComponent.self, for: entity) != nil {
             // Create input fluid indicator (left side, above inputs)
             let inputX = frame.center.x - 200 * UIScale - indicatorSize/2
             let inputY = frame.center.y - 120 * UIScale
@@ -327,7 +327,7 @@ final class MachineUI: UIPanel_Base {
         // Check for fluid tanks (chemical plants)
         if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
             // Add tank indicators below the main input/output indicators
-            var tankY = frame.center.y - 100 * UIScale
+            let tankY = frame.center.y - 100 * UIScale
             for (index, _) in tank.tanks.enumerated() {
                 if index >= 4 { break } // Limit to 4 visible tanks
 

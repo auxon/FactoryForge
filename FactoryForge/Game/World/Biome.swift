@@ -48,12 +48,12 @@ enum Biome: String, Codable, CaseIterable {
     /// Probability of water in this biome
     var waterChance: Float {
         switch self {
-        case .grassland: return 0.05
-        case .desert: return 0.01
-        case .forest: return 0.03
-        case .swamp: return 0.3
-        case .tundra: return 0.02
-        case .volcanic: return 0.02
+        case .grassland: return 0.15  // Increased from 0.05
+        case .desert: return 0.03     // Increased from 0.01
+        case .forest: return 0.08     // Increased from 0.03
+        case .swamp: return 0.4       // Increased from 0.3
+        case .tundra: return 0.06     // Increased from 0.02
+        case .volcanic: return 0.04   // Increased from 0.02
         }
     }
     

@@ -52,11 +52,14 @@ final class WorldGenerator {
                 
                 // Determine tile type based on noise and biome
                 var tileType: TileType
-                
-                if noiseValue < -0.4 {
-                    // Water
+
+                // Make water more abundant by using a higher threshold and biome waterChance
+                let waterThreshold = -0.2 + (biome.waterChance * 0.3)  // Adjust threshold based on biome
+
+                if noiseValue < waterThreshold {
+                    // Water - made more abundant
                     tileType = .water
-                } else if noiseValue < -0.2 {
+                } else if noiseValue < -0.1 {
                     // Secondary tile
                     tileType = biome.secondaryTile
                 } else {
@@ -73,28 +76,37 @@ final class WorldGenerator {
     private func generateResources(chunk: Chunk, biome: Biome) {
         let origin = chunk.worldOrigin
         let distanceFromSpawn = sqrtf(Float(origin.x * origin.x + origin.y * origin.y))
-        
+
         // Use Poisson disk sampling for resource distribution
         let resourcePatches = generatePoissonPoints(
             in: Rect(x: 0, y: 0, width: Float(Chunk.size), height: Float(Chunk.size)),
             minDistance: 8,
             seed: seed ^ UInt64(bitPattern: Int64(chunk.coord.x)) ^ (UInt64(bitPattern: Int64(chunk.coord.y)) << 32)
         )
-        
+
+        // Track oil patch locations for coal placement
+        var oilLocations: [Vector2] = []
+
         for point in resourcePatches {
             let worldPos = Vector2(Float(origin.x) + point.x, Float(origin.y) + point.y)
-            
+
             // Determine resource type based on distance and noise
             guard let resourceType = selectResourceType(
                 at: worldPos,
                 distanceFromSpawn: distanceFromSpawn,
-                biome: biome
+                biome: biome,
+                nearOilLocations: oilLocations
             ) else { continue }
-            
+
+            // Track oil locations for future coal placement
+            if resourceType == .oil {
+                oilLocations.append(point)
+            }
+
             // Generate resource patch
             let patchSize = rng.nextInt(in: 3..<8)
             let richness = 0.5 + rng.nextFloat() * 0.5
-            
+
             generateResourcePatch(
                 chunk: chunk,
                 center: IntVector2(Int(point.x), Int(point.y)),
@@ -103,9 +115,12 @@ final class WorldGenerator {
                 richness: richness
             )
         }
+
+        // Generate additional coal near oil patches
+        generateCoalNearOil(chunk: chunk, oilLocations: oilLocations, origin: origin, distanceFromSpawn: distanceFromSpawn, biome: biome)
     }
     
-    private func selectResourceType(at worldPos: Vector2, distanceFromSpawn: Float, biome: Biome) -> ResourceType? {
+    private func selectResourceType(at worldPos: Vector2, distanceFromSpawn: Float, biome: Biome, nearOilLocations: [Vector2] = []) -> ResourceType? {
         // Filter by distance
         let availableResources = ResourceType.allCases.filter { $0.minimumSpawnDistance <= distanceFromSpawn }
         guard !availableResources.isEmpty else { return nil }
@@ -114,16 +129,30 @@ final class WorldGenerator {
         let resourceChance = resourceNoise.noise(x: worldPos.x * 0.05, y: worldPos.y * 0.05)
         guard resourceChance > 0.3 * (1 / biome.resourceModifier) else { return nil }
         
-        // Weighted random selection
-        let weights: [ResourceType: Float] = [
+        // Weighted random selection with coal boost near oil
+        var weights: [ResourceType: Float] = [
             .ironOre: 1.0,
             .copperOre: 0.8,
             .coal: 0.6,
             .stone: 0.5,
             .wood: 1.2,  // Wood is now very common
             .uraniumOre: 0.1,
-            .oil: 0.2
+            .oil: 0.35  // Increased from 0.2 to 0.35 for more frequent oil patches
         ]
+
+        // Boost coal probability if near oil patches
+        let nearOilThreshold: Float = 30.0  // Distance threshold for "near oil"
+        var isNearOil = false
+        for oilLocation in nearOilLocations {
+            if worldPos.distance(to: oilLocation) < nearOilThreshold {
+                isNearOil = true
+                break
+            }
+        }
+
+        if isNearOil {
+            weights[.coal] = 2.0  // Significantly boost coal near oil
+        }
         
         var totalWeight: Float = 0
         for resource in availableResources {
@@ -167,7 +196,42 @@ final class WorldGenerator {
             }
         }
     }
-    
+
+    private func generateCoalNearOil(chunk: Chunk, oilLocations: [Vector2], origin: IntVector2, distanceFromSpawn: Float, biome: Biome) {
+        // Generate additional coal patches near oil locations
+        for oilLocation in oilLocations {
+            // Generate 1-2 coal patches near each oil patch
+            let coalPatches = rng.nextInt(in: 1...2)
+
+            for _ in 0..<coalPatches {
+                // Generate coal within 20-40 tiles of oil
+                let angle = rng.nextFloat() * .pi * 2
+                let distance = 20 + rng.nextFloat() * 20
+
+                let coalLocalX = oilLocation.x + cosf(angle) * distance
+                let coalLocalY = oilLocation.y + sinf(angle) * distance
+
+                // Check bounds
+                guard coalLocalX >= 0 && coalLocalX < Float(Chunk.size) &&
+                      coalLocalY >= 0 && coalLocalY < Float(Chunk.size) else { continue }
+
+                // Only place coal if the distance requirement is met
+                if distanceFromSpawn >= ResourceType.coal.minimumSpawnDistance {
+                    let patchSize = rng.nextInt(in: 3..<6)  // Smaller coal patches
+                    let richness = 0.4 + rng.nextFloat() * 0.4  // Slightly lower richness
+
+                    generateResourcePatch(
+                        chunk: chunk,
+                        center: IntVector2(Int(coalLocalX), Int(coalLocalY)),
+                        type: .coal,
+                        size: patchSize,
+                        richness: richness
+                    )
+                }
+            }
+        }
+    }
+
     private func generateDecorations(chunk: Chunk, biome: Biome) {
         let origin = chunk.worldOrigin
         

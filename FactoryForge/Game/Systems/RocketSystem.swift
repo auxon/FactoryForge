@@ -20,7 +20,7 @@ final class RocketSystem: System {
 
     private func updateRocketSilos(deltaTime: Float) {
         for entity in world.entities {
-            guard var silo = world.get(RocketSiloComponent.self, for: entity),
+            guard let silo = world.get(RocketSiloComponent.self, for: entity),
                   let position = world.get(PositionComponent.self, for: entity),
                   let inventory = world.get(InventoryComponent.self, for: entity) else {
                 continue
@@ -160,7 +160,7 @@ final class RocketSystem: System {
 
     /// Attempts to launch a rocket from the specified silo
     func launchRocketFromSilo(_ siloEntity: Entity) -> Bool {
-        guard var silo = world.get(RocketSiloComponent.self, for: siloEntity),
+        guard let silo = world.get(RocketSiloComponent.self, for: siloEntity),
               let _ = world.get(InventoryComponent.self, for: siloEntity) else {
             return false
         }

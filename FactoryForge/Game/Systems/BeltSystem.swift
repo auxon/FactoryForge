@@ -138,14 +138,14 @@ final class BeltSystem: System {
             node.outputEntity = outputNode.entity
 
             // Update belt component
-            if var belt = world.get(BeltComponent.self, for: node.entity) {
+            if let belt = world.get(BeltComponent.self, for: node.entity) {
                 belt.outputConnection = outputNode.entity
                 world.add(belt, to: node.entity)
             }
 
             // IMPORTANT: Also ensure the output belt has this belt as an input
             // This ensures bidirectional connection for 90-degree turns
-            if var outputBelt = world.get(BeltComponent.self, for: outputNode.entity) {
+            if let outputBelt = world.get(BeltComponent.self, for: outputNode.entity) {
                 // Check if we're not already in the output belt's input connections
                 var outputNodeCopy = outputNode
                 if !outputNodeCopy.inputEntities.contains(node.entity) {
@@ -157,7 +157,7 @@ final class BeltSystem: System {
             }
         } else {
             node.outputEntity = nil
-            if var belt = world.get(BeltComponent.self, for: node.entity) {
+            if let belt = world.get(BeltComponent.self, for: node.entity) {
                 belt.outputConnection = nil
                 world.add(belt, to: node.entity)
             }
@@ -179,7 +179,7 @@ final class BeltSystem: System {
         }
 
         // Update input connection on belt component
-        if var belt = world.get(BeltComponent.self, for: node.entity) {
+        if let belt = world.get(BeltComponent.self, for: node.entity) {
             belt.inputConnection = node.inputEntities.first
             world.add(belt, to: node.entity)
         }
@@ -220,7 +220,7 @@ final class BeltSystem: System {
         }
 
         // Update belt component with all adjacent belt connections
-        if var belt = world.get(BeltComponent.self, for: node.entity) {
+        if let belt = world.get(BeltComponent.self, for: node.entity) {
             belt.inputConnection = node.inputEntities.first
             belt.outputConnections = adjacentBelts
             world.add(belt, to: node.entity)
@@ -248,7 +248,7 @@ final class BeltSystem: System {
         }
 
         // Update belt component with multiple inputs
-        if var belt = world.get(BeltComponent.self, for: node.entity) {
+        if let belt = world.get(BeltComponent.self, for: node.entity) {
             belt.inputConnections = inputEntities
             belt.outputConnection = node.outputEntity
             world.add(belt, to: node.entity)
@@ -352,7 +352,7 @@ final class BeltSystem: System {
             // Check if item should transfer to next belt
             if newProgress >= 1.0 {
                 if let nextBelt = outputBelt {
-                    if var nextBeltComp = world.get(BeltComponent.self, for: nextBelt) {
+                    if let nextBeltComp = world.get(BeltComponent.self, for: nextBelt) {
                         // Try to add to next belt
                         if nextBeltComp.addItem(item.itemId, lane: outputLane, position: 0) {
                             world.add(nextBeltComp, to: nextBelt)
@@ -472,7 +472,7 @@ final class BeltSystem: System {
                 let randomIndex = Int.random(in: 0..<outputBelts.count)
                 let targetBeltEntity = outputBelts[randomIndex]
 
-                if var targetBelt = world.get(BeltComponent.self, for: targetBeltEntity) {
+                if let targetBelt = world.get(BeltComponent.self, for: targetBeltEntity) {
                     // Try left lane first, then right lane
                     if targetBelt.addItem(item.itemId, lane: .left, position: 0) ||
                        targetBelt.addItem(item.itemId, lane: .right, position: 0) {
@@ -498,7 +498,7 @@ final class BeltSystem: System {
         // Collect items from all input connections that have items ready
         var collectedItems: [BeltItem] = []
         for inputEntity in belt.inputConnections {
-            if var inputBelt = world.get(BeltComponent.self, for: inputEntity) {
+            if let inputBelt = world.get(BeltComponent.self, for: inputEntity) {
                 // Take any items ready from input belt
                 while let item = inputBelt.takeItem(from: .left) ?? inputBelt.takeItem(from: .right) {
                     collectedItems.append(item)
@@ -525,7 +525,7 @@ final class BeltSystem: System {
     /// Adds an item to a belt at a position
     func addItem(_ itemId: String, at position: IntVector2, lane: BeltLane, progress: Float = 0) -> Bool {
         guard let node = beltGraph[position],
-              var belt = world.get(BeltComponent.self, for: node.entity) else {
+              let belt = world.get(BeltComponent.self, for: node.entity) else {
             return false
         }
         
@@ -539,7 +539,7 @@ final class BeltSystem: System {
     /// Takes an item from a belt at a position
     func takeItem(at position: IntVector2, lane: BeltLane) -> BeltItem? {
         guard let node = beltGraph[position],
-              var belt = world.get(BeltComponent.self, for: node.entity) else {
+              let belt = world.get(BeltComponent.self, for: node.entity) else {
             return nil
         }
         

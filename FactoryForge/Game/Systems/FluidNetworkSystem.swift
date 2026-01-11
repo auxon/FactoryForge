@@ -1183,7 +1183,7 @@ final class FluidNetworkSystem: System {
 
         // Check if pipe has the correct fluid type
         if originalPipe.fluidType == fluidType {
-            var pipe = originalPipe
+            let pipe = originalPipe
             let removed = min(amount, pipe.fluidAmount)
             pipe.fluidAmount -= removed
             world.add(pipe, to: pipeEntity)
@@ -1198,7 +1198,7 @@ final class FluidNetworkSystem: System {
 
         // If pipe is empty or has the same fluid type, add fluid
         if originalPipe.fluidType == nil || originalPipe.fluidType == fluidType {
-            var pipe = originalPipe
+            let pipe = originalPipe
             let space = pipe.maxCapacity - pipe.fluidAmount
             let added = min(amount, space)
             pipe.fluidAmount += added
@@ -1215,7 +1215,7 @@ final class FluidNetworkSystem: System {
 
         for i in 0..<originalTank.tanks.count {
             if originalTank.tanks[i].type == fluidType {
-                var tank = originalTank
+                let tank = originalTank
                 let removed = tank.tanks[i].remove(amount: amount)
                 world.add(tank, to: tankEntity)
                 return removed
@@ -1231,7 +1231,7 @@ final class FluidNetworkSystem: System {
         // Find existing stack or create new one
         for i in 0..<originalTank.tanks.count {
             if originalTank.tanks[i].type == fluidType {
-                var tank = originalTank
+                let tank = originalTank
                 let added = tank.tanks[i].add(amount: amount)
                 world.add(tank, to: tankEntity)
                 return added
@@ -1239,7 +1239,7 @@ final class FluidNetworkSystem: System {
         }
 
         // Create new stack if possible
-        var tank = originalTank
+        let tank = originalTank
         var newStack = FluidStack(type: fluidType, amount: 0, maxAmount: tank.maxCapacity)
         let added = newStack.add(amount: amount)
         tank.tanks.append(newStack)

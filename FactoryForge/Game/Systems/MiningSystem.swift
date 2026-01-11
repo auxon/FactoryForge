@@ -48,7 +48,7 @@ final class MiningSystem: System {
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
             guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
             
-            var updatedMiner = miner
+            let updatedMiner = miner
             
             // Check power for electric miners only
             let isBurnerMiner = world.get(PowerConsumerComponent.self, for: entity) == nil
@@ -188,7 +188,7 @@ final class MiningSystem: System {
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
             guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
 
-            var updatedPumpjack = pumpjack
+            let updatedPumpjack = pumpjack
             let tilePos = position.tilePosition
 
             // Determine what resource this pumpjack extracts and if it requires deposits

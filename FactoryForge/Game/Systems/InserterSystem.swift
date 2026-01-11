@@ -56,7 +56,7 @@ final class InserterSystem: System {
     // MARK: - Connection Validation
 
     private func validateConnections(_ inserter: InserterComponent, inserterPosition: IntVector2) -> InserterComponent {
-        var updatedInserter = inserter
+        let updatedInserter = inserter
 
         // Validate input target
         if let inputTarget = updatedInserter.inputTarget {
@@ -149,7 +149,7 @@ final class InserterSystem: System {
     // MARK: - State Processing Helpers
 
     private func processIdleState(_ inserter: InserterComponent, position: PositionComponent) -> InserterComponent {
-        var updatedInserter = inserter
+        let updatedInserter = inserter
 
         // If holding an item, try to drop it off first
         if updatedInserter.heldItem != nil {
@@ -239,7 +239,7 @@ final class InserterSystem: System {
     }
 
     private func processRotatingState(_ inserter: InserterComponent, position: PositionComponent, deltaTime: Float, power: PowerConsumerComponent?) -> InserterComponent {
-        var updatedInserter = inserter
+        let updatedInserter = inserter
 
         // Get power for speed multiplier
         let speedMultiplier = power?.satisfaction ?? 1.0
@@ -592,7 +592,7 @@ final class InserterSystem: System {
     /// Picks an item directly from a belt entity (when we have the entity reference)
     private func tryPickFromBeltEntity(entity: Entity) -> ItemStack? {
         guard world.has(BeltComponent.self, for: entity),
-              var belt = world.get(BeltComponent.self, for: entity) else {
+              let belt = world.get(BeltComponent.self, for: entity) else {
             return nil
         }
         
@@ -622,7 +622,7 @@ final class InserterSystem: System {
         // This handles cases where belts aren't registered in beltGraph (e.g., after loading saved games)
         if let beltEntity = world.getEntityAt(position: position),
            world.has(BeltComponent.self, for: beltEntity),
-           var belt = world.get(BeltComponent.self, for: beltEntity) {
+           let belt = world.get(BeltComponent.self, for: beltEntity) {
             // Try to take from belt directly
             for lane in [BeltLane.left, BeltLane.right] {
                 if let beltItem = belt.takeItem(from: lane) {
@@ -791,7 +791,7 @@ final class InserterSystem: System {
     /// Drops an item directly on a belt entity (when we have the entity reference)
     private func tryDropOnBeltEntity(entity: Entity, item: ItemStack) -> Bool {
         guard world.has(BeltComponent.self, for: entity),
-              var belt = world.get(BeltComponent.self, for: entity) else {
+              let belt = world.get(BeltComponent.self, for: entity) else {
             return false
         }
         
@@ -822,7 +822,7 @@ final class InserterSystem: System {
         // This handles cases where belts aren't registered in beltGraph (e.g., after loading saved games)
         if let beltEntity = world.getEntityAt(position: position),
            world.has(BeltComponent.self, for: beltEntity),
-           var belt = world.get(BeltComponent.self, for: beltEntity) {
+           let belt = world.get(BeltComponent.self, for: beltEntity) {
             // Check which lane has space
             for lane in [BeltLane.left, BeltLane.right] {
                 if belt.addItem(item.itemId, lane: lane, position: 0) {
@@ -835,7 +835,7 @@ final class InserterSystem: System {
             let entitiesAtPos = world.getAllEntitiesAt(position: position)
             for beltEntity in entitiesAtPos {
                 if world.has(BeltComponent.self, for: beltEntity),
-                   var belt = world.get(BeltComponent.self, for: beltEntity) {
+                   let belt = world.get(BeltComponent.self, for: beltEntity) {
                     // Check which lane has space
                     for lane in [BeltLane.left, BeltLane.right] {
                         if belt.addItem(item.itemId, lane: lane, position: 0) {

@@ -184,12 +184,12 @@ final class CraftingSystem: System {
         }
 
         // Consume fluid inputs from fluid tanks
-        if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
+        if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
             for fluidInput in recipe.fluidInputs {
                 // Find and consume from the appropriate tank
                 for i in 0..<tankComponent.tanks.count {
                     if tankComponent.tanks[i].type == fluidInput.type {
-                        tankComponent.tanks[i].remove(amount: fluidInput.amount)
+                        _ = tankComponent.tanks[i].remove(amount: fluidInput.amount)
                         break
                     }
                 }
@@ -223,14 +223,14 @@ final class CraftingSystem: System {
         }
 
         // Place fluid outputs into fluid tanks
-        if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
+        if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
             for fluidOutput in recipe.fluidOutputs {
                 // Find or create appropriate tank for this fluid type
                 var tankFound = false
                 for i in 0..<tankComponent.tanks.count {
                     if tankComponent.tanks[i].type == fluidOutput.type {
                         // Add to existing tank
-                        tankComponent.tanks[i].add(amount: fluidOutput.amount)
+                        _ = tankComponent.tanks[i].add(amount: fluidOutput.amount)
                         tankFound = true
                         break
                     }

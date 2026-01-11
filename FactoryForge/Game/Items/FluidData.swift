@@ -186,19 +186,19 @@ struct FluidNetwork: Codable {
 
         // Update network IDs for all entities
         for entity in other.pipes + other.producers + other.consumers + other.tanks + other.pumps {
-            if var pipe = world.get(PipeComponent.self, for: entity) {
+            if let pipe = world.get(PipeComponent.self, for: entity) {
                 pipe.networkId = id
                 world.add(pipe, to: entity)
-            } else if var producer = world.get(FluidProducerComponent.self, for: entity) {
+            } else if let producer = world.get(FluidProducerComponent.self, for: entity) {
                 producer.networkId = id
                 world.add(producer, to: entity)
-            } else if var consumer = world.get(FluidConsumerComponent.self, for: entity) {
+            } else if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
                 consumer.networkId = id
                 world.add(consumer, to: entity)
-            } else if var tank = world.get(FluidTankComponent.self, for: entity) {
+            } else if let tank = world.get(FluidTankComponent.self, for: entity) {
                 tank.networkId = id
                 world.add(tank, to: entity)
-            } else if var pump = world.get(FluidPumpComponent.self, for: entity) {
+            } else if let pump = world.get(FluidPumpComponent.self, for: entity) {
                 pump.networkId = id
                 world.add(pump, to: entity)
             }

@@ -67,7 +67,7 @@ final class PowerSystem: System {
                 network.poles.append(pole)
                 
                 // Update pole's network ID
-                var updatedPole = poleComp
+                let updatedPole = poleComp
                 updatedPole.networkId = networkId
                 world.add(updatedPole, to: pole)
                 
@@ -248,7 +248,7 @@ final class PowerSystem: System {
         if availablePower < totalConsumption {
             let deficit = totalConsumption - availablePower
             for accumulator in network.accumulators {
-                if var accComp = world.get(AccumulatorComponent.self, for: accumulator) {
+                if let accComp = world.get(AccumulatorComponent.self, for: accumulator) {
                     let discharge = min(accComp.storedEnergy, deficit * deltaTime, accComp.chargeRate * deltaTime)
                     accComp.storedEnergy -= discharge
                     availablePower += discharge / deltaTime
@@ -262,7 +262,7 @@ final class PowerSystem: System {
         if availablePower > totalConsumption {
             let excess = availablePower - totalConsumption
             for accumulator in network.accumulators {
-                if var accComp = world.get(AccumulatorComponent.self, for: accumulator) {
+                if let accComp = world.get(AccumulatorComponent.self, for: accumulator) {
                     let charge = min(accComp.capacity - accComp.storedEnergy, excess * deltaTime, accComp.chargeRate * deltaTime)
                     accComp.storedEnergy += charge
                     accComp.mode = charge > 0 ? .charging : .idle
@@ -327,7 +327,7 @@ final class PowerSystem: System {
             }
             
             // Update solar panels (time-based output)
-            if var solarComp = world.get(SolarPanelComponent.self, for: generator) {
+            if let solarComp = world.get(SolarPanelComponent.self, for: generator) {
                 // Simplified day/night cycle
                 let timeOfDay = fmodf(Time.shared.totalTime / 60, 1.0)  // 60 second day cycle
                 let daylight = max(0, sinf(timeOfDay * .pi))
