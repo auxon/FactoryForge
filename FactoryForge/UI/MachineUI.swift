@@ -485,7 +485,7 @@ final class MachineUI: UIPanel_Base {
 
         let scrollView = UIScrollView(frame: scrollViewFrame)
         scrollView.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 0.9)
-        scrollView.layer.borderColor = UIColor.white.cgColor
+        scrollView.layer.borderColor = UIColor.black.cgColor
         scrollView.layer.borderWidth = 2
         scrollView.layer.cornerRadius = 8
         scrollView.showsVerticalScrollIndicator = true

@@ -452,11 +452,14 @@ final class InputManager: NSObject {
             
             // For non-belt buildings, check if we're tapping on an existing entity
             if let entity = gameLoop.world.getEntityAt(position: tilePos) {
+                print("InputManager: Tapped on entity \(entity) at \(tilePos) - has assembler: \(gameLoop.world.has(AssemblerComponent.self, for: entity)), has furnace: \(gameLoop.world.has(FurnaceComponent.self, for: entity))")
                 // Entity was tapped - select it and exit build mode
                 selectedEntity = entity
                 onEntitySelected?(entity)
                 exitBuildMode()
                 return
+            } else {
+                print("InputManager: No entity found at \(tilePos) for single tap")
             }
             
             // Place building (non-belt)
@@ -763,11 +766,13 @@ final class InputManager: NSObject {
             // Handle selection rectangle end (only when not in build mode and no UI panel is open)
             // Don't process selection rectangle end if a UI panel is already open
             if (buildMode == .none || buildMode == .connectingInserter) && isSelecting && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let rect = selectionRect {
+                print("InputManager: Processing selection rectangle: \(rect)")
                 isSelecting = false
                 selectionStartScreenPos = nil
-                
+
                 // Get all entities within the world rectangle
                 let selectedEntities = gameLoop.world.getAllEntitiesInWorldRect(rect)
+                print("InputManager: Found \(selectedEntities.count) entities in selection rectangle")
                 
                 // Filter to only interactable entities
                 let interactableEntities = selectedEntities.filter { entity in
@@ -780,8 +785,21 @@ final class InputManager: NSObject {
                     let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
                     let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
                     let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
-                    
-                    return hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter
+
+                    let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter
+
+                    if isInteractable {
+                        print("InputManager: Found interactable entity \(entity) - assembler:\(hasAssembler) furnace:\(hasFurnace) miner:\(hasMiner) chest:\(hasChest) lab:\(hasLab) generator:\(hasGenerator) pole:\(hasPole) belt:\(hasBelt) inserter:\(hasInserter)")
+                    }
+
+                    return isInteractable
+                }
+
+                // Debug: Count interactable entities by type
+                let assemblerCount = interactableEntities.filter { gameLoop.world.has(AssemblerComponent.self, for: $0) }.count
+                let furnaceCount = interactableEntities.filter { gameLoop.world.has(FurnaceComponent.self, for: $0) }.count
+                if assemblerCount > 0 || furnaceCount > 0 {
+                    print("InputManager: Found \(assemblerCount) assemblers and \(furnaceCount) furnaces in \(interactableEntities.count) total interactable entities")
                 }
                 
                 // Clear selection rectangle

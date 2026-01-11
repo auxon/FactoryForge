@@ -173,7 +173,6 @@ final class World {
         if let entity = spatialIndex[position] {
             allEntitiesAtPosition.append(entity)
             checkedEntities.insert(entity)
-            // print("World: getAllEntitiesAt - found entity \(entity) in spatial index at \(position)")
         }
 
         // Check all entities with PositionComponent to find all entities at this position
@@ -222,7 +221,8 @@ final class World {
     /// Prioritizes buildings over belts and inserters
     func getEntityAt(position: IntVector2) -> Entity? {
         let allEntitiesAtPosition = getAllEntitiesAt(position: position)
-        
+
+
         // If no entities found, return nil
         guard !allEntitiesAtPosition.isEmpty else { return nil }
         
@@ -337,12 +337,22 @@ final class World {
             }
         }
 
+        print("World: Spatial index found \(allEntities.count) entities in rect")
+
         // Also check all entities with PositionComponent to find entities that overlap the world rect
         let allEntitiesWithPosition = query(PositionComponent.self)
+        print("World: Checking \(allEntitiesWithPosition.count) entities with PositionComponent")
 
+        var assemblerFurnaceFound = 0
         for entity in allEntitiesWithPosition {
             guard !checkedEntities.contains(entity) else { continue }
             guard let pos = get(PositionComponent.self, for: entity) else { continue }
+
+            let hasAssembler = has(AssemblerComponent.self, for: entity)
+            let hasFurnace = has(FurnaceComponent.self, for: entity)
+            if hasAssembler || hasFurnace {
+                assemblerFurnaceFound += 1
+            }
 
             let worldPos = pos.worldPosition
             let sprite = get(SpriteComponent.self, for: entity)
@@ -381,6 +391,7 @@ final class World {
             }
         }
 
+        print("World: PositionComponent query found \(assemblerFurnaceFound) assembler/furnace entities in rect")
         return allEntities
     }
 
@@ -493,7 +504,21 @@ final class World {
         for (_, store) in componentStores {
             store.clear()
         }
+        print("World: Clearing spatial index (had \(spatialIndex.count) entries)")
         spatialIndex.removeAll()
+    }
+
+    /// Rebuilds the spatial index from all entities with PositionComponents
+    /// This ensures the spatial index is consistent with the current entity positions
+    func rebuildSpatialIndex() {
+        spatialIndex.removeAll()
+        let entitiesWithPosition = query(PositionComponent.self)
+        for entity in entitiesWithPosition {
+            if let pos = get(PositionComponent.self, for: entity) {
+                spatialIndex[pos.tilePosition] = entity
+            }
+        }
+        print("World: Rebuilt spatial index with \(spatialIndex.count) entries")
     }
 }
 
@@ -587,11 +612,20 @@ extension World {
         for entityData in data.entities {
             let entity = spawn()
             oldIdToNewEntity[entityData.id] = entity
-            
+
+            // Debug: Check what components this entity has
+            if entityData.components.keys.contains("assembler") || entityData.components.keys.contains("furnace") {
+                print("World: Entity \(entityData.id) has assembler/furnace data in save file, keys: \(entityData.components.keys)")
+            }
+
             // Deserialize each component
-            if let posData = entityData.components["position"],
-               let pos = try? JSONDecoder().decode(PositionComponent.self, from: posData) {
-                add(pos, to: entity)
+            if let posData = entityData.components["position"] {
+                do {
+                    let pos = try JSONDecoder().decode(PositionComponent.self, from: posData)
+                    add(pos, to: entity)
+                } catch {
+                    print("World: Failed to decode PositionComponent for entity \(entityData.id): \(error)")
+                }
             }
             if let spriteData = entityData.components["sprite"],
                let sprite = try? JSONDecoder().decode(SpriteComponent.self, from: spriteData) {
@@ -621,13 +655,25 @@ extension World {
                let inserter = try? JSONDecoder().decode(InserterComponent.self, from: inserterData) {
                 add(inserter, to: entity)
             }
-            if let assemblerData = entityData.components["assembler"],
-               let assembler = try? JSONDecoder().decode(AssemblerComponent.self, from: assemblerData) {
-                add(assembler, to: entity)
+            if let assemblerData = entityData.components["assembler"] {
+                print("World: Found assembler data for entity \(entity), attempting decode...")
+                do {
+                    let assembler = try JSONDecoder().decode(AssemblerComponent.self, from: assemblerData)
+                    add(assembler, to: entity)
+                    print("World: Successfully deserialized assembler component for entity \(entity)")
+                } catch {
+                    print("World: Failed to decode assembler component for entity \(entity): \(error)")
+                }
             }
-            if let furnaceData = entityData.components["furnace"],
-               let furnace = try? JSONDecoder().decode(FurnaceComponent.self, from: furnaceData) {
-                add(furnace, to: entity)
+            if let furnaceData = entityData.components["furnace"] {
+                print("World: Found furnace data for entity \(entity), attempting decode...")
+                do {
+                    let furnace = try JSONDecoder().decode(FurnaceComponent.self, from: furnaceData)
+                    add(furnace, to: entity)
+                    print("World: Successfully deserialized furnace component for entity \(entity)")
+                } catch {
+                    print("World: Failed to decode furnace component for entity \(entity): \(error)")
+                }
             }
             if let powerPoleData = entityData.components["powerPole"],
                let powerPole = try? JSONDecoder().decode(PowerPoleComponent.self, from: powerPoleData) {
@@ -662,7 +708,28 @@ extension World {
                 add(collision, to: entity)
             }
         }
-        
+
+        // Debug: Check for assembler/furnace components after deserialization
+        var assemblerCount = 0
+        var furnaceCount = 0
+        for entity in entities {
+            let hasAssembler = has(AssemblerComponent.self, for: entity)
+            let hasFurnace = has(FurnaceComponent.self, for: entity)
+            if hasAssembler {
+                assemblerCount += 1
+                if let pos = get(PositionComponent.self, for: entity) {
+                    print("World: Entity \(entity) has assembler component at \(pos.tilePosition)")
+                }
+            }
+            if hasFurnace {
+                furnaceCount += 1
+                if let pos = get(PositionComponent.self, for: entity) {
+                    print("World: Entity \(entity) has furnace component at \(pos.tilePosition)")
+                }
+            }
+        }
+        print("World: Found \(assemblerCount) assemblers and \(furnaceCount) furnaces after deserialization")
+
         // Fix entity references in InserterComponents after all entities are loaded
         for entity in entities {
             if let inserter = get(InserterComponent.self, for: entity) {

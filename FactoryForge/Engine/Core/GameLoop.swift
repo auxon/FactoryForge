@@ -1239,7 +1239,7 @@ final class GameLoop {
         }
 
         // Rotate direction clockwise
-        var updatedPipe = pipe
+        let updatedPipe = pipe
         let newDirection = pipe.direction.clockwise
         updatedPipe.direction = newDirection
 
@@ -1262,7 +1262,7 @@ final class GameLoop {
         }
 
         // Rotate direction clockwise
-        var updatedBelt = belt
+        let updatedBelt = belt
         let newDirection = belt.direction.clockwise
         updatedBelt.direction = newDirection
 
@@ -1319,7 +1319,7 @@ final class GameLoop {
             return false
         }
 
-        var inserter = originalInserter
+        let inserter = originalInserter
         
         // Handle explicit clearing
         if clearInput {
@@ -1429,12 +1429,12 @@ final class GameLoop {
         guard let recipe = recipeRegistry.get(recipeId) else { return }
         
         if let originalAssembler = world.get(AssemblerComponent.self, for: entity) {
-            var assembler = originalAssembler
+            let assembler = originalAssembler
             assembler.recipe = recipe
             assembler.craftingProgress = 0
             world.add(assembler, to: entity)
         } else if let originalFurnace = world.get(FurnaceComponent.self, for: entity) {
-            var furnace = originalFurnace
+            let furnace = originalFurnace
             furnace.recipe = recipe
             furnace.smeltingProgress = 0
             world.add(furnace, to: entity)
@@ -1528,12 +1528,12 @@ final class GameLoop {
     /// Sets a recipe for a machine entity
     func setMachineRecipe(_ entity: Entity, _ recipe: Recipe) {
         if let originalFurnace = world.get(FurnaceComponent.self, for: entity) {
-            var furnace = originalFurnace
+            let furnace = originalFurnace
             furnace.recipe = recipe
             furnace.smeltingProgress = 0.001  // Start crafting immediately
             world.add(furnace, to: entity)
         } else if let originalAssembler = world.get(AssemblerComponent.self, for: entity) {
-            var assembler = originalAssembler
+            let assembler = originalAssembler
             assembler.recipe = recipe
             assembler.craftingProgress = 0.001  // Start crafting immediately
             world.add(assembler, to: entity)

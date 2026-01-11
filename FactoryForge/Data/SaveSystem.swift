@@ -138,14 +138,39 @@ final class SaveSystem {
         
         // Load research state
         gameLoop.researchSystem.loadState(saveData.researchData)
-        
+
         // Register all belts in BeltSystem after deserialization
         // Belts are loaded from save but not automatically registered in the belt system's internal graph
         registerAllBelts(in: gameLoop)
-        
+
+        // Ensure all entities with PositionComponent are added to their appropriate chunks
+        // This is needed because deserialized entities exist in the world but may not be in chunk spatial indexes
+        addEntitiesToChunks(gameLoop)
+
+        // Rebuild spatial index to ensure all entities are properly indexed
+        // This is a safety measure in case some entities weren't added during deserialization
+        gameLoop.world.rebuildSpatialIndex()
+
+        // Debug: Check what entities exist after loading
+        var assemblerCount = 0
+        var furnaceCount = 0
+        var positionCount = 0
+        for entity in gameLoop.world.entities {
+            if gameLoop.world.has(AssemblerComponent.self, for: entity) {
+                assemblerCount += 1
+            }
+            if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+                furnaceCount += 1
+            }
+            if gameLoop.world.has(PositionComponent.self, for: entity) {
+                positionCount += 1
+            }
+        }
+        print("SaveSystem: After loading - \(assemblerCount) assemblers, \(furnaceCount) furnaces, \(positionCount) entities with positions")
+
         // Load play time
         gameLoop.playTime = saveData.playTime
-        
+
         print("Game loaded from save")
     }
 
@@ -359,5 +384,31 @@ struct SaveSlotInfo {
     var effectiveDisplayName: String {
         return displayName ?? name
     }
+}
+
+/// Ensure all entities with PositionComponent are properly registered in their chunks
+private func addEntitiesToChunks(_ gameLoop: GameLoop) {
+    var entityCount = 0
+    var chunkedCount = 0
+
+    for entity in gameLoop.world.entities {
+        if let position = gameLoop.world.get(PositionComponent.self, for: entity) {
+            entityCount += 1
+            // Add entity to its chunk if the chunk exists
+            if let chunk = gameLoop.chunkManager.getChunk(at: position.tilePosition) {
+                chunk.addEntity(entity, at: position.tilePosition)
+                chunkedCount += 1
+            }
+
+            // Debug: Check for assembler/furnace components
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            if hasAssembler || hasFurnace {
+                print("SaveSystem: Found \(hasAssembler ? "assembler" : "furnace") entity \(entity) at \(position.tilePosition)")
+            }
+        }
+    }
+
+    print("SaveSystem: Processed \(entityCount) entities, added \(chunkedCount) to chunks")
 }
 
