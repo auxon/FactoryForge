@@ -906,6 +906,7 @@ class InventorySlot: UIElement {
     var item: ItemStack?
     var isSelected: Bool = false
     var backgroundColor: Color?
+    var isRequired: Bool = false // True if this slot shows a required item for current recipe
 
     init(frame: Rect, index: Int, backgroundColor: Color? = nil) {
         self.frame = frame
@@ -948,6 +949,18 @@ class InventorySlot: UIElement {
                 textureRect: textureRect,
                 layer: .ui
             ))
+
+            // Add a border for required items
+            if isRequired {
+                let borderRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+                renderer.queueSprite(SpriteInstance(
+                    position: frame.center,
+                    size: frame.size * 0.9,
+                    textureRect: borderRect,
+                    color: Color(r: 1.0, g: 0.8, b: 0.2, a: 0.3), // Orange border for required items
+                    layer: .ui
+                ))
+            }
         }
     }
 }

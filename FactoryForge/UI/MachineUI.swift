@@ -521,30 +521,88 @@ final class MachineUI: UIPanel_Base {
         for i in 0..<fuelSlots.count {
             if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
                 fuelSlots[i].item = item
+                fuelSlots[i].isRequired = false
             } else {
                 fuelSlots[i].item = nil
+                fuelSlots[i].isRequired = false
             }
             inventoryIndex += 1
         }
 
-        // Map input slots (next in inventory)
-        for i in 0..<inputSlots.count {
-            if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
-                inputSlots[i].item = item
-            } else {
+        // Check if this is an assembler with a recipe set
+        var currentRecipe: Recipe? = nil
+        if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            currentRecipe = assembler.recipe
+        } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+            currentRecipe = furnace.recipe
+        }
+
+        // Map input slots - show required ingredients for current recipe
+        if let recipe = currentRecipe {
+            for i in 0..<min(inputSlots.count, recipe.inputs.count) {
+                let requiredItem = recipe.inputs[i]
+                // Check if we have this item in inventory at the expected position
+                if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex], item.itemId == requiredItem.itemId {
+                    inputSlots[i].item = item
+                    inputSlots[i].isRequired = false
+                } else {
+                    // Show required item even if not in inventory
+                    inputSlots[i].item = ItemStack(itemId: requiredItem.itemId, count: 0)
+                    inputSlots[i].isRequired = true
+                }
+                inventoryIndex += 1
+            }
+            // Clear remaining input slots
+            for i in recipe.inputs.count..<inputSlots.count {
                 inputSlots[i].item = nil
+                inputSlots[i].isRequired = false
             }
-            inventoryIndex += 1
+        } else {
+            // No recipe set - show actual inventory items
+            for i in 0..<inputSlots.count {
+                if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
+                    inputSlots[i].item = item
+                    inputSlots[i].isRequired = false
+                } else {
+                    inputSlots[i].item = nil
+                    inputSlots[i].isRequired = false
+                }
+                inventoryIndex += 1
+            }
         }
 
-        // Map output slots (remaining slots)
-        for i in 0..<outputSlots.count {
-            if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
-                outputSlots[i].item = item
-            } else {
-                outputSlots[i].item = nil
+        // Map output slots - show recipe outputs or actual inventory
+        if let recipe = currentRecipe {
+            for i in 0..<min(outputSlots.count, recipe.outputs.count) {
+                let outputItem = recipe.outputs[i]
+                // Check if we have this output in inventory
+                if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex], item.itemId == outputItem.itemId {
+                    outputSlots[i].item = item
+                    outputSlots[i].isRequired = false
+                } else {
+                    // Show expected output
+                    outputSlots[i].item = ItemStack(itemId: outputItem.itemId, count: 0)
+                    outputSlots[i].isRequired = true // Expected output
+                }
+                inventoryIndex += 1
             }
-            inventoryIndex += 1
+            // Clear remaining output slots
+            for i in recipe.outputs.count..<outputSlots.count {
+                outputSlots[i].item = nil
+                outputSlots[i].isRequired = false
+            }
+        } else {
+            // No recipe set - show actual inventory items
+            for i in 0..<outputSlots.count {
+                if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
+                    outputSlots[i].item = item
+                    outputSlots[i].isRequired = false
+                } else {
+                    outputSlots[i].item = nil
+                    outputSlots[i].isRequired = false
+                }
+                inventoryIndex += 1
+            }
         }
         // Update count labels
         updateCountLabels(entity)
