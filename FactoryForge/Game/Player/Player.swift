@@ -121,6 +121,36 @@ final class Player {
     private func giveStartingItems() {
         let startingItems = [
             ("iron-plate", 10)  // 5 for stone furnace + 5 for burner mining drill
+            // Give player what is necessary to test the fluid system:
+            // - Pipes, water pump, boiler, steam engine, fluid tank
+            // Sufficient iron plates & other required intermediates too
+
+            // Pipes for fluid networks
+            ("pipe", 50),
+            // Water pump for extracting water from water tiles
+            ("water-pump", 1),
+            // Boiler for steam production
+            ("boiler", 1),
+            // Steam engine for power generation
+            ("steam-engine", 1),
+            // Fluid tank for fluid storage/buffering
+            ("fluid-tank", 2),
+            // Extra iron plates for building more pipes/structures
+            ("iron-plate", 100),
+            // Electronic circuits for water pump & expansion
+            ("electronic-circuit", 20),
+            // Stone furnace (needed for boiler in recipes)
+            ("stone-furnace", 2),
+            // Iron gear wheels (water pump, steam engine)
+            ("iron-gear-wheel", 10),
+            // Wood and coal for boiler fuel testing
+            ("wood", 20),
+            ("coal", 20),
+            // Some copper and steel plates for broader test coverage
+            ("copper-plate", 50),
+            ("steel-plate", 15),
+            // Water as an inventory item for fluid transport UI tests
+            ("water", 50),
         ]
 
         for (itemId, count) in startingItems {
