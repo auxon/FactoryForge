@@ -705,6 +705,28 @@ final class BuildingRegistry {
         rocketSilo.outputSlots = 0
         rocketSilo.fuelSlots = 1  // Rocket fuel
         register(rocketSilo)
+
+        // Pipes
+        var pipe = BuildingDefinition(
+            id: "pipe",
+            name: "Pipe",
+            type: .pipe,
+            maxHealth: 50,
+            cost: [ItemStack(itemId: "iron-plate", count: 1)]
+        )
+        pipe.fluidCapacity = 100  // Basic pipe capacity
+        register(pipe)
+
+        var undergroundPipe = BuildingDefinition(
+            id: "underground-pipe",
+            name: "Underground Pipe",
+            type: .pipe,
+            maxHealth: 60,
+            cost: [ItemStack(itemId: "iron-plate", count: 5),
+                   ItemStack(itemId: "pipe", count: 5)]
+        )
+        undergroundPipe.fluidCapacity = 300  // Underground pipe capacity
+        register(undergroundPipe)
     }
 }
 

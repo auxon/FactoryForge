@@ -45,7 +45,7 @@ final class CraftingSystem: System {
                 
                 if assembler.craftingProgress >= 1.0 {
                     // Complete crafting
-                    completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: assembler, world: world)
+                    completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: assembler, entity: entity, world: world)
                     assembler.craftingProgress = 0
                     world.add(inventory, to: entity)
                 }
@@ -109,7 +109,7 @@ final class CraftingSystem: System {
 
                 if furnace.smeltingProgress >= 1.0 {
                     // Complete recipe
-                    completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: furnace, world: world)
+                    completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: furnace, entity: entity, world: world)
                     furnace.smeltingProgress = 0
                     furnace.recipe = nil  // Reset to auto-select next
                     world.add(inventory, to: entity)
@@ -137,17 +137,40 @@ final class CraftingSystem: System {
     }
     
     private func canStartRecipe(recipe: Recipe, inventory: InventoryComponent, entity: Entity? = nil, world: World? = nil) -> Bool {
-        // Check if we have all inputs (now check anywhere in inventory for all cases)
+        // Check if we have all item inputs (now check anywhere in inventory for all cases)
         for input in recipe.inputs {
             if inventory.count(of: input.itemId) < input.count {
                 return false
             }
         }
 
-        // Check if we have space for outputs (now check anywhere in inventory for all cases)
+        // Check if we have space for item outputs (now check anywhere in inventory for all cases)
         for output in recipe.outputs {
             if !inventory.canAccept(itemId: output.itemId) {
                 return false
+            }
+        }
+
+        // Check fluid inputs if we have entity and world context
+        if let entity = entity, let world = world {
+            // Get fluid tanks from the building
+            var availableFluids: [FluidStack] = []
+            if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
+                availableFluids = tankComponent.tanks
+            }
+
+            // Check fluid inputs
+            for fluidInput in recipe.fluidInputs {
+                var foundFluid = false
+                for tank in availableFluids {
+                    if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
+                        foundFluid = true
+                        break
+                    }
+                }
+                if !foundFluid {
+                    return false
+                }
             }
         }
 
@@ -155,13 +178,27 @@ final class CraftingSystem: System {
     }
 
     private func consumeInputsFromInputSlots(recipe: Recipe, inventory: inout InventoryComponent, world: World, entity: Entity) {
-        // Now consume from anywhere in inventory for all cases
+        // Consume item inputs from anywhere in inventory for all cases
         for input in recipe.inputs {
             inventory.remove(itemId: input.itemId, count: input.count)
         }
+
+        // Consume fluid inputs from fluid tanks
+        if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
+            for fluidInput in recipe.fluidInputs {
+                // Find and consume from the appropriate tank
+                for i in 0..<tankComponent.tanks.count {
+                    if tankComponent.tanks[i].type == fluidInput.type {
+                        tankComponent.tanks[i].remove(amount: fluidInput.amount)
+                        break
+                    }
+                }
+            }
+            world.add(tankComponent, to: entity)
+        }
     }
 
-    private func completeRecipe(recipe: Recipe, inventory: inout InventoryComponent, buildingComponent: BuildingComponent, world: World) {
+    private func completeRecipe(recipe: Recipe, inventory: inout InventoryComponent, buildingComponent: BuildingComponent, entity: Entity, world: World) {
         // Get building definition using the component we already have
         guard let buildingDef = buildingRegistry.get(buildingComponent.buildingId) else {
             // Fallback: place outputs anywhere if we can't determine building type
@@ -178,11 +215,34 @@ final class CraftingSystem: System {
         let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
         let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
 
-        // Place outputs only in output slots
+        // Place item outputs only in output slots
         for output in recipe.outputs {
             let item = itemRegistry.get(output.itemId)
             let maxStack = item?.stackSize ?? output.maxStack
             placeOutputInSlots(output: output, maxStack: maxStack, inventory: &inventory, startIndex: outputStartIndex, endIndex: outputEndIndex)
+        }
+
+        // Place fluid outputs into fluid tanks
+        if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
+            for fluidOutput in recipe.fluidOutputs {
+                // Find or create appropriate tank for this fluid type
+                var tankFound = false
+                for i in 0..<tankComponent.tanks.count {
+                    if tankComponent.tanks[i].type == fluidOutput.type {
+                        // Add to existing tank
+                        tankComponent.tanks[i].add(amount: fluidOutput.amount)
+                        tankFound = true
+                        break
+                    }
+                }
+
+                if !tankFound {
+                    // Create new tank for this fluid type
+                    let newTank = FluidStack(type: fluidOutput.type, amount: fluidOutput.amount, maxAmount: tankComponent.maxCapacity)
+                    tankComponent.tanks.append(newTank)
+                }
+            }
+            world.add(tankComponent, to: entity)
         }
 
         // Inventory is saved by caller

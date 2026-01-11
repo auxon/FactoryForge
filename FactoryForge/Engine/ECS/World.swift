@@ -665,7 +665,7 @@ extension World {
         
         // Fix entity references in InserterComponents after all entities are loaded
         for entity in entities {
-            if var inserter = get(InserterComponent.self, for: entity) {
+            if let inserter = get(InserterComponent.self, for: entity) {
                 var needsUpdate = false
                 
                 // Fix inputTarget reference

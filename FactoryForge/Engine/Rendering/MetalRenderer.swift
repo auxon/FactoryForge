@@ -41,6 +41,15 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     // Selected entity for highlighting
     var selectedEntity: Entity?
+
+    // Debug visualization modes
+    var showFluidDebug: Bool = false
+
+    /// Toggle fluid network debug visualization
+    func toggleFluidDebug() {
+        showFluidDebug.toggle()
+        print("Fluid debug visualization: \(showFluidDebug ? "ON" : "OFF")")
+    }
     
     // Frame statistics
     private(set) var drawCallCount: Int = 0
@@ -229,7 +238,8 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
                 world: gameLoop.world,
                 camera: camera,
                 selectedEntity: selectedEntity,
-                deltaTime: Time.shared.deltaTime
+                deltaTime: Time.shared.deltaTime,
+                showFluidDebug: showFluidDebug
             )
         }
         

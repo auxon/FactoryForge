@@ -1355,7 +1355,7 @@ class GameViewController: UIViewController {
             }
         }
         
-        // Setup rotate building callback (for belts)
+        // Setup rotate building callback (for belts and pipes)
         uiSystem?.hud.onRotateBuildingPressed = { [weak self] in
             guard let self = self, let gameLoop = self.gameLoop else {
                 print("GameViewController: Rotate callback - self or gameLoop is nil")
@@ -1365,18 +1365,34 @@ class GameViewController: UIViewController {
                 print("GameViewController: Rotate callback - no selected entity")
                 return
             }
-            
+
             // Close machine UI if open
             self.uiSystem?.closeAllPanels()
-            
-            print("GameViewController: Rotating belt entity \(selectedEntity)")
-            // Rotate the belt
-            if gameLoop.rotateBelt(entity: selectedEntity) {
-                self.showTooltip("Belt rotated")
-                print("GameViewController: Belt rotated successfully")
+
+            // Check if it's a pipe or belt
+            if gameLoop.world.has(PipeComponent.self, for: selectedEntity) {
+                print("GameViewController: Rotating pipe entity \(selectedEntity)")
+                // Rotate the pipe
+                if gameLoop.rotatePipe(entity: selectedEntity) {
+                    self.showTooltip("Pipe rotated")
+                    print("GameViewController: Pipe rotated successfully")
+                } else {
+                    self.showTooltip("Failed to rotate pipe")
+                    print("GameViewController: Failed to rotate pipe")
+                }
+            } else if gameLoop.world.has(BeltComponent.self, for: selectedEntity) {
+                print("GameViewController: Rotating belt entity \(selectedEntity)")
+                // Rotate the belt
+                if gameLoop.rotateBelt(entity: selectedEntity) {
+                    self.showTooltip("Belt rotated")
+                    print("GameViewController: Belt rotated successfully")
+                } else {
+                    self.showTooltip("Failed to rotate belt")
+                    print("GameViewController: Failed to rotate belt")
+                }
             } else {
-                self.showTooltip("Failed to rotate belt")
-                print("GameViewController: Failed to rotate belt")
+                self.showTooltip("Cannot rotate this building")
+                print("GameViewController: Selected entity is neither a pipe nor belt")
             }
         }
         
@@ -1433,6 +1449,12 @@ class GameViewController: UIViewController {
         uiSystem?.hud.onExitBuildModePressed = { [weak self] in
             print("GameViewController: Exit build mode button pressed")
             self?.inputManager?.exitBuildMode()
+        }
+
+        // Setup fluid debug callback
+        uiSystem?.hud.onFluidDebugPressed = { [weak self] in
+            print("GameViewController: Fluid debug button pressed")
+            self?.renderer?.toggleFluidDebug()
         }
 
         // Setup callback for when HUD selection changes (e.g., entity dies)

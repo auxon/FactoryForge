@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "D2B18E4E-B62A-46B2-8885-FDB28A0212C9",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:FactoryForge.xcodeproj",
+      "identifier" : "A0000300000",
+      "name" : "FactoryForge"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:FactoryForge.xcodeproj",
+        "identifier" : "0DC1FB7B2F1437AC0010585F",
+        "name" : "FactoryForgeTests"
+      }
+    }
+  ],
+  "version" : 1
+}

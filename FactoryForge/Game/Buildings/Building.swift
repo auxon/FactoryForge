@@ -51,6 +51,9 @@ struct BuildingDefinition: Identifiable, Codable {
     // Fluid extraction
     var extractionRate: Float = 0
 
+    // Fluid
+    var fluidCapacity: Float = 0
+
     // UI slot counts
     var inputSlots: Int = 0
     var outputSlots: Int = 0

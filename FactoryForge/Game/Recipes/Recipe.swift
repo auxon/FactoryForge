@@ -6,16 +6,20 @@ struct Recipe: Identifiable, Codable {
     let name: String
     let inputs: [ItemStack]
     let outputs: [ItemStack]
+    let fluidInputs: [FluidStack]
+    let fluidOutputs: [FluidStack]
     let craftTime: Float
     let category: CraftingCategory
     let enabled: Bool
     let order: String
-    
+
     init(
         id: String,
         name: String,
-        inputs: [ItemStack],
-        outputs: [ItemStack],
+        inputs: [ItemStack] = [],
+        outputs: [ItemStack] = [],
+        fluidInputs: [FluidStack] = [],
+        fluidOutputs: [FluidStack] = [],
         craftTime: Float = 0.5,
         category: CraftingCategory = .crafting,
         enabled: Bool = true,
@@ -25,6 +29,8 @@ struct Recipe: Identifiable, Codable {
         self.name = name
         self.inputs = inputs
         self.outputs = outputs
+        self.fluidInputs = fluidInputs
+        self.fluidOutputs = fluidOutputs
         self.craftTime = craftTime
         self.category = category
         self.enabled = enabled
@@ -41,9 +47,28 @@ struct Recipe: Identifiable, Codable {
         return primaryOutput?.itemId.replacingOccurrences(of: "-", with: "_") ?? "unknown"
     }
     
-    /// Checks if inputs can be fulfilled by an inventory
-    func canCraft(with inventory: InventoryComponent) -> Bool {
-        return inventory.has(items: inputs)
+    /// Checks if inputs can be fulfilled by an inventory and fluid tanks
+    func canCraft(with inventory: InventoryComponent, fluidTanks: [FluidStack] = []) -> Bool {
+        // Check item inputs
+        if !inventory.has(items: inputs) {
+            return false
+        }
+
+        // Check fluid inputs
+        for fluidInput in fluidInputs {
+            var foundFluid = false
+            for tank in fluidTanks {
+                if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
+                    foundFluid = true
+                    break
+                }
+            }
+            if !foundFluid {
+                return false
+            }
+        }
+
+        return true
     }
     
     /// Items per second output (at 1x crafting speed)

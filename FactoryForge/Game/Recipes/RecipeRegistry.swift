@@ -537,11 +537,11 @@ final class RecipeRegistry {
         register(Recipe(
             id: "basic-oil-processing",
             name: "Basic Oil Processing",
-            inputs: [ItemStack(itemId: "crude-oil", count: 100)],
-            outputs: [
-                ItemStack(itemId: "petroleum-gas", count: 45),
-                ItemStack(itemId: "light-oil", count: 30),
-                ItemStack(itemId: "heavy-oil", count: 25)
+            fluidInputs: [FluidStack(type: .crudeOil, amount: 50)],  // 50L crude oil (10L/s with 5s craft time)
+            fluidOutputs: [
+                FluidStack(type: .petroleumGas, amount: 22.5),  // Scaled down proportionally
+                FluidStack(type: .lightOil, amount: 15),
+                FluidStack(type: .heavyOil, amount: 12.5)
             ],
             craftTime: 5,
             category: .oilProcessing,
@@ -551,28 +551,28 @@ final class RecipeRegistry {
         register(Recipe(
             id: "advanced-oil-processing",
             name: "Advanced Oil Processing",
-            inputs: [
-                ItemStack(itemId: "crude-oil", count: 100),
-                ItemStack(itemId: "water", count: 50)
+            fluidInputs: [
+                FluidStack(type: .crudeOil, amount: 50),  // 50L crude oil (10L/s with 5s craft time)
+                FluidStack(type: .water, amount: 25)     // 25L water (5L/s with 5s craft time)
             ],
-            outputs: [
-                ItemStack(itemId: "petroleum-gas", count: 55),
-                ItemStack(itemId: "light-oil", count: 45),
-                ItemStack(itemId: "heavy-oil", count: 25)
+            fluidOutputs: [
+                FluidStack(type: .petroleumGas, amount: 27.5),  // Scaled down proportionally
+                FluidStack(type: .lightOil, amount: 22.5),
+                FluidStack(type: .heavyOil, amount: 12.5)
             ],
             craftTime: 5,
             category: .oilProcessing,
-            order: "b"
+            order: "c"
         ))
 
         register(Recipe(
             id: "light-oil-cracking",
             name: "Light Oil Cracking",
-            inputs: [
-                ItemStack(itemId: "light-oil", count: 30),
-                ItemStack(itemId: "water", count: 30)
+            fluidInputs: [
+                FluidStack(type: .lightOil, amount: 15),  // 15L light oil (3L/s with 5s craft time)
+                FluidStack(type: .water, amount: 15)     // 15L water (3L/s with 5s craft time)
             ],
-            outputs: [ItemStack(itemId: "petroleum-gas", count: 20)],
+            fluidOutputs: [FluidStack(type: .petroleumGas, amount: 10)],  // 10L petroleum gas (2L/s output)
             craftTime: 5,
             category: .chemistry,
             order: "c"
@@ -581,11 +581,11 @@ final class RecipeRegistry {
         register(Recipe(
             id: "heavy-oil-cracking",
             name: "Heavy Oil Cracking",
-            inputs: [
-                ItemStack(itemId: "heavy-oil", count: 40),
-                ItemStack(itemId: "water", count: 30)
+            fluidInputs: [
+                FluidStack(type: .heavyOil, amount: 20),  // 20L heavy oil (4L/s with 5s craft time)
+                FluidStack(type: .water, amount: 15)     // 15L water (3L/s with 5s craft time)
             ],
-            outputs: [ItemStack(itemId: "light-oil", count: 30)],
+            fluidOutputs: [FluidStack(type: .lightOil, amount: 15)],  // 15L light oil (3L/s output)
             craftTime: 5,
             category: .chemistry,
             order: "d"
@@ -595,11 +595,9 @@ final class RecipeRegistry {
         register(Recipe(
             id: "plastic-bar",
             name: "Plastic Bar",
-            inputs: [
-                ItemStack(itemId: "petroleum-gas", count: 20),
-                ItemStack(itemId: "coal", count: 1)
-            ],
+            inputs: [ItemStack(itemId: "coal", count: 1)],
             outputs: [ItemStack(itemId: "plastic-bar", count: 2)],
+            fluidInputs: [FluidStack(type: .petroleumGas, amount: 10)],  // 10L petroleum gas (10L/s with 1s craft time)
             craftTime: 1,
             category: .chemistry,
             order: "e"
@@ -608,11 +606,12 @@ final class RecipeRegistry {
         register(Recipe(
             id: "sulfur",
             name: "Sulfur",
-            inputs: [
-                ItemStack(itemId: "petroleum-gas", count: 30),
-                ItemStack(itemId: "water", count: 30)
-            ],
             outputs: [ItemStack(itemId: "sulfur", count: 2)],
+            fluidInputs: [
+                FluidStack(type: .petroleumGas, amount: 15),  // 15L petroleum gas (15L/s with 1s craft time)
+                FluidStack(type: .water, amount: 15)          // 15L water (15L/s with 1s craft time)
+            ],
+            fluidOutputs: [FluidStack(type: .sulfuricAcid, amount: 25)], // 25L sulfuric acid (25L/s output)
             craftTime: 1,
             category: .chemistry,
             order: "f"
@@ -623,10 +622,10 @@ final class RecipeRegistry {
             name: "Sulfuric Acid",
             inputs: [
                 ItemStack(itemId: "sulfur", count: 5),
-                ItemStack(itemId: "iron-plate", count: 1),
-                ItemStack(itemId: "water", count: 100)
+                ItemStack(itemId: "iron-plate", count: 1)
             ],
-            outputs: [ItemStack(itemId: "sulfuric-acid", count: 50)],
+            fluidInputs: [FluidStack(type: .water, amount: 50)],      // 50L water (50L/s with 1s craft time)
+            fluidOutputs: [FluidStack(type: .sulfuricAcid, amount: 50)], // 50L sulfuric acid (50L/s output)
             craftTime: 1,
             category: .chemistry,
             order: "g"
@@ -635,8 +634,8 @@ final class RecipeRegistry {
         register(Recipe(
             id: "lubricant",
             name: "Lubricant",
-            inputs: [ItemStack(itemId: "heavy-oil", count: 10)],
-            outputs: [ItemStack(itemId: "lubricant", count: 10)],
+            fluidInputs: [FluidStack(type: .heavyOil, amount: 5)],   // 5L heavy oil (5L/s with 1s craft time)
+            fluidOutputs: [FluidStack(type: .lubricant, amount: 5)], // 5L lubricant (5L/s output)
             craftTime: 1,
             category: .chemistry,
             order: "h"
@@ -645,11 +644,9 @@ final class RecipeRegistry {
         register(Recipe(
             id: "solid-fuel",
             name: "Solid Fuel",
-            inputs: [
-                ItemStack(itemId: "coal", count: 1),
-                ItemStack(itemId: "petroleum-gas", count: 20)
-            ],
+            inputs: [ItemStack(itemId: "coal", count: 1)],
             outputs: [ItemStack(itemId: "solid-fuel", count: 1)],
+            fluidInputs: [FluidStack(type: .petroleumGas, amount: 10)],  // 10L petroleum gas (10L/s with 1s craft time)
             craftTime: 2,
             category: .chemistry,
             order: "i"

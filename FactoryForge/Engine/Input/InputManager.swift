@@ -1333,6 +1333,82 @@ final class InputManager: NSObject {
             tooltipLines.append(targetText)
         }
 
+        // Add pipe/fluid information
+        if let pipe = world.get(PipeComponent.self, for: entity) {
+            if let fluidType = pipe.fluidType {
+                let fluidAmountText = String(format: "%.1f", pipe.fluidAmount)
+                let capacityText = String(format: "%.0f", pipe.maxCapacity)
+                let fillPercent = Int((pipe.fluidAmount / pipe.maxCapacity) * 100)
+                tooltipLines.append("Fluid: \(fluidType)")
+                tooltipLines.append("Amount: \(fluidAmountText)/\(capacityText) L (\(fillPercent)%)")
+            } else {
+                tooltipLines.append("Empty")
+            }
+
+            let flowText = String(format: "%.1f", abs(pipe.flowRate))
+            if pipe.flowRate > 0.1 {
+                tooltipLines.append("Flow: \(flowText) L/s")
+            } else if pipe.flowRate < -0.1 {
+                tooltipLines.append("Flow: \(flowText) L/s")
+            } else {
+                tooltipLines.append("No flow")
+            }
+
+            let connectionCount = pipe.connections.count
+            tooltipLines.append("Connections: \(connectionCount)")
+
+            if let networkId = pipe.networkId {
+                tooltipLines.append("Network: \(networkId)")
+            }
+        }
+
+        // Add fluid producer information
+        if let producer = world.get(FluidProducerComponent.self, for: entity) {
+            let productionText = String(format: "%.1f", producer.currentProduction)
+            tooltipLines.append("Producing: \(producer.outputType)")
+            tooltipLines.append("Rate: \(productionText) L/s")
+
+            let connectionCount = producer.connections.count
+            tooltipLines.append("Connections: \(connectionCount)")
+        }
+
+        // Add fluid consumer information
+        if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
+            if let inputType = consumer.inputType {
+                let consumptionText = String(format: "%.1f", consumer.currentConsumption)
+                tooltipLines.append("Consuming: \(inputType)")
+                tooltipLines.append("Rate: \(consumptionText) L/s")
+            }
+
+            let connectionCount = consumer.connections.count
+            tooltipLines.append("Connections: \(connectionCount)")
+        }
+
+        // Add fluid tank information
+        if let tank = world.get(FluidTankComponent.self, for: entity) {
+            let totalCapacity = tank.maxCapacity
+            var totalFluid: Float = 0
+            var fluidTypes = Set<FluidType>()
+
+            for stack in tank.tanks {
+                totalFluid += stack.amount
+                fluidTypes.insert(stack.type)
+            }
+
+            if !tank.tanks.isEmpty {
+                let fillPercent = Int((totalFluid / totalCapacity) * 100)
+                let fluidList = fluidTypes.map { "\($0)" }.joined(separator: ", ")
+                tooltipLines.append("Fluids: \(fluidList)")
+                tooltipLines.append("Capacity: \(totalCapacity) L (\(fillPercent)%)")
+            } else {
+                tooltipLines.append("Empty tank")
+                tooltipLines.append("Capacity: \(totalCapacity) L")
+            }
+
+            let connectionCount = tank.connections.count
+            tooltipLines.append("Connections: \(connectionCount)")
+        }
+
         // Join all lines with newlines
         return tooltipLines.joined(separator: "\n")
     }

@@ -55,7 +55,7 @@ final class SpriteRenderer {
         queuedSprites.append(sprite)
     }
     
-    func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, world: World, camera: Camera2D, selectedEntity: Entity?, deltaTime: Float) {
+    func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, world: World, camera: Camera2D, selectedEntity: Entity?, deltaTime: Float, showFluidDebug: Bool = false) {
         frameCount += 1
 
         // Collect sprites from world entities
@@ -190,6 +190,14 @@ final class SpriteRenderer {
 
         // Add progress bars for crafting machines (furnaces and assemblers)
         renderCraftingProgressBars(world: world, visibleRect: visibleRect, camera: camera)
+
+        // Add fluid visualizations for pipes
+        renderFluidVisualizations(world: world, visibleRect: visibleRect, camera: camera)
+
+        // Add fluid network debug visualizations
+        if showFluidDebug {
+            renderFluidNetworkDebug(world: world, visibleRect: visibleRect, camera: camera)
+        }
 
         guard !queuedSprites.isEmpty else { return }
 
@@ -372,6 +380,318 @@ final class SpriteRenderer {
             if miner.progress > 0 {
                 queuedSprites.append(progressBar)
             }
+        }
+    }
+
+    private func renderFluidVisualizations(world: World, visibleRect: Rect, camera: Camera2D) {
+        let cameraCenter = camera.position
+        let maxRenderDistance = camera.zoom * 15.0
+
+        // Query entities with PipeComponent and SpriteComponent
+        for entity in world.query(PipeComponent.self, SpriteComponent.self) {
+            guard let position = world.get(PositionComponent.self, for: entity),
+                  let pipe = world.get(PipeComponent.self, for: entity),
+                  let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
+
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+
+            // Distance-based culling for fluid visualizations
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
+
+            // Render fluid level indicator
+            renderFluidLevel(pipe: pipe, position: worldPos, sprite: sprite)
+
+            // Render connection indicators (only when zoomed in enough)
+            if camera.zoom > 0.8 {
+                renderPipeConnections(pipe: pipe, tilePosition: position.tilePosition, sprite: sprite, world: world)
+            }
+
+            // Render flow direction indicator if there's significant flow
+            if abs(pipe.flowRate) > 0.1 {
+                renderFlowDirection(pipe: pipe, position: worldPos, sprite: sprite)
+            }
+        }
+    }
+
+    private func renderFluidLevel(pipe: PipeComponent, position: Vector2, sprite: SpriteComponent) {
+        guard pipe.fluidType != nil && pipe.maxCapacity > 0 else { return }
+
+        let fillLevel = pipe.fluidAmount / pipe.maxCapacity
+        guard fillLevel > 0.01 else { return } // Don't render very low levels
+
+        // Position fluid level slightly above the pipe sprite
+        let fluidPos = position + Vector2(0, sprite.size.y * 0.4)
+
+        // Fluid bar dimensions
+        let barWidth: Float = sprite.size.x * 0.7  // 70% of pipe width
+        let barHeight: Float = sprite.size.y * 0.15 // Thin bar
+        let filledWidth = barWidth * fillLevel
+
+        // Get fluid color based on type
+        let fluidColor = getFluidColor(pipe.fluidType!)
+
+        // Background bar (dark version of fluid color)
+        let backgroundBar = SpriteInstance(
+            position: fluidPos,
+            size: Vector2(barWidth, barHeight),
+            rotation: 0,
+            textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+            color: fluidColor.withAlpha(0.3), // Semi-transparent background
+            layer: .ui
+        )
+
+        // Fluid level bar
+        let fluidBar = SpriteInstance(
+            position: fluidPos + Vector2(-barWidth/2 + filledWidth/2, 0), // Left-aligned fill
+            size: Vector2(filledWidth, barHeight),
+            rotation: 0,
+            textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+            color: fluidColor.withAlpha(0.8), // Semi-transparent fluid
+            layer: .ui
+        )
+
+        queuedSprites.append(backgroundBar)
+        queuedSprites.append(fluidBar)
+    }
+
+    private func renderPipeConnections(pipe: PipeComponent, tilePosition: IntVector2, sprite: SpriteComponent, world: World) {
+        // Render small dots at connection points
+        let connectionRadius: Float = sprite.size.x * 0.1
+        let connectionOffset: Float = sprite.size.x * 0.35
+
+        // Check each direction for connections
+        let directions = [
+            (Vector2(0, connectionOffset), Direction.north),   // North
+            (Vector2(connectionOffset, 0), Direction.east),   // East
+            (Vector2(0, -connectionOffset), Direction.south),  // South
+            (Vector2(-connectionOffset, 0), Direction.west)   // West
+        ]
+
+        for (offset, direction) in directions {
+            let hasConnection = pipe.connections.contains { connectedEntity in
+                if let connectedPos = world.get(PositionComponent.self, for: connectedEntity)?.tilePosition {
+                    // Check if the connected entity is in the expected direction
+                    let delta = connectedPos - tilePosition
+                    switch direction {
+                    case .north: return delta.y > 0 && delta.x == 0
+                    case .east: return delta.x > 0 && delta.y == 0
+                    case .south: return delta.y < 0 && delta.x == 0
+                    case .west: return delta.x < 0 && delta.y == 0
+                    }
+                }
+                return false
+            }
+
+            if hasConnection {
+                let worldPosition = tilePosition.toVector2 + Vector2(0.5, 0.5) // Convert tile position to world position
+                let connectionPos = worldPosition + offset
+                let connectionDot = SpriteInstance(
+                    position: connectionPos,
+                    size: Vector2(connectionRadius * 2, connectionRadius * 2),
+                    rotation: 0,
+                    textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+                    color: Color(r: 0.8, g: 0.8, b: 0.2, a: 0.9), // Yellow connection indicator
+                    layer: .ui
+                )
+                queuedSprites.append(connectionDot)
+            }
+        }
+    }
+
+    private func renderFlowDirection(pipe: PipeComponent, position: Vector2, sprite: SpriteComponent) {
+        // Render a small arrow indicating flow direction
+        let arrowSize: Float = sprite.size.x * 0.2
+        let arrowOffset: Float = sprite.size.x * 0.3
+
+        // Determine flow direction based on connections and pressure gradients
+        // For now, use pipe direction as flow direction
+        let flowDirection = pipe.direction
+        let arrowOffsetVector = flowDirection.vector * arrowOffset
+        let arrowPos = position + arrowOffsetVector
+
+        // Rotate arrow based on flow direction
+        let rotation: Float
+        switch flowDirection {
+        case .north: rotation = 0
+        case .east: rotation = .pi / 2
+        case .south: rotation = .pi
+        case .west: rotation = 3 * .pi / 2
+        }
+
+        // Create arrow using a triangle shape (simplified as a small rotated rectangle)
+        let arrow = SpriteInstance(
+            position: arrowPos,
+            size: Vector2(arrowSize, arrowSize * 0.5),
+            rotation: rotation,
+            textureRect: Rect(x: 0, y: 0, width: 0, height: 0), // Solid color
+            color: Color(r: 0.9, g: 0.9, b: 0.9, a: 0.8), // Light gray arrow
+            layer: .ui
+        )
+
+        queuedSprites.append(arrow)
+    }
+
+    private func renderFluidNetworkDebug(world: World, visibleRect: Rect, camera: Camera2D) {
+        // This method will be implemented to show network debugging information
+        // For now, we'll show network boundaries and basic info
+
+        // Get fluid network system (assuming it's available through the world or passed as parameter)
+        // For now, we'll create a simple visualization of pipe networks
+        renderNetworkBoundaries(world: world, visibleRect: visibleRect, camera: camera)
+        renderPressureVisualization(world: world, visibleRect: visibleRect, camera: camera)
+    }
+
+    private func renderNetworkBoundaries(world: World, visibleRect: Rect, camera: Camera2D) {
+        let cameraCenter = camera.position
+        let maxRenderDistance = camera.zoom * 20.0
+
+        // Group pipes by network (simplified - in real implementation we'd use FluidNetworkSystem)
+        var networkGroups: [Int: [Entity]] = [:]
+
+        for entity in world.query(PipeComponent.self) {
+            guard let position = world.get(PositionComponent.self, for: entity),
+                  let pipe = world.get(PipeComponent.self, for: entity) else { continue }
+
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
+
+            let networkId = pipe.networkId ?? 0
+            if networkGroups[networkId] == nil {
+                networkGroups[networkId] = []
+            }
+            networkGroups[networkId]?.append(entity)
+        }
+
+        // Render network boundary overlays
+        let solidRect = textureAtlas.getTextureRect(for: "solid_white")
+        for (networkId, pipes) in networkGroups {
+            if pipes.isEmpty { continue }
+
+            // Create a color based on network ID for visual distinction
+            let networkColors: [Color] = [
+                Color(r: 1.0, g: 0.2, b: 0.2, a: 0.2), // Red
+                Color(r: 0.2, g: 1.0, b: 0.2, a: 0.2), // Green
+                Color(r: 0.2, g: 0.2, b: 1.0, a: 0.2), // Blue
+                Color(r: 1.0, g: 1.0, b: 0.2, a: 0.2), // Yellow
+                Color(r: 1.0, g: 0.2, b: 1.0, a: 0.2), // Magenta
+                Color(r: 0.2, g: 1.0, b: 1.0, a: 0.2), // Cyan
+                Color(r: 1.0, g: 0.5, b: 0.2, a: 0.2), // Orange
+                Color(r: 0.5, g: 0.2, b: 1.0, a: 0.2), // Purple
+                Color(r: 0.2, g: 0.5, b: 0.2, a: 0.2), // Dark Green
+                Color(r: 0.5, g: 0.5, b: 0.5, a: 0.2)  // Gray
+            ]
+            let networkColor = networkColors[networkId % networkColors.count]
+
+            // Render a subtle overlay for each pipe in the network
+            for pipeEntity in pipes {
+                guard let position = world.get(PositionComponent.self, for: pipeEntity) else { continue }
+                let worldPos = position.worldPosition
+
+                // Render network boundary indicator
+                let boundarySize: Float = 1.5 // Slightly larger than pipe
+                let boundary = SpriteInstance(
+                    position: worldPos,
+                    size: Vector2(boundarySize, boundarySize),
+                    textureRect: solidRect,
+                    color: networkColor,
+                    layer: .groundDecoration  // Behind buildings but above ground
+                )
+                queuedSprites.append(boundary)
+            }
+        }
+    }
+
+    private func renderPressureVisualization(world: World, visibleRect: Rect, camera: Camera2D) {
+        let cameraCenter = camera.position
+        let maxRenderDistance = camera.zoom * 15.0
+
+        // Render pressure indicators for pipes
+        for entity in world.query(PipeComponent.self) {
+            guard let position = world.get(PositionComponent.self, for: entity),
+                  let pipe = world.get(PipeComponent.self, for: entity) else { continue }
+
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
+
+            // Calculate pressure visualization (simplified)
+            let fillRatio = pipe.maxCapacity > 0 ? pipe.fluidAmount / pipe.maxCapacity : 0
+            let pressure = fillRatio * 100.0 // Simplified pressure calculation
+
+            // Pressure color coding: low = blue, medium = yellow, high = red
+            let pressureColor: Color
+            if pressure < 30 {
+                pressureColor = Color(r: 0.2, g: 0.4, b: 0.9, a: 0.6) // Blue for low pressure
+            } else if pressure < 70 {
+                pressureColor = Color(r: 0.9, g: 0.9, b: 0.2, a: 0.6) // Yellow for medium pressure
+            } else {
+                pressureColor = Color(r: 0.9, g: 0.2, b: 0.2, a: 0.6) // Red for high pressure
+            }
+
+            let solidRect = textureAtlas.getTextureRect(for: "solid_white")
+
+            // Render pressure overlay
+            let pressureSize: Float = 0.8
+            let pressureIndicator = SpriteInstance(
+                position: worldPos + Vector2(0, 0.6), // Above the pipe
+                size: Vector2(pressureSize, pressureSize * 0.3),
+                textureRect: solidRect,
+                color: pressureColor,
+                layer: .ui
+            )
+            queuedSprites.append(pressureIndicator)
+
+            // Render flow direction indicator if there's significant flow
+            if abs(pipe.flowRate) > 1.0 {
+                renderFlowDebugIndicator(pipe: pipe, position: worldPos + Vector2(0.6, 0), solidRect: solidRect)
+            }
+        }
+    }
+
+    private func renderFlowDebugIndicator(pipe: PipeComponent, position: Vector2, solidRect: Rect) {
+        // Render flow rate as a bar indicator
+        let flowRatio = min(abs(pipe.flowRate) / 50.0, 1.0) // Normalize to 0-1
+        let flowColor = pipe.flowRate > 0 ?
+            Color(r: 0.2, g: 0.9, b: 0.2, a: 0.8) : // Green for positive flow
+            Color(r: 0.9, g: 0.2, b: 0.2, a: 0.8)   // Red for negative flow
+
+        let barWidth: Float = 0.3
+        let barHeight: Float = flowRatio * 0.8
+        let flowBar = SpriteInstance(
+            position: position + Vector2(0, barHeight/2),
+            size: Vector2(barWidth, barHeight),
+            textureRect: solidRect,
+            color: flowColor,
+            layer: .ui
+        )
+        queuedSprites.append(flowBar)
+    }
+
+    private func getFluidColor(_ fluidType: FluidType) -> Color {
+        switch fluidType {
+        case .water:
+            return Color(r: 0.2, g: 0.4, b: 0.9, a: 1.0)  // Blue
+        case .steam:
+            return Color(r: 0.8, g: 0.8, b: 0.9, a: 0.7)  // Light blue-gray
+        case .crudeOil:
+            return Color(r: 0.3, g: 0.2, b: 0.1, a: 1.0)  // Dark brown
+        case .heavyOil:
+            return Color(r: 0.4, g: 0.3, b: 0.2, a: 1.0)  // Brown
+        case .lightOil:
+            return Color(r: 0.5, g: 0.4, b: 0.2, a: 1.0)  // Light brown
+        case .petroleumGas:
+            return Color(r: 0.9, g: 0.8, b: 0.2, a: 0.6)  // Yellow gas
+        case .sulfuricAcid:
+            return Color(r: 0.9, g: 0.9, b: 0.1, a: 1.0)  // Yellow
+        case .lubricant:
+            return Color(r: 0.6, g: 0.5, b: 0.3, a: 1.0)  // Tan
         }
     }
 

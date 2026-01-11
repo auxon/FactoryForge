@@ -4,6 +4,108 @@ import UIKit
 // Use UIKit's UIButton explicitly to avoid conflict with custom UIButton
 typealias UIKitButton = UIKit.UIButton
 
+/// Visual indicator for fluid inputs/outputs in machine UI
+final class FluidIndicator {
+    let frame: Rect
+    let isInput: Bool
+    var fluidType: FluidType?
+    var amount: Float = 0
+    var maxAmount: Float = 0
+    var hasConnection: Bool = false
+
+    init(frame: Rect, isInput: Bool) {
+        self.frame = frame
+        self.isInput = isInput
+    }
+
+    func render(renderer: MetalRenderer) {
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+
+        // Background circle
+        let bgColor = hasConnection ? Color(r: 0.3, g: 0.3, b: 0.3, a: 0.8) : Color(r: 0.2, g: 0.2, b: 0.2, a: 0.5)
+        renderer.queueSprite(SpriteInstance(
+            position: frame.center,
+            size: frame.size,
+            textureRect: solidRect,
+            color: bgColor,
+            layer: .ui
+        ))
+
+        // Fluid fill indicator (semi-circle or fill level)
+        if let fluidType = fluidType, maxAmount > 0 {
+            let fillLevel = amount / maxAmount
+            let fluidColor = getFluidColor(fluidType)
+
+            // Create a fill indicator - for inputs show as a ring, for outputs show as filled
+            if isInput {
+                // Input: show connection status with colored ring
+                if hasConnection {
+                    let ringThickness: Float = 3
+                    let innerSize = frame.size - Vector2(ringThickness * 2, ringThickness * 2)
+                    renderer.queueSprite(SpriteInstance(
+                        position: frame.center,
+                        size: innerSize,
+                        textureRect: solidRect,
+                        color: fluidColor.withAlpha(0.7),
+                        layer: .ui
+                    ))
+                }
+            } else {
+                // Output: show fill level
+                let fillHeight = frame.size.y * fillLevel
+                let fillSize = Vector2(frame.size.x, fillHeight)
+                let fillPos = Vector2(frame.center.x, frame.minY + fillHeight/2)
+
+                renderer.queueSprite(SpriteInstance(
+                    position: fillPos,
+                    size: fillSize,
+                    textureRect: solidRect,
+                    color: fluidColor.withAlpha(0.8),
+                    layer: .ui
+                ))
+            }
+        }
+
+        // Connection indicator dot
+        if hasConnection {
+            let dotSize: Float = 6
+            let dotOffset: Float = frame.size.x * 0.35
+            let dotPos = isInput ?
+                Vector2(frame.center.x - dotOffset, frame.center.y) : // Left side for inputs
+                Vector2(frame.center.x + dotOffset, frame.center.y)   // Right side for outputs
+
+            renderer.queueSprite(SpriteInstance(
+                position: dotPos,
+                size: Vector2(dotSize, dotSize),
+                textureRect: solidRect,
+                color: Color(r: 0.9, g: 0.9, b: 0.2, a: 1.0), // Yellow dot
+                layer: .ui
+            ))
+        }
+    }
+
+    private func getFluidColor(_ fluidType: FluidType) -> Color {
+        switch fluidType {
+        case .water:
+            return Color(r: 0.2, g: 0.4, b: 0.9, a: 1.0)  // Blue
+        case .steam:
+            return Color(r: 0.8, g: 0.8, b: 0.9, a: 0.7)  // Light blue-gray
+        case .crudeOil:
+            return Color(r: 0.3, g: 0.2, b: 0.1, a: 1.0)  // Dark brown
+        case .heavyOil:
+            return Color(r: 0.4, g: 0.3, b: 0.2, a: 1.0)  // Brown
+        case .lightOil:
+            return Color(r: 0.5, g: 0.4, b: 0.2, a: 1.0)  // Light brown
+        case .petroleumGas:
+            return Color(r: 0.9, g: 0.8, b: 0.2, a: 0.6)  // Yellow gas
+        case .sulfuricAcid:
+            return Color(r: 0.9, g: 0.9, b: 0.1, a: 1.0)  // Yellow
+        case .lubricant:
+            return Color(r: 0.6, g: 0.5, b: 0.3, a: 1.0)  // Tan
+        }
+    }
+}
+
 /// UI for interacting with machines (assemblers, furnaces, etc.)
 final class MachineUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?
@@ -12,6 +114,10 @@ final class MachineUI: UIPanel_Base {
     private var inputSlots: [InventorySlot] = []
     private var outputSlots: [InventorySlot] = []
     private var fuelSlots: [InventorySlot] = []
+
+    // Fluid input/output indicators
+    private var fluidInputIndicators: [FluidIndicator] = []
+    private var fluidOutputIndicators: [FluidIndicator] = []
 
     // Scrollable recipe area using UIKit
     private var recipeScrollView: UIScrollView?
@@ -86,6 +192,8 @@ final class MachineUI: UIPanel_Base {
         inputCountLabels.removeAll()
         outputCountLabels.removeAll()
         fuelCountLabels.removeAll()
+        fluidInputIndicators.removeAll()
+        fluidOutputIndicators.removeAll()
 
         // Get machine building definition
         guard let entity = currentEntity,
@@ -182,6 +290,52 @@ final class MachineUI: UIPanel_Base {
             label.textAlignment = .center
             label.frame = CGRect(x: CGFloat(x - slotSize/2 - 25), y: CGFloat(y + slotSize/2 + 2), width: 20, height: 12)
             outputCountLabels.append(label)
+        }
+
+        // Setup fluid indicators based on machine type
+        setupFluidIndicators()
+    }
+
+    private func setupFluidIndicators() {
+        guard let entity = currentEntity, let gameLoop = gameLoop else { return }
+
+        let indicatorSize: Float = 24 * UIScale
+        let indicatorSpacing: Float = 8 * UIScale
+
+        // Check for fluid producers (boilers, oil wells, water pumps)
+        if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            // Create output fluid indicator (right side, above outputs)
+            let outputX = frame.center.x + 200 * UIScale + indicatorSize/2
+            let outputY = frame.center.y - 120 * UIScale
+
+            let outputFrame = Rect(center: Vector2(outputX, outputY), size: Vector2(indicatorSize, indicatorSize))
+            let outputIndicator = FluidIndicator(frame: outputFrame, isInput: false)
+            fluidOutputIndicators.append(outputIndicator)
+        }
+
+        // Check for fluid consumers (steam engines, chemical plants with fluid inputs)
+        if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            // Create input fluid indicator (left side, above inputs)
+            let inputX = frame.center.x - 200 * UIScale - indicatorSize/2
+            let inputY = frame.center.y - 120 * UIScale
+
+            let inputFrame = Rect(center: Vector2(inputX, inputY), size: Vector2(indicatorSize, indicatorSize))
+            let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
+            fluidInputIndicators.append(inputIndicator)
+        }
+
+        // Check for fluid tanks (chemical plants)
+        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            // Add tank indicators below the main input/output indicators
+            var tankY = frame.center.y - 100 * UIScale
+            for (index, _) in tank.tanks.enumerated() {
+                if index >= 4 { break } // Limit to 4 visible tanks
+
+                let tankX = frame.center.x - 150 * UIScale + Float(index) * (indicatorSize + indicatorSpacing)
+                let tankFrame = Rect(center: Vector2(tankX, tankY), size: Vector2(indicatorSize, indicatorSize))
+                let tankIndicator = FluidIndicator(frame: tankFrame, isInput: false) // Tanks show as outputs
+                fluidOutputIndicators.append(tankIndicator)
+            }
         }
     }
 
@@ -675,7 +829,44 @@ final class MachineUI: UIPanel_Base {
     func updateMachine(_ entity: Entity) {
         setupSlotsForMachine(entity)
         updateCountLabels(entity)
+        updateFluidIndicators(entity)
         positionCountLabels()
+    }
+
+    private func updateFluidIndicators(_ entity: Entity) {
+        guard let gameLoop = gameLoop else { return }
+
+        // Update fluid producers (first output indicator)
+        if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity),
+           fluidOutputIndicators.count > 0 {
+            fluidOutputIndicators[0].fluidType = producer.outputType
+            fluidOutputIndicators[0].amount = producer.currentProduction * 0.1 // Show recent production rate
+            fluidOutputIndicators[0].maxAmount = producer.productionRate
+            fluidOutputIndicators[0].hasConnection = !producer.connections.isEmpty
+        }
+
+        // Update fluid consumers (first input indicator)
+        if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity),
+           fluidInputIndicators.count > 0 {
+            fluidInputIndicators[0].fluidType = consumer.inputType
+            fluidInputIndicators[0].amount = consumer.currentConsumption * 0.1 // Show recent consumption rate
+            fluidInputIndicators[0].maxAmount = consumer.consumptionRate
+            fluidInputIndicators[0].hasConnection = !consumer.connections.isEmpty
+        }
+
+        // Update fluid tanks (remaining output indicators)
+        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            let tankIndicatorStart = gameLoop.world.has(FluidProducerComponent.self, for: entity) ? 1 : 0
+            for (index, stack) in tank.tanks.enumerated() {
+                let indicatorIndex = tankIndicatorStart + index
+                if indicatorIndex < fluidOutputIndicators.count {
+                    fluidOutputIndicators[indicatorIndex].fluidType = stack.type
+                    fluidOutputIndicators[indicatorIndex].amount = stack.amount
+                    fluidOutputIndicators[indicatorIndex].maxAmount = stack.maxAmount
+                    fluidOutputIndicators[indicatorIndex].hasConnection = !tank.connections.isEmpty
+                }
+            }
+        }
     }
 
     override func update(deltaTime: Float) {
@@ -752,6 +943,11 @@ final class MachineUI: UIPanel_Base {
         // Render rocket launch button
         if let button = launchButton {
             button.render(renderer: renderer)
+        }
+
+        // Render fluid indicators
+        for indicator in fluidInputIndicators + fluidOutputIndicators {
+            indicator.render(renderer: renderer)
         }
     }
 

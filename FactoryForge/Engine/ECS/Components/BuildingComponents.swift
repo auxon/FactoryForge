@@ -554,12 +554,191 @@ class ChestComponent: BuildingComponent {
 
 // MARK: - Fluids
 
+/// Component for fluid producers (oil wells, boilers, water pumps)
+class FluidProducerComponent: BuildingComponent {
+    var outputType: FluidType
+    var productionRate: Float  // L/s
+    var currentProduction: Float
+    var powerConsumption: Float
+    var connections: [Entity] = []
+    var networkId: Int?
+
+    init(buildingId: String, outputType: FluidType, productionRate: Float, powerConsumption: Float = 0) {
+        self.outputType = outputType
+        self.productionRate = productionRate
+        self.currentProduction = 0
+        self.powerConsumption = powerConsumption
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, outputType, productionRate, currentProduction, powerConsumption, connections, networkId
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        outputType = try container.decode(FluidType.self, forKey: .outputType)
+        productionRate = try container.decode(Float.self, forKey: .productionRate)
+        currentProduction = try container.decode(Float.self, forKey: .currentProduction)
+        powerConsumption = try container.decode(Float.self, forKey: .powerConsumption)
+        connections = try container.decodeIfPresent([Entity].self, forKey: .connections) ?? []
+        networkId = try container.decodeIfPresent(Int.self, forKey: .networkId)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(outputType, forKey: .outputType)
+        try container.encode(productionRate, forKey: .productionRate)
+        try container.encode(currentProduction, forKey: .currentProduction)
+        try container.encode(powerConsumption, forKey: .powerConsumption)
+        try container.encode(connections, forKey: .connections)
+        try container.encode(networkId, forKey: .networkId)
+        try super.encode(to: encoder)
+    }
+}
+
+/// Component for fluid consumers (steam engines, chemical plants)
+class FluidConsumerComponent: BuildingComponent {
+    var inputType: FluidType?
+    var consumptionRate: Float  // L/s
+    var currentConsumption: Float
+    var efficiency: Float  // 0-1
+    var connections: [Entity] = []
+    var networkId: Int?
+
+    init(buildingId: String, inputType: FluidType? = nil, consumptionRate: Float, efficiency: Float = 1.0) {
+        self.inputType = inputType
+        self.consumptionRate = consumptionRate
+        self.currentConsumption = 0
+        self.efficiency = efficiency
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, inputType, consumptionRate, currentConsumption, efficiency, connections, networkId
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        inputType = try container.decodeIfPresent(FluidType.self, forKey: .inputType)
+        consumptionRate = try container.decode(Float.self, forKey: .consumptionRate)
+        currentConsumption = try container.decode(Float.self, forKey: .currentConsumption)
+        efficiency = try container.decode(Float.self, forKey: .efficiency)
+        connections = try container.decodeIfPresent([Entity].self, forKey: .connections) ?? []
+        networkId = try container.decodeIfPresent(Int.self, forKey: .networkId)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(inputType, forKey: .inputType)
+        try container.encode(consumptionRate, forKey: .consumptionRate)
+        try container.encode(currentConsumption, forKey: .currentConsumption)
+        try container.encode(efficiency, forKey: .efficiency)
+        try container.encode(connections, forKey: .connections)
+        try container.encode(networkId, forKey: .networkId)
+        try super.encode(to: encoder)
+    }
+}
+
+/// Component for fluid pumps (directional fluid movement)
+class FluidPumpComponent: BuildingComponent {
+    var inputConnection: Entity?
+    var outputConnection: Entity?
+    var flowRate: Float  // L/s
+    var powerConsumption: Float
+    var isActive: Bool
+    var connections: [Entity] = []
+    var networkId: Int?
+
+    init(buildingId: String, flowRate: Float, powerConsumption: Float = 0) {
+        self.flowRate = flowRate
+        self.powerConsumption = powerConsumption
+        self.isActive = true
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, inputConnection, outputConnection, flowRate, powerConsumption, isActive, connections, networkId
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        inputConnection = try container.decodeIfPresent(Entity.self, forKey: .inputConnection)
+        outputConnection = try container.decodeIfPresent(Entity.self, forKey: .outputConnection)
+        flowRate = try container.decode(Float.self, forKey: .flowRate)
+        powerConsumption = try container.decode(Float.self, forKey: .powerConsumption)
+        isActive = try container.decode(Bool.self, forKey: .isActive)
+        connections = try container.decodeIfPresent([Entity].self, forKey: .connections) ?? []
+        networkId = try container.decodeIfPresent(Int.self, forKey: .networkId)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(inputConnection, forKey: .inputConnection)
+        try container.encode(outputConnection, forKey: .outputConnection)
+        try container.encode(flowRate, forKey: .flowRate)
+        try container.encode(powerConsumption, forKey: .powerConsumption)
+        try container.encode(isActive, forKey: .isActive)
+        try container.encode(connections, forKey: .connections)
+        try container.encode(networkId, forKey: .networkId)
+        try super.encode(to: encoder)
+    }
+}
+
+/// Component for fluid tanks (storage tanks, chemical plant tanks)
+class FluidTankComponent: BuildingComponent {
+    var tanks: [FluidStack] = []
+    var maxCapacity: Float
+    var connections: [Entity] = []
+    var networkId: Int?
+
+    init(buildingId: String, maxCapacity: Float) {
+        self.maxCapacity = maxCapacity
+        super.init(buildingId: buildingId)
+    }
+
+    // MARK: - Codable conformance
+    enum CodingKeys: String, CodingKey {
+        case buildingId, tanks, maxCapacity, connections, networkId
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        tanks = try container.decode([FluidStack].self, forKey: .tanks)
+        maxCapacity = try container.decode(Float.self, forKey: .maxCapacity)
+        connections = try container.decodeIfPresent([Entity].self, forKey: .connections) ?? []
+        networkId = try container.decodeIfPresent(Int.self, forKey: .networkId)
+        try super.init(from: decoder)
+    }
+
+    override func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(tanks, forKey: .tanks)
+        try container.encode(maxCapacity, forKey: .maxCapacity)
+        try container.encode(connections, forKey: .connections)
+        try container.encode(networkId, forKey: .networkId)
+        try super.encode(to: encoder)
+    }
+}
+
 /// Component for pipes
 class PipeComponent: BuildingComponent {
     var direction: Direction
-    var fluidType: String?
+    var fluidType: FluidType?
     var fluidAmount: Float
     var maxCapacity: Float
+
+    // New properties for fluid mechanics
+    var connections: [Entity] = []  // Connected pipes and buildings
+    var flowRate: Float = 0  // Current flow rate L/s
+    var pressure: Float = 0  // System pressure
+    var networkId: Int?  // Which fluid network this belongs to
 
     init(buildingId: String, direction: Direction, maxCapacity: Float = 100) {
         self.direction = direction
@@ -571,15 +750,22 @@ class PipeComponent: BuildingComponent {
 
     // MARK: - Codable conformance
     enum CodingKeys: String, CodingKey {
-        case buildingId, direction, fluidType, fluidAmount, maxCapacity
+        case buildingId, direction, fluidType, fluidAmount, maxCapacity, connections, flowRate, pressure, networkId
     }
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         direction = try container.decode(Direction.self, forKey: .direction)
-        fluidType = try container.decodeIfPresent(String.self, forKey: .fluidType)
+        fluidType = try container.decodeIfPresent(FluidType.self, forKey: .fluidType)
         fluidAmount = try container.decode(Float.self, forKey: .fluidAmount)
         maxCapacity = try container.decode(Float.self, forKey: .maxCapacity)
+
+        // New properties with backward compatibility
+        connections = try container.decodeIfPresent([Entity].self, forKey: .connections) ?? []
+        flowRate = try container.decodeIfPresent(Float.self, forKey: .flowRate) ?? 0
+        pressure = try container.decodeIfPresent(Float.self, forKey: .pressure) ?? 0
+        networkId = try container.decodeIfPresent(Int.self, forKey: .networkId)
+
         try super.init(from: decoder)
     }
 
@@ -589,6 +775,10 @@ class PipeComponent: BuildingComponent {
         try container.encode(fluidType, forKey: .fluidType)
         try container.encode(fluidAmount, forKey: .fluidAmount)
         try container.encode(maxCapacity, forKey: .maxCapacity)
+        try container.encode(connections, forKey: .connections)
+        try container.encode(flowRate, forKey: .flowRate)
+        try container.encode(pressure, forKey: .pressure)
+        try container.encode(networkId, forKey: .networkId)
         try super.encode(to: encoder)
     }
 }

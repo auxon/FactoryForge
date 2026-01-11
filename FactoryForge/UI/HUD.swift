@@ -32,6 +32,7 @@ final class HUD {
     var onOpenMachinePressed: (() -> Void)? // Called when open button is pressed
     var onConfigureInserterPressed: (() -> Void)? // Called when configure button is pressed (for inserters)
     var onExitBuildModePressed: (() -> Void)? // Called when exit build mode button is pressed
+    var onFluidDebugPressed: (() -> Void)? // Called when fluid debug button is pressed
     
     // Selected building
     var selectedEntity: Entity? {
@@ -255,6 +256,9 @@ final class HUD {
         // Render menu button (top-right corner)
         renderMenuButton(renderer: renderer)
 
+        // Render fluid debug button (top-left corner, only in debug builds)
+        renderFluidDebugButton(renderer: renderer)
+
         // Render build mode exit button (only when in build mode)
         renderBuildModeExitButton(renderer: renderer)
 
@@ -280,6 +284,23 @@ final class HUD {
         let buttonY = bottomMargin + buttonSize / 2
 
         renderButton(renderer: renderer, position: Vector2(buttonX, buttonY), textureId: "menu", callback: onMenuPressed)
+    }
+
+    private func renderFluidDebugButton(renderer: MetalRenderer) {
+        // Debug button in top-left corner (small, for development)
+        let debugButtonSize: Float = 30 * scale
+        let buttonX = debugButtonSize / 2 + 5 * scale
+        let buttonY = debugButtonSize / 2 + 5 * scale
+
+        // Render a small colored square as debug button
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        renderer.queueSprite(SpriteInstance(
+            position: Vector2(buttonX, buttonY),
+            size: Vector2(debugButtonSize, debugButtonSize),
+            textureRect: solidRect,
+            color: Color(r: 0.9, g: 0.9, b: 0.2, a: 0.8), // Yellow debug button
+            layer: .ui
+        ))
     }
 
     private func renderBuildModeExitButton(renderer: MetalRenderer) {
@@ -330,33 +351,34 @@ final class HUD {
             return
         }
         
-        // Check if selected entity is a belt or inserter
+        // Check if selected entity is a belt, pipe, or inserter
         let isBelt = gameLoop?.world.has(BeltComponent.self, for: selectedEntity) ?? false
+        let isPipe = gameLoop?.world.has(PipeComponent.self, for: selectedEntity) ?? false
         let isInserter = gameLoop?.world.has(InserterComponent.self, for: selectedEntity) ?? false
         let hasMachine = hasMachineUI(for: selectedEntity)
-        
+
         // Position buttons on the right side for thumb accessibility
         // Place them vertically stacked, starting from about 1/3 down the screen
         let rightMargin: Float = bottomMargin + buttonSize / 2
         let startY: Float = screenSize.y * 0.33 // Start at 1/3 down the screen
-        let spacing: Float = buttonSize + buttonSpacing
-        
+        let spacing: Float = buttonSize + buttonSize
+
         // Move button (top)
         let moveButtonY = startY
         let moveButtonX = screenSize.x - rightMargin
         renderButton(renderer: renderer, position: Vector2(moveButtonX, moveButtonY), textureId: "move", callback: onMoveBuildingPressed)
-        
+
         // Delete button (below move button)
         let deleteButtonY = startY + spacing
         let deleteButtonX = screenSize.x - rightMargin
         // Use a red tint for delete button
         renderDeleteButton(renderer: renderer, position: Vector2(deleteButtonX, deleteButtonY))
-        
+
         // Calculate next button Y position (below delete, or below rotate if it exists)
         var nextButtonY = startY + spacing * 2
-        
-        // Rotate button (below delete button, only for belts)
-        if isBelt {
+
+        // Rotate button (below delete button, only for belts and pipes)
+        if isBelt || isPipe {
             let rotateButtonY = nextButtonY
             let rotateButtonX = screenSize.x - rightMargin
             renderButton(renderer: renderer, position: Vector2(rotateButtonX, rotateButtonY), textureId: "rotate", callback: onRotateBuildingPressed)
@@ -693,6 +715,15 @@ final class HUD {
             return true
         }
 
+        // Check fluid debug button (top-left corner)
+        let debugButtonSize: Float = 30 * scale
+        let debugButtonX = debugButtonSize / 2 + 5 * scale
+        let debugButtonY = debugButtonSize / 2 + 5 * scale
+        if checkButtonTap(at: position, buttonPos: Vector2(debugButtonX, debugButtonY)) {
+            onFluidDebugPressed?()
+            return true
+        }
+
         // Check build mode exit button (only when in build mode)
         if let inputManager = inputManager, inputManager.buildMode != .none {
             let exitButtonX = screenSize.x - bottomMargin - buttonSize / 2 - buttonSize - buttonSpacing
@@ -724,10 +755,11 @@ final class HUD {
                 return true
             }
 
-            // Rotate button (only for belts)
+            // Rotate button (only for belts and pipes)
             var nextButtonY = startY + spacing * 2
             if let selectedEntity = selectedEntity,
-               gameLoop?.world.has(BeltComponent.self, for: selectedEntity) ?? false {
+               (gameLoop?.world.has(BeltComponent.self, for: selectedEntity) ?? false) ||
+               (gameLoop?.world.has(PipeComponent.self, for: selectedEntity) ?? false) {
                 let rotateButtonX = screenSize.x - rightMargin
                 let rotateButtonY = nextButtonY
                 if checkButtonTap(at: position, buttonPos: Vector2(rotateButtonX, rotateButtonY)) {

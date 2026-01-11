@@ -55,6 +55,7 @@ final class BuildMenu: UIPanel_Base {
             (.furnace, "furnace"),
             (.assembler, "assembler"),
             (.belt, "belt"),
+            (.pipe, "pipe"),
             (.inserter, "inserter"),
             (.pumpjack, "oil_well"),
             (.waterPump, "water_pump"),

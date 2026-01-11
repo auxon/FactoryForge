@@ -27,6 +27,7 @@ final class GameLoop {
 
     /// Public access to power system for UI components
     var powerSystem: PowerSystem { _powerSystem }
+    private let fluidNetworkSystem: FluidNetworkSystem
     private let pollutionSystem: PollutionSystem
     private let enemyAISystem: EnemyAISystem
     private let combatSystem: CombatSystem
@@ -94,6 +95,7 @@ final class GameLoop {
         inserterSystem = InserterSystem(world: world, beltSystem: beltSystem, itemRegistry: itemRegistry)
         craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry, itemRegistry: itemRegistry, buildingRegistry: buildingRegistry)
         _powerSystem = PowerSystem(world: world)
+        fluidNetworkSystem = FluidNetworkSystem(world: world)
         researchSystem = ResearchSystem(world: world, technologyRegistry: technologyRegistry)
         pollutionSystem = PollutionSystem(world: world, chunkManager: chunkManager)
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
@@ -109,6 +111,7 @@ final class GameLoop {
         systems = [
             miningSystem,
             beltSystem,
+            fluidNetworkSystem,
             inserterSystem,
             craftingSystem,
             _powerSystem,
@@ -432,6 +435,13 @@ final class GameLoop {
         // Trigger power network rebuild if needed
         if buildingDef.type == .powerPole || buildingDef.powerConsumption > 0 || buildingDef.powerProduction > 0 {
             _powerSystem.markNetworksDirty()
+        }
+
+        // Trigger fluid network rebuild if it's a fluid-related building
+        if buildingDef.type == .pipe || buildingDef.type == .pumpjack ||
+           buildingDef.type == .waterPump || buildingDef.type == .generator ||
+           buildingDef.type == .oilRefinery || buildingDef.type == .chemicalPlant {
+            fluidNetworkSystem.markEntityDirty(entity)
         }
 
         return true
@@ -772,17 +782,45 @@ final class GameLoop {
             ), to: entity)
             
         case .generator:
-            // Boilers need powerProduction set, but steam engines produce power
-            // For now, set a default power output for generators
-            let powerOutput = buildingDef.powerProduction > 0 ? buildingDef.powerProduction : 1800.0  // Default 1.8 MW for boilers
-            world.add(GeneratorComponent(
-                buildingId: buildingDef.id,
-                powerOutput: powerOutput,
-                fuelCategory: buildingDef.fuelCategory ?? "chemical"
-            ), to: entity)
-            // Boilers should only accept fuel items (coal, wood, solid-fuel)
-            world.add(InventoryComponent(slots: 1, allowedItems: ItemRegistry.allowedFuel), to: entity)
-            print("GameLoop: Added GeneratorComponent to entity \(entity) with powerOutput: \(powerOutput)")
+            if buildingDef.id == "boiler" {
+                // Boiler: consumes fuel + water, produces steam
+                world.add(FluidProducerComponent(
+                    buildingId: buildingDef.id,
+                    outputType: .steam,
+                    productionRate: 1.8,  // 1.8 steam/s when fueled + water available (Factorio balanced)
+                    powerConsumption: 0  // Boilers don't consume electricity
+                ), to: entity)
+                // Boiler consumes fuel (coal, wood, solid-fuel) and water (fluid)
+                world.add(InventoryComponent(slots: 1, allowedItems: ItemRegistry.allowedFuel), to: entity)
+                // Add a fluid tank for water input (enough for ~5 minutes of operation)
+                world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 540), to: entity)  // 540L = 1.8L/s * 300s
+                print("GameLoop: Added FluidProducerComponent (steam) to boiler entity \(entity)")
+            } else if buildingDef.id == "steam-engine" {
+                // Steam Engine: consumes steam, produces power
+                let powerOutput = buildingDef.powerProduction  // 900 kW
+                world.add(GeneratorComponent(
+                    buildingId: buildingDef.id,
+                    powerOutput: powerOutput,
+                    fuelCategory: ""  // Steam engines don't use fuel categories
+                ), to: entity)
+                world.add(FluidConsumerComponent(
+                    buildingId: buildingDef.id,
+                    inputType: .steam,
+                    consumptionRate: 1.8,  // 1.8 steam/s = 900 kW output (Factorio balanced)
+                    efficiency: 1.0
+                ), to: entity)
+                print("GameLoop: Added GeneratorComponent and FluidConsumerComponent to steam engine entity \(entity)")
+            } else {
+                // Fallback for other generators
+                let powerOutput = buildingDef.powerProduction > 0 ? buildingDef.powerProduction : 1800.0
+                world.add(GeneratorComponent(
+                    buildingId: buildingDef.id,
+                    powerOutput: powerOutput,
+                    fuelCategory: buildingDef.fuelCategory ?? "chemical"
+                ), to: entity)
+                world.add(InventoryComponent(slots: 1, allowedItems: ItemRegistry.allowedFuel), to: entity)
+                print("GameLoop: Added fallback GeneratorComponent to entity \(entity) with powerOutput: \(powerOutput)")
+            }
             
         case .solarPanel:
             world.add(SolarPanelComponent(
@@ -824,13 +862,19 @@ final class GameLoop {
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
             
         case .pipe:
-            world.add(PipeComponent(buildingId: buildingDef.id, direction: direction), to: entity)
+            world.add(PipeComponent(buildingId: buildingDef.id, direction: direction, maxCapacity: buildingDef.fluidCapacity), to: entity)
             
         case .pumpjack:
             world.add(PumpjackComponent(
                 buildingId: buildingDef.id,
                 extractionRate: buildingDef.extractionRate,
                 resourceType: "crude-oil"
+            ), to: entity)
+            world.add(FluidProducerComponent(
+                buildingId: buildingDef.id,
+                outputType: .crudeOil,
+                productionRate: 10.0,  // 10 crude oil/s
+                powerConsumption: buildingDef.powerConsumption
             ), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
@@ -841,6 +885,12 @@ final class GameLoop {
                 extractionRate: buildingDef.extractionRate,
                 resourceType: "water"
             ), to: entity)
+            world.add(FluidProducerComponent(
+                buildingId: buildingDef.id,
+                outputType: .water,
+                productionRate: 20.0,  // 20 water/s
+                powerConsumption: buildingDef.powerConsumption
+            ), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
 
@@ -848,11 +898,15 @@ final class GameLoop {
             world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "oil-processing"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+            // Oil refinery needs fluid tanks for crude oil input and multiple fluid outputs (petroleum gas, light/heavy oil)
+            world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 2500), to: entity)  // 2500L capacity for various fluids (higher capacity for refinery)
 
         case .chemicalPlant:
             world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "chemistry"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+            // Chemical plants need fluid tanks for various fluid inputs/outputs
+            world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 1500), to: entity)  // 1500L capacity for various fluids (higher capacity for chemistry)
 
         case .rocketSilo:
             world.add(RocketSiloComponent(buildingId: buildingDef.id), to: entity)
@@ -1070,6 +1124,11 @@ final class GameLoop {
             chunk.removeEntity(entity)
         }
 
+        // Trigger fluid network rebuild if it's a pipe
+        if world.has(PipeComponent.self, for: entity) {
+            fluidNetworkSystem.markEntityDirty(entity)
+        }
+
         // Despawn the entity directly (not by position lookup, which could find a different entity)
         world.despawn(entity)
 
@@ -1173,18 +1232,42 @@ final class GameLoop {
         return true
     }
     
-    func rotateBelt(entity: Entity) -> Bool {
-        // Check if entity is a belt
-        guard var belt = world.get(BeltComponent.self, for: entity) else {
+    func rotatePipe(entity: Entity) -> Bool {
+        // Check if entity is a pipe
+        guard let pipe = world.get(PipeComponent.self, for: entity) else {
             return false
         }
 
         // Rotate direction clockwise
+        var updatedPipe = pipe
+        let newDirection = pipe.direction.clockwise
+        updatedPipe.direction = newDirection
+
+        // Update pipe component
+        world.add(updatedPipe, to: entity)
+
+        // TODO: Update fluid network when pipe direction changes
+        // This will be implemented when fluid networks are added
+
+        // Update sprite if needed (pipes might not have directional sprites)
+        // For now, pipes don't have directional visual differences
+
+        return true
+    }
+
+    func rotateBelt(entity: Entity) -> Bool {
+        // Check if entity is a belt
+        guard let belt = world.get(BeltComponent.self, for: entity) else {
+            return false
+        }
+
+        // Rotate direction clockwise
+        var updatedBelt = belt
         let newDirection = belt.direction.clockwise
-        belt.direction = newDirection
+        updatedBelt.direction = newDirection
 
         // Update belt component
-        world.add(belt, to: entity)
+        world.add(updatedBelt, to: entity)
 
         // Update belt system with new direction
         beltSystem.updateBeltDirection(entity: entity, newDirection: newDirection)
@@ -1231,10 +1314,12 @@ final class GameLoop {
     }
     
     func setInserterConnection(entity: Entity, inputTarget: Entity? = nil, inputPosition: IntVector2? = nil, outputTarget: Entity? = nil, outputPosition: IntVector2? = nil, clearInput: Bool = false, clearOutput: Bool = false) -> Bool {
-        guard var inserter = world.get(InserterComponent.self, for: entity),
+        guard let originalInserter = world.get(InserterComponent.self, for: entity),
               let inserterPos = world.get(PositionComponent.self, for: entity) else {
             return false
         }
+
+        var inserter = originalInserter
         
         // Handle explicit clearing
         if clearInput {
@@ -1343,11 +1428,13 @@ final class GameLoop {
     func setRecipe(for entity: Entity, recipeId: String) {
         guard let recipe = recipeRegistry.get(recipeId) else { return }
         
-        if var assembler = world.get(AssemblerComponent.self, for: entity) {
+        if let originalAssembler = world.get(AssemblerComponent.self, for: entity) {
+            var assembler = originalAssembler
             assembler.recipe = recipe
             assembler.craftingProgress = 0
             world.add(assembler, to: entity)
-        } else if var furnace = world.get(FurnaceComponent.self, for: entity) {
+        } else if let originalFurnace = world.get(FurnaceComponent.self, for: entity) {
+            var furnace = originalFurnace
             furnace.recipe = recipe
             furnace.smeltingProgress = 0
             world.add(furnace, to: entity)
@@ -1440,15 +1527,17 @@ final class GameLoop {
 
     /// Sets a recipe for a machine entity
     func setMachineRecipe(_ entity: Entity, _ recipe: Recipe) {
-        if var furnace = world.get(FurnaceComponent.self, for: entity) {
+        if let originalFurnace = world.get(FurnaceComponent.self, for: entity) {
+            var furnace = originalFurnace
             furnace.recipe = recipe
             furnace.smeltingProgress = 0.001  // Start crafting immediately
             world.add(furnace, to: entity)
-        } else if var assembler = world.get(AssemblerComponent.self, for: entity) {
+        } else if let originalAssembler = world.get(AssemblerComponent.self, for: entity) {
+            var assembler = originalAssembler
             assembler.recipe = recipe
             assembler.craftingProgress = 0.001  // Start crafting immediately
             world.add(assembler, to: entity)
-        } else if var lab = world.get(LabComponent.self, for: entity) {
+        } else if world.has(LabComponent.self, for: entity) {
             // Labs don't use recipes the same way - they use research
             // This might need different handling
         }
