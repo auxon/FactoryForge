@@ -134,7 +134,13 @@ final class LoadingMenu: UIPanel_Base {
         removeSaveSlotLabels()
 
         let slots = saveSystem.getSaveSlots()
+
+        // Always setup action buttons first (including New button)
+        setupActionButtons()
+
         if slots.isEmpty {
+            // Setup help button label even when no slots
+            setupHelpButtonLabel()
             return
         }
 
@@ -194,9 +200,6 @@ final class LoadingMenu: UIPanel_Base {
 
         scrollView.isHidden = !isOpen
 
-        // Setup action buttons underneath the scroll view
-        setupActionButtons()
-
         // Setup help button label
         setupHelpButtonLabel()
     }
@@ -207,7 +210,15 @@ final class LoadingMenu: UIPanel_Base {
         let buttonHeight: CGFloat = 40
         let buttonWidth: CGFloat = 80
         let buttonSpacing: CGFloat = 20
-        let buttonsY = scrollView!.frame.maxY + 20
+
+        // Position buttons below scroll view if it exists, otherwise center them vertically
+        let buttonsY: CGFloat
+        if let scrollView = scrollView {
+            buttonsY = scrollView.frame.maxY + 20
+        } else {
+            // Center the buttons vertically when no scroll view exists
+            buttonsY = parentView.bounds.height / 2 + 50
+        }
 
         // New button
         newButtonLabel = createActionButton(
