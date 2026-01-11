@@ -12,9 +12,9 @@ final class HUD {
     private let scale: Float = Float(UIScreen.main.scale)
     
     // Layout constants (in points, will be multiplied by scale)
-    private var buttonSize: Float { 60 * scale }
-    private var buttonSpacing: Float { 10 * scale }
-    private var bottomMargin: Float { 30 * scale }
+    private var buttonSize: Float { 48 * scale }  // Reduced from 60 to fit 5 buttons on screen
+    private var buttonSpacing: Float { 8 * scale }  // Reduced from 10 for better spacing
+    private var bottomMargin: Float { 20 * scale }  // Reduced from 30 to position buttons closer to bottom
     
     // Virtual joystick for movement
     let joystick: VirtualJoystick
@@ -140,9 +140,9 @@ final class HUD {
     func startMiningAnimation(itemId: String, fromWorldPosition worldPos: Vector2, renderer: MetalRenderer?) {
         guard let renderer = renderer else { return }
         
-        // Get inventory button position (screen coordinates)
+        // Get inventory button position (screen coordinates) - same as toolbar calculation
         let toolbarY = screenSize.y - bottomMargin - buttonSize / 2
-        let inventoryButtonX = screenSize.x / 2 - (buttonSize * 2 + buttonSpacing * 1.5)
+        let inventoryButtonX = screenSize.x / 2 - (buttonSize * 2.5 + buttonSpacing * 2)
         let targetScreenPos = Vector2(inventoryButtonX, toolbarY)
         
         // Convert world position to screen position
@@ -293,7 +293,7 @@ final class HUD {
         let buttonY = debugButtonSize / 2 + 5 * scale
 
         // Render a small colored square as debug button
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "pipe")
         renderer.queueSprite(SpriteInstance(
             position: Vector2(buttonX, buttonY),
             size: Vector2(debugButtonSize, debugButtonSize),
@@ -360,8 +360,8 @@ final class HUD {
         // Position buttons on the right side for thumb accessibility
         // Place them vertically stacked, starting from about 1/3 down the screen
         let rightMargin: Float = bottomMargin + buttonSize / 2
-        let startY: Float = screenSize.y * 0.33 // Start at 1/3 down the screen
-        let spacing: Float = buttonSize + buttonSize
+        let startY: Float = screenSize.y * 0.4 // Start lower on screen for better accessibility
+        let spacing: Float = buttonSize + buttonSpacing * 0.5  // Tighter spacing
 
         // Move button (top)
         let moveButtonY = startY
@@ -661,10 +661,6 @@ final class HUD {
 
         // When player is dead, don't handle any HUD taps (UIKit labels handle input)
         if let gameLoop = gameLoop, gameLoop.isPlayerDead {
-            print("HUD: Player is dead, ignoring tap")
-            return false
-        }
-        if let gameLoop = gameLoop, gameLoop.isPlayerDead {
             return false
         }
 
@@ -717,7 +713,7 @@ final class HUD {
 
         // Check fluid debug button (top-left corner)
         let debugButtonSize: Float = 30 * scale
-        let debugButtonX = debugButtonSize / 2 + 5 * scale
+        let debugButtonX = debugButtonSize + 500 * scale
         let debugButtonY = debugButtonSize / 2 + 5 * scale
         if checkButtonTap(at: position, buttonPos: Vector2(debugButtonX, debugButtonY)) {
             onFluidDebugPressed?()
@@ -736,8 +732,8 @@ final class HUD {
         // Check move and delete buttons if a building is selected
         if selectedEntity != nil {
             let rightMargin: Float = bottomMargin + buttonSize / 2
-            let startY: Float = screenSize.y * 0.33
-            let spacing: Float = buttonSize + buttonSpacing
+            let startY: Float = screenSize.y * 0.4  // Match rendering position
+            let spacing: Float = buttonSize + buttonSpacing * 0.5  // Match rendering spacing
 
             // Move button
             let moveButtonX = screenSize.x - rightMargin
@@ -798,7 +794,9 @@ final class HUD {
 
 
     private func checkButtonTap(at position: Vector2, buttonPos: Vector2) -> Bool {
-        let frame = Rect(center: buttonPos, size: Vector2(buttonSize, buttonSize))
+        // Use a slightly larger tap target than the visual button for better usability
+        let tapSize = buttonSize * 1.1  // 10% larger tap target (reduced from 20%)
+        let frame = Rect(center: buttonPos, size: Vector2(tapSize, tapSize))
         let contains = frame.contains(position)
         return contains
     }
