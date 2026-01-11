@@ -993,6 +993,20 @@ class GameViewController: UIViewController {
         uiSystem?.getMachineUI().onSelectRecipeForMachine = { [weak self] (entity: Entity, recipe: Recipe) -> Void in
             self?.gameLoop?.setMachineRecipe(entity, recipe)
         }
+        uiSystem?.getMachineUI().onAddScrollView = { [weak self] (scrollView: UIScrollView) -> Void in
+            guard let self = self else { return }
+            // Remove if already added to avoid duplicates
+            scrollView.removeFromSuperview()
+            self.view.addSubview(scrollView)
+            // Ensure scroll view is above the Metal view
+            if let metalView = self.metalView {
+                self.view.insertSubview(scrollView, aboveSubview: metalView)
+            }
+            self.view.bringSubviewToFront(scrollView)
+        }
+        uiSystem?.getMachineUI().onRemoveScrollView = { (scrollView: UIScrollView) -> Void in
+            scrollView.removeFromSuperview()
+        }
 
 
         // CraftingMenu callbacks

@@ -1,6 +1,9 @@
 import Foundation
 import UIKit
 
+// Use UIKit's UIButton explicitly to avoid conflict with custom UIButton
+typealias UIKitButton = UIKit.UIButton
+
 /// UI for interacting with machines (assemblers, furnaces, etc.)
 final class MachineUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?
@@ -9,6 +12,10 @@ final class MachineUI: UIPanel_Base {
     private var inputSlots: [InventorySlot] = []
     private var outputSlots: [InventorySlot] = []
     private var fuelSlots: [InventorySlot] = []
+
+    // Scrollable recipe area using UIKit
+    private var recipeScrollView: UIScrollView?
+    private var recipeUIButtons: [UIKitButton] = [] // UIKit buttons for recipes
 
     // Count labels for input, output and fuel slots
     private var inputCountLabels: [UILabel] = []
@@ -33,6 +40,10 @@ final class MachineUI: UIPanel_Base {
     var onLaunchRocket: ((Entity) -> Void)?
     var onSelectRecipeForMachine: ((Entity, Recipe) -> Void)?
     var onClosePanel: (() -> Void)?
+
+    // Callbacks for managing UIKit scroll view
+    var onAddScrollView: ((UIScrollView) -> Void)?
+    var onRemoveScrollView: ((UIScrollView) -> Void)?
 
     // Helper to check if current machine is a lab
     private var isLab: Bool {
@@ -64,6 +75,7 @@ final class MachineUI: UIPanel_Base {
         self.gameLoop = gameLoop
 
         setupSlots()
+        setupRecipeScrollView()
     }
 
     private func setupSlots() {
@@ -217,6 +229,15 @@ final class MachineUI: UIPanel_Base {
         if isRocketSilo {
             setupRocketLaunchButton()
         }
+
+        // Refresh recipe buttons for current machine
+        refreshRecipeButtons()
+
+        // Add scroll view for recipes
+        if let scrollView = recipeScrollView {
+            onAddScrollView?(scrollView)
+            scrollView.isHidden = false // Ensure it's visible when panel opens
+        }
     }
 
     override func close() {
@@ -235,6 +256,11 @@ final class MachineUI: UIPanel_Base {
 
         // Remove rocket launch button
         launchButton = nil
+
+        // Remove scroll view
+        if let scrollView = recipeScrollView {
+            onRemoveScrollView?(scrollView)
+        }
 
         super.close()
     }
@@ -276,11 +302,41 @@ final class MachineUI: UIPanel_Base {
         return buildingRecipes.sorted { $0.order < $1.order }
     }
 
+    private func setupRecipeScrollView() {
+        // Remove existing scroll view and buttons
+        recipeScrollView?.removeFromSuperview()
+        recipeScrollView = nil
+        recipeUIButtons.removeAll()
+
+        // Create scroll view at a fixed visible position on screen
+        let screenBounds = UIScreen.main.bounds
+        let scrollViewWidth: CGFloat = 400
+        let scrollViewHeight: CGFloat = 200
+        let scrollViewX = (screenBounds.width - scrollViewWidth) / 2
+        let scrollViewY = screenBounds.height / 2 + 100 // Below screen center
+
+        let scrollViewFrame = CGRect(x: scrollViewX, y: scrollViewY, width: scrollViewWidth, height: scrollViewHeight)
+
+        let scrollView = UIScrollView(frame: scrollViewFrame)
+        scrollView.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 0.9)
+        scrollView.layer.borderColor = UIColor.white.cgColor
+        scrollView.layer.borderWidth = 2
+        scrollView.layer.cornerRadius = 8
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.showsHorizontalScrollIndicator = false
+
+        // Store reference
+        recipeScrollView = scrollView
+    }
+
     private func refreshRecipeButtons() {
         recipeButtons.removeAll()
+        recipeUIButtons.forEach { $0.removeFromSuperview() }
+        recipeUIButtons.removeAll()
 
         guard let entity = currentEntity,
-              let gameLoop = gameLoop else { return }
+              let gameLoop = gameLoop,
+              let scrollView = recipeScrollView else { return }
 
         // Get available recipes for this machine type
         var availableRecipes: [Recipe] = []
@@ -316,30 +372,96 @@ final class MachineUI: UIPanel_Base {
             availableRecipes = []
         }
 
-        let buttonSize: Float = 40 * UIScale
-        let buttonSpacing: Float = 5 * UIScale
-        let buttonsPerRow = 8  // Increased from 5 to fit more buttons with wider panel
-        let startX = frame.center.x - (Float(buttonsPerRow - 1) * (buttonSize + buttonSpacing) + buttonSize) / 2
-        // Position recipe buttons immediately below the progress bar (status bar area)
-        // Progress bar is at frame.center.y - 30 * UIScale, height is 20 * UIScale
-        // So progress bar bottom is at frame.center.y - 20 * UIScale
-        // Start buttons with a small spacing below the progress bar
-        let startY = frame.center.y - 10 * UIScale + buttonSize/2
+        // Create UIKit buttons inside scroll view
+        let buttonSize: CGFloat = 32 // Fixed 32x32 pixels for icons
+        let buttonSpacing: CGFloat = 4
+        let buttonsPerRow = 8  // More per row since buttons are smaller
+
+        var totalHeight: CGFloat = 0
 
         for (index, recipe) in availableRecipes.enumerated() {
             let row = index / buttonsPerRow
             let col = index % buttonsPerRow
 
-            let x = startX + Float(col) * (buttonSize + buttonSpacing) + buttonSize 
-            let y = startY + Float(row) * (buttonSize + buttonSpacing)
+            let x = CGFloat(col) * (buttonSize + buttonSpacing) + buttonSize/2
+            let y = CGFloat(row) * (buttonSize + buttonSpacing) + buttonSize/2
 
-            let buttonFrame = Rect(center: Vector2(x, y), size: Vector2(buttonSize, buttonSize))
-            let button = RecipeButton(frame: buttonFrame, recipe: recipe)
-            button.onTap = { [weak self] in
-                guard let self = self, let entity = self.currentEntity else { return }
-                self.onSelectRecipeForMachine?(entity, recipe)
+            let buttonFrame = CGRect(x: x, y: y, width: buttonSize, height: buttonSize)
+
+            let button = UIKitButton(frame: buttonFrame)
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1
+            button.layer.cornerRadius = 4
+
+            // Set background color based on item type
+            if let output = recipe.outputs.first {
+                button.backgroundColor = getColorForItem(itemId: output.itemId)
+            } else {
+                button.backgroundColor = UIColor.gray
             }
-            recipeButtons.append(button)
+
+            // Add item icon image
+            if let output = recipe.outputs.first {
+                let imageName = output.itemId.replacingOccurrences(of: "-", with: "_")
+                if let iconImage = UIImage(named: imageName) {
+                    // Scale image to fit button
+                    let scaledImage = UIGraphicsImageRenderer(size: CGSize(width: buttonSize - 4, height: buttonSize - 4)).image { _ in
+                        iconImage.draw(in: CGRect(origin: .zero, size: CGSize(width: buttonSize - 4, height: buttonSize - 4)))
+                    }
+                    button.setImage(scaledImage, for: .normal)
+                    button.imageView?.contentMode = .scaleAspectFit
+                }
+            }
+
+            // Store recipe ID in button tag for lookup
+            button.tag = recipe.id.hashValue
+
+            // Add tap handler
+            button.addTarget(self, action: #selector(recipeButtonTapped(_:)), for: UIKit.UIControl.Event.touchUpInside)
+
+            scrollView.addSubview(button)
+            recipeUIButtons.append(button)
+
+            // Update total height
+            totalHeight = max(totalHeight, y + buttonSize)
+        }
+
+        // Set scroll view content size
+        scrollView.contentSize = CGSize(width: scrollView.frame.width, height: totalHeight + buttonSpacing)
+    }
+
+
+    private func getColorForItem(itemId: String) -> UIColor {
+        if itemId.contains("transport-belt") || itemId.contains("fast-transport-belt") {
+            return UIColor.yellow
+        } else if itemId.contains("express-transport-belt") {
+            return UIColor.purple
+        } else if itemId.contains("inserter") {
+            return UIColor.orange
+        } else if itemId.contains("chest") {
+            return UIColor.brown
+        } else if itemId.contains("furnace") || itemId.contains("assembler") {
+            return UIColor.gray
+        } else if itemId.contains("pole") {
+            return UIColor.lightGray
+        } else if itemId.contains("solar-panel") || itemId.contains("accumulator") {
+            return UIColor.blue
+        } else {
+            return UIColor.green // Default for other items
+        }
+    }
+
+    @objc func recipeButtonTapped(_ sender: AnyObject) {
+        guard let button = sender as? UIKitButton,
+              let entity = currentEntity,
+              let gameLoop = gameLoop else { return }
+
+        // Find recipe by ID stored in button tag
+        let recipeIdHash = button.tag
+        let allRecipes = gameLoop.recipeRegistry.all + (createBuildingRecipes(for: gameLoop))
+
+        if let recipe = allRecipes.first(where: { $0.id.hashValue == recipeIdHash }) {
+            onSelectRecipeForMachine?(entity, recipe)
         }
     }
 
@@ -378,7 +500,7 @@ final class MachineUI: UIPanel_Base {
             return
         }
 
-        guard let buildingDef = gameLoop.buildingRegistry.get(buildingEntity!.buildingId) else { return }
+        guard gameLoop.buildingRegistry.get(buildingEntity!.buildingId) != nil else { return }
 
         let totalSlots = inventory.slots.count
         var inventoryIndex = 0
@@ -438,7 +560,7 @@ final class MachineUI: UIPanel_Base {
             return
         }
 
-        guard let buildingDef = gameLoop.buildingRegistry.get(buildingEntity!.buildingId) else { return }
+        guard gameLoop.buildingRegistry.get(buildingEntity!.buildingId) != nil else { return }
 
         let totalSlots = inventory.slots.count
         var inventoryIndex = 0
@@ -490,13 +612,25 @@ final class MachineUI: UIPanel_Base {
         guard isOpen else { return }
 
         // Update button states based on craftability and crafting status
-        guard let player = gameLoop?.player else { return }
+        guard let player = gameLoop?.player,
+              let gameLoop = gameLoop else { return }
 
-        for button in recipeButtons {
-            button.canCraft = button.recipe.canCraft(with: player.inventory)
-            button.isCrafting = player.isCrafting(recipe: button.recipe)
-            button.craftingProgress = player.getCraftingProgress(recipe: button.recipe) ?? 0.0
-            button.queuedCount = player.getQueuedCount(recipe: button.recipe)
+        for uiButton in recipeUIButtons {
+            let recipeIdHash = uiButton.tag
+            let allRecipes = gameLoop.recipeRegistry.all + (createBuildingRecipes(for: gameLoop))
+
+            if let recipe = allRecipes.first(where: { $0.id.hashValue == recipeIdHash }) {
+                let canCraft = recipe.canCraft(with: player.inventory)
+                let isCrafting = player.isCrafting(recipe: recipe)
+
+                if isCrafting {
+                    uiButton.backgroundColor = UIKit.UIColor(red: 0.3, green: 0.4, blue: 0.6, alpha: 1.0) // Blue for crafting
+                } else if canCraft {
+                    uiButton.backgroundColor = UIKit.UIColor(red: 0.4, green: 0.7, blue: 0.4, alpha: 1.0) // Green for can craft
+                } else {
+                    uiButton.backgroundColor = UIKit.UIColor(red: 0.25, green: 0.2, blue: 0.2, alpha: 1.0) // Red for cannot craft
+                }
+            }
         }
     }
 
@@ -824,10 +958,10 @@ final class MachineUI: UIPanel_Base {
 
     override func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
         // Check if dragging to an empty input or output slot
-        guard let gameLoop = gameLoop, let entity = currentEntity else { return false }
+        guard let _ = gameLoop, let _ = currentEntity else { return false }
 
         // Check fuel slots
-        for (index, slot) in fuelSlots.enumerated() {
+        for (_, slot) in fuelSlots.enumerated() {
             if slot.frame.contains(endPos) && slot.item == nil {
                 // Dropped on empty fuel slot - this would require drag state from inventory
                 // For now, just return true to indicate drag was handled
@@ -836,7 +970,7 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Check input slots
-        for (index, slot) in inputSlots.enumerated() {
+        for (_, slot) in inputSlots.enumerated() {
             if slot.frame.contains(endPos) && slot.item == nil {
                 // Dropped on empty input slot - this would require drag state from inventory
                 // For now, just return true to indicate drag was handled
@@ -845,7 +979,7 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Check output slots
-        for (slotIndex, slot) in outputSlots.enumerated() {
+        for (_, slot) in outputSlots.enumerated() {
             if slot.frame.contains(endPos) && slot.item == nil {
                 // Dropped on empty output slot - this would require drag state from inventory
                 return true
@@ -871,7 +1005,7 @@ final class MachineUI: UIPanel_Base {
             progress = assembler.craftingProgress
         } else if let pumpjack = gameLoop.world.get(PumpjackComponent.self, for: entity) {
             progress = pumpjack.progress
-        } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
+        } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
             // For generators, show power availability bar instead of progress
             isGenerator = true
             if let networkInfo = gameLoop.powerSystem.getNetworkInfo(for: entity) {
