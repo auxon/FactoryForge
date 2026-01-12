@@ -34,7 +34,7 @@ final class VirtualJoystick {
     private var lastDirection: Vector2 = .zero
     
     // Dead zone (percentage of base radius)
-    private let deadZone: Float = 0.1
+    private let deadZone: Float = 0.0
     
     // Callback
     var onDirectionChanged: ((Vector2) -> Void)?
@@ -86,7 +86,7 @@ final class VirtualJoystick {
         direction = .zero
 
         // Check if touch is within the joystick activation area
-        let activationRadius = baseRadius * 1.5
+        let activationRadius = baseRadius * 4.0
         let distance = (position - _baseCenter).length
 
         if distance <= activationRadius {
@@ -156,12 +156,10 @@ final class VirtualJoystick {
             }
         }
 
-        // Only call callback if direction actually changed
-        if newDirection != lastDirection {
-            direction = newDirection
-            lastDirection = newDirection
-            onDirectionChanged?(direction)
-        }
+        // Update direction and call callback
+        direction = newDirection
+        lastDirection = newDirection
+        onDirectionChanged?(direction)
     }
     
     // MARK: - Rendering

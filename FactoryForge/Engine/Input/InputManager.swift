@@ -300,7 +300,8 @@ final class InputManager: NSObject {
                 // Try to place with offset to center at tap location
                 if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
                     onBuildingPlaced?(buildingId, tilePos, buildDirection)
-                    // Keep in build mode to allow placing more buildings
+                    // Exit build mode after placing a building
+                    exitBuildMode()
                     AudioManager.shared.playPlaceSound()
 
                     // Select the newly placed entity
@@ -601,18 +602,15 @@ final class InputManager: NSObject {
 
             // Check if touch started in joystick area FIRST
             if let joystick = joystick {
-                let activationRadius = joystick.baseRadius * 1.5
-                let distance = (screenPos - joystick.baseCenter).length
-
-                if distance <= activationRadius {
-                    // This is a joystick touch - handle it and prevent camera pan
-                    if joystick.handleTouchBegan(at: screenPos, touchId: 0) {
-                        isJoystickActive = true
-                        // Exit build mode and clear selection when joystick is engaged
-                        exitBuildMode()
-                        gameLoop.uiSystem?.hud.selectedEntity = nil
-                        return  // Prevent camera pan, but gesture continues for .changed/.ended
-                    }
+                // Ensure joystick is up to date with current screen size
+                joystick.updateScreenSize(renderer.screenSize)
+                // Try to activate joystick
+                if joystick.handleTouchBegan(at: screenPos, touchId: 0) {
+                    isJoystickActive = true
+                    // Exit build mode and clear selection when joystick is engaged
+                    exitBuildMode()
+                    gameLoop.uiSystem?.hud.selectedEntity = nil
+                    return  // Prevent camera pan, but gesture continues for .changed/.ended
                 } else {
                     // Touch is not on joystick - ensure joystick state is reset
                     isJoystickActive = false
@@ -762,7 +760,12 @@ final class InputManager: NSObject {
             }
 
             isDragging = false
-            
+
+            // Exit build mode if we were doing drag placement
+            if buildMode == .placing && dragPlacementStartTile != nil {
+                exitBuildMode()
+            }
+
             // Handle selection rectangle end (only when not in build mode and no UI panel is open)
             // Don't process selection rectangle end if a UI panel is already open
             if (buildMode == .none || buildMode == .connectingInserter) && isSelecting && !(gameLoop.uiSystem?.isAnyPanelOpen ?? false), let rect = selectionRect {
@@ -1125,7 +1128,8 @@ final class InputManager: NSObject {
             // Try to place with offset to center at tap location
             if gameLoop.placeBuilding(buildingId, at: tilePos, direction: buildDirection, offset: tapOffset) {
                 onBuildingPlaced?(buildingId, tilePos, buildDirection)
-                // Keep in build mode to allow placing more buildings
+                // Exit build mode after placing a building
+                exitBuildMode()
                 // Play placement sound/feedback
                 AudioManager.shared.playPlaceSound()
 
@@ -1783,12 +1787,7 @@ final class InputManager: NSObject {
             if gameLoop.placeBuilding(buildingId, at: pos, direction: direction, offset: .zero) {
                 dragPlacedTiles.insert(pos)
 
-                // Select the newly placed entity (only for the last placed building in drag)
-                // We select the last one placed since drag placement places multiple buildings
-                if let placedEntity = gameLoop.world.getEntityAt(position: pos) {
-                    selectedEntity = placedEntity
-                    onEntitySelected?(placedEntity)
-                }
+                // Don't select entities during drag placement to avoid UI confusion
             }
         }
     }

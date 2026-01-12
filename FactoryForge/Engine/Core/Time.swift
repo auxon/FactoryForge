@@ -36,7 +36,7 @@ final class Time {
     private var lastFrameTime: CFTimeInterval = 0
     
     /// Maximum delta time to prevent spiral of death
-    private let maxDeltaTime: Float = 0.1
+    private let maxDeltaTime: Float = 1.0/30.0
     
     private init() {
         lastFrameTime = CACurrentMediaTime()
