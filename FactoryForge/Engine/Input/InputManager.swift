@@ -1492,6 +1492,12 @@ final class InputManager: NSObject {
         isSelecting = false
         selectionStartScreenPos = nil
         selectionRect = nil
+
+        // Close all UI panels to reset state
+        gameLoop?.uiSystem?.closeAllPanels()
+
+        // Trigger layout update to ensure coordinate system is correct
+        view?.setNeedsLayout()
     }
     
     func enterRemoveMode() {
