@@ -560,6 +560,7 @@ class FluidProducerComponent: BuildingComponent {
     var productionRate: Float  // L/s
     var currentProduction: Float
     var powerConsumption: Float
+    var isActive: Bool = false  // Whether the producer is actively producing
     var connections: [Entity] = []
     var networkId: Int?
 
@@ -573,7 +574,7 @@ class FluidProducerComponent: BuildingComponent {
 
     // MARK: - Codable conformance
     enum CodingKeys: String, CodingKey {
-        case buildingId, outputType, productionRate, currentProduction, powerConsumption, connections, networkId
+        case buildingId, outputType, productionRate, currentProduction, powerConsumption, isActive, connections, networkId
     }
 
     required init(from decoder: Decoder) throws {
@@ -582,6 +583,7 @@ class FluidProducerComponent: BuildingComponent {
         productionRate = try container.decode(Float.self, forKey: .productionRate)
         currentProduction = try container.decode(Float.self, forKey: .currentProduction)
         powerConsumption = try container.decode(Float.self, forKey: .powerConsumption)
+        isActive = try container.decodeIfPresent(Bool.self, forKey: .isActive) ?? false
         connections = try container.decodeIfPresent([Entity].self, forKey: .connections) ?? []
         networkId = try container.decodeIfPresent(Int.self, forKey: .networkId)
         try super.init(from: decoder)
@@ -593,6 +595,7 @@ class FluidProducerComponent: BuildingComponent {
         try container.encode(productionRate, forKey: .productionRate)
         try container.encode(currentProduction, forKey: .currentProduction)
         try container.encode(powerConsumption, forKey: .powerConsumption)
+        try container.encode(isActive, forKey: .isActive)
         try container.encode(connections, forKey: .connections)
         try container.encode(networkId, forKey: .networkId)
         try super.encode(to: encoder)

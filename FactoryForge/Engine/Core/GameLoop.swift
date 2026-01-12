@@ -305,15 +305,15 @@ final class GameLoop {
             }
         }
 
-        // Boilers - spawn smoke when generating power
-        world.forEach(GeneratorComponent.self) { entity, generator in
+        // Boilers - spawn smoke when active (producing steam)
+        world.forEach(FluidProducerComponent.self) { entity, producer in
             guard let position = world.get(PositionComponent.self, for: entity)?.worldPosition else { return }
             guard visibleRect.contains(position) else { return }
 
-            // Only spawn smoke for boilers
+            // Only spawn smoke for boilers that are active
             if let buildingDef = buildingRegistry.getByTexture(world.get(SpriteComponent.self, for: entity)?.textureId ?? ""),
                buildingDef.id == "boiler",
-               generator.currentOutput > 0 {
+               producer.isActive {
                 // Spawn smoke in the tile above the building center
                 renderer.particleRenderer.spawnSmoke(at: position + Vector2(1, 2), count: 2)
             }

@@ -286,44 +286,68 @@ final class PowerSystem: System {
     private func updateGenerators(network: PowerNetwork, deltaTime: Float) {
         // Update fuel-based generators
         for generator in network.generators {
-            if var genComp = world.get(GeneratorComponent.self, for: generator),
-               var inventory = world.get(InventoryComponent.self, for: generator) {
-                
-                // print("PowerSystem: Updating generator \(generator.id), fuelRemaining: \(genComp.fuelRemaining), currentOutput: \(genComp.currentOutput), powerOutput: \(genComp.powerOutput)")
-                
-                // Consume fuel if needed
-                if genComp.fuelRemaining <= 0 {
-                    // print("PowerSystem: Generator \(generator.id) needs fuel, attempting to consume...")
-                    if consumeFuel(inventory: &inventory, generator: &genComp) {
-                        world.add(inventory, to: generator)
-                        // print("PowerSystem: Generator \(generator.id) consumed fuel, fuelRemaining now: \(genComp.fuelRemaining)")
-                    } else {
-                        // print("PowerSystem: Generator \(generator.id) has no fuel available")
-                        genComp.currentOutput = 0
-                        world.add(genComp, to: generator)
-                        continue
-                    }
-                }
-                
-                // Burn fuel if we have fuel and there's demand
-                // Check consumption from the network (calculated in previous updateNetwork call)
-                let hasConsumption = network.totalConsumption > 0
-                let hasFuel = genComp.fuelRemaining > 0
-                let needsCharging = network.accumulators.contains(where: { acc in
-                    guard let comp = world.get(AccumulatorComponent.self, for: acc) else { return false }
-                    return comp.chargePercentage < 1.0
-                })
+            if var genComp = world.get(GeneratorComponent.self, for: generator) {
+                // Check if this is a steam engine (has FluidConsumerComponent for steam)
+                if let fluidConsumer = world.get(FluidConsumerComponent.self, for: generator),
+                   fluidConsumer.inputType == .steam {
+                    // Steam engine: produces power when consuming steam
+                    let hasSteamInput = fluidConsumer.currentConsumption > 0.001
+                    let hasConsumption = network.totalConsumption > 0
+                    let needsCharging = network.accumulators.contains(where: { acc in
+                        guard let comp = world.get(AccumulatorComponent.self, for: acc) else { return false }
+                        return comp.chargePercentage < 1.0
+                    })
 
-                if hasFuel && (hasConsumption || needsCharging) {
-                    genComp.fuelRemaining -= deltaTime
-                    genComp.currentOutput = genComp.powerOutput
-                } else {
-                    genComp.currentOutput = 0
+                    if hasSteamInput && (hasConsumption || needsCharging) {
+                        genComp.currentOutput = genComp.powerOutput
+                    } else {
+                        genComp.currentOutput = 0
+                    }
+
+                    world.add(genComp, to: generator)
+                    continue
                 }
-                
-                world.add(genComp, to: generator)
-            } else {
-                // print("PowerSystem: Generator \(generator.id) missing GeneratorComponent or InventoryComponent")
+
+                // Fuel-based generator
+                if var inventory = world.get(InventoryComponent.self, for: generator) {
+                    // print("PowerSystem: Updating generator \(generator.id), fuelRemaining: \(genComp.fuelRemaining), currentOutput: \(genComp.currentOutput), powerOutput: \(genComp.powerOutput)")
+
+                    // Consume fuel if needed
+                    if genComp.fuelRemaining <= 0 {
+                        // print("PowerSystem: Generator \(generator.id) needs fuel, attempting to consume...")
+                        if consumeFuel(inventory: &inventory, generator: &genComp) {
+                            world.add(inventory, to: generator)
+                            // print("PowerSystem: Generator \(generator.id) consumed fuel, fuelRemaining now: \(genComp.fuelRemaining)")
+                        } else {
+                            // print("PowerSystem: Generator \(generator.id) has no fuel available")
+                            genComp.currentOutput = 0
+                            world.add(genComp, to: generator)
+                            continue
+                        }
+                    }
+
+                    // Burn fuel if we have fuel and there's demand
+                    // Check consumption from the network (calculated in previous updateNetwork call)
+                    let hasConsumption = network.totalConsumption > 0
+                    let hasFuel = genComp.fuelRemaining > 0
+                    let needsCharging = network.accumulators.contains(where: { acc in
+                        guard let comp = world.get(AccumulatorComponent.self, for: acc) else { return false }
+                        return comp.chargePercentage < 1.0
+                    })
+
+                    if hasFuel && (hasConsumption || needsCharging) {
+                        genComp.fuelRemaining -= deltaTime
+                        genComp.currentOutput = genComp.powerOutput
+                    } else {
+                        genComp.currentOutput = 0
+                    }
+
+                    world.add(genComp, to: generator)
+                } else {
+                    // print("PowerSystem: Generator \(generator.id) missing InventoryComponent")
+                    genComp.currentOutput = 0
+                    world.add(genComp, to: generator)
+                }
             }
             
             // Update solar panels (time-based output)

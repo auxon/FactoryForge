@@ -1100,14 +1100,23 @@ final class FluidNetworkSystem: System {
                     productionRates[producerEntity] = productionThisTick
                     let updatedProducer = producer
                     updatedProducer.currentProduction = productionThisTick
+                    updatedProducer.isActive = true
                     world.add(updatedProducer, to: producerEntity)
-
+                    
                     // For boilers, add steam to the tank and inject into pipes
                     if producer.buildingId == "boiler" {
                         _ = addFluidToEntity(producerEntity, amount: productionThisTick, fluidType: .steam)
                         injectProducedFluid(productionRates: [producerEntity: productionThisTick], network: network)
                     }
+                    
+                } else {
+                    // Not producing - mark as inactive
+                    let updatedProducer = producer
+                    updatedProducer.currentProduction = 0
+                    updatedProducer.isActive = false
+                    world.add(updatedProducer, to: producerEntity)
                 }
+                
             }
         }
 

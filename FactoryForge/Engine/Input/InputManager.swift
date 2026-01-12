@@ -1319,7 +1319,10 @@ final class InputManager: NSObject {
         // Add power information
         if let generator = world.get(GeneratorComponent.self, for: entity) {
             let outputText = String(format: "%.0f", generator.currentOutput)
-            tooltipLines.append("Power: \(outputText) kW")
+            let maxOutputText = String(format: "%.0f", generator.powerOutput)
+            let statusText = generator.currentOutput > 0 ? "Active" : "Inactive"
+            tooltipLines.append("Power: \(outputText)/\(maxOutputText) kW")
+            tooltipLines.append("Status: \(statusText)")
             if let fuel = generator.currentFuel {
                 let fuelText = String(format: "%.1f", generator.fuelRemaining)
                 tooltipLines.append("Fuel: \(fuel) (\(fuelText))")
@@ -1422,9 +1425,11 @@ final class InputManager: NSObject {
         if let producer = world.get(FluidProducerComponent.self, for: entity) {
             let productionText = String(format: "%.1f", producer.productionRate)
             let currentText = String(format: "%.2f", producer.currentProduction * 60.0)
+            let stateText = producer.isActive ? "Active" : "Inactive"
             tooltipLines.append("Producing: \(producer.outputType)")
             tooltipLines.append("Rate: \(productionText) L/s")
             tooltipLines.append("Current: \(currentText) L/min")
+            tooltipLines.append("Status: \(stateText)")
 
             let connectionCount = producer.connections.count
             tooltipLines.append("Connections: \(connectionCount)")
