@@ -1420,7 +1420,9 @@ class GameViewController: UIViewController {
                     self.gameLoop!.world.has(LabComponent.self, for: selectedEntity) ||
                     self.gameLoop!.world.has(RocketSiloComponent.self, for: selectedEntity) ||
                     self.gameLoop!.world.has(GeneratorComponent.self, for: selectedEntity) ||
-                    self.gameLoop!.world.has(MinerComponent.self, for: selectedEntity) {
+                    self.gameLoop!.world.has(MinerComponent.self, for: selectedEntity) ||
+                    self.gameLoop!.world.has(FluidProducerComponent.self, for: selectedEntity) ||
+                    self.gameLoop!.world.has(FluidConsumerComponent.self, for: selectedEntity) {
                 self.uiSystem?.openMachineUI(for: selectedEntity)
             }
             // Otherwise, don't open any UI for this entity

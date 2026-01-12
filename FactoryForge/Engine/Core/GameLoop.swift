@@ -605,13 +605,14 @@ final class GameLoop {
                 let checkPos = position + IntVector2(Int(dx), Int(dy))
 
                 // Check if tile exists and is buildable
-                // Special cases: allow water pumps on water tiles and pumpjacks on oil deposits
+                // Special cases: allow water pumps on water tiles, pumpjacks on oil deposits, and pipes on water/oil
                 guard let tile = chunkManager.getTile(at: checkPos) else {
                     return false
                 }
                 let isBuildableForThisBuilding = tile.isBuildable ||
                     (building.type == .waterPump && tile.type == .water) ||
-                    (building.type == .pumpjack && tile.resource?.type == .oil)
+                    (building.type == .pumpjack && tile.resource?.type == .oil) ||
+                    (building.type == .pipe && (tile.type == .water || tile.resource?.type == .oil))
                 guard isBuildableForThisBuilding else {
                     return false
                 }
