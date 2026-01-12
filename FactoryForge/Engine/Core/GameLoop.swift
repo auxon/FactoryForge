@@ -677,8 +677,8 @@ final class GameLoop {
                         continue
 
                     case .inserter:
-                        // Inserters are buildings, placeable on empty ground like other buildings
-                        break
+                        // Inserters can be placed on top of buildings (like belts and poles)
+                        continue
 
                     default:
                         break
@@ -711,8 +711,8 @@ final class GameLoop {
         let renderLayer: RenderLayer
         if buildingDef.type == .belt && buildingDef.id == "belt-bridge" {
             renderLayer = .building  // Belt bridges appear above other belts
-        } else if buildingDef.type == .belt {
-            renderLayer = .groundDecoration
+        } else if buildingDef.type == .belt || buildingDef.type == .pipe {
+            renderLayer = .groundDecoration  // Belts and pipes appear below buildings
         } else {
             renderLayer = .building
         }
