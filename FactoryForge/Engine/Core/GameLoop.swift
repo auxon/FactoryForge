@@ -319,6 +319,20 @@ final class GameLoop {
             }
         }
 
+        // Steam Engines - spawn smoke when active (producing power)
+        world.forEach(GeneratorComponent.self) { entity, generator in
+            guard let position = world.get(PositionComponent.self, for: entity)?.worldPosition else { return }
+            guard visibleRect.contains(position) else { return }
+
+            // Only spawn smoke for steam engines that are active
+            if let buildingDef = buildingRegistry.getByTexture(world.get(SpriteComponent.self, for: entity)?.textureId ?? ""),
+               buildingDef.id == "steam-engine",
+               generator.currentOutput > 0 {
+                // Spawn smoke in the tile above the building center
+                renderer.particleRenderer.spawnSmoke(at: position + Vector2(1.5, 4), count: 1)
+            }
+        }
+
         // Chemical plants - spawn smoke when crafting
         world.forEach(AssemblerComponent.self) { entity, assembler in
             guard let position = world.get(PositionComponent.self, for: entity)?.worldPosition else { return }
@@ -658,8 +672,12 @@ final class GameLoop {
                         }
                         break
 
-                    case .inserter, .powerPole:
-                        // Inserters and poles are buildings, placeable on empty ground like other buildings
+                    case .powerPole:
+                        // Power poles can be placed on top of buildings (like belts)
+                        continue
+
+                    case .inserter:
+                        // Inserters are buildings, placeable on empty ground like other buildings
                         break
 
                     default:
