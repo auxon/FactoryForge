@@ -96,6 +96,17 @@ final class FluidNetworkSystem: System {
         // Periodic cleanup and optimization
         if updateCounter % 60 == 0 {  // Every second at 60 FPS
             performPeriodicOptimization()
+            // Also periodically mark all fluid consumers as dirty to update consumption
+            // This ensures boilers start consuming when fuel is added
+            for network in networks.values {
+                for consumerEntity in network.consumers {
+                    if let consumer = world.get(FluidConsumerComponent.self, for: consumerEntity),
+                       consumer.buildingId == "boiler" {
+                        // Mark boilers as dirty periodically to check fuel status
+                        markEntityDirty(consumerEntity)
+                    }
+                }
+            }
         }
     }
 
@@ -477,9 +488,23 @@ final class FluidNetworkSystem: System {
 
         print("establishConnections: Checking \(adjacentPositionsList.count) adjacent positions for entity \(entity.id)")
         for adjacentPos in adjacentPositionsList {
-            // Find entities at this position
-            let entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
+            // Find entities at this position - use fallback if spatial query fails
+            var entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
+
+            // Fallback: if no entities found, manually check all entities (spatial index bug workaround)
+            if entitiesAtPos.isEmpty {
+                for otherEntity in world.entities {
+                    if let pos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
+                       pos == adjacentPos {
+                        entitiesAtPos.append(otherEntity)
+                    }
+                }
+            }
+
             print("establishConnections: Position \(adjacentPos) has \(entitiesAtPos.count) entities")
+            if entitiesAtPos.count > 0 {
+                print("establishConnections: Found entities at \(adjacentPos): \(entitiesAtPos.map { "\($0.id)" }.joined(separator: ", "))")
+            }
             for adjacentEntity in entitiesAtPos {
                 // Check if this entity can connect to our entity
                 if canConnect(entity, to: adjacentEntity) {
@@ -810,6 +835,13 @@ final class FluidNetworkSystem: System {
         return connected
     }
 
+    /// Checks if an entity can accept more fluid (for flow simulation)
+    private func canAcceptFluid(entity: Entity, fluidType: FluidType?) -> Bool {
+        // Allow flow to pipes and tanks, but not to producers/consumers directly
+        // Producers inject fluid, consumers consume fluid, flow is between storage entities
+        return world.has(PipeComponent.self, for: entity) || world.has(FluidTankComponent.self, for: entity)
+    }
+
     /// Checks if two entities can connect via fluid flow
     private func canConnect(_ entity1: Entity, to entity2: Entity) -> Bool {
         // Both must be fluid-capable entities
@@ -885,6 +917,10 @@ final class FluidNetworkSystem: System {
         let totalConsumption = consumptionRates.values.reduce(0, +)
         let netFlow = totalProduction - totalConsumption
 
+        print("updateFlowCalculations: Network \(network.id) - Production: \(totalProduction) L/s, Consumption: \(totalConsumption) L/s, Net flow: \(netFlow) L/s")
+        print("updateFlowCalculations: Production rates: \(productionRates.map { "\($0.key.id): \($0.value)" }.joined(separator: ", "))")
+        print("updateFlowCalculations: Consumption rates: \(consumptionRates.map { "\($0.key.id): \($0.value)" }.joined(separator: ", "))")
+
         // Step 1.5: Inject produced fluid into the network
         injectProducedFluid(productionRates: productionRates, network: network)
 
@@ -900,18 +936,24 @@ final class FluidNetworkSystem: System {
 
         // Step 2: Calculate pressure distribution across the network
         let pressureMap = calculatePressureDistribution(in: network, netFlow: netFlow)
+        print("updateFlowCalculations: Pressure map for network \(network.id): \(pressureMap.map { "\($0.key.id): \($0.value)" }.joined(separator: ", "))")
 
         // Step 3: Calculate flow rates between connected components (skip for very small networks)
         let flowRates: [EntityPair: Float]
         if network.pipes.count > 1 {
             flowRates = calculateFlowRates(in: network, pressureMap: pressureMap, deltaTime: deltaTime)
+            print("FluidNetworkSystem: Calculated \(flowRates.count) flow rates for network \(network.id)")
         } else {
             flowRates = [:]  // No flow calculations needed for single-pipe networks
+            print("FluidNetworkSystem: Skipping flow calculation for small network \(network.id) with \(network.pipes.count) pipes")
         }
 
         // Step 4: Apply fluid transfers based on calculated flow rates
         if !flowRates.isEmpty {
+            print("FluidNetworkSystem: Applying \(flowRates.count) fluid transfers for network \(network.id)")
             applyFluidTransfers(in: network, flowRates: flowRates, deltaTime: deltaTime)
+        } else {
+            print("FluidNetworkSystem: No flow rates to apply for network \(network.id)")
         }
 
         // Step 5: Update network pressure and capacity
@@ -1015,7 +1057,7 @@ final class FluidNetworkSystem: System {
                        let tank = world.get(FluidTankComponent.self, for: producerEntity) {
 
                         let hasFuel = inventory.slots.contains { $0 != nil } // Check if any fuel slot has fuel
-                        let hasWater = tank.tanks.contains { $0.type == .water && $0.amount > 10 } // Need minimum water
+                        let hasWater = tank.tanks.contains { $0.type == .water && $0.amount > 0.1 } // Need minimum water
 
                         if hasFuel && hasWater {
                             productionThisTick = producer.productionRate * deltaTime
@@ -1059,6 +1101,12 @@ final class FluidNetworkSystem: System {
                     let updatedProducer = producer
                     updatedProducer.currentProduction = productionThisTick
                     world.add(updatedProducer, to: producerEntity)
+
+                    // For boilers, add steam to the tank and inject into pipes
+                    if producer.buildingId == "boiler" {
+                        _ = addFluidToEntity(producerEntity, amount: productionThisTick, fluidType: .steam)
+                        injectProducedFluid(productionRates: [producerEntity: productionThisTick], network: network)
+                    }
                 }
             }
         }
@@ -1072,20 +1120,58 @@ final class FluidNetworkSystem: System {
 
         for consumerEntity in network.consumers {
             if let consumer = world.get(FluidConsumerComponent.self, for: consumerEntity) {
+                // Boilers don't need power (they use fuel), steam engines produce power (don't consume it)
                 let powerSatisfaction = world.get(PowerConsumerComponent.self, for: consumerEntity)?.satisfaction ?? 1.0
-                let hasPower = consumer.buildingId == "steam-engine" || powerSatisfaction > 0.5
+                let hasPower = consumer.buildingId == "boiler" || consumer.buildingId == "steam-engine" || powerSatisfaction > 0.5
+
+                print("calculateConsumptionRates: Consumer \(consumerEntity.id) (\(consumer.buildingId)) hasPower: \(hasPower)")
 
                 if hasPower {
-                    // Check if consumer has input available
-                    let hasInput = hasInputAvailable(consumerEntity: consumerEntity, network: network)
-                    if hasInput {
-                        let consumptionThisTick = consumer.consumptionRate * deltaTime * powerSatisfaction
-                        consumptionRates[consumerEntity] = consumptionThisTick
+                    // Special handling for boilers - need fuel to consume water
+                    var canConsume = true
+                    var skipInputCheck = false
 
-                        let updatedConsumer = consumer
-                        updatedConsumer.currentConsumption = consumptionThisTick
-                        world.add(updatedConsumer, to: consumerEntity)
+                    if consumer.buildingId == "boiler" {
+                        print("calculateConsumptionRates: Processing boiler \(consumerEntity.id)")
+                        // Check if boiler has fuel
+                        if let inventory = world.get(InventoryComponent.self, for: consumerEntity) {
+                            let hasFuel = inventory.slots.contains { $0 != nil }
+                            canConsume = hasFuel
+                            print("calculateConsumptionRates: Boiler \(consumerEntity.id) hasFuel: \(hasFuel), skipInputCheck will be set to: \(hasFuel)")
+                            // For boilers with fuel, allow consumption even without current fluid (to start flow)
+                            if hasFuel {
+                                skipInputCheck = true
+                                print("calculateConsumptionRates: Boiler \(consumerEntity.id) skipInputCheck set to true")
+                            }
+                        } else {
+                            canConsume = false
+                            print("calculateConsumptionRates: Boiler \(consumerEntity.id) no inventory component")
+                        }
+                    } else {
+                        print("calculateConsumptionRates: Consumer \(consumerEntity.id) buildingId '\(consumer.buildingId)' is not 'boiler'")
                     }
+
+                    if canConsume {
+                        // Check if consumer has input available (skip for boilers with fuel)
+                        print("calculateConsumptionRates: Consumer \(consumerEntity.id) skipInputCheck: \(skipInputCheck)")
+                        let hasInput = skipInputCheck || hasInputAvailable(consumerEntity: consumerEntity, network: network)
+                        print("calculateConsumptionRates: Consumer \(consumerEntity.id) hasInput: \(hasInput) (skipCheck: \(skipInputCheck))")
+                        if hasInput {
+                            let consumptionThisTick = consumer.consumptionRate * deltaTime * powerSatisfaction
+                            consumptionRates[consumerEntity] = consumptionThisTick
+                            print("calculateConsumptionRates: Consumer \(consumerEntity.id) consuming \(consumptionThisTick) L/s")
+
+                            let updatedConsumer = consumer
+                            updatedConsumer.currentConsumption = consumptionThisTick
+                            world.add(updatedConsumer, to: consumerEntity)
+                        } else {
+                            print("calculateConsumptionRates: Consumer \(consumerEntity.id) no input available")
+                        }
+                    } else {
+                        print("calculateConsumptionRates: Consumer \(consumerEntity.id) cannot consume (fuel/water requirements not met)")
+                    }
+                } else {
+                    print("calculateConsumptionRates: Consumer \(consumerEntity.id) no power")
                 }
             }
         }
@@ -1120,16 +1206,20 @@ final class FluidNetworkSystem: System {
     /// Check if a consumer has fluid available for consumption
     private func hasInputAvailable(consumerEntity: Entity, network: FluidNetwork) -> Bool {
         if let consumer = world.get(FluidConsumerComponent.self, for: consumerEntity) {
+            print("hasInputAvailable: Consumer \(consumerEntity.id) needs \(String(describing: consumer.inputType)), has \(consumer.connections.count) connections")
             for connectedEntity in consumer.connections {
                 if let pipe = world.get(PipeComponent.self, for: connectedEntity) {
                     // Check if pipe has the required fluid type and amount
-                    if pipe.fluidType == consumer.inputType && pipe.fluidAmount > 10 { // Minimum amount
+                    let minAmount: Float = (consumer.buildingId == "boiler") ? 0.001 : 0.01
+                    print("hasInputAvailable: Pipe \(connectedEntity.id) has \(String(describing: pipe.fluidType)) \(pipe.fluidAmount)L, needs \(String(describing: consumer.inputType)) > \(minAmount)L")
+                    if (pipe.fluidType == consumer.inputType || consumer.inputType == .steam) && pipe.fluidAmount > minAmount { // Minimum amount
                         return true
                     }
                 } else if let tank = world.get(FluidTankComponent.self, for: connectedEntity) {
                     // Check if tank has the required fluid
                     for tankStack in tank.tanks {
-                        if tankStack.type == consumer.inputType && tankStack.amount > 10 {
+                        print("hasInputAvailable: Tank \(connectedEntity.id) has \(tankStack.type) \(tankStack.amount)L")
+                        if tankStack.type == consumer.inputType && tankStack.amount > 0.01 as Float {
                             return true
                         }
                     }
@@ -1167,11 +1257,13 @@ final class FluidNetworkSystem: System {
             }
         } else {
             // Detailed calculation for smaller networks
-            // Calculate base pressure for each component based on fill level
+            // Start with base pressure from fill levels
             for pipeEntity in network.pipes {
                 if let pipe = world.get(PipeComponent.self, for: pipeEntity) {
                     let fillRatio = pipe.maxCapacity > 0 ? pipe.fluidAmount / pipe.maxCapacity : 0
-                    pressureMap[pipeEntity] = fillRatio * 100.0
+                    // Overfilled pipes have exponentially higher pressure
+                    let pressureMultiplier = fillRatio > 1.0 ? 50.0 + (fillRatio - 1.0) * 200.0 : 50.0
+                    pressureMap[pipeEntity] = fillRatio * pressureMultiplier
                 }
             }
 
@@ -1183,23 +1275,45 @@ final class FluidNetworkSystem: System {
                 }
             }
 
-            // Adjust pressure based on producers and consumers
+            // Set high pressure at producers, low pressure at consumers
             for producerEntity in network.producers {
-                if pressureMap[producerEntity] != nil {
-                    // Producers add pressure (tend to push fluid out)
-                    pressureMap[producerEntity]! += 20.0
-                }
+                pressureMap[producerEntity] = 100.0  // High pressure source
             }
 
             for consumerEntity in network.consumers {
-                if pressureMap[consumerEntity] != nil {
-                    // Consumers reduce pressure (tend to pull fluid in)
-                    pressureMap[consumerEntity]! -= 20.0
+                pressureMap[consumerEntity] = 0.0  // Low pressure sink
+            }
+
+            // Propagate pressure through the network using iterative relaxation
+            let iterations = 5  // Number of relaxation iterations
+            for _ in 0..<iterations {
+                var newPressures = pressureMap
+
+                // For each pipe, average pressure with connected neighbors
+                for pipeEntity in network.pipes {
+                    guard let currentPressure = pressureMap[pipeEntity] else { continue }
+
+                    var neighborPressures: [Float] = []
+                    let connections = getEntityConnections(pipeEntity)
+
+                    for connectedEntity in connections {
+                        if let neighborPressure = pressureMap[connectedEntity] {
+                            neighborPressures.append(neighborPressure)
+                        }
+                    }
+
+                    if !neighborPressures.isEmpty {
+                        let avgNeighborPressure = neighborPressures.reduce(0, +) / Float(neighborPressures.count)
+                        // Blend current pressure with neighbor average (relaxation factor)
+                        newPressures[pipeEntity] = currentPressure * 0.7 + avgNeighborPressure * 0.3
+                    }
                 }
+
+                pressureMap = newPressures
             }
 
             // Add network-wide pressure adjustment
-            let networkPressureAdjustment = netFlow * 5.0 // Net flow affects overall network pressure
+            let networkPressureAdjustment = netFlow * 2.0
             for (entity, pressure) in pressureMap {
                 pressureMap[entity] = pressure + networkPressureAdjustment
             }
@@ -1212,19 +1326,37 @@ final class FluidNetworkSystem: System {
     private func calculateFlowRates(in network: FluidNetwork, pressureMap: [Entity: Float], deltaTime: Float) -> [EntityPair: Float] {
         var flowRates: [EntityPair: Float] = [:]
 
+        print("calculateFlowRates: Network \(network.id) has \(network.pipes.count) pipes, pressureMap has \(pressureMap.count) entries")
+
         // Check all pipes and their connections
         for pipeEntity in network.pipes {
             guard let pipe = world.get(PipeComponent.self, for: pipeEntity),
-                  let pipePressure = pressureMap[pipeEntity] else { continue }
+                  let pipePressure = pressureMap[pipeEntity] else {
+                print("calculateFlowRates: Pipe \(pipeEntity.id) missing pressure or component")
+                continue
+            }
+
+            print("calculateFlowRates: Pipe \(pipeEntity.id) has pressure \(pipePressure) and \(pipe.connections.count) connections")
 
             for connectedEntity in pipe.connections {
-                guard let connectedPressure = pressureMap[connectedEntity] else { continue }
+                // Skip connections to producers - they inject fluid separately
+                if network.producers.contains(connectedEntity) {
+                    continue
+                }
+                // Allow connections to consumers - flow can transfer fluid to them
+
+                guard let connectedPressure = pressureMap[connectedEntity] else {
+                    print("calculateFlowRates: Connected entity \(connectedEntity.id) missing pressure")
+                    continue
+                }
 
                 // Calculate pressure gradient
                 let pressureDiff = pipePressure - connectedPressure
 
+                print("calculateFlowRates: Pressure diff between \(pipeEntity.id) and \(connectedEntity.id): \(pressureDiff)")
+
                 // Only flow if there's a significant pressure difference
-                if abs(pressureDiff) > 5.0 {
+                if abs(pressureDiff) > 0.1 {
                     // Calculate flow rate based on pressure difference and pipe properties
                     let baseFlowRate = pressureDiff * 2.0 // Pressure difference drives flow
 
@@ -1235,9 +1367,9 @@ final class FluidNetworkSystem: System {
                     }
 
                     // Apply pipe capacity limits
-                    let maxFlowRate = pipe.maxCapacity * 0.1 // Max 10% of capacity per second
+                    let maxFlowRate = pipe.maxCapacity * 2.0 // Max 200% of capacity per second for fast flow
 
-                    let flowRate = min(abs(baseFlowRate) * viscosityMultiplier * deltaTime, maxFlowRate)
+                    let flowRate = min(abs(baseFlowRate) * viscosityMultiplier, maxFlowRate)
                     let actualFlowRate = pressureDiff > 0 ? flowRate : -flowRate
 
                     let entityPair = EntityPair(from: pipeEntity, to: connectedEntity)
@@ -1251,10 +1383,49 @@ final class FluidNetworkSystem: System {
 
     /// Apply calculated fluid transfers
     private func applyFluidTransfers(in network: FluidNetwork, flowRates: [EntityPair: Float], deltaTime: Float) {
+        // First, reset all pipe flow rates to 0
+        for pipeEntity in network.pipes {
+            if let pipe = world.get(PipeComponent.self, for: pipeEntity) {
+                let updatedPipe = pipe
+                updatedPipe.flowRate = 0
+                world.add(updatedPipe, to: pipeEntity)
+            }
+        }
+
+        // Calculate net flow rates for each pipe
+        var netFlowRates: [Entity: Float] = [:]
         for (entityPair, flowRate) in flowRates {
+            let transferRate = abs(flowRate)
             let fromEntity = entityPair.from
             let toEntity = entityPair.to
-            let transferAmount = abs(flowRate)
+
+            // From entity loses fluid, to entity gains fluid
+            netFlowRates[fromEntity, default: 0] -= transferRate
+            netFlowRates[toEntity, default: 0] += transferRate
+        }
+
+        // Apply net flow rates to pipes
+        for (pipeEntity, netFlowRate) in netFlowRates {
+            if let pipe = world.get(PipeComponent.self, for: pipeEntity) {
+                let updatedPipe = pipe
+                updatedPipe.flowRate = netFlowRate
+                world.add(updatedPipe, to: pipeEntity)
+                print("FluidNetworkSystem: Set net flow rate \(netFlowRate) L/s on pipe \(pipeEntity.id)")
+            }
+        }
+
+        // Now apply the actual fluid transfers
+        for (entityPair, flowRate) in flowRates {
+            let transferAmount = abs(flowRate) * deltaTime  // Convert flow rate to transfer amount
+
+            // Determine transfer direction based on flow rate sign
+            let (fromEntity, toEntity) = if flowRate > 0 {
+                // Positive flow: from pipe to connected (pipe has higher pressure)
+                (entityPair.from, entityPair.to)
+            } else {
+                // Negative flow: from connected to pipe (connected has higher pressure)
+                (entityPair.to, entityPair.from)
+            }
 
             // Get fluid type from source
             var fluidType: FluidType? = nil
@@ -1270,13 +1441,6 @@ final class FluidNetworkSystem: System {
 
             // Transfer from source to destination
             _ = transferFluid(from: fromEntity, to: toEntity, amount: transferAmount, fluidType: transferFluidType)
-
-            // Update flow rate indicators
-            if let pipe = world.get(PipeComponent.self, for: fromEntity) {
-                let updatedPipe = pipe
-                updatedPipe.flowRate = flowRate
-                world.add(updatedPipe, to: fromEntity)
-            }
         }
 
         // Handle special producer/consumer transfers (bypass normal pipe flow)
@@ -1291,6 +1455,8 @@ final class FluidNetworkSystem: System {
 
         // Add to destination
         let addedAmount = addFluidToEntity(toEntity, amount: removedAmount, fluidType: fluidType)
+
+        print("FluidNetworkSystem: Transferred \(removedAmount) L \(fluidType) from \(fromEntity.id) to \(toEntity.id)")
 
         return addedAmount
     }
@@ -1315,16 +1481,41 @@ final class FluidNetworkSystem: System {
         return 0
     }
 
+    /// Remove fluid from a pipe (special version for boilers that ignores fluid type)
+    private func removeFluidFromPipeIgnoringType(_ pipeEntity: Entity, amount: Float, requiredType: FluidType) -> Float {
+        guard let originalPipe = world.get(PipeComponent.self, for: pipeEntity) else { return 0 }
+
+        // For boilers, allow consuming water even if pipe contains steam
+        let removed = min(amount, originalPipe.fluidAmount)
+        if removed > 0 {
+            let pipe = originalPipe
+            pipe.fluidAmount -= removed
+            // If pipe becomes empty, clear the fluid type
+            if pipe.fluidAmount <= 0 {
+                pipe.fluidType = nil
+            }
+            world.add(pipe, to: pipeEntity)
+            print("FluidNetworkSystem: Removed \(removed) L \(requiredType) from pipe \(pipeEntity.id) (ignoring type), now has \(pipe.fluidAmount)L")
+            return removed
+        }
+        return 0
+    }
+
     /// Remove fluid from a pipe
     private func removeFluidFromPipe(_ pipeEntity: Entity, amount: Float, fluidType: FluidType) -> Float {
         guard let originalPipe = world.get(PipeComponent.self, for: pipeEntity) else { return 0 }
 
-        // Check if pipe has the correct fluid type
-        if originalPipe.fluidType == fluidType {
+        // Check if pipe has the correct fluid type (ignore for steam since pipes may have mixed fluids)
+        if originalPipe.fluidType == fluidType || fluidType == .steam {
             let pipe = originalPipe
             let removed = min(amount, pipe.fluidAmount)
             pipe.fluidAmount -= removed
+            // If pipe becomes empty, clear the fluid type
+            if pipe.fluidAmount <= 0 {
+                pipe.fluidType = nil
+            }
             world.add(pipe, to: pipeEntity)
+            print("FluidNetworkSystem: Removed \(removed) L \(fluidType) from pipe \(pipeEntity.id), now has \(pipe.fluidAmount)L")
             return removed
         }
         return 0
@@ -1334,14 +1525,23 @@ final class FluidNetworkSystem: System {
     private func addFluidToPipe(_ pipeEntity: Entity, amount: Float, fluidType: FluidType) -> Float {
         guard let originalPipe = world.get(PipeComponent.self, for: pipeEntity) else { return 0 }
 
-        // If pipe is empty or has the same fluid type, add fluid
-        if originalPipe.fluidType == nil || originalPipe.fluidType == fluidType {
-            let pipe = originalPipe
-            let space = pipe.maxCapacity - pipe.fluidAmount
+        // Pipes can accept any fluid type if they have space (fluids can mix/displace)
+        let maxAllowed = originalPipe.maxCapacity * 1.5
+        let hasSpace = originalPipe.fluidAmount < maxAllowed
+
+        if hasSpace {
+            let updatedPipe = originalPipe
+            // Allow some overfill to simulate pressurization (up to 150% capacity)
+            let maxAllowed = updatedPipe.maxCapacity * 1.5
+            let space = maxAllowed - updatedPipe.fluidAmount
             let added = min(amount, space)
-            pipe.fluidAmount += added
-            pipe.fluidType = fluidType  // Set fluid type if it was empty
-            world.add(pipe, to: pipeEntity)
+            updatedPipe.fluidAmount += added
+
+            // Set fluid type to the new fluid (injection can change fluid type)
+            updatedPipe.fluidType = fluidType
+
+            world.add(updatedPipe, to: pipeEntity)
+            print("FluidNetworkSystem: Added \(added) L \(fluidType) to pipe \(pipeEntity.id), now has \(updatedPipe.fluidAmount)L / \(updatedPipe.maxCapacity)L")
             return added
         }
         return 0  // Cannot add different fluid type to pipe
@@ -1370,7 +1570,11 @@ final class FluidNetworkSystem: System {
         for i in 0..<originalTank.tanks.count {
             if originalTank.tanks[i].type == fluidType {
                 let tank = originalTank
-                let added = tank.tanks[i].add(amount: amount)
+                var stack = tank.tanks[i]
+                let space = stack.maxAmount - stack.amount
+                let added = min(amount, space)
+                stack.amount += added
+                tank.tanks[i] = stack
                 world.add(tank, to: tankEntity)
                 return added
             }
@@ -1378,8 +1582,8 @@ final class FluidNetworkSystem: System {
 
         // Create new stack if possible
         let tank = originalTank
-        var newStack = FluidStack(type: fluidType, amount: 0, maxAmount: tank.maxCapacity)
-        let added = newStack.add(amount: amount)
+        let added = min(amount, tank.maxCapacity)
+        let newStack = FluidStack(type: fluidType, amount: added, maxAmount: tank.maxCapacity)
         tank.tanks.append(newStack)
         world.add(tank, to: tankEntity)
         return added
@@ -1387,8 +1591,11 @@ final class FluidNetworkSystem: System {
 
     /// Inject produced fluid into the network from producers
     private func injectProducedFluid(productionRates: [Entity: Float], network: FluidNetwork) {
+        print("FluidNetworkSystem: Injecting produced fluid for \(productionRates.count) producers")
         for (producerEntity, productionAmount) in productionRates {
             guard let producer = world.get(FluidProducerComponent.self, for: producerEntity) else { continue }
+
+            print("FluidNetworkSystem: Producer \(producerEntity.id) producing \(productionAmount) L of \(producer.outputType)")
 
             // Determine the fluid type being produced
             let fluidType = producer.outputType
@@ -1402,6 +1609,7 @@ final class FluidNetworkSystem: System {
                 if world.has(PipeComponent.self, for: connectedEntity) {
                     let added = addFluidToEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType)
                     remainingAmount -= added
+                    print("FluidNetworkSystem: Added \(added) L to pipe \(connectedEntity.id), remaining: \(remainingAmount)")
                 }
             }
 
@@ -1411,20 +1619,25 @@ final class FluidNetworkSystem: System {
                 if world.has(FluidTankComponent.self, for: connectedEntity) {
                     let added = addFluidToEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType)
                     remainingAmount -= added
+                    print("FluidNetworkSystem: Added \(added) L to tank \(connectedEntity.id), remaining: \(remainingAmount)")
                 }
             }
 
             // If still fluid left and producer has a tank, add to own tank
             if remainingAmount > 0 {
-                _ = addFluidToEntity(producerEntity, amount: remainingAmount, fluidType: fluidType)
+                let added = addFluidToEntity(producerEntity, amount: remainingAmount, fluidType: fluidType)
+                print("FluidNetworkSystem: Added \(added) L to producer's own tank, final remaining: \(remainingAmount - added)")
             }
         }
     }
 
     /// Consume fluid from the network for consumers
     private func consumeFluidFromNetwork(consumptionRates: [Entity: Float], network: FluidNetwork) {
+        print("FluidNetworkSystem: Consuming fluid for \(consumptionRates.count) consumers in network \(network.id)")
         for (consumerEntity, consumptionAmount) in consumptionRates {
             guard let consumer = world.get(FluidConsumerComponent.self, for: consumerEntity) else { continue }
+
+            print("FluidNetworkSystem: Consumer \(consumerEntity.id) consuming \(consumptionAmount) L of \(String(describing: consumer.inputType))")
 
             // Determine the fluid type being consumed
             let fluidType = consumer.inputType
@@ -1432,27 +1645,69 @@ final class FluidNetworkSystem: System {
             // Try to consume fluid from connected pipes first, then tanks
             var remainingAmount = consumptionAmount
 
-            // First, try connected pipes
-            for connectedEntity in consumer.connections {
-                if remainingAmount <= 0 { break }
-                if world.has(PipeComponent.self, for: connectedEntity) {
-                    let removed = removeFluidFromEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType!)
-                    remainingAmount -= removed
-                }
-            }
+            // Special handling for boilers - water goes to tank instead of being consumed
+            if consumer.buildingId == "boiler" && fluidType == .water {
+                // For boilers, consume water into internal tank
+                var addedToTank = 0.0
 
-            // Then try connected tanks
-            for connectedEntity in consumer.connections {
-                if remainingAmount <= 0 { break }
-                if world.has(FluidTankComponent.self, for: connectedEntity) {
-                    let removed = removeFluidFromEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType!)
-                    remainingAmount -= removed
+                // First, try connected pipes
+                for connectedEntity in consumer.connections {
+                    if remainingAmount <= 0 { break }
+                    if world.has(PipeComponent.self, for: connectedEntity) {
+                        let removed = removeFluidFromPipeIgnoringType(connectedEntity, amount: remainingAmount, requiredType: fluidType!)
+                        if removed > 0 {
+                            // Add to boiler's tank instead of consuming
+                            let added = addFluidToEntity(consumerEntity, amount: removed, fluidType: fluidType!)
+                            addedToTank += Double(added)
+                            remainingAmount -= removed
+                            print("FluidNetworkSystem: Moved \(removed) L water from pipe \(connectedEntity.id) to boiler tank \(consumerEntity.id)")
+                        }
+                    }
                 }
-            }
 
-            // If still need fluid and consumer has a tank, consume from own tank
-            if remainingAmount > 0 {
-                _ = removeFluidFromEntity(consumerEntity, amount: remainingAmount, fluidType: fluidType!)
+                // Then try connected tanks
+                for connectedEntity in consumer.connections {
+                    if remainingAmount <= 0 { break }
+                    if world.has(FluidTankComponent.self, for: connectedEntity) {
+                        let removed = removeFluidFromEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType!)
+                        if removed > 0 {
+                            // Add to boiler's tank
+                            let added = addFluidToEntity(consumerEntity, amount: removed, fluidType: fluidType!)
+                            addedToTank += Double(added)
+                            remainingAmount -= removed
+                            print("FluidNetworkSystem: Moved \(removed) L water from tank \(connectedEntity.id) to boiler tank \(consumerEntity.id)")
+                        }
+                    }
+                }
+
+                print("FluidNetworkSystem: Boiler \(consumerEntity.id) consumed \(addedToTank) L water into tank")
+            } else {
+                // Normal consumption - remove from network
+                // First, try connected pipes
+                for connectedEntity in consumer.connections {
+                    if remainingAmount <= 0 { break }
+                    if world.has(PipeComponent.self, for: connectedEntity) {
+                        let removed = removeFluidFromEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType!)
+                        remainingAmount -= removed
+                        print("FluidNetworkSystem: Removed \(removed) L from pipe \(connectedEntity.id), remaining: \(remainingAmount)")
+                    }
+                }
+
+                // Then try connected tanks
+                for connectedEntity in consumer.connections {
+                    if remainingAmount <= 0 { break }
+                    if world.has(FluidTankComponent.self, for: connectedEntity) {
+                        let removed = removeFluidFromEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType!)
+                        remainingAmount -= removed
+                        print("FluidNetworkSystem: Removed \(removed) L from tank \(connectedEntity.id), remaining: \(remainingAmount)")
+                    }
+                }
+
+                // If still need fluid and consumer has a tank, consume from own tank
+                if remainingAmount > 0 {
+                    let removed = removeFluidFromEntity(consumerEntity, amount: remainingAmount, fluidType: fluidType!)
+                    print("FluidNetworkSystem: Removed \(removed) L from consumer's own tank, final remaining: \(remainingAmount - removed)")
+                }
             }
         }
     }
@@ -1461,6 +1716,29 @@ final class FluidNetworkSystem: System {
     private func handleDirectTransfers(in network: FluidNetwork, deltaTime: Float) {
         // For now, producers and consumers handle their own transfers through the existing logic
         // This could be enhanced to allow direct producer->consumer transfers when they're connected
+    }
+
+    /// Get all connections for an entity
+    private func getEntityConnections(_ entity: Entity) -> [Entity] {
+        var connections: [Entity] = []
+
+        if let pipe = world.get(PipeComponent.self, for: entity) {
+            connections.append(contentsOf: pipe.connections)
+        }
+        if let producer = world.get(FluidProducerComponent.self, for: entity) {
+            connections.append(contentsOf: producer.connections)
+        }
+        if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
+            connections.append(contentsOf: consumer.connections)
+        }
+        if let tank = world.get(FluidTankComponent.self, for: entity) {
+            connections.append(contentsOf: tank.connections)
+        }
+        if let pump = world.get(FluidPumpComponent.self, for: entity) {
+            connections.append(contentsOf: pump.connections)
+        }
+
+        return connections
     }
 
     /// Calculate overall network pressure

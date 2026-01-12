@@ -187,6 +187,8 @@ final class TextureAtlas {
             
             // Buildings - Fluids
             ("pipe", nil),
+            ("pipe_2", nil),
+            ("underground_pipe", nil),
             ("oil_well", nil),
             ("oil_refinery", nil),
             ("chemical_plant", nil),

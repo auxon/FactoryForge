@@ -117,25 +117,30 @@ struct FluidNetwork: Codable {
         return pipes.isEmpty && producers.isEmpty && consumers.isEmpty && tanks.isEmpty && pumps.isEmpty
     }
 
-    /// Adds an entity to the appropriate list based on its components
+    /// Adds an entity to the appropriate lists based on its components
     mutating func addEntity(_ entity: Entity, world: World) {
+        // Entities can have multiple components, so check all of them
         if world.has(PipeComponent.self, for: entity) {
             if !pipes.contains(entity) {
                 pipes.append(entity)
             }
-        } else if world.has(FluidProducerComponent.self, for: entity) {
+        }
+        if world.has(FluidProducerComponent.self, for: entity) {
             if !producers.contains(entity) {
                 producers.append(entity)
             }
-        } else if world.has(FluidConsumerComponent.self, for: entity) {
+        }
+        if world.has(FluidConsumerComponent.self, for: entity) {
             if !consumers.contains(entity) {
                 consumers.append(entity)
             }
-        } else if world.has(FluidTankComponent.self, for: entity) {
+        }
+        if world.has(FluidTankComponent.self, for: entity) {
             if !tanks.contains(entity) {
                 tanks.append(entity)
             }
-        } else if world.has(FluidPumpComponent.self, for: entity) {
+        }
+        if world.has(FluidPumpComponent.self, for: entity) {
             if !pumps.contains(entity) {
                 pumps.append(entity)
             }

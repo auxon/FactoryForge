@@ -1403,10 +1403,8 @@ final class InputManager: NSObject {
                 tooltipLines.append("Empty")
             }
 
-            let flowText = String(format: "%.1f", abs(pipe.flowRate))
-            if pipe.flowRate > 0.1 {
-                tooltipLines.append("Flow: \(flowText) L/s")
-            } else if pipe.flowRate < -0.1 {
+            let flowText = String(format: "%.2f", abs(pipe.flowRate))
+            if abs(pipe.flowRate) > 0.01 {
                 tooltipLines.append("Flow: \(flowText) L/s")
             } else {
                 tooltipLines.append("No flow")
@@ -1422,9 +1420,11 @@ final class InputManager: NSObject {
 
         // Add fluid producer information
         if let producer = world.get(FluidProducerComponent.self, for: entity) {
-            let productionText = String(format: "%.1f", producer.currentProduction)
+            let productionText = String(format: "%.1f", producer.productionRate)
+            let currentText = String(format: "%.2f", producer.currentProduction * 60.0)
             tooltipLines.append("Producing: \(producer.outputType)")
             tooltipLines.append("Rate: \(productionText) L/s")
+            tooltipLines.append("Current: \(currentText) L/min")
 
             let connectionCount = producer.connections.count
             tooltipLines.append("Connections: \(connectionCount)")
@@ -1433,9 +1433,11 @@ final class InputManager: NSObject {
         // Add fluid consumer information
         if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
             if let inputType = consumer.inputType {
-                let consumptionText = String(format: "%.1f", consumer.currentConsumption)
+                let consumptionText = String(format: "%.1f", consumer.consumptionRate)
+                let currentText = String(format: "%.2f", consumer.currentConsumption * 60.0)
                 tooltipLines.append("Consuming: \(inputType)")
                 tooltipLines.append("Rate: \(consumptionText) L/s")
+                tooltipLines.append("Current: \(currentText) L/min")
             }
 
             let connectionCount = consumer.connections.count

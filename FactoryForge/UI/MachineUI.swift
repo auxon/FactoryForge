@@ -119,6 +119,10 @@ final class MachineUI: UIPanel_Base {
     private var fluidInputIndicators: [FluidIndicator] = []
     private var fluidOutputIndicators: [FluidIndicator] = []
 
+    // Labels for fluid flow rates
+    private var fluidInputLabels: [UILabel] = []
+    private var fluidOutputLabels: [UILabel] = []
+
     // Scrollable recipe area using UIKit
     private var recipeScrollView: UIScrollView?
     private var recipeUIButtons: [UIKitButton] = [] // UIKit buttons for recipes
@@ -194,6 +198,8 @@ final class MachineUI: UIPanel_Base {
         fuelCountLabels.removeAll()
         fluidInputIndicators.removeAll()
         fluidOutputIndicators.removeAll()
+        fluidInputLabels.removeAll()
+        fluidOutputLabels.removeAll()
 
         // Get machine building definition
         guard let entity = currentEntity,
@@ -323,6 +329,21 @@ final class MachineUI: UIPanel_Base {
             let outputFrame = Rect(center: Vector2(outputX, outputY), size: Vector2(indicatorSize, indicatorSize))
             let outputIndicator = FluidIndicator(frame: outputFrame, isInput: false)
             fluidOutputIndicators.append(outputIndicator)
+
+            // Create label for output flow rate
+            let outputLabel = UILabel()
+            outputLabel.font = UIFont.systemFont(ofSize: 10, weight: .regular)
+            outputLabel.textColor = .yellow
+            outputLabel.textAlignment = .center
+            outputLabel.text = "0.0 L/s"
+            outputLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+            outputLabel.isHidden = false
+            outputLabel.translatesAutoresizingMaskIntoConstraints = false
+            fluidOutputLabels.append(outputLabel)
+            onAddLabels?([outputLabel])
+
+            // Position the label below the indicator
+            outputLabel.frame = CGRect(x: CGFloat(outputX - 30), y: CGFloat(outputY + indicatorSize + 10), width: 60, height: 16)
         }
 
         // Check for fluid consumers (steam engines, chemical plants with fluid inputs)
@@ -334,6 +355,21 @@ final class MachineUI: UIPanel_Base {
             let inputFrame = Rect(center: Vector2(inputX, inputY), size: Vector2(indicatorSize, indicatorSize))
             let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
             fluidInputIndicators.append(inputIndicator)
+
+            // Create label for input flow rate
+            let inputLabel = UILabel()
+            inputLabel.font = UIFont.systemFont(ofSize: 10, weight: .regular)
+            inputLabel.textColor = .cyan
+            inputLabel.textAlignment = .center
+            inputLabel.text = "0.0 L/s"
+            inputLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+            inputLabel.isHidden = false
+            inputLabel.translatesAutoresizingMaskIntoConstraints = false
+            fluidInputLabels.append(inputLabel)
+            onAddLabels?([inputLabel])
+
+            // Position the label below the indicator
+            inputLabel.frame = CGRect(x: CGFloat(inputX - 30), y: CGFloat(inputY + indicatorSize + 10), width: 60, height: 16)
         }
 
         // Check for fluid tanks (chemical plants)
@@ -408,7 +444,7 @@ final class MachineUI: UIPanel_Base {
 
     override func close() {
         // Remove all count labels from the view
-        var allLabels = inputCountLabels + outputCountLabels + fuelCountLabels + researchProgressLabels
+        var allLabels = inputCountLabels + outputCountLabels + fuelCountLabels + researchProgressLabels + fluidInputLabels + fluidOutputLabels
         if let powerLabel = powerLabel {
             allLabels.append(powerLabel)
         }
@@ -419,6 +455,10 @@ final class MachineUI: UIPanel_Base {
             label.text = ""
             label.isHidden = true
         }
+
+        // Clear fluid labels
+        fluidInputLabels.removeAll()
+        fluidOutputLabels.removeAll()
 
         // Remove rocket launch button
         launchButton = nil
@@ -864,22 +904,30 @@ final class MachineUI: UIPanel_Base {
 
         // Update fluid producers (first output indicator)
         if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity),
-           fluidOutputIndicators.count > 0 {
+           fluidOutputIndicators.count > 0 && fluidOutputLabels.count > 0 {
             fluidOutputIndicators[0].fluidType = producer.outputType
-            fluidOutputIndicators[0].amount = producer.currentProduction * 0.1 // Show recent production rate
-            fluidOutputIndicators[0].maxAmount = producer.productionRate
+            fluidOutputIndicators[0].amount = producer.currentProduction * 60.0 // Show per-minute rate for visual
+            fluidOutputIndicators[0].maxAmount = producer.productionRate * 60.0 // Max per minute
             fluidOutputIndicators[0].hasConnection = !producer.connections.isEmpty
             print("Boiler producer connections: \(producer.connections.count)")
+
+            // Update flow rate label - show the actual production rate
+            let flowRateText = String(format: "%.1f L/s", producer.productionRate)
+            fluidOutputLabels[0].text = flowRateText
         }
 
         // Update fluid consumers (first input indicator)
         if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity),
-           fluidInputIndicators.count > 0 {
+           fluidInputIndicators.count > 0 && fluidInputLabels.count > 0 {
             fluidInputIndicators[0].fluidType = consumer.inputType
-            fluidInputIndicators[0].amount = consumer.currentConsumption * 0.1 // Show recent consumption rate
-            fluidInputIndicators[0].maxAmount = consumer.consumptionRate
+            fluidInputIndicators[0].amount = consumer.currentConsumption * 60.0 // Show per-minute rate for visual
+            fluidInputIndicators[0].maxAmount = consumer.consumptionRate * 60.0 // Max per minute
             fluidInputIndicators[0].hasConnection = !consumer.connections.isEmpty
             print("Boiler consumer connections: \(consumer.connections.count)")
+
+            // Update flow rate label - show the actual consumption rate
+            let flowRateText = String(format: "%.1f L/s", consumer.consumptionRate)
+            fluidInputLabels[0].text = flowRateText
         }
 
         // Debug tank

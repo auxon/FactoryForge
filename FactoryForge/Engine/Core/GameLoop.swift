@@ -929,7 +929,7 @@ final class GameLoop {
             world.add(FluidProducerComponent(
                 buildingId: buildingDef.id,
                 outputType: .water,
-                productionRate: 20.0,  // 20 water/s - matches Factorio's 1200/minute rate
+                productionRate: 200.0,  // 200 water/s - increased to ensure sufficient supply
                 powerConsumption: 0  // No power required, like Factorio offshore pumps
             ), to: entity)
             // No inventory needed - water pumps output fluid directly to pipes

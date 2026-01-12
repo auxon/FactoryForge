@@ -1,6 +1,9 @@
 import XCTest
 import Foundation
 
+// Import actual project components for testing
+@testable import FactoryForge
+
 /**
  # Fluid System Test Suite
 
@@ -178,7 +181,7 @@ struct FluidNetwork: Codable {
         return pipes.isEmpty && producers.isEmpty && consumers.isEmpty && tanks.isEmpty && pumps.isEmpty
     }
 
-    mutating func addEntity(_ entity: TestEntity, world: World) {
+    mutating func addEntity(_ entity: TestEntity, world: MockWorld) {
         if world.has(PipeComponent.self, for: entity) {
             if !pipes.contains(entity) {
                 pipes.append(entity)
@@ -200,7 +203,7 @@ struct FluidNetwork: Codable {
                 pumps.append(entity)
             }
         }
-        updateCapacity(world)
+        updateCapacity(world as! TestWorld)
     }
 
     mutating func removeEntity(_ entity: TestEntity) {
@@ -211,7 +214,7 @@ struct FluidNetwork: Codable {
         pumps.removeAll { $0 == entity }
     }
 
-    mutating func updateCapacity(_ world: World) {
+    mutating func updateCapacity(_ world: TestWorld) {
         totalCapacity = 0
         totalFluid = 0
 
@@ -232,7 +235,7 @@ struct FluidNetwork: Codable {
         }
     }
 
-    mutating func merge(with other: FluidNetwork, world: World) {
+    mutating func merge(with other: FluidNetwork, world: TestWorld) {
         pipes.append(contentsOf: other.pipes)
         producers.append(contentsOf: other.producers)
         consumers.append(contentsOf: other.consumers)
@@ -246,7 +249,7 @@ struct FluidNetwork: Codable {
             } else if var producer = world.get(FluidProducerComponent.self, for: entity) {
                 producer.networkId = id
                 world.add(producer, to: entity)
-            } else if var consumer = world.get(FluidConsumerComponent.self, for: entity) {
+            } else if let _ = world.get(FluidConsumerComponent.self, for: entity) {
             } else if var tank = world.get(FluidTankComponent.self, for: entity) {
                 tank.networkId = id
                 world.add(tank, to: entity)
@@ -263,7 +266,7 @@ struct EntityPair: Hashable {
 }
 
 // Forward declarations for ECS types (to avoid conflicts with main codebase)
-class World {
+class MockWorld {
     func has<T: Component>(_ componentType: T.Type, for entity: TestEntity) -> Bool { return false }
     func get<T: Component>(_ componentType: T.Type, for entity: TestEntity) -> T? { return nil }
     func add<T: Component>(_ component: T, to entity: TestEntity) { }
@@ -276,7 +279,7 @@ struct IntVector2: Hashable, Codable {
     let y: Int
 }
 
-protocol Component: Codable { }
+// Component protocol is imported from FactoryForge
 
 struct PositionComponent: Component {
     var tilePosition: IntVector2
@@ -432,11 +435,11 @@ class FluidSystemTests: XCTestCase {
         XCTAssertEqual(removed2, 60)
 
         // Test edge cases
-        var emptyStack = FluidStack(type: .water, amount: 0, maxAmount: 100)
+        let emptyStack = FluidStack(type: .water, amount: 0, maxAmount: 100)
         XCTAssertTrue(emptyStack.isEmpty)
         XCTAssertEqual(emptyStack.availableSpace, 100)
 
-        var fullStack = FluidStack(type: .water, amount: 100, maxAmount: 100)
+        let fullStack = FluidStack(type: .water, amount: 100, maxAmount: 100)
         XCTAssertTrue(fullStack.isFull)
         XCTAssertEqual(fullStack.availableSpace, 0)
     }
@@ -457,7 +460,7 @@ class FluidSystemTests: XCTestCase {
     // MARK: - FluidNetwork Tests
 
     func testFluidNetworkCreation() {
-        var network = FluidNetwork(id: 1, fluidType: .water)
+        let network = FluidNetwork(id: 1, fluidType: .water)
 
         XCTAssertEqual(network.id, 1)
         XCTAssertEqual(network.fluidType, .water)
@@ -492,7 +495,7 @@ class FluidSystemTests: XCTestCase {
         ]
 
         // Mock world responses
-        let mockWorld = MockWorld()
+        let mockWorld = TestWorld()
         mockWorld.components[pipeEntity1] = pipe1
         mockWorld.components[pipeEntity2] = pipe2
         mockWorld.components[tankEntity] = tank
@@ -519,7 +522,7 @@ class FluidSystemTests: XCTestCase {
         let entity2 = TestEntity(id: 2, generation: 0)
         let producerEntity = TestEntity(id: 3, generation: 0)
 
-        let mockWorld = MockWorld()
+        let mockWorld = TestWorld()
         mockWorld.components[entity1] = PipeComponent(maxCapacity: 100)
         mockWorld.components[entity2] = PipeComponent(maxCapacity: 200)
         mockWorld.components[producerEntity] = FluidProducerComponent(buildingId: "pumpjack", outputType: .crudeOil, productionRate: 10)
@@ -545,7 +548,7 @@ class FluidSystemTests: XCTestCase {
         let consumerEntity = TestEntity(id: 3, generation: 0)
         let tankEntity = TestEntity(id: 4, generation: 0)
 
-        let mockWorld = MockWorld()
+        let mockWorld = TestWorld()
         mockWorld.components[pipeEntity] = PipeComponent(maxCapacity: 100)
         mockWorld.components[producerEntity] = FluidProducerComponent(buildingId: "well", outputType: .water, productionRate: 20)
         mockWorld.components[consumerEntity] = FluidConsumerComponent(buildingId: "engine", consumptionRate: 1.8)
@@ -609,13 +612,13 @@ class FluidSystemTests: XCTestCase {
         // Test network discovery with connected pipes
         let world = World()
         let buildingRegistry = BuildingRegistry()
-        let networkSystem = FluidNetworkSystem(world: world, buildingRegistry: buildingRegistry)
+        _ = FluidNetworkSystem(world: world)
 
         // Create a simple pipe network
         let pipe1 = TestEntity(id: 1, generation: 0)
         let pipe2 = TestEntity(id: 2, generation: 0)
 
-        let mockWorld = MockWorld()
+        let mockWorld = TestWorld()
         var pipeComp1 = PipeComponent(maxCapacity: 100)
         var pipeComp2 = PipeComponent(maxCapacity: 100)
 
@@ -722,7 +725,7 @@ class FluidSystemTests: XCTestCase {
 
 // MARK: - Mock Classes
 
-class MockWorld: World {
+class TestWorld: MockWorld {
     var components: [TestEntity: Any] = [:]
 
     override func has<T>(_ componentType: T.Type, for entity: TestEntity) -> Bool {
@@ -745,7 +748,7 @@ extension FluidSystemTests {
     func testFluidNetworkSystemInitialization() {
         let world = World()
         let buildingRegistry = BuildingRegistry()
-        let system = FluidNetworkSystem(world: world, buildingRegistry: buildingRegistry)
+        let system = FluidNetworkSystem(world: world)
 
         // Test initial state
         XCTAssertEqual(system.networks.count, 0)
@@ -756,8 +759,8 @@ extension FluidSystemTests {
 
     func testNetworkSystemPerformanceStats() {
         let world = World()
-        let buildingRegistry = BuildingRegistry()
-        let system = FluidNetworkSystem(world: world, buildingRegistry: buildingRegistry)
+        _ = BuildingRegistry()
+        let system = FluidNetworkSystem(world: world)
 
         let stats = system.getPerformanceStats()
 
@@ -772,6 +775,7 @@ extension FluidSystemTests {
         XCTAssertEqual(stats["total_entities"] as? Int, 0)
         XCTAssertEqual(stats["total_networks"] as? Int, 0)
     }
+
 }
 
 // MARK: - Test Extensions
@@ -901,7 +905,7 @@ class FluidNetworkSystem {
 
         var network1 = FluidNetwork(id: 1, fluidType: .water)
         var network2 = FluidNetwork(id: 2, fluidType: .water)
-        var network3 = FluidNetwork(id: 3, fluidType: .steam)
+        let network3 = FluidNetwork(id: 3, fluidType: .steam)
 
         // Networks with same fluid type can merge
         XCTAssertEqual(network1.fluidType, network2.fluidType)
@@ -969,7 +973,7 @@ class FluidNetworkSystem {
             }
 
             // Test capacity calculation performance
-            let mockWorld = MockWorld()
+            let mockWorld = TestWorld()
             network.updateCapacity(mockWorld)
         }
     }

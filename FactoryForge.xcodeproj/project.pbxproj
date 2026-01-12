@@ -155,7 +155,9 @@
 		0DC1FB702F13217A0010585F /* low_density_structure.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FB6F2F13217A0010585F /* low_density_structure.png */; };
 		0DC1FB722F1431500010585F /* FluidData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC1FB712F1431500010585F /* FluidData.swift */; };
 		0DC1FB742F1431A00010585F /* FluidNetworkSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC1FB732F1431A00010585F /* FluidNetworkSystem.swift */; };
-		0DC1FB852F1437CC0010585F /* FluidSystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC1FB752F1437230010585F /* FluidSystemTests.swift */; };
+		0DC1FB852F1437CC0010585F /* FactoryForgeTests/FluidSystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC1FB752F1437230010585F /* FactoryForgeTests/FluidSystemTests.swift */; };
+		0DC1FBA22F1586B60010585F /* pipe_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA02F1586B60010585F /* pipe_2.png */; };
+		0DC1FBA32F1586B60010585F /* underground_pipe.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA12F1586B60010585F /* underground_pipe.png */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
 		0DE229632F001B9F00BD619D /* transport_belt_north_013.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229592F001B9F00BD619D /* transport_belt_north_013.png */; };
 		0DE229642F001B9F00BD619D /* transport_belt_north_002.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */; };
@@ -489,9 +491,11 @@
 		0DC1FB6F2F13217A0010585F /* low_density_structure.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = low_density_structure.png; sourceTree = "<group>"; };
 		0DC1FB712F1431500010585F /* FluidData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluidData.swift; sourceTree = "<group>"; };
 		0DC1FB732F1431A00010585F /* FluidNetworkSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluidNetworkSystem.swift; sourceTree = "<group>"; };
-		0DC1FB752F1437230010585F /* FluidSystemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactoryForgeTests/FluidSystemTests.swift; sourceTree = SOURCE_ROOT; };
+		0DC1FB752F1437230010585F /* FactoryForgeTests/FluidSystemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactoryForgeTests/FluidSystemTests.swift; sourceTree = SOURCE_ROOT; };
 		0DC1FB7C2F1437AC0010585F /* FactoryForgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FactoryForgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0DC1FB862F1437EB0010585F /* FactoryForge.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = FactoryForge.xctestplan; sourceTree = "<group>"; };
+		0DC1FBA02F1586B60010585F /* pipe_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = pipe_2.png; sourceTree = "<group>"; };
+		0DC1FBA12F1586B60010585F /* underground_pipe.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = underground_pipe.png; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
 		0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_002.png; sourceTree = "<group>"; };
 		0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_003.png; sourceTree = "<group>"; };
@@ -702,6 +706,8 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DC1FBA02F1586B60010585F /* pipe_2.png */,
+				0DC1FBA12F1586B60010585F /* underground_pipe.png */,
 				0DC1FB6F2F13217A0010585F /* low_density_structure.png */,
 				0D778B7E2F11E644003BC642 /* rocket_parts.png */,
 				0D778B7F2F11E644003BC642 /* solid_fuel.png */,
@@ -864,6 +870,14 @@
 			);
 			name = Docs;
 			path = FactoryForge/Docs;
+			sourceTree = "<group>";
+		};
+		0DC1FB9B2F1439290010585F /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				0DC1FB752F1437230010585F /* FactoryForgeTests/FluidSystemTests.swift */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 		0DE229422F001B9F00BD619D /* east */ = {
@@ -1088,6 +1102,7 @@
 				0DC1FB7D2F1437AC0010585F /* FactoryForgeTests */,
 				0D18B5872F0EFE55006B70A5 /* Frameworks */,
 				A0000200002 /* Products */,
+				0DC1FB9B2F1439290010585F /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1458,6 +1473,8 @@
 				0DFF59BC2F02CAC000A8699D /* transport_belt_east_003.png in Resources */,
 				0DFF59BD2F02CAC000A8699D /* transport_belt_east_004.png in Resources */,
 				0DC1FB702F13217A0010585F /* low_density_structure.png in Resources */,
+				0DC1FBA22F1586B60010585F /* pipe_2.png in Resources */,
+				0DC1FBA32F1586B60010585F /* underground_pipe.png in Resources */,
 				0DFF59BE2F02CAC000A8699D /* transport_belt_east_010.png in Resources */,
 				0DFF59BF2F02CAC000A8699D /* transport_belt_east_007.png in Resources */,
 				0DFF59C02F02CAC000A8699D /* transport_belt_east_008.png in Resources */,
@@ -1662,7 +1679,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0DC1FB852F1437CC0010585F /* FluidSystemTests.swift in Sources */,
+				0DC1FB852F1437CC0010585F /* FactoryForgeTests/FluidSystemTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
