@@ -164,6 +164,10 @@ final class Player {
             ("sulfuric-acid", 50),
             // Crude oil for oil processing testing
             ("crude-oil", 50),
+            // power poles for power network testing
+            ("small-electric-pole", 10),
+            ("medium-electric-pole", 10),
+            ("big-electric-pole", 10),
         ]
 
         for (itemId, count) in startingItems {

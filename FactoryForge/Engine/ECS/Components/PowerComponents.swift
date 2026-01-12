@@ -204,7 +204,7 @@ class PowerPoleComponent: BuildingComponent {
     /// Power network ID
     var networkId: Int?
 
-    init(buildingId: String, wireReach: Float = 7.5, supplyArea: Float = 2.5) {
+    init(buildingId: String, wireReach: Float = 7.5, supplyArea: Float = 5.0) {
         self.wireReach = wireReach
         self.supplyArea = supplyArea
         self.connections = []

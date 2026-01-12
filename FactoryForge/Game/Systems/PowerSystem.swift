@@ -106,6 +106,7 @@ final class PowerSystem: System {
                     if isWithinRange {
                         if !network.generators.contains(entity) {
                             network.generators.append(entity)
+                            print("PowerSystem: Added generator \(entity.id) to network \(network.id)")
                         }
                     }
                 }
@@ -209,7 +210,8 @@ final class PowerSystem: System {
         }
 
         network.totalConsumption = totalConsumption
-        
+        print("PowerSystem: Network \(network.id) totalConsumption: \(totalConsumption)")
+
         // Then update generators (this sets their currentOutput based on consumption)
         updateGenerators(network: network, deltaTime: deltaTime)
         
@@ -287,9 +289,11 @@ final class PowerSystem: System {
         // Update fuel-based generators
         for generator in network.generators {
             if var genComp = world.get(GeneratorComponent.self, for: generator) {
+                print("PowerSystem: Processing generator \(generator.id) (\(genComp.buildingId))")
                 // Check if this is a steam engine (has FluidConsumerComponent for steam)
                 if let fluidConsumer = world.get(FluidConsumerComponent.self, for: generator),
                    fluidConsumer.inputType == .steam {
+                    print("PowerSystem: Found steam engine \(generator.id)")
                     // Steam engine: produces power when consuming steam
                     let hasSteamInput = fluidConsumer.currentConsumption > 0.001
                     let hasConsumption = network.totalConsumption > 0
@@ -298,10 +302,15 @@ final class PowerSystem: System {
                         return comp.chargePercentage < 1.0
                     })
 
-                    if hasSteamInput && (hasConsumption || needsCharging) {
+                    print("PowerSystem: Steam engine \(generator.id) - steamInput: \(fluidConsumer.currentConsumption), hasConsumption: \(hasConsumption), needsCharging: \(needsCharging)")
+
+                    // Steam engines produce power whenever they have steam input (unlike fuel generators that only produce when there's demand)
+                    if hasSteamInput {
                         genComp.currentOutput = genComp.powerOutput
+                        print("PowerSystem: Steam engine \(generator.id) producing \(genComp.powerOutput) kW")
                     } else {
                         genComp.currentOutput = 0
+                        print("PowerSystem: Steam engine \(generator.id) producing 0 kW (no steam)")
                     }
 
                     world.add(genComp, to: generator)
