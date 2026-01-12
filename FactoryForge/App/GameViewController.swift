@@ -1423,6 +1423,7 @@ class GameViewController: UIViewController {
                     self.gameLoop!.world.has(MinerComponent.self, for: selectedEntity) ||
                     self.gameLoop!.world.has(FluidProducerComponent.self, for: selectedEntity) ||
                     self.gameLoop!.world.has(FluidConsumerComponent.self, for: selectedEntity) {
+                print("GameViewController: Opening machine UI for fluid entity")
                 self.uiSystem?.openMachineUI(for: selectedEntity)
             }
             // Otherwise, don't open any UI for this entity

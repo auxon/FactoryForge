@@ -534,7 +534,17 @@ final class InputManager: NSObject {
                    gameLoop.world.has(AssemblerComponent.self, for: entityAtTile) ||
                    gameLoop.world.has(MinerComponent.self, for: entityAtTile) ||
                    gameLoop.world.has(ChestComponent.self, for: entityAtTile) ||
-                   gameLoop.world.has(LabComponent.self, for: entityAtTile) {
+                   gameLoop.world.has(LabComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(GeneratorComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(PowerPoleComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(BeltComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(InserterComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(FluidProducerComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(AccumulatorComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(SolarPanelComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(TurretComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(RocketSiloComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(PipeComponent.self, for: entityAtTile) {
                     selected = entityAtTile
                 }
             }
@@ -776,6 +786,34 @@ final class InputManager: NSObject {
                 // Get all entities within the world rectangle
                 let selectedEntities = gameLoop.world.getAllEntitiesInWorldRect(rect)
                 print("InputManager: Found \(selectedEntities.count) entities in selection rectangle")
+
+                // Debug: Show what types of entities were found
+                let pipeCount = selectedEntities.filter { gameLoop.world.has(PipeComponent.self, for: $0) }.count
+                let fluidProducerCount = selectedEntities.filter { gameLoop.world.has(FluidProducerComponent.self, for: $0) }.count
+                let generatorCount = selectedEntities.filter { gameLoop.world.has(GeneratorComponent.self, for: $0) }.count
+
+                print("InputManager: Selection rectangle contains:")
+                print("  - \(pipeCount) pipes")
+                print("  - \(fluidProducerCount) fluid producers")
+                print("  - \(generatorCount) generators")
+
+                // Debug: List all entities and their components
+                for entity in selectedEntities {
+                    let components = [
+                        gameLoop.world.has(PipeComponent.self, for: entity) ? "pipe" : "",
+                        gameLoop.world.has(FluidProducerComponent.self, for: entity) ? "fluidProducer" : "",
+                        gameLoop.world.has(FluidConsumerComponent.self, for: entity) ? "fluidConsumer" : "",
+                        gameLoop.world.has(GeneratorComponent.self, for: entity) ? "generator" : "",
+                        gameLoop.world.has(FurnaceComponent.self, for: entity) ? "furnace" : "",
+                        gameLoop.world.has(AssemblerComponent.self, for: entity) ? "assembler" : ""
+                    ].filter { !$0.isEmpty }.joined(separator: ",")
+
+                    if let pos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                        print("  Entity \(entity.id): [\(components)] at (\(pos.tilePosition.x), \(pos.tilePosition.y))")
+                    } else {
+                        print("  Entity \(entity.id): [\(components)] (no position)")
+                    }
+                }
                 
                 // Filter to only interactable entities
                 let interactableEntities = selectedEntities.filter { entity in
@@ -788,11 +826,34 @@ final class InputManager: NSObject {
                     let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
                     let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
                     let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
+                    let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entity)
+                    let hasAccumulator = gameLoop.world.has(AccumulatorComponent.self, for: entity)
+                    let hasSolarPanel = gameLoop.world.has(SolarPanelComponent.self, for: entity)
+                    let hasTurret = gameLoop.world.has(TurretComponent.self, for: entity)
+                    let hasRocketSilo = gameLoop.world.has(RocketSiloComponent.self, for: entity)
+                    let hasPipe = gameLoop.world.has(PipeComponent.self, for: entity)
 
-                    let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter
+                    let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter || hasFluidProducer || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo || hasPipe
 
-                    if isInteractable {
-                        print("InputManager: Found interactable entity \(entity) - assembler:\(hasAssembler) furnace:\(hasFurnace) miner:\(hasMiner) chest:\(hasChest) lab:\(hasLab) generator:\(hasGenerator) pole:\(hasPole) belt:\(hasBelt) inserter:\(hasInserter)")
+                    if isInteractable || hasFluidProducer || hasPipe {
+                        let componentList = [
+                            hasAssembler ? "assembler" : "",
+                            hasFurnace ? "furnace" : "",
+                            hasMiner ? "miner" : "",
+                            hasChest ? "chest" : "",
+                            hasLab ? "lab" : "",
+                            hasGenerator ? "generator" : "",
+                            hasPole ? "pole" : "",
+                            hasBelt ? "belt" : "",
+                            hasInserter ? "inserter" : "",
+                            hasFluidProducer ? "fluidProducer" : "",
+                            hasPipe ? "pipe" : "",
+                            hasAccumulator ? "accumulator" : "",
+                            hasSolarPanel ? "solar" : "",
+                            hasTurret ? "turret" : "",
+                            hasRocketSilo ? "rocketSilo" : ""
+                        ].filter { !$0.isEmpty }.joined(separator: ",")
+                        print("InputManager: Entity \(entity.id) components: [\(componentList)] interactable:\(isInteractable)")
                     }
 
                     return isInteractable
@@ -974,9 +1035,15 @@ final class InputManager: NSObject {
 
             return isInteractable
         }
+
+        // Debug: Log what we found
+        if !interactableEntities.isEmpty {
+            print("InputManager: Found \(interactableEntities.count) interactable entities at \(tilePos)")
+        }
         
         // If multiple interactable entities, show selection dialog
         if interactableEntities.count > 1 {
+            print("InputManager: NORMAL SELECTION - Showing entity selection dialog with \(interactableEntities.count) entities")
             gameLoop.uiSystem?.showEntitySelectionDialog(entities: interactableEntities) { [weak self] selectedEntity in
                 self?.selectEntity(selectedEntity, gameLoop: gameLoop, isDoubleTap: isDoubleTap)
             }

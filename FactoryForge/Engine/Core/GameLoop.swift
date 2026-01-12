@@ -27,7 +27,10 @@ final class GameLoop {
 
     /// Public access to power system for UI components
     var powerSystem: PowerSystem { _powerSystem }
-    private let fluidNetworkSystem: FluidNetworkSystem
+    private let _fluidNetworkSystem: FluidNetworkSystem
+
+    /// Public access to fluid network system for save system to register entities after loading
+    var fluidNetworkSystem: FluidNetworkSystem { _fluidNetworkSystem }
     private let pollutionSystem: PollutionSystem
     private let enemyAISystem: EnemyAISystem
     private let combatSystem: CombatSystem
@@ -95,7 +98,7 @@ final class GameLoop {
         inserterSystem = InserterSystem(world: world, beltSystem: beltSystem, itemRegistry: itemRegistry)
         craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry, itemRegistry: itemRegistry, buildingRegistry: buildingRegistry)
         _powerSystem = PowerSystem(world: world)
-        fluidNetworkSystem = FluidNetworkSystem(world: world)
+        _fluidNetworkSystem = FluidNetworkSystem(world: world)
         researchSystem = ResearchSystem(world: world, technologyRegistry: technologyRegistry)
         pollutionSystem = PollutionSystem(world: world, chunkManager: chunkManager)
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
@@ -111,7 +114,7 @@ final class GameLoop {
         systems = [
             miningSystem,
             beltSystem,
-            fluidNetworkSystem,
+            _fluidNetworkSystem,
             inserterSystem,
             craftingSystem,
             _powerSystem,
@@ -441,7 +444,7 @@ final class GameLoop {
         if buildingDef.type == .pipe || buildingDef.type == .pumpjack ||
            buildingDef.type == .waterPump || buildingDef.type == .generator ||
            buildingDef.type == .oilRefinery || buildingDef.type == .chemicalPlant {
-            fluidNetworkSystem.markEntityDirty(entity)
+            _fluidNetworkSystem.markEntityDirty(entity)
         }
 
         return true
@@ -1152,7 +1155,7 @@ final class GameLoop {
 
         // Trigger fluid network rebuild if it's a pipe
         if world.has(PipeComponent.self, for: entity) {
-            fluidNetworkSystem.markEntityDirty(entity)
+            _fluidNetworkSystem.markEntityDirty(entity)
         }
 
         // Despawn the entity directly (not by position lookup, which could find a different entity)

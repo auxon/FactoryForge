@@ -109,10 +109,27 @@ final class FluidNetworkSystem: System {
         dirtyNetworks.insert(networkId)
     }
 
+    /// Resets all internal state (used when loading saved games)
+    func reset() {
+        print("🌊 FluidNetworkSystem: Resetting all internal state")
+        networks.removeAll()
+        nextNetworkId = 1
+        dirtyEntities.removeAll()
+        dirtyNetworks.removeAll()
+        entityPositions.removeAll()
+        entityConnections.removeAll()
+        networksByPosition.removeAll()
+    }
+
     /// Updates networks based on dirty entities
     private func updateNetworks() {
+        if !dirtyEntities.isEmpty {
+            print("🌊 FluidNetworkSystem: Processing \(dirtyEntities.count) dirty entities")
+        }
+
         // If we have no networks yet, do a full rebuild
         if networks.isEmpty && !dirtyEntities.isEmpty {
+            print("🌊 FluidNetworkSystem: No networks exist, rebuilding all networks")
             rebuildAllNetworks()
             return
         }
@@ -121,9 +138,11 @@ final class FluidNetworkSystem: System {
         for entity in dirtyEntities {
             if world.isAlive(entity) {
                 // Entity was added or modified
+                print("🌊 FluidNetworkSystem: Adding entity \(entity.id) to networks")
                 handleEntityAdded(entity)
             } else {
                 // Entity was removed
+                print("🌊 FluidNetworkSystem: Removing dead entity \(entity.id)")
                 handleEntityRemoved(entity)
             }
         }

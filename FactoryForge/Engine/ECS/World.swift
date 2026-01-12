@@ -584,6 +584,32 @@ extension World {
             if let accumulator = get(AccumulatorComponent.self, for: entity) {
                 components["accumulator"] = try? JSONEncoder().encode(accumulator)
             }
+            if let turret = get(TurretComponent.self, for: entity) {
+                components["turret"] = try? JSONEncoder().encode(turret)
+            }
+            if let wall = get(WallComponent.self, for: entity) {
+                components["wall"] = try? JSONEncoder().encode(wall)
+            }
+            if let rocketSilo = get(RocketSiloComponent.self, for: entity) {
+                components["rocketSilo"] = try? JSONEncoder().encode(rocketSilo)
+            }
+
+            // Fluid components
+            if let pipe = get(PipeComponent.self, for: entity) {
+                components["pipe"] = try? JSONEncoder().encode(pipe)
+            }
+            if let fluidProducer = get(FluidProducerComponent.self, for: entity) {
+                components["fluidProducer"] = try? JSONEncoder().encode(fluidProducer)
+            }
+            if let fluidConsumer = get(FluidConsumerComponent.self, for: entity) {
+                components["fluidConsumer"] = try? JSONEncoder().encode(fluidConsumer)
+            }
+            if let fluidTank = get(FluidTankComponent.self, for: entity) {
+                components["fluidTank"] = try? JSONEncoder().encode(fluidTank)
+            }
+            if let fluidPump = get(FluidPumpComponent.self, for: entity) {
+                components["fluidPump"] = try? JSONEncoder().encode(fluidPump)
+            }
             
             // Exclude player entity from world serialization (it's saved separately in PlayerState)
             // Player entities have CollisionComponent with layer .player
@@ -703,6 +729,41 @@ extension World {
                let accumulator = try? JSONDecoder().decode(AccumulatorComponent.self, from: accumulatorData) {
                 add(accumulator, to: entity)
             }
+            if let turretData = entityData.components["turret"],
+               let turret = try? JSONDecoder().decode(TurretComponent.self, from: turretData) {
+                add(turret, to: entity)
+            }
+            if let wallData = entityData.components["wall"],
+               let wall = try? JSONDecoder().decode(WallComponent.self, from: wallData) {
+                add(wall, to: entity)
+            }
+            if let rocketSiloData = entityData.components["rocketSilo"],
+               let rocketSilo = try? JSONDecoder().decode(RocketSiloComponent.self, from: rocketSiloData) {
+                add(rocketSilo, to: entity)
+            }
+
+            // Fluid components
+            if let pipeData = entityData.components["pipe"],
+               let pipe = try? JSONDecoder().decode(PipeComponent.self, from: pipeData) {
+                add(pipe, to: entity)
+            }
+            if let fluidProducerData = entityData.components["fluidProducer"],
+               let fluidProducer = try? JSONDecoder().decode(FluidProducerComponent.self, from: fluidProducerData) {
+                add(fluidProducer, to: entity)
+            }
+            if let fluidConsumerData = entityData.components["fluidConsumer"],
+               let fluidConsumer = try? JSONDecoder().decode(FluidConsumerComponent.self, from: fluidConsumerData) {
+                add(fluidConsumer, to: entity)
+            }
+            if let fluidTankData = entityData.components["fluidTank"],
+               let fluidTank = try? JSONDecoder().decode(FluidTankComponent.self, from: fluidTankData) {
+                add(fluidTank, to: entity)
+            }
+            if let fluidPumpData = entityData.components["fluidPump"],
+               let fluidPump = try? JSONDecoder().decode(FluidPumpComponent.self, from: fluidPumpData) {
+                add(fluidPump, to: entity)
+            }
+
             if let collisionData = entityData.components["collision"],
                let collision = try? JSONDecoder().decode(CollisionComponent.self, from: collisionData) {
                 add(collision, to: entity)
