@@ -869,6 +869,7 @@ final class MachineUI: UIPanel_Base {
             fluidOutputIndicators[0].amount = producer.currentProduction * 0.1 // Show recent production rate
             fluidOutputIndicators[0].maxAmount = producer.productionRate
             fluidOutputIndicators[0].hasConnection = !producer.connections.isEmpty
+            print("Boiler producer connections: \(producer.connections.count)")
         }
 
         // Update fluid consumers (first input indicator)
@@ -878,6 +879,12 @@ final class MachineUI: UIPanel_Base {
             fluidInputIndicators[0].amount = consumer.currentConsumption * 0.1 // Show recent consumption rate
             fluidInputIndicators[0].maxAmount = consumer.consumptionRate
             fluidInputIndicators[0].hasConnection = !consumer.connections.isEmpty
+            print("Boiler consumer connections: \(consumer.connections.count)")
+        }
+
+        // Debug tank
+        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            print("Boiler tank connections: \(tank.connections.count)")
         }
 
         // Update fluid tanks (remaining output indicators)

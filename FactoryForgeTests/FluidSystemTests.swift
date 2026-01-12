@@ -608,7 +608,8 @@ class FluidSystemTests: XCTestCase {
     func testNetworkDiscovery() {
         // Test network discovery with connected pipes
         let world = World()
-        let networkSystem = FluidNetworkSystem(world: world)
+        let buildingRegistry = BuildingRegistry()
+        let networkSystem = FluidNetworkSystem(world: world, buildingRegistry: buildingRegistry)
 
         // Create a simple pipe network
         let pipe1 = TestEntity(id: 1, generation: 0)
@@ -743,7 +744,8 @@ extension FluidSystemTests {
 
     func testFluidNetworkSystemInitialization() {
         let world = World()
-        let system = FluidNetworkSystem(world: world)
+        let buildingRegistry = BuildingRegistry()
+        let system = FluidNetworkSystem(world: world, buildingRegistry: buildingRegistry)
 
         // Test initial state
         XCTAssertEqual(system.networks.count, 0)
@@ -754,7 +756,8 @@ extension FluidSystemTests {
 
     func testNetworkSystemPerformanceStats() {
         let world = World()
-        let system = FluidNetworkSystem(world: world)
+        let buildingRegistry = BuildingRegistry()
+        let system = FluidNetworkSystem(world: world, buildingRegistry: buildingRegistry)
 
         let stats = system.getPerformanceStats()
 

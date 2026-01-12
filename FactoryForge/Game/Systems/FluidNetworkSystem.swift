@@ -26,6 +26,7 @@ final class FluidNetworkSystem: System {
     let priority = SystemPriority.logistics.rawValue
 
     private let world: World
+    private let buildingRegistry: BuildingRegistry
 
     /// All fluid networks in the game
     private var networks: [Int: FluidNetwork] = [:]
@@ -55,8 +56,9 @@ final class FluidNetworkSystem: System {
     private var updateCounter: Int = 0
     private let updateFrequency = 3  // Update every 3 frames for less critical calculations
 
-    init(world: World) {
+    init(world: World, buildingRegistry: BuildingRegistry) {
         self.world = world
+        self.buildingRegistry = buildingRegistry
     }
 
     func update(deltaTime: Float) {
@@ -122,20 +124,40 @@ final class FluidNetworkSystem: System {
 
     /// Updates networks based on dirty entities
     private func updateNetworks() {
-        // If we have no networks yet, do a full rebuild
-        if networks.isEmpty && !dirtyEntities.isEmpty {
-            rebuildAllNetworks()
-            return
-        }
+        // Track entities already processed in this call to prevent infinite loops
+        var processedEntities = Set<Entity>()
 
-        // Process each dirty entity
-        for entity in dirtyEntities {
-            if world.isAlive(entity) {
-                // Entity was added or modified
-                handleEntityAdded(entity)
-            } else {
-                // Entity was removed
-                handleEntityRemoved(entity)
+        while !dirtyEntities.isEmpty {
+            let entitiesToProcess = Array(dirtyEntities)
+            dirtyEntities.removeAll()
+
+            print("FluidNetworkSystem: Processing \(entitiesToProcess.count) dirty entities")
+
+            // If we have no networks yet, do a full rebuild
+            if networks.isEmpty && !entitiesToProcess.isEmpty {
+                print("FluidNetworkSystem: Rebuilding all networks")
+                rebuildAllNetworks()
+                return
+            }
+
+            // Process each dirty entity (skip if already processed)
+            for entity in entitiesToProcess {
+                if processedEntities.contains(entity) {
+                    print("FluidNetworkSystem: Skipping already processed entity \(entity.id)")
+                    continue
+                }
+
+                processedEntities.insert(entity)
+
+                if world.isAlive(entity) {
+                    print("FluidNetworkSystem: Entity \(entity.id) is alive, handling as addition")
+                    // Entity was added or modified
+                    handleEntityAdded(entity)
+                } else {
+                    print("FluidNetworkSystem: Entity \(entity.id) is dead, handling as removal")
+                    // Entity was removed
+                    handleEntityRemoved(entity)
+                }
             }
         }
     }
@@ -201,8 +223,19 @@ final class FluidNetworkSystem: System {
 
     /// Handles when a fluid entity is removed
     private func handleEntityRemoved(_ entity: Entity) {
-        // Remove connections from other entities to this entity
+        print("handleEntityRemoved: Removing entity \(entity.id)")
+
+        // Remove connections from all fluid entities to this entity
         removeConnectionsTo(entity)
+
+        // Re-establish connections for ALL fluid entities to recalculate their connection lists
+        // This is necessary because connection storage might not be symmetric
+        print("handleEntityRemoved: Re-establishing connections for all fluid entities")
+        for fluidEntity in world.entities {
+            if isFluidEntity(fluidEntity) && world.isAlive(fluidEntity) && fluidEntity != entity {
+                establishConnections(for: fluidEntity)
+            }
+        }
 
         guard let networkId = getEntityNetworkId(entity) else {
             return // Entity wasn't in any network
@@ -247,28 +280,12 @@ final class FluidNetworkSystem: System {
 
     /// Removes all connections to a specific entity
     private func removeConnectionsTo(_ targetEntity: Entity) {
-        // Get all entities that might be connected to this entity
-        // For efficiency, we'll check entities that were connected to it
-        var entitiesToCheck: [Entity] = []
-
-        // Get connections from the target entity
-        if let pipe = world.get(PipeComponent.self, for: targetEntity) {
-            entitiesToCheck.append(contentsOf: pipe.connections)
-        } else if let producer = world.get(FluidProducerComponent.self, for: targetEntity) {
-            entitiesToCheck.append(contentsOf: producer.connections)
-        } else if let consumer = world.get(FluidConsumerComponent.self, for: targetEntity) {
-            entitiesToCheck.append(contentsOf: consumer.connections)
-        } else if let tank = world.get(FluidTankComponent.self, for: targetEntity) {
-            entitiesToCheck.append(contentsOf: tank.connections)
-        } else if let pump = world.get(FluidPumpComponent.self, for: targetEntity) {
-            entitiesToCheck.append(contentsOf: pump.connections)
-        } else if let pump = world.get(FluidPumpComponent.self, for: targetEntity) {
-            entitiesToCheck.append(contentsOf: pump.connections)
-        }
-
-        // Remove the target entity from each connected entity's connections
-        for entity in entitiesToCheck {
-            removeConnection(from: entity, to: targetEntity)
+        // Since connection storage might not be symmetric, scan ALL fluid entities
+        // and remove the target entity from their connections
+        for entity in world.entities {
+            if isFluidEntity(entity) && world.isAlive(entity) {
+                removeConnection(from: entity, to: targetEntity)
+            }
         }
     }
 
@@ -412,75 +429,153 @@ final class FluidNetworkSystem: System {
 
     /// Establishes connections for a newly added entity
     private func establishConnections(for entity: Entity) {
+        print("establishConnections: Starting for entity \(entity.id)")
+
         // Get position of the entity
         guard let position = world.get(PositionComponent.self, for: entity)?.tilePosition else {
+            print("establishConnections: No position for entity \(entity.id)")
             return
         }
 
-        // Check all adjacent positions
-        let adjacentPositions = [
-            position + IntVector2(x: 0, y: 1),   // North
-            position + IntVector2(x: 1, y: 0),   // East
-            position + IntVector2(x: 0, y: -1),  // South
-            position + IntVector2(x: -1, y: 0)   // West
-        ]
+        print("establishConnections: Entity at position \(position)")
 
-        var newConnections: [Entity] = []
+        // Get building size to handle multi-tile buildings
+        let buildingSize = getBuildingSize(for: entity)
+        print("establishConnections: Building size \(buildingSize)")
 
-        for adjacentPos in adjacentPositions {
-            // Find entities at this position
-            let entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
-            for adjacentEntity in entitiesAtPos {
-                // Check if this entity can connect to our entity
-                if canConnect(entity, to: adjacentEntity) {
-                    newConnections.append(adjacentEntity)
-                    // Also add the connection to the adjacent entity
-                    addConnection(from: adjacentEntity, to: entity)
+        // Collect all positions to check adjacent to (for multi-tile buildings)
+        var positionsToCheckAdjacentTo = [position]
+
+        // For multi-tile buildings, check adjacent to all occupied tiles
+        if buildingSize.width > 1 || buildingSize.height > 1 {
+            for x in 0..<buildingSize.width {
+                for y in 0..<buildingSize.height {
+                    let occupiedPos = position + IntVector2(x: Int32(x), y: Int32(y))
+                    positionsToCheckAdjacentTo.append(occupiedPos)
                 }
             }
         }
 
-        // Update this entity's connections
-        if world.has(PipeComponent.self, for: entity) {
-            if let pipe = world.get(PipeComponent.self, for: entity) {
-                pipe.connections = newConnections
-                world.add(pipe, to: entity)
-            }
-        } else if world.has(FluidProducerComponent.self, for: entity) {
-            if let producer = world.get(FluidProducerComponent.self, for: entity) {
-                producer.connections = newConnections
-                world.add(producer, to: entity)
-            }
-        } else if world.has(FluidConsumerComponent.self, for: entity) {
-            if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
-                consumer.connections = newConnections
-                world.add(consumer, to: entity)
-            }
-        } else if world.has(FluidTankComponent.self, for: entity) {
-            if let tank = world.get(FluidTankComponent.self, for: entity) {
-                tank.connections = newConnections
-                world.add(tank, to: entity)
-            }
-        } else if world.has(FluidPumpComponent.self, for: entity) {
-            if let pump = world.get(FluidPumpComponent.self, for: entity) {
-                pump.connections = newConnections
-                world.add(pump, to: entity)
-            }
-        } else if world.has(FluidPumpComponent.self, for: entity) {
-            if let pump = world.get(FluidPumpComponent.self, for: entity) {
-                pump.connections = newConnections
-                world.add(pump, to: entity)
+        // Check all adjacent positions around each occupied position
+        var adjacentPositions = Set<IntVector2>()
+        for checkPos in positionsToCheckAdjacentTo {
+            adjacentPositions.insert(checkPos + IntVector2(x: 0, y: 1))   // North
+            adjacentPositions.insert(checkPos + IntVector2(x: 1, y: 0))   // East
+            adjacentPositions.insert(checkPos + IntVector2(x: 0, y: -1))  // South
+            adjacentPositions.insert(checkPos + IntVector2(x: -1, y: 0))  // West
+        }
+
+        // Remove positions that are occupied by this entity itself
+        adjacentPositions = adjacentPositions.filter { adjPos in
+            let entitiesAtPos = world.getAllEntitiesAt(position: adjPos)
+            return !entitiesAtPos.contains(entity)
+        }
+
+        let adjacentPositionsList = Array(adjacentPositions)
+
+        var newConnections: [Entity] = []
+
+        print("establishConnections: Checking \(adjacentPositionsList.count) adjacent positions for entity \(entity.id)")
+        for adjacentPos in adjacentPositionsList {
+            // Find entities at this position
+            let entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
+            print("establishConnections: Position \(adjacentPos) has \(entitiesAtPos.count) entities")
+            for adjacentEntity in entitiesAtPos {
+                // Check if this entity can connect to our entity
+                if canConnect(entity, to: adjacentEntity) {
+                    print("establishConnections: Can connect to adjacent entity \(adjacentEntity.id)")
+                    newConnections.append(adjacentEntity)
+                    // Also add the connection to the adjacent entity
+                    addConnection(from: adjacentEntity, to: entity)
+                    addConnection(from: entity, to: adjacentEntity)
+                    // Mark the adjacent entity as dirty so its connections get updated too
+                    markEntityDirty(adjacentEntity)
+                } else {
+                    print("establishConnections: Cannot connect to adjacent entity \(adjacentEntity.id)")
+                }
             }
         }
+
+        // Check what components exist
+        let hasPipe = world.has(PipeComponent.self, for: entity)
+        let hasProducer = world.has(FluidProducerComponent.self, for: entity)
+        let hasConsumer = world.has(FluidConsumerComponent.self, for: entity)
+        let hasTank = world.has(FluidTankComponent.self, for: entity)
+        let hasPump = world.has(FluidPumpComponent.self, for: entity)
+        print("establishConnections: Entity \(entity.id) has components - pipe:\(hasPipe), producer:\(hasProducer), consumer:\(hasConsumer), tank:\(hasTank), pump:\(hasPump)")
+
+        // Update this entity's connections on ALL fluid components
+        var updatedComponents = 0
+        print("establishConnections: Updating components for entity \(entity.id)")
+
+        if let pipe = world.get(PipeComponent.self, for: entity) {
+            print("establishConnections: Found pipe component, setting \(newConnections.count) connections")
+            pipe.connections = newConnections
+            world.add(pipe, to: entity)
+            updatedComponents += 1
+        }
+        if let producer = world.get(FluidProducerComponent.self, for: entity) {
+            print("establishConnections: Found producer component, setting \(newConnections.count) connections")
+            producer.connections = newConnections
+            world.add(producer, to: entity)
+            updatedComponents += 1
+        }
+        if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
+            print("establishConnections: Found consumer component, setting \(newConnections.count) connections")
+            consumer.connections = newConnections
+            world.add(consumer, to: entity)
+            updatedComponents += 1
+        }
+        if let tank = world.get(FluidTankComponent.self, for: entity) {
+            print("establishConnections: Found tank component, setting \(newConnections.count) connections")
+            tank.connections = newConnections
+            world.add(tank, to: entity)
+            updatedComponents += 1
+        }
+        if let pump = world.get(FluidPumpComponent.self, for: entity) {
+            print("establishConnections: Found pump component, setting \(newConnections.count) connections")
+            pump.connections = newConnections
+            world.add(pump, to: entity)
+            updatedComponents += 1
+        }
+
+        print("establishConnections: Updated \(updatedComponents) components for entity \(entity.id)")
+    }
+
+    /// Gets the building size for multi-tile building connection checking
+    private func getBuildingSize(for entity: Entity) -> (width: Int, height: Int) {
+        // Try to get building ID from any fluid component
+        var buildingId: String?
+
+        if let producer = world.get(FluidProducerComponent.self, for: entity) {
+            buildingId = producer.buildingId
+        } else if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
+            buildingId = consumer.buildingId
+        } else if let tank = world.get(FluidTankComponent.self, for: entity) {
+            buildingId = tank.buildingId
+        } else if let pump = world.get(FluidPumpComponent.self, for: entity) {
+            buildingId = pump.buildingId
+        }
+
+        if let buildingId = buildingId, let buildingDef = buildingRegistry.get(buildingId) {
+            return (width: buildingDef.width, height: buildingDef.height)
+        }
+
+        // Default to 1x1 for pipes and other single-tile entities
+        return (width: 1, height: 1)
     }
 
     /// Adds a connection from one entity to another
     private func addConnection(from entity: Entity, to connectedEntity: Entity) {
+        print("addConnection: Adding connection from \(entity.id) to \(connectedEntity.id)")
         if world.has(PipeComponent.self, for: entity) {
             if let pipe = world.get(PipeComponent.self, for: entity) {
                 if !pipe.connections.contains(connectedEntity) {
                     pipe.connections.append(connectedEntity)
                     world.add(pipe, to: entity)
+                    print("addConnection: Added to pipe connections, now has \(pipe.connections.count)")
+                } else {
+                    print("addConnection: Pipe already connected")
                 }
             }
         } else if world.has(FluidProducerComponent.self, for: entity) {
@@ -586,13 +681,17 @@ final class FluidNetworkSystem: System {
     private func getEntityNetworkId(_ entity: Entity) -> Int? {
         if let pipe = world.get(PipeComponent.self, for: entity) {
             return pipe.networkId
-        } else if let producer = world.get(FluidProducerComponent.self, for: entity) {
+        }
+        if let producer = world.get(FluidProducerComponent.self, for: entity) {
             return producer.networkId
-        } else if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
+        }
+        if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
             return consumer.networkId
-        } else if let tank = world.get(FluidTankComponent.self, for: entity) {
+        }
+        if let tank = world.get(FluidTankComponent.self, for: entity) {
             return tank.networkId
-        } else if let pump = world.get(FluidPumpComponent.self, for: entity) {
+        }
+        if let pump = world.get(FluidPumpComponent.self, for: entity) {
             return pump.networkId
         }
         return nil
@@ -603,16 +702,20 @@ final class FluidNetworkSystem: System {
         if let pipe = world.get(PipeComponent.self, for: entity) {
             pipe.networkId = networkId
             world.add(pipe, to: entity)
-        } else if let producer = world.get(FluidProducerComponent.self, for: entity) {
+        }
+        if let producer = world.get(FluidProducerComponent.self, for: entity) {
             producer.networkId = networkId
             world.add(producer, to: entity)
-        } else if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
+        }
+        if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
             consumer.networkId = networkId
             world.add(consumer, to: entity)
-        } else if let tank = world.get(FluidTankComponent.self, for: entity) {
+        }
+        if let tank = world.get(FluidTankComponent.self, for: entity) {
             tank.networkId = networkId
             world.add(tank, to: entity)
-        } else if let pump = world.get(FluidPumpComponent.self, for: entity) {
+        }
+        if let pump = world.get(FluidPumpComponent.self, for: entity) {
             pump.networkId = networkId
             world.add(pump, to: entity)
         }
@@ -781,6 +884,12 @@ final class FluidNetworkSystem: System {
         let totalProduction = productionRates.values.reduce(0, +)
         let totalConsumption = consumptionRates.values.reduce(0, +)
         let netFlow = totalProduction - totalConsumption
+
+        // Step 1.5: Inject produced fluid into the network
+        injectProducedFluid(productionRates: productionRates, network: network)
+
+        // Step 1.6: Handle fluid consumption from the network
+        consumeFluidFromNetwork(consumptionRates: consumptionRates, network: network)
 
         // Early exit optimization: if net flow is negligible, skip detailed calculations
         if abs(netFlow) < 0.01 && network.pipes.count > 10 {
@@ -1274,6 +1383,78 @@ final class FluidNetworkSystem: System {
         tank.tanks.append(newStack)
         world.add(tank, to: tankEntity)
         return added
+    }
+
+    /// Inject produced fluid into the network from producers
+    private func injectProducedFluid(productionRates: [Entity: Float], network: FluidNetwork) {
+        for (producerEntity, productionAmount) in productionRates {
+            guard let producer = world.get(FluidProducerComponent.self, for: producerEntity) else { continue }
+
+            // Determine the fluid type being produced
+            let fluidType = producer.outputType
+
+            // Try to add fluid to connected pipes first, then tanks
+            var remainingAmount = productionAmount
+
+            // First, try connected pipes
+            for connectedEntity in producer.connections {
+                if remainingAmount <= 0 { break }
+                if world.has(PipeComponent.self, for: connectedEntity) {
+                    let added = addFluidToEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType)
+                    remainingAmount -= added
+                }
+            }
+
+            // Then try connected tanks
+            for connectedEntity in producer.connections {
+                if remainingAmount <= 0 { break }
+                if world.has(FluidTankComponent.self, for: connectedEntity) {
+                    let added = addFluidToEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType)
+                    remainingAmount -= added
+                }
+            }
+
+            // If still fluid left and producer has a tank, add to own tank
+            if remainingAmount > 0 {
+                _ = addFluidToEntity(producerEntity, amount: remainingAmount, fluidType: fluidType)
+            }
+        }
+    }
+
+    /// Consume fluid from the network for consumers
+    private func consumeFluidFromNetwork(consumptionRates: [Entity: Float], network: FluidNetwork) {
+        for (consumerEntity, consumptionAmount) in consumptionRates {
+            guard let consumer = world.get(FluidConsumerComponent.self, for: consumerEntity) else { continue }
+
+            // Determine the fluid type being consumed
+            let fluidType = consumer.inputType
+
+            // Try to consume fluid from connected pipes first, then tanks
+            var remainingAmount = consumptionAmount
+
+            // First, try connected pipes
+            for connectedEntity in consumer.connections {
+                if remainingAmount <= 0 { break }
+                if world.has(PipeComponent.self, for: connectedEntity) {
+                    let removed = removeFluidFromEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType!)
+                    remainingAmount -= removed
+                }
+            }
+
+            // Then try connected tanks
+            for connectedEntity in consumer.connections {
+                if remainingAmount <= 0 { break }
+                if world.has(FluidTankComponent.self, for: connectedEntity) {
+                    let removed = removeFluidFromEntity(connectedEntity, amount: remainingAmount, fluidType: fluidType!)
+                    remainingAmount -= removed
+                }
+            }
+
+            // If still need fluid and consumer has a tank, consume from own tank
+            if remainingAmount > 0 {
+                _ = removeFluidFromEntity(consumerEntity, amount: remainingAmount, fluidType: fluidType!)
+            }
+        }
     }
 
     /// Handle direct transfers from producers to consumers (bypassing pipe network)

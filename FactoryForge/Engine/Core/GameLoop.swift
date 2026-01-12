@@ -98,7 +98,7 @@ final class GameLoop {
         inserterSystem = InserterSystem(world: world, beltSystem: beltSystem, itemRegistry: itemRegistry)
         craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry, itemRegistry: itemRegistry, buildingRegistry: buildingRegistry)
         _powerSystem = PowerSystem(world: world)
-        _fluidNetworkSystem = FluidNetworkSystem(world: world)
+        _fluidNetworkSystem = FluidNetworkSystem(world: world, buildingRegistry: buildingRegistry)
         researchSystem = ResearchSystem(world: world, technologyRegistry: technologyRegistry)
         pollutionSystem = PollutionSystem(world: world, chunkManager: chunkManager)
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
