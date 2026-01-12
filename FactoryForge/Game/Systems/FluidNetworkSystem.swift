@@ -891,10 +891,10 @@ final class FluidNetworkSystem: System {
 
                 // Special handling for boilers - need fuel + water
                 if producer.buildingId == "boiler" {
-                    if let generator = world.get(GeneratorComponent.self, for: producerEntity),
+                    if var inventory = world.get(InventoryComponent.self, for: producerEntity),
                        let tank = world.get(FluidTankComponent.self, for: producerEntity) {
 
-                        let hasFuel = generator.fuelRemaining > 0 || generator.currentFuel != nil
+                        let hasFuel = inventory.slots.contains { $0 != nil } // Check if any fuel slot has fuel
                         let hasWater = tank.tanks.contains { $0.type == .water && $0.amount > 10 } // Need minimum water
 
                         if hasFuel && hasWater {
@@ -902,6 +902,22 @@ final class FluidNetworkSystem: System {
                             // Consume water at the same rate as steam production
                             let waterConsumed = productionThisTick
                             _ = removeFluidFromTank(producerEntity, amount: waterConsumed, fluidType: .water)
+
+                            // Consume fuel (simplified - consume 1 fuel per second of operation)
+                            // In a real implementation, this would check fuel energy values
+                            for i in 0..<inventory.slots.count {
+                                if inventory.slots[i] != nil {
+                                    // Consume one unit of fuel
+                                    var updatedStack = inventory.slots[i]!
+                                    updatedStack.count -= 1
+                                    if updatedStack.count <= 0 {
+                                        inventory.slots[i] = nil
+                                    } else {
+                                        inventory.slots[i] = updatedStack
+                                    }
+                                    break // Only consume from one slot per tick
+                                }
+                            }
                         }
                     }
                 } else {

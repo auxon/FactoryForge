@@ -308,9 +308,9 @@ final class MachineUI: UIPanel_Base {
 
         // Check for fluid producers (boilers, oil wells, water pumps)
         if gameLoop.world.get(FluidProducerComponent.self, for: entity) != nil {
-            // Create output fluid indicator (right side, above outputs)
+            // Create output fluid indicator (right side, above output slots)
             let outputX = frame.center.x + 200 * UIScale + indicatorSize/2
-            let outputY = frame.center.y - 120 * UIScale
+            let outputY = frame.center.y - 140 * UIScale  // Position above output slots
 
             let outputFrame = Rect(center: Vector2(outputX, outputY), size: Vector2(indicatorSize, indicatorSize))
             let outputIndicator = FluidIndicator(frame: outputFrame, isInput: false)
@@ -319,9 +319,9 @@ final class MachineUI: UIPanel_Base {
 
         // Check for fluid consumers (steam engines, chemical plants with fluid inputs)
         if gameLoop.world.get(FluidConsumerComponent.self, for: entity) != nil {
-            // Create input fluid indicator (left side, above inputs)
+            // Create input fluid indicator (left side, above fuel slots)
             let inputX = frame.center.x - 200 * UIScale - indicatorSize/2
-            let inputY = frame.center.y - 120 * UIScale
+            let inputY = frame.center.y - 140 * UIScale  // Position above fuel slots
 
             let inputFrame = Rect(center: Vector2(inputX, inputY), size: Vector2(indicatorSize, indicatorSize))
             let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
