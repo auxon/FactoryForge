@@ -86,7 +86,7 @@ final class VirtualJoystick {
         direction = .zero
 
         // Check if touch is within the joystick activation area
-        let activationRadius = baseRadius * 4.0
+        let activationRadius = baseRadius * 1.5
         let distance = (position - _baseCenter).length
 
         if distance <= activationRadius {
