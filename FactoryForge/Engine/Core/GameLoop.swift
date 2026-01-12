@@ -591,13 +591,28 @@ final class GameLoop {
             }
         }
 
+        // Special case for pumpjacks: must be placed on oil deposits
+        if building.type == .pumpjack {
+            // Check if the tile has an oil resource deposit
+            guard let tile = chunkManager.getTile(at: position), tile.resource?.type == .oil else {
+                return false
+            }
+        }
+
         // Standard building placement validation
         for dy in 0..<building.height {
             for dx in 0..<building.width {
                 let checkPos = position + IntVector2(Int(dx), Int(dy))
 
                 // Check if tile exists and is buildable
-                guard let tile = chunkManager.getTile(at: checkPos), tile.isBuildable else {
+                // Special cases: allow water pumps on water tiles and pumpjacks on oil deposits
+                guard let tile = chunkManager.getTile(at: checkPos) else {
+                    return false
+                }
+                let isBuildableForThisBuilding = tile.isBuildable ||
+                    (building.type == .waterPump && tile.type == .water) ||
+                    (building.type == .pumpjack && tile.resource?.type == .oil)
+                guard isBuildableForThisBuilding else {
                     return false
                 }
 

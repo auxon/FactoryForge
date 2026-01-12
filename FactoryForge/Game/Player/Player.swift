@@ -120,12 +120,13 @@ final class Player {
     
     private func giveStartingItems() {
         let startingItems = [
-            ("iron-plate", 10)  // 5 for stone furnace + 5 for burner mining drill
+            ("iron-plate", 10),  // 5 for stone furnace + 5 for burner mining drill
             // Give player what is necessary to test the fluid system:
             // - Pipes, water pump, boiler, steam engine, fluid tank
             // Sufficient iron plates & other required intermediates too
 
-            // Pipes for fluid networks
+            // for fluid networks
+            ("pumpjack", 1),
             ("pipe", 50),
             // Water pump for extracting water from water tiles
             ("water-pump", 1),
@@ -151,6 +152,18 @@ final class Player {
             ("steel-plate", 15),
             // Water as an inventory item for fluid transport UI tests
             ("water", 50),
+            // Petroleum gas for chemical plant testing
+            ("petroleum-gas", 50),
+            // Light oil for chemical plant testing
+            ("light-oil", 50),
+            // Heavy oil for chemical plant testing
+            ("heavy-oil", 50),
+            // Lubricant for chemical plant testing
+            ("lubricant", 50),
+            // Sulfuric acid for chemical plant testing
+            ("sulfuric-acid", 50),
+            // Crude oil for oil processing testing
+            ("crude-oil", 50),
         ]
 
         for (itemId, count) in startingItems {
