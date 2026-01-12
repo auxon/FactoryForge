@@ -963,8 +963,13 @@ final class InputManager: NSObject {
             let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
             let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
-            
-            let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter
+            let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entity)
+            let hasAccumulator = gameLoop.world.has(AccumulatorComponent.self, for: entity)
+            let hasSolarPanel = gameLoop.world.has(SolarPanelComponent.self, for: entity)
+            let hasTurret = gameLoop.world.has(TurretComponent.self, for: entity)
+            let hasRocketSilo = gameLoop.world.has(RocketSiloComponent.self, for: entity)
+
+            let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter || hasFluidProducer || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo
 
             return isInteractable
         }
@@ -990,11 +995,16 @@ final class InputManager: NSObject {
             let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entityAtTile)
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entityAtTile)
             let hasInserter = gameLoop.world.has(InserterComponent.self, for: entityAtTile)
-            
+            let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entityAtTile)
+            let hasAccumulator = gameLoop.world.has(AccumulatorComponent.self, for: entityAtTile)
+            let hasSolarPanel = gameLoop.world.has(SolarPanelComponent.self, for: entityAtTile)
+            let hasTurret = gameLoop.world.has(TurretComponent.self, for: entityAtTile)
+            let hasRocketSilo = gameLoop.world.has(RocketSiloComponent.self, for: entityAtTile)
+
             // Prioritize inserters explicitly (getEntityAt should already do this, but be explicit)
             if hasInserter {
                 closestEntity = entityAtTile
-            } else if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt {
+            } else if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasFluidProducer || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo {
                 closestEntity = entityAtTile
             }
         }
@@ -1034,8 +1044,13 @@ final class InputManager: NSObject {
                 let hasPole = gameLoop.world.has(PowerPoleComponent.self, for: entity)
                 let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
                 let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
-                
-                if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter {
+                let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entity)
+                let hasAccumulator = gameLoop.world.has(AccumulatorComponent.self, for: entity)
+                let hasSolarPanel = gameLoop.world.has(SolarPanelComponent.self, for: entity)
+                let hasTurret = gameLoop.world.has(TurretComponent.self, for: entity)
+                let hasRocketSilo = gameLoop.world.has(RocketSiloComponent.self, for: entity)
+
+                if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter || hasFluidProducer || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo {
                     guard let entityPos = gameLoop.world.get(PositionComponent.self, for: entity),
                           let sprite = gameLoop.world.get(SpriteComponent.self, for: entity) else { continue }
                     
