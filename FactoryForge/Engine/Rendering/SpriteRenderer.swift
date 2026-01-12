@@ -73,8 +73,9 @@ final class SpriteRenderer {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
 
-            // Check if this is a belt entity for rotation
+            // Check if this is a belt or pipe entity for rotation
             let belt = world.get(BeltComponent.self, for: entity)
+            let pipe = world.get(PipeComponent.self, for: entity)
 
             let worldPos = position.worldPosition
             guard visibleRect.contains(worldPos) else { continue }
@@ -139,6 +140,10 @@ final class SpriteRenderer {
                 // Belts use their transport direction
                 // Negate angle for clockwise rotation to match texture orientation
                 rotation = -belt.direction.angle
+            } else if let pipe = pipe {
+                // Pipes use their direction for visual rotation
+                // Negate angle for clockwise rotation to match texture orientation
+                rotation = -pipe.direction.angle
             }
             // Other sprites (buildings) don't rotate
 
