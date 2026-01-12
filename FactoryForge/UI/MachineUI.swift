@@ -216,6 +216,10 @@ final class MachineUI: UIPanel_Base {
             buildingEntity = lab
         } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
             buildingEntity = rocketSilo
+        } else if let fluidProducer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            buildingEntity = fluidProducer
+        } else if let fluidConsumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            buildingEntity = fluidConsumer
         } else {
             print("MachineUI: No building component found for entity")
             return
@@ -533,6 +537,12 @@ final class MachineUI: UIPanel_Base {
             print("MachineUI: Machine is rocket silo")
             // Rocket silos don't have recipes, but show launch controls
             availableRecipes = []
+        } else if gameLoop.world.has(FluidProducerComponent.self, for: entity) {
+            print("MachineUI: Machine is fluid producer (no recipes needed)")
+            availableRecipes = []
+        } else if gameLoop.world.has(FluidConsumerComponent.self, for: entity) {
+            print("MachineUI: Machine is fluid consumer (no recipes needed)")
+            availableRecipes = []
         } else {
             print("MachineUI: Machine type not recognized")
             availableRecipes = []
@@ -662,6 +672,10 @@ final class MachineUI: UIPanel_Base {
             buildingEntity = lab
         } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
             buildingEntity = rocketSilo
+        } else if let fluidProducer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            buildingEntity = fluidProducer
+        } else if let fluidConsumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            buildingEntity = fluidConsumer
         } else {
             return
         }
@@ -1160,59 +1174,75 @@ final class MachineUI: UIPanel_Base {
             buildingEntity = lab
         } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
             buildingEntity = rocketSilo
+        } else if let fluidProducer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            buildingEntity = fluidProducer
+        } else if let fluidConsumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            buildingEntity = fluidConsumer
         } else {
             return false
         }
 
-        guard let inventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-              let buildingDef = gameLoop.buildingRegistry.get(buildingEntity!.buildingId) else {
+        let inventory = gameLoop.world.get(InventoryComponent.self, for: entity)
+        guard let buildingDef = gameLoop.buildingRegistry.get(buildingEntity!.buildingId) else {
             return false
         }
 
-        // Check fuel slots
-        for (index, slot) in fuelSlots.enumerated() {
-            if slot.handleTap(at: position) {
-                let inventoryIndex = index  // Fuel slots are first in inventory
-                if inventoryIndex < inventory.slots.count,
-                   inventory.slots[inventoryIndex] != nil {
-                    // Slot has an item - remove it to player inventory
-                    handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
-                } else {
-                    // Slot is empty - open inventory for fuel
-                    handleEmptySlotTap(entity: entity, slotIndex: inventoryIndex)
+        // Check inventory-based slots only if machine has inventory
+        if let inventory = inventory {
+            // Check fuel slots
+            for (index, slot) in fuelSlots.enumerated() {
+                if slot.handleTap(at: position) {
+                    let inventoryIndex = index  // Fuel slots are first in inventory
+                    if inventoryIndex < inventory.slots.count,
+                       inventory.slots[inventoryIndex] != nil {
+                        // Slot has an item - remove it to player inventory
+                        handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
+                    } else {
+                        // Slot is empty - open inventory for fuel
+                        handleEmptySlotTap(entity: entity, slotIndex: inventoryIndex)
+                    }
+                    return true
                 }
-                return true
+            }
+
+            // Check input slots
+            for (index, slot) in inputSlots.enumerated() {
+                if slot.handleTap(at: position) {
+                    let inventoryIndex = buildingDef.fuelSlots + index  // Input slots come after fuel slots
+                    if inventoryIndex < inventory.slots.count,
+                       inventory.slots[inventoryIndex] != nil {
+                        // Slot has an item - remove it to player inventory
+                        handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
+                    } else {
+                        // Slot is empty - open inventory for input
+                        handleEmptySlotTap(entity: entity, slotIndex: inventoryIndex)
+                    }
+                    return true
+                }
+            }
+
+            // Check output slots
+            for (slotIndex, slot) in outputSlots.enumerated() {
+                if slot.handleTap(at: position) {
+                    let inventoryIndex = buildingDef.fuelSlots + buildingDef.inputSlots + slotIndex  // Output slots come after fuel and input slots
+                    if inventoryIndex < inventory.slots.count,
+                       inventory.slots[inventoryIndex] != nil {
+                        // Slot has an item - remove it to player inventory
+                        handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
+                    } else {
+                        // Slot is empty - could potentially open inventory for output, but for now just ignore
+                        // Output slots are typically filled by machine production, not manual input
+                    }
+                    return true
+                }
             }
         }
 
-        // Check input slots
-        for (index, slot) in inputSlots.enumerated() {
-            if slot.handleTap(at: position) {
-                let inventoryIndex = buildingDef.fuelSlots + index  // Input slots come after fuel slots
-                if inventoryIndex < inventory.slots.count,
-                   inventory.slots[inventoryIndex] != nil {
-                    // Slot has an item - remove it to player inventory
-                    handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
-                } else {
-                    // Slot is empty - open inventory for input
-                    handleEmptySlotTap(entity: entity, slotIndex: inventoryIndex)
-                }
-                return true
-            }
-        }
-
-        // Check output slots
-        for (slotIndex, slot) in outputSlots.enumerated() {
-            if slot.handleTap(at: position) {
-                let inventoryIndex = buildingDef.fuelSlots + buildingDef.inputSlots + slotIndex  // Output slots come after fuel and input slots
-                if inventoryIndex < inventory.slots.count,
-                   inventory.slots[inventoryIndex] != nil {
-                    // Slot has an item - remove it to player inventory
-                    handleSlotTap(entity: entity, slotIndex: inventoryIndex, gameLoop: gameLoop)
-                } else {
-                    // Slot is empty - could potentially open inventory for output, but for now just ignore
-                    // Output slots are typically filled by machine production, not manual input
-                }
+        // Check fluid indicators (they consume taps but don't do anything special yet)
+        for indicator in fluidInputIndicators + fluidOutputIndicators {
+            if indicator.frame.contains(position) {
+                // Fluid indicators consume taps but don't do anything special yet
+                // Could show tooltips in the future
                 return true
             }
         }
