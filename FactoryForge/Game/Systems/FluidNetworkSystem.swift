@@ -27,6 +27,7 @@ final class FluidNetworkSystem: System {
 
     private let world: World
     private let buildingRegistry: BuildingRegistry
+    private let itemRegistry: ItemRegistry
 
     /// All fluid networks in the game
     private var networks: [Int: FluidNetwork] = [:]
@@ -56,9 +57,10 @@ final class FluidNetworkSystem: System {
     private var updateCounter: Int = 0
     private let updateFrequency = 3  // Update every 3 frames for less critical calculations
 
-    init(world: World, buildingRegistry: BuildingRegistry) {
+    init(world: World, buildingRegistry: BuildingRegistry, itemRegistry: ItemRegistry) {
         self.world = world
         self.buildingRegistry = buildingRegistry
+        self.itemRegistry = itemRegistry
     }
 
     func update(deltaTime: Float) {
@@ -1056,30 +1058,71 @@ final class FluidNetworkSystem: System {
                     if var inventory = world.get(InventoryComponent.self, for: producerEntity),
                        let tank = world.get(FluidTankComponent.self, for: producerEntity) {
 
-                        let hasFuel = inventory.slots.contains { $0 != nil } // Check if any fuel slot has fuel
+                        let hasFuel = inventory.slots.contains { slot in
+                            guard let itemStack = slot else { return false }
+                            // Check if this item is fuel (coal, wood, solid-fuel)
+                            return ["coal", "wood", "solid-fuel"].contains(itemStack.itemId)
+                        } // Check if any fuel slot has actual fuel
                         let hasWater = tank.tanks.contains { $0.type == .water && $0.amount > 0.1 } // Need minimum water
 
                         if hasFuel && hasWater {
                             productionThisTick = producer.productionRate * deltaTime
+                            producer.isActive = true
+
                             // Consume water at the same rate as steam production
                             let waterConsumed = productionThisTick
                             _ = removeFluidFromTank(producerEntity, amount: waterConsumed, fluidType: .water)
 
-                            // Consume fuel (simplified - consume 1 fuel per second of operation)
-                            // In a real implementation, this would check fuel energy values
+                            // Consume fuel based on energy content
+                            // Boiler produces 1.8 steam/s, steam engine consumes 30 steam/s for 900 kW
+                            // So boiler produces (1.8/30) * 900 kW = 54 kW of steam energy
+                            let boilerPowerOutput: Float = 54.0  // kW (energy output rate)
+                            let energyConsumptionRate = boilerPowerOutput  // kJ/s (since 1 kW = 1 kJ/s)
+
+                            producer.fuelConsumptionAccumulator += energyConsumptionRate * deltaTime
+
+                            // Find the fuel item and its energy value
+                            var fuelEnergyValue: Float = 0
+                            var fuelSlotIndex: Int? = nil
+
                             for i in 0..<inventory.slots.count {
-                                if inventory.slots[i] != nil {
-                                    // Consume one unit of fuel
-                                    var updatedStack = inventory.slots[i]!
-                                    updatedStack.count -= 1
-                                    if updatedStack.count <= 0 {
-                                        inventory.slots[i] = nil
-                                    } else {
-                                        inventory.slots[i] = updatedStack
+                                if let itemStack = inventory.slots[i],
+                                   ["coal", "wood", "solid-fuel"].contains(itemStack.itemId) {
+                                    // Get fuel energy value (coal=4000, wood=2000, solid-fuel=25000)
+                                    if let item = itemRegistry.get(itemStack.itemId),
+                                       let fuelValue = item.fuelValue {
+                                        fuelEnergyValue = Float(fuelValue)
+                                        fuelSlotIndex = i
+                                        break  // Use first available fuel
                                     }
-                                    break // Only consume from one slot per tick
                                 }
                             }
+
+                            if fuelEnergyValue > 0 && fuelSlotIndex != nil {
+                                let fuelEnergyNeeded = producer.fuelConsumptionAccumulator
+                                if fuelEnergyNeeded >= fuelEnergyValue {
+                                    // Consume one fuel item
+                                    var itemStack = inventory.slots[fuelSlotIndex!]!
+                                    itemStack.count -= 1
+
+                                    if itemStack.count <= 0 {
+                                        inventory.slots[fuelSlotIndex!] = nil
+                                    } else {
+                                        inventory.slots[fuelSlotIndex!] = itemStack
+                                    }
+
+                                    // Reset accumulator (subtract the energy we consumed)
+                                    producer.fuelConsumptionAccumulator -= fuelEnergyValue
+
+                                    // Save updated inventory
+                                    world.add(inventory, to: producerEntity)
+                                    print("Boiler consumed 1 \(itemStack.itemId) (\(fuelEnergyValue) kJ)")
+                                }
+                            }
+                        } else {
+                            // Not producing - reset fuel accumulator and mark inactive
+                            producer.fuelConsumptionAccumulator = 0
+                            producer.isActive = false
                         }
                     }
                 } else {
@@ -1102,13 +1145,13 @@ final class FluidNetworkSystem: System {
                     updatedProducer.currentProduction = productionThisTick
                     updatedProducer.isActive = true
                     world.add(updatedProducer, to: producerEntity)
-                    
+
                     // For boilers, add steam to the tank and inject into pipes
                     if producer.buildingId == "boiler" {
                         _ = addFluidToEntity(producerEntity, amount: productionThisTick, fluidType: .steam)
                         injectProducedFluid(productionRates: [producerEntity: productionThisTick], network: network)
                     }
-                    
+
                 } else {
                     // Not producing - mark as inactive
                     let updatedProducer = producer

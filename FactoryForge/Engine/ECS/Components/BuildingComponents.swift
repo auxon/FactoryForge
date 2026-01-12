@@ -561,6 +561,7 @@ class FluidProducerComponent: BuildingComponent {
     var currentProduction: Float
     var powerConsumption: Float
     var isActive: Bool = false  // Whether the producer is actively producing
+    var fuelConsumptionAccumulator: Float = 0  // Tracks fuel consumption over time for boilers
     var connections: [Entity] = []
     var networkId: Int?
 
@@ -574,7 +575,7 @@ class FluidProducerComponent: BuildingComponent {
 
     // MARK: - Codable conformance
     enum CodingKeys: String, CodingKey {
-        case buildingId, outputType, productionRate, currentProduction, powerConsumption, isActive, connections, networkId
+        case buildingId, outputType, productionRate, currentProduction, powerConsumption, isActive, fuelConsumptionAccumulator, connections, networkId
     }
 
     required init(from decoder: Decoder) throws {
@@ -584,6 +585,7 @@ class FluidProducerComponent: BuildingComponent {
         currentProduction = try container.decode(Float.self, forKey: .currentProduction)
         powerConsumption = try container.decode(Float.self, forKey: .powerConsumption)
         isActive = try container.decodeIfPresent(Bool.self, forKey: .isActive) ?? false
+        fuelConsumptionAccumulator = try container.decodeIfPresent(Float.self, forKey: .fuelConsumptionAccumulator) ?? 0
         connections = try container.decodeIfPresent([Entity].self, forKey: .connections) ?? []
         networkId = try container.decodeIfPresent(Int.self, forKey: .networkId)
         try super.init(from: decoder)
@@ -596,6 +598,7 @@ class FluidProducerComponent: BuildingComponent {
         try container.encode(currentProduction, forKey: .currentProduction)
         try container.encode(powerConsumption, forKey: .powerConsumption)
         try container.encode(isActive, forKey: .isActive)
+        try container.encode(fuelConsumptionAccumulator, forKey: .fuelConsumptionAccumulator)
         try container.encode(connections, forKey: .connections)
         try container.encode(networkId, forKey: .networkId)
         try super.encode(to: encoder)
