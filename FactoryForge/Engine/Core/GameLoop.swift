@@ -615,7 +615,7 @@ final class GameLoop {
                 let isBuildableForThisBuilding = tile.isBuildable ||
                     (building.type == .waterPump && tile.type == .water) ||
                     (building.type == .pumpjack && tile.resource?.type == .oil) ||
-                    (building.type == .pipe && (tile.type == .water || tile.resource?.type == .oil))
+                    (building.type == .pipe)  // Pipes can be placed on any buildable tile
                 guard isBuildableForThisBuilding else {
                     return false
                 }
@@ -624,6 +624,16 @@ final class GameLoop {
                 if world.hasEntityAt(position: checkPos) {
                     guard let entity = world.getEntityAt(position: checkPos) else {
                         continue  // Entity disappeared, allow placement
+                    }
+
+                    // Debug: Log conflicts for pipe placement
+                    if building.type == .pipe {
+                        if let pos = world.get(PositionComponent.self, for: entity),
+                           let sprite = world.get(SpriteComponent.self, for: entity) {
+                            let width = Int32(ceil(sprite.size.x))
+                            let height = Int32(ceil(sprite.size.y))
+                            print("Pipe placement: Conflict at \(checkPos) with entity \(entity.id) at (\(pos.tilePosition.x),\(pos.tilePosition.y)) size \(width)x\(height)")
+                        }
                     }
 
                     // Skip the entity we're ignoring (e.g., when moving buildings)
@@ -646,6 +656,17 @@ final class GameLoop {
                             continue  // Allow belt bridges over anything
                         }
                         continue
+
+                    case .pipe:
+                        // Pipes can be placed on or adjacent to fluid buildings for connectivity
+                        // Special handling for steam engines since they're large (3x5)
+                        if world.has(FluidProducerComponent.self, for: entity) ||
+                           world.has(FluidConsumerComponent.self, for: entity) ||
+                           world.has(FluidTankComponent.self, for: entity) ||
+                           world.has(GeneratorComponent.self, for: entity) {  // Allow pipes near steam engines
+                            continue  // Allow pipes to connect to fluid/power buildings
+                        }
+                        break
 
                     case .inserter, .powerPole:
                         // Inserters and poles are buildings, placeable on empty ground like other buildings

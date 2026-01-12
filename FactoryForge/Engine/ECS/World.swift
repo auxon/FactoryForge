@@ -282,6 +282,7 @@ final class World {
         return getEntityAt(position: position) != nil
     }
     
+
     /// Gets entities within a rectangular area (world coordinates)
     func getEntitiesIn(rect: Rect) -> [Entity] {
         var result: [Entity] = []
