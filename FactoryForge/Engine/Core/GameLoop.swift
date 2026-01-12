@@ -626,16 +626,6 @@ final class GameLoop {
                         continue  // Entity disappeared, allow placement
                     }
 
-                    // Debug: Log conflicts for pipe placement
-                    if building.type == .pipe {
-                        if let pos = world.get(PositionComponent.self, for: entity),
-                           let sprite = world.get(SpriteComponent.self, for: entity) {
-                            let width = Int32(ceil(sprite.size.x))
-                            let height = Int32(ceil(sprite.size.y))
-                            print("Pipe placement: Conflict at \(checkPos) with entity \(entity.id) at (\(pos.tilePosition.x),\(pos.tilePosition.y)) size \(width)x\(height)")
-                        }
-                    }
-
                     // Skip the entity we're ignoring (e.g., when moving buildings)
                     if let ignoringEntity = ignoringEntity, entity == ignoringEntity {
                         continue

@@ -206,16 +206,22 @@ final class MachineUI: UIPanel_Base {
         let buildingEntity: BuildingComponent?
         if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
             buildingEntity = miner
+            print("MachineUI: Entity has MinerComponent")
         } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
             buildingEntity = furnace
+            print("MachineUI: Entity has FurnaceComponent")
         } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
             buildingEntity = assembler
+            print("MachineUI: Entity has AssemblerComponent")
         } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
             buildingEntity = generator
+            print("MachineUI: Entity has GeneratorComponent")
         } else if let lab = gameLoop.world.get(LabComponent.self, for: entity) {
             buildingEntity = lab
+            print("MachineUI: Entity has LabComponent")
         } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
             buildingEntity = rocketSilo
+            print("MachineUI: Entity has RocketSiloComponent")
         } else if let fluidProducer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
             buildingEntity = fluidProducer
         } else if let fluidConsumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
@@ -237,6 +243,7 @@ final class MachineUI: UIPanel_Base {
         let outputCount = buildingDef.outputSlots
         let fuelCount = buildingDef.fuelSlots
 
+
         // Create fuel slots (left side, top)
         for i in 0..<fuelCount {
             let x = frame.center.x - 200 * UIScale - slotSize/2
@@ -247,6 +254,7 @@ final class MachineUI: UIPanel_Base {
             let fuelSlotColor = Color(r: 0.35, g: 0.35, b: 0.35, a: 1)
             let slot = InventorySlot(frame: slotFrame, index: i, backgroundColor: fuelSlotColor)
             fuelSlots.append(slot)
+        
 
             // Count label
             let label = UILabel()
@@ -319,9 +327,9 @@ final class MachineUI: UIPanel_Base {
 
         // Check for fluid consumers (steam engines, chemical plants with fluid inputs)
         if gameLoop.world.get(FluidConsumerComponent.self, for: entity) != nil {
-            // Create input fluid indicator (left side, above fuel slots)
+            // Create input fluid indicator (left side, well above fuel slots to avoid overlap)
             let inputX = frame.center.x - 200 * UIScale - indicatorSize/2
-            let inputY = frame.center.y - 140 * UIScale  // Position above fuel slots
+            let inputY = frame.center.y - 160 * UIScale  // Position well above fuel slots
 
             let inputFrame = Rect(center: Vector2(inputX, inputY), size: Vector2(indicatorSize, indicatorSize))
             let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
@@ -690,9 +698,13 @@ final class MachineUI: UIPanel_Base {
             if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
                 fuelSlots[i].item = item
                 fuelSlots[i].isRequired = false
+                fuelCountLabels[i].text = "\(item.count)"
+                fuelCountLabels[i].isHidden = false
             } else {
                 fuelSlots[i].item = nil
                 fuelSlots[i].isRequired = false
+                fuelCountLabels[i].text = "0"
+                fuelCountLabels[i].isHidden = true
             }
             inventoryIndex += 1
         }
@@ -886,6 +898,11 @@ final class MachineUI: UIPanel_Base {
     override func update(deltaTime: Float) {
         guard isOpen else { return }
 
+        // Update inventory slots to reflect current inventory state
+        if let entity = currentEntity {
+            setupSlotsForMachine(entity)
+        }
+
         // Update button states based on craftability and crafting status
         guard let player = gameLoop?.player,
               let gameLoop = gameLoop else { return }
@@ -913,18 +930,6 @@ final class MachineUI: UIPanel_Base {
         guard isOpen else { return }
 
         super.render(renderer: renderer)
-
-        // Debug: Render slot backgrounds to show positions
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-        for slot in fuelSlots + inputSlots + outputSlots {
-            renderer.queueSprite(SpriteInstance(
-                position: slot.frame.center,
-                size: slot.frame.size,
-                textureRect: solidRect,
-                color: Color(r: 0.5, g: 0.5, b: 0.5, a: 0.3), // Semi-transparent gray
-                layer: .ui
-            ))
-        }
 
         // Render fuel slots
         for i in 0..<fuelSlots.count {

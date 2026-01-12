@@ -149,9 +149,7 @@ final class SaveSystem {
 
         // Register all fluid entities in FluidNetworkSystem after deserialization
         // Fluid entities are loaded from save but not automatically registered in the fluid network system
-        print("🔧 SaveSystem: STARTING FLUID ENTITY REGISTRATION...")
         registerAllFluidEntities(in: gameLoop)
-        print("✅ SaveSystem: Fluid entity registration completed")
 
         // Ensure all entities with PositionComponent are added to their appropriate chunks
         // This is needed because deserialized entities exist in the world but may not be in chunk spatial indexes
@@ -199,31 +197,6 @@ final class SaveSystem {
 
     private func registerAllFluidEntities(in gameLoop: GameLoop) {
         var fluidEntityCount = 0
-        var pipeCount = 0
-        var fluidProducerCount = 0
-        var fluidConsumerCount = 0
-        var fluidTankCount = 0
-
-        print("🔍 SaveSystem: Checking \(gameLoop.world.entities.count) entities for fluid components...")
-
-        // Debug: Check a few specific entities that might have fluid components
-        if gameLoop.world.entities.count > 0 {
-            let firstEntity = gameLoop.world.entities.first!
-            print("🔍 SaveSystem: Inspecting first entity \(firstEntity.id):")
-            print("  - Has PipeComponent: \(gameLoop.world.has(PipeComponent.self, for: firstEntity))")
-            print("  - Has FluidProducerComponent: \(gameLoop.world.has(FluidProducerComponent.self, for: firstEntity))")
-            print("  - Has FluidConsumerComponent: \(gameLoop.world.has(FluidConsumerComponent.self, for: firstEntity))")
-            print("  - Has GeneratorComponent: \(gameLoop.world.has(GeneratorComponent.self, for: firstEntity))")
-
-            // Try to get components directly
-            if let pipeComp = gameLoop.world.get(PipeComponent.self, for: firstEntity) {
-                print("  - PipeComponent found: buildingId=\(pipeComp.buildingId), fluidAmount=\(pipeComp.fluidAmount)")
-            }
-            if let producerComp = gameLoop.world.get(FluidProducerComponent.self, for: firstEntity) {
-                print("  - FluidProducerComponent found: buildingId=\(producerComp.buildingId), outputType=\(producerComp.outputType)")
-            }
-        }
-
         for entity in gameLoop.world.entities {
             // Check for fluid-related components
             let hasPipe = gameLoop.world.has(PipeComponent.self, for: entity)
@@ -231,39 +204,12 @@ final class SaveSystem {
             let hasFluidConsumer = gameLoop.world.has(FluidConsumerComponent.self, for: entity)
             let hasFluidTank = gameLoop.world.has(FluidTankComponent.self, for: entity)
 
-            if hasPipe { pipeCount += 1 }
-            if hasFluidProducer { fluidProducerCount += 1 }
-            if hasFluidConsumer { fluidConsumerCount += 1 }
-            if hasFluidTank { fluidTankCount += 1 }
-
-            // Debug: Show first few entities with any components
-            if fluidEntityCount < 5 && (hasPipe || hasFluidProducer || hasFluidConsumer || hasFluidTank) {
-                let components = [
-                    hasPipe ? "Pipe" : "",
-                    hasFluidProducer ? "FluidProducer" : "",
-                    hasFluidConsumer ? "FluidConsumer" : "",
-                    hasFluidTank ? "FluidTank" : ""
-                ].filter { !$0.isEmpty }.joined(separator: ", ")
-                print("  Entity \(entity.id): \(components)")
-            }
-
             if hasPipe || hasFluidProducer || hasFluidConsumer || hasFluidTank {
                 gameLoop.fluidNetworkSystem.markEntityDirty(entity)
                 fluidEntityCount += 1
             }
         }
-
-        print("📊 SaveSystem: Fluid component summary:")
-        print("  - \(pipeCount) pipes")
-        print("  - \(fluidProducerCount) fluid producers")
-        print("  - \(fluidConsumerCount) fluid consumers")
-        print("  - \(fluidTankCount) fluid tanks")
-        print("  - Total fluid entities registered: \(fluidEntityCount)")
-        print("  - Total world entities: \(gameLoop.world.entities.count)")
-
-        if fluidEntityCount == 0 {
-            print("⚠️  WARNING: No fluid entities found! This may indicate save/load component deserialization failure.")
-        }
+        print("SaveSystem: Registered \(fluidEntityCount) fluid entities after loading save")
     }
 
     private func removePlayerEntityFromWorld(_ world: World) {
