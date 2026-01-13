@@ -459,11 +459,26 @@ class GameViewController: UIViewController {
         // Set up inventory UI scrollview callbacks
         uiSystem?.getInventoryUI().onAddScrollView = { [weak self] (scrollView: UIScrollView) -> Void in
             guard let self = self else { return }
+            print("→ Adding inventory scrollView")
+            print("  frame:        ", scrollView.frame)
+            print("  bounds:       ", scrollView.bounds)
+            print("  contentSize:  ", scrollView.contentSize)
+            print("  contentInset: ", scrollView.contentInset)
+            print("  isScrollEnabled: ", scrollView.isScrollEnabled)
+            print("  isUserInteractionEnabled: ", scrollView.isUserInteractionEnabled)
+            print("  superview:    ", scrollView.superview)
+            print("  subviews count:", scrollView.subviews.count)
+
+            // Temporary visual confirmation
+            scrollView.backgroundColor = UIColor.red.withAlphaComponent(0.35)
+            scrollView.showsVerticalScrollIndicator = true
+            scrollView.showsHorizontalScrollIndicator = true
+
             self.view.addSubview(scrollView)
-            // Ensure scrollview is above the Metal view but below tooltips
             if let metalView = self.metalView {
                 self.view.insertSubview(scrollView, aboveSubview: metalView)
             }
+            self.view.bringSubviewToFront(scrollView)
         }
         uiSystem?.getInventoryUI().onRemoveScrollView = { (scrollView: UIScrollView) -> Void in
             scrollView.removeFromSuperview()
@@ -695,12 +710,52 @@ class GameViewController: UIViewController {
         // Close all panels before updating UI system
         uiSystem?.closeAllPanels()
 
+        // Re-setup UI callbacks BEFORE updating UI system (to avoid recreation issues)
+        setupResearchUICallbacks()
+
+        // Set up label and scrollview callbacks BEFORE recreating UI components
+        // InventoryUI callbacks
+        uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
+            labels.forEach {
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
+                self.view.bringSubviewToFront($0)
+            }
+            // Ensure tooltips stay on top after adding inventory UI labels
+            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
+                self.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
+                self.view.bringSubviewToFront(tooltipIconView)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+
+        // Inventory UI scrollview callbacks
+        uiSystem?.getInventoryUI().onAddScrollView = { [weak self] (scrollView: UIScrollView) -> Void in
+            guard let self = self else { return }
+            self.view.addSubview(scrollView)
+            // Ensure scrollview is above the Metal view but below tooltips
+            if let metalView = self.metalView {
+                self.view.insertSubview(scrollView, aboveSubview: metalView)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveScrollView = { (scrollView: UIScrollView) -> Void in
+            scrollView.removeFromSuperview()
+        }
+
         // Update the existing UI system with the gameLoop
         uiSystem?.setGameLoop(gameLoop!)
         renderer.uiSystem = uiSystem
-
-        // Re-setup UI callbacks for the updated uiSystem
-        setupResearchUICallbacks()
 
         // Start a new autosave session for this game
         gameLoop?.saveSystem.startNewGameSession()
@@ -737,47 +792,11 @@ class GameViewController: UIViewController {
         // Force immediate redraw after UI system update
         metalView.setNeedsDisplay()
 
-        // Re-set up inventory label callbacks (UI system was recreated)
-        uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-            guard let self = self else { return }
-            labels.forEach {
-                let originalFrame = $0.frame
-                self.view.addSubview($0)
-                // Ensure labels are above the Metal view
-                if let metalView = self.metalView {
-                    self.view.insertSubview($0, aboveSubview: metalView)
-                    // Set frame again after inserting (in case it was reset)
-                    $0.frame = originalFrame
-                }
-                // Bring labels to front so they're above the metal view
-                self.view.bringSubviewToFront($0)
-            }
-            // Ensure tooltips stay on top after adding inventory UI labels
-            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
-                self.view.bringSubviewToFront(tooltipLabel)
-            }
-            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
-                self.view.bringSubviewToFront(tooltipIconView)
-            }
-        }
-        uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
-            labels.forEach { $0.removeFromSuperview() }
-        }
+        // Inventory UI callbacks already set up before setGameLoop
 
-        // Re-set up inventory UI scrollview callbacks
-        uiSystem?.getInventoryUI().onAddScrollView = { [weak self] (scrollView: UIScrollView) -> Void in
-            guard let self = self else { return }
-            self.view.addSubview(scrollView)
-            // Ensure scrollview is above the Metal view but below tooltips
-            if let metalView = self.metalView {
-                self.view.insertSubview(scrollView, aboveSubview: metalView)
-            }
-        }
-        uiSystem?.getInventoryUI().onRemoveScrollView = { (scrollView: UIScrollView) -> Void in
-            scrollView.removeFromSuperview()
-        }
+        // Inventory UI callbacks already set up before setGameLoop
 
-        // Re-set up machine UI label callbacks
+        // Machine UI callbacks
         uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             guard let self = self else { return }
             labels.forEach {
@@ -948,21 +967,60 @@ class GameViewController: UIViewController {
             gameLoop?.saveSystem.startNewGameSession()
         }
 
-        // Update UI system with game loop
+        // Setup UI callbacks BEFORE recreating UI components
+        uiSystem?.setupCallbacks()
+        setupResearchUICallbacks()
+        setupHUDBuildingCallbacks()
+
+        // Set up label and scrollview callbacks BEFORE recreating UI components
+        // InventoryUI callbacks
+        uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+            guard let self = self else { return }
+            labels.forEach {
+                let originalFrame = $0.frame
+                self.view.addSubview($0)
+                // Ensure labels are above the Metal view
+                if let metalView = self.metalView {
+                    self.view.insertSubview($0, aboveSubview: metalView)
+                    // Set frame again after inserting (in case it was reset)
+                    $0.frame = originalFrame
+                }
+                self.view.bringSubviewToFront($0)
+            }
+            // Ensure tooltips stay on top after adding inventory UI labels
+            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
+                self.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
+                self.view.bringSubviewToFront(tooltipIconView)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
+            labels.forEach { $0.removeFromSuperview() }
+        }
+
+        // Inventory UI scrollview callbacks
+        uiSystem?.getInventoryUI().onAddScrollView = { [weak self] (scrollView: UIScrollView) -> Void in
+            guard let self = self else { return }
+            self.view.addSubview(scrollView)
+            // Ensure scrollview is above the Metal view but below tooltips
+            if let metalView = self.metalView {
+                self.view.insertSubview(scrollView, aboveSubview: metalView)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveScrollView = { (scrollView: UIScrollView) -> Void in
+            scrollView.removeFromSuperview()
+        }
+
+        // Update UI system with game loop (this recreates UI components)
         uiSystem?.setGameLoop(gameLoop!)
+        renderer.uiSystem = uiSystem
 
         // Setup input
         setupInput()
 
         // Exit build mode when loading a saved game
         inputManager?.exitBuildMode()
-
-        // Update UI system with game loop to ensure HUD has correct reference
-        // NOTE: This recreates the HUD, so callbacks must be set AFTER this
-        uiSystem?.setGameLoop(gameLoop!)
-
-        // Re-setup HUD callbacks after HUD is recreated by setGameLoop
-        setupHUDBuildingCallbacks()
 
         // Ensure renderer has the correct uiSystem reference
         if let uiSystem = uiSystem {
@@ -971,18 +1029,6 @@ class GameViewController: UIViewController {
 
         // Close loading menu
         uiSystem?.closeAllPanels()
-
-        // Update uiSystem with gameLoop (this recreates UI components)
-        uiSystem?.setGameLoop(gameLoop!)
-        renderer.uiSystem = uiSystem
-
-        // Setup UI callbacks for the updated uiSystem (HUD buttons, etc.)
-        uiSystem?.setupCallbacks()
-        setupResearchUICallbacks()
-        setupHUDBuildingCallbacks()
-
-        // Set up all label callbacks after final UI system recreation
-        // InventoryUI callbacks
         uiSystem?.getInventoryUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             guard let self = self else { return }
             labels.forEach {

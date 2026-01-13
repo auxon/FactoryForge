@@ -544,6 +544,12 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
     private var recipeSelectionCallback: RecipeSelectionCallback?
     private weak var ui: MachineUI?
 
+    // Scrolling support
+    private(set) var scrollOffset: Float = 0
+    private var maxScrollOffset: Float = 0
+    private var scrollArea: Rect = Rect(center: Vector2.zero, size: Vector2.zero)
+    private var lastDragPosition: Vector2?
+
     convenience init(recipeSelectionCallback: @escaping RecipeSelectionCallback) {
         self.init()
         self.recipeSelectionCallback = recipeSelectionCallback
@@ -566,11 +572,96 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
         return []
     }
 
-    override func render(in renderer: MetalRenderer) {
-        // Render all recipe buttons
-        for button in recipeButtons {
-            button.render(renderer: renderer)
+    func handleScroll(at position: Vector2, delta: Vector2) -> Bool {
+        // Check if scroll is within the scroll area
+        guard scrollArea.contains(position) else {
+            lastDragPosition = nil  // Reset when not in scroll area
+            return false
         }
+
+        if maxScrollOffset <= 0 {
+            return false  // Nothing to scroll
+        }
+
+        // Calculate incremental delta from last position
+        let incrementalDelta: Vector2
+        if let lastPos = lastDragPosition {
+            incrementalDelta = position - lastPos
+        } else {
+            incrementalDelta = Vector2.zero  // First frame of drag
+        }
+        lastDragPosition = position
+
+        // Update scroll offset based on vertical movement
+        if abs(incrementalDelta.y) > 0.1 {  // Small threshold to avoid jitter
+            scrollOffset = max(0, min(maxScrollOffset, scrollOffset - incrementalDelta.y * 2))
+        }
+
+        return true
+    }
+
+    func resetScrollState() {
+        lastDragPosition = nil
+    }
+
+    override func render(in renderer: MetalRenderer) {
+        // Render scroll area background (slightly inset to show border)
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        let backgroundSize = scrollArea.size * 0.98  // Slightly smaller than border
+        renderer.queueSprite(SpriteInstance(
+            position: scrollArea.center,
+            size: backgroundSize,
+            textureRect: solidRect,
+            color: Color(r: 0.1, g: 0.1, b: 0.1, a: 0.9),
+            layer: .ui
+        ))
+
+        // Render scroll area border
+        renderer.queueSprite(SpriteInstance(
+            position: scrollArea.center,
+            size: scrollArea.size,
+            textureRect: solidRect,
+            color: Color(r: 0.3, g: 0.3, b: 0.3, a: 1.0),
+            layer: .ui
+        ))
+
+        // Render visible recipe buttons with scroll offset
+        for button in recipeButtons {
+            let scrolledFrame = Rect(
+                center: button.frame.center - Vector2(0, scrollOffset),
+                size: button.frame.size
+            )
+
+            // Only render if button is visible in scroll area
+            if scrollArea.intersects(scrolledFrame) {
+                // Temporarily modify button frame for rendering
+                let originalFrame = button.frame
+                button.frame = scrolledFrame
+                button.render(renderer: renderer)
+                button.frame = originalFrame  // Restore original frame
+            }
+        }
+
+        // Render scroll indicator if needed
+        if maxScrollOffset > 0 {
+            renderScrollIndicator(renderer: renderer)
+        }
+    }
+
+    private func renderScrollIndicator(renderer: MetalRenderer) {
+        let indicatorWidth: Float = 4 * UIScale
+        let indicatorHeight = scrollArea.size.y * (scrollArea.size.y / (scrollArea.size.y + maxScrollOffset))
+        let indicatorX = scrollArea.maxX - indicatorWidth/2 - 2 * UIScale
+        let indicatorY = scrollArea.minY + indicatorHeight/2 + scrollOffset * (scrollArea.size.y - indicatorHeight) / maxScrollOffset
+
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        renderer.queueSprite(SpriteInstance(
+            position: Vector2(indicatorX, indicatorY),
+            size: Vector2(indicatorWidth, indicatorHeight),
+            textureRect: solidRect,
+            color: Color(r: 0.6, g: 0.6, b: 0.6, a: 1.0),
+            layer: .ui
+        ))
     }
 
 
@@ -586,15 +677,36 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
         // For now, get all enabled recipes (TODO: filter by building type)
         self.availableRecipes = gameLoop.recipeRegistry.enabled
 
-        // Position buttons relative to the machine UI panel
+        // Set up scroll area (same as original scroll view dimensions)
+        let scrollAreaWidth: Float = 300 * UIScale
+        let scrollAreaHeight: Float = 140 * UIScale
+        let scrollAreaX = ui.frame.center.x - scrollAreaWidth/2
+        // Position below progress bar: progress bar bottom + margin
+        let scrollAreaY = ui.frame.center.y - 10 * UIScale
+
+        scrollArea = Rect(
+            center: Vector2(scrollAreaX + scrollAreaWidth/2, scrollAreaY + scrollAreaHeight/2),
+            size: Vector2(scrollAreaWidth, scrollAreaHeight)
+        )
+
+        // Position buttons in a grid within the content area
         let buttonSize: Float = 32 * UIScale
         let buttonSpacing: Float = 8 * UIScale
         let buttonsPerRow = 4
-        let totalWidth = Float(buttonsPerRow) * buttonSize + Float(buttonsPerRow - 1) * buttonSpacing
 
-        // Position buttons below the progress bar
-        let startX = ui.frame.center.x - totalWidth/2
-        let startY = ui.frame.center.y - 60 * UIScale  // Below progress bar
+        // Calculate content dimensions
+        let totalRows = (availableRecipes.count + buttonsPerRow - 1) / buttonsPerRow
+        let contentHeight = Float(totalRows) * (buttonSize + buttonSpacing) + 8 * UIScale
+        let contentWidth = scrollAreaWidth  // Content width matches scroll area width
+
+
+        // Start position (buttons start at the top-left of the content area)
+        let contentStartX = scrollAreaX  // Content starts at scroll area left
+        let contentStartY = scrollAreaY  // Content starts at scroll area top
+
+        // Center the button grid horizontally within the content
+        let startX = contentStartX + (contentWidth - (Float(buttonsPerRow) * buttonSize + Float(buttonsPerRow - 1) * buttonSpacing)) / 2
+        let startY = contentStartY + 4 * UIScale  // Small top margin
 
         for (index, recipe) in availableRecipes.enumerated() {
             let row = index / buttonsPerRow
@@ -615,6 +727,10 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
 
             recipeButtons.append(button)
         }
+
+        // Calculate max scroll offset
+        maxScrollOffset = max(0, contentHeight - scrollAreaHeight)
+        scrollOffset = min(scrollOffset, maxScrollOffset)  // Clamp to valid range
     }
 }
 
@@ -658,6 +774,7 @@ final class MachineUI: UIPanel_Base {
     var onOpenResearchMenu: (() -> Void)?
     var onLaunchRocket: ((Entity) -> Void)?
     var onSelectRecipeForMachine: ((Entity, Recipe) -> Void)?
+    var onScroll: ((Vector2, Vector2) -> Void)?
     var onClosePanel: (() -> Void)?
 
     // Callbacks for managing UIKit scroll view
@@ -1468,11 +1585,21 @@ final class MachineUI: UIPanel_Base {
             return true
         }
 
-        // Check component recipe buttons
+        // Check component recipe buttons (with scroll offset)
         for component in machineComponents {
             if let assemblyComponent = component as? AssemblyMachineUIComponent {
                 for button in assemblyComponent.recipeButtons {
-                    if button.handleTap(at: position) {
+                    // Adjust button position for scroll offset
+                    let scrolledFrame = Rect(
+                        center: button.frame.center - Vector2(0, assemblyComponent.scrollOffset),
+                        size: button.frame.size
+                    )
+
+                    // Create a temporary button with scrolled position for tap checking
+                    let scrolledButton = MachineRecipeButton(frame: scrolledFrame, recipe: button.recipe)
+                    scrolledButton.onTap = button.onTap
+
+                    if scrolledButton.handleTap(at: position) {
                         return true
                     }
                 }
@@ -1574,7 +1701,32 @@ final class MachineUI: UIPanel_Base {
         return true // Consume the tap to prevent other interactions
     }
 
+    func handleScroll(at position: Vector2, delta: Vector2) -> Bool {
+        guard isOpen else { return false }
+
+        // Check assembly component scroll area
+        for component in machineComponents {
+            if let assemblyComponent = component as? AssemblyMachineUIComponent {
+                if assemblyComponent.handleScroll(at: position, delta: delta) {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
     override func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
+        // Check assembly component scroll area first
+        for component in machineComponents {
+            if let assemblyComponent = component as? AssemblyMachineUIComponent {
+                // Use the current position for scrolling, not the delta from start
+                if assemblyComponent.handleScroll(at: endPos, delta: Vector2.zero) {
+                    return true
+                }
+            }
+        }
+
         // Check if dragging to an empty input or output slot
         guard let _ = gameLoop, let _ = currentEntity else { return false }
 

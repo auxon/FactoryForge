@@ -77,6 +77,7 @@ final class InputManager: NSObject {
     var onEntitySelected: ((Entity?) -> Void)?
     var onTooltip: ((String) -> Void)? // Called when something is tapped to show tooltip
     var onTooltipWithEntity: ((String, Entity?) -> Void)? // Called when something is tapped to show tooltip with entity icon
+
     init(view: UIView, gameLoop: GameLoop?, renderer: MetalRenderer? = nil) {
         self.view = view
         self.gameLoop = gameLoop

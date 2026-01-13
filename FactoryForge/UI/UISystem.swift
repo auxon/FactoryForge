@@ -85,13 +85,14 @@ final class UISystem {
         // Clear help menu and document viewer (will be recreated lazily)
         helpMenu = nil
         documentViewer = nil
-        
+
         // Reinitialize entity selection dialog with gameLoop
         entitySelectionDialog = EntitySelectionDialog(screenSize: screenSize, gameLoop: gameLoop, renderer: renderer)
-        
+
         // Reinitialize inserter connection dialog with gameLoop
         inserterConnectionDialog = InserterConnectionDialog(screenSize: screenSize, gameLoop: gameLoop, renderer: renderer)
-        
+
+        // Set up callbacks AFTER creating UI components (so they're set on the correct instances)
         setupCallbacks()
     }
 
