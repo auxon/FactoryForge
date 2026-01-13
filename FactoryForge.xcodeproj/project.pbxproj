@@ -44,7 +44,6 @@
 		0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE72EFDE1B500576EC3 /* copper_ore _2.png */; };
 		0D6FDC1D2EFDE1B500576EC3 /* iron_ore_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBFB2EFDE1B500576EC3 /* iron_ore_2.png */; };
 		0D6FDC1E2EFDE1B500576EC3 /* utility_science_pack.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC172EFDE1B500576EC3 /* utility_science_pack.png */; };
-		0D6FDC1F2EFDE1B500576EC3 /* wood_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC192EFDE1B500576EC3 /* wood_2.png */; };
 		0D6FDC202EFDE1B500576EC3 /* fast_inserter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF12EFDE1B500576EC3 /* fast_inserter.png */; };
 		0D6FDC212EFDE1B500576EC3 /* biter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBDD2EFDE1B500576EC3 /* biter.png */; };
 		0D6FDC222EFDE1B500576EC3 /* grenade.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF52EFDE1B500576EC3 /* grenade.png */; };
@@ -161,6 +160,7 @@
 		0DC1FBA52F16B4780010585F /* light_oil.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA42F16B4780010585F /* light_oil.png */; };
 		0DC1FBA82F16B54E0010585F /* heavy_oil.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA62F16B54E0010585F /* heavy_oil.png */; };
 		0DC1FBA92F16B54E0010585F /* lubricant.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA72F16B54E0010585F /* lubricant.png */; };
+		0DC1FBAB2F16B7CB0010585F /* wood.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBAA2F16B7CB0010585F /* wood.png */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
 		0DE229632F001B9F00BD619D /* transport_belt_north_013.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229592F001B9F00BD619D /* transport_belt_north_013.png */; };
 		0DE229642F001B9F00BD619D /* transport_belt_north_002.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */; };
@@ -435,7 +435,6 @@
 		0D6FDC162EFDE1B500576EC3 /* uranium_ore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = uranium_ore.png; sourceTree = "<group>"; };
 		0D6FDC172EFDE1B500576EC3 /* utility_science_pack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = utility_science_pack.png; sourceTree = "<group>"; };
 		0D6FDC182EFDE1B500576EC3 /* water.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = water.png; sourceTree = "<group>"; };
-		0D6FDC192EFDE1B500576EC3 /* wood_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wood_2.png; sourceTree = "<group>"; };
 		0D6FDC1A2EFDE1B500576EC3 /* wooden_chest.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wooden_chest.png; sourceTree = "<group>"; };
 		0D6FDC602EFDF25800576EC3 /* player_left.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player_left.png; sourceTree = "<group>"; };
 		0D6FDC622EFEDB6100576EC3 /* LoadingMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingMenu.swift; sourceTree = "<group>"; };
@@ -502,6 +501,7 @@
 		0DC1FBA42F16B4780010585F /* light_oil.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = light_oil.png; sourceTree = "<group>"; };
 		0DC1FBA62F16B54E0010585F /* heavy_oil.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = heavy_oil.png; sourceTree = "<group>"; };
 		0DC1FBA72F16B54E0010585F /* lubricant.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = lubricant.png; sourceTree = "<group>"; };
+		0DC1FBAA2F16B7CB0010585F /* wood.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wood.png; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
 		0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_002.png; sourceTree = "<group>"; };
 		0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_003.png; sourceTree = "<group>"; };
@@ -712,6 +712,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DC1FBAA2F16B7CB0010585F /* wood.png */,
 				0DC1FBA62F16B54E0010585F /* heavy_oil.png */,
 				0DC1FBA72F16B54E0010585F /* lubricant.png */,
 				0DC1FBA42F16B4780010585F /* light_oil.png */,
@@ -854,7 +855,6 @@
 				0D6FDC162EFDE1B500576EC3 /* uranium_ore.png */,
 				0D6FDC172EFDE1B500576EC3 /* utility_science_pack.png */,
 				0D6FDC182EFDE1B500576EC3 /* water.png */,
-				0D6FDC192EFDE1B500576EC3 /* wood_2.png */,
 				0D6FDC1A2EFDE1B500576EC3 /* wooden_chest.png */,
 				0D6FDBD42EFDD03C00576EC3 /* player.png */,
 			);
@@ -1464,7 +1464,6 @@
 				0D778B2A2F107E6D003BC642 /* trash.png in Resources */,
 				0DE2298B2F01969900BD619D /* disable_audio.png in Resources */,
 				0D6FDC1E2EFDE1B500576EC3 /* utility_science_pack.png in Resources */,
-				0D6FDC1F2EFDE1B500576EC3 /* wood_2.png in Resources */,
 				0D6FDC202EFDE1B500576EC3 /* fast_inserter.png in Resources */,
 				0D6FDC212EFDE1B500576EC3 /* biter.png in Resources */,
 				0D6FDC612EFDF25800576EC3 /* player_left.png in Resources */,
@@ -1670,6 +1669,7 @@
 				0D6FDC572EFDE1B500576EC3 /* assembling_machine_3.png in Resources */,
 				0D18B5522F0B6FAC006B70A5 /* place.m4a in Resources */,
 				0D6FDC582EFDE1B500576EC3 /* automation_science_pack.png in Resources */,
+				0DC1FBAB2F16B7CB0010585F /* wood.png in Resources */,
 				0D6FDC592EFDE1B500576EC3 /* crude_oil.png in Resources */,
 				0D6FDC5A2EFDE1B500576EC3 /* bullet.png in Resources */,
 				0D6FDC5B2EFDE1B500576EC3 /* dirt.png in Resources */,

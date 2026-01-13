@@ -127,45 +127,92 @@ final class Player {
 
             // for fluid networks
             ("pumpjack", 1),
-            ("pipe", 50),
+            ("pipe", 100),  // Increased for oil processing buildings
             // Water pump for extracting water from water tiles
-            ("water-pump", 1),
+            ("water-pump", 2),  // Extra for oil processing
             // Boiler for steam production
-            ("boiler", 1),
+            ("boiler", 2),
             // Steam engine for power generation
-            ("steam-engine", 1),
+            ("steam-engine", 2),
             // Fluid tank for fluid storage/buffering
-            ("fluid-tank", 2),
+            ("fluid-tank", 4),
             // Extra iron plates for building more pipes/structures
-            ("iron-plate", 100),
+            ("iron-plate", 200),
             // Electronic circuits for water pump & expansion
-            ("electronic-circuit", 20),
+            ("electronic-circuit", 50),
             // Stone furnace (needed for boiler in recipes)
-            ("stone-furnace", 2),
+            ("stone-furnace", 4),
             // Iron gear wheels (water pump, steam engine)
-            ("iron-gear-wheel", 50),
+            ("iron-gear-wheel", 100),
             // Wood and coal for boiler fuel testing
-            ("wood", 20),
-            ("coal", 20),
+            ("wood", 50),
+            ("coal", 100),  // Extra for chemical processes
             // Some copper and steel plates for broader test coverage
-            ("copper-plate", 50),
-            ("steel-plate", 50),
+            ("copper-plate", 100),
+            ("steel-plate", 150),  // Extra for oil buildings
+            // Stone bricks for oil refinery construction
+            ("stone-brick", 50),
+
+            // OIL PROCESSING BUILDINGS
+            // Oil Well: 5 Steel Plates, 10 Iron Gear Wheels, 5 Electronic Circuits, 10 Pipes
+            ("oil-well", 2),  // Oil wells for crude oil extraction
+            // Oil Refinery: 15 Steel Plates, 10 Iron Gear Wheels, 10 Electronic Circuits, 10 Pipes, 10 Stone Bricks
+            ("oil-refinery", 2),  // Oil refineries for processing crude oil
+            // Chemical Plant: 5 Steel Plates, 5 Iron Gear Wheels, 5 Electronic Circuits, 5 Pipes
+            ("chemical-plant", 2),  // Chemical plants for advanced processing
+
+            // OIL PRODUCTS (increased amounts for comprehensive testing)
             // Petroleum gas for chemical plant testing
-            ("petroleum-gas", 50),
+            ("petroleum-gas", 200),
             // Light oil for chemical plant testing
-            ("light-oil", 50),
+            ("light-oil", 200),
             // Heavy oil for chemical plant testing
-            ("heavy-oil", 50),
+            ("heavy-oil", 200),
             // Lubricant for chemical plant testing
-            ("lubricant", 50),
+            ("lubricant", 100),
             // Sulfuric acid for chemical plant testing
-            ("sulfuric-acid", 50),
+            ("sulfuric-acid", 100),
             // Crude oil for oil processing testing
-            ("crude-oil", 50),
-            // power poles for power network testing
-            ("small-electric-pole", 10),
+            ("crude-oil", 200),
+
+            // CHEMICAL PRODUCTS
+            ("plastic-bar", 100),  // For advanced circuits and other uses
+            ("sulfur", 50),        // For sulfuric acid and chemical science packs
+
+            // ADVANCED COMPONENTS
+            ("advanced-circuit", 50),  // For chemical science packs and other uses
+            ("processing-unit", 20),   // For advanced buildings and research
+            ("engine-unit", 20),       // For chemical science packs
+
+            // PRODUCTION FACILITIES
+            ("assembling-machine-1", 4),  // For basic crafting
+            ("assembling-machine-2", 4),  // For advanced crafting
+            ("assembling-machine-3", 2),  // For advanced crafting
+            ("electric-mining-drill", 4), // For resource extraction
+
+            // POWER INFRASTRUCTURE
+            ("small-electric-pole", 20),
             ("medium-electric-pole", 10),
-            ("big-electric-pole", 10),
+            ("big-electric-pole", 5),
+            ("solar-panel", 10),
+            ("accumulator", 10),
+
+            // RESEARCH FACILITIES
+            ("lab", 2),  // For research and science pack consumption
+            // Science packs for research
+            ("automation-science-pack", 100),
+            ("logistic-science-pack", 100),
+            ("chemical-science-pack", 50),
+
+            // LOGISTICS
+            ("transport-belt", 200),
+            ("fast-transport-belt", 100),
+            ("inserter", 20),
+            ("fast-inserter", 20),
+            ("stack-inserter", 10),
+            ("wooden-chest", 20),
+            ("iron-chest", 20),
+            ("steel-chest", 10),
         ]
 
         for (itemId, count) in startingItems {
