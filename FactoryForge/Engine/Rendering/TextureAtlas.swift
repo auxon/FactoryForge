@@ -225,6 +225,7 @@ final class TextureAtlas {
             ("chemical_science_pack", nil),
             ("production_science_pack", nil),
             ("utility_science_pack", nil),
+            ("space_science_pack", nil),
             
             // Items - Combat
             ("firearm_magazine", nil),
