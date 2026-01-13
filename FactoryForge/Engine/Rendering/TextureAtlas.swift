@@ -124,7 +124,7 @@ final class TextureAtlas {
             ("tree", nil),
             
             // Buildings - Mining
-            ("burner_miner_drill", "burner_mining_drill"),  // Handle typo in filename
+            ("burner_mining_drill", nil),  // Handle typo in filename
             ("electric_mining_drill", nil),
             
             // Buildings - Smelting
@@ -290,7 +290,7 @@ final class TextureAtlas {
                 // Multi-tile buildings use their actual size to prevent distortion
                 let multiTileBuildings = [
                     "assembling_machine_1", "assembling_machine_2", "assembling_machine_3",
-                    "electric_mining_drill", "electric_furnace", "burner_miner_drill",
+                    "electric_mining_drill", "electric_furnace", "burner_mining_drill",
                     "burner_mining_drill", "stone_furnace", "steel_furnace",
                     "lab", "solar_panel", "boiler", "steam_engine",
                     "gun_turret", "laser_turret", "radar", "oil_refinery", "chemical_plant"

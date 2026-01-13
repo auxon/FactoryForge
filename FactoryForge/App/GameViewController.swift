@@ -223,8 +223,6 @@ class GameViewController: UIViewController {
         
         // Handle special mappings
         switch textureId {
-        case "burner_mining_drill":
-            filename = "burner_miner_drill"
         case "transport_belt":
             filename = "belt"
         case "fast_transport_belt":

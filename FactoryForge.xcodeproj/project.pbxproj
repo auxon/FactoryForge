@@ -79,7 +79,6 @@
 		0D6FDC412EFDE1B500576EC3 /* uranium_ore.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC162EFDE1B500576EC3 /* uranium_ore.png */; };
 		0D6FDC422EFDE1B500576EC3 /* radar.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC072EFDE1B500576EC3 /* radar.png */; };
 		0D6FDC432EFDE1B500576EC3 /* accumulator.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD62EFDE1B500576EC3 /* accumulator.png */; };
-		0D6FDC442EFDE1B500576EC3 /* burner_miner_drill.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE12EFDE1B500576EC3 /* burner_miner_drill.png */; };
 		0D6FDC452EFDE1B500576EC3 /* coal_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE42EFDE1B500576EC3 /* coal_2.png */; };
 		0D6FDC462EFDE1B500576EC3 /* inserter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBF72EFDE1B500576EC3 /* inserter.png */; };
 		0D6FDC472EFDE1B500576EC3 /* stone_wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC132EFDE1B500576EC3 /* stone_wall.png */; };
@@ -165,6 +164,7 @@
 		0DC1FBB12F16BA870010585F /* rocket_fuel.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBAE2F16BA870010585F /* rocket_fuel.png */; };
 		0DC1FBB42F16BF840010585F /* fluid_tank.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBB22F16BF840010585F /* fluid_tank.png */; };
 		0DC1FBB52F16BF840010585F /* pumpjack.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBB32F16BF840010585F /* pumpjack.png */; };
+		0DC1FBB72F16E0880010585F /* burner_mining_drill.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBB62F16E0880010585F /* burner_mining_drill.png */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
 		0DE229632F001B9F00BD619D /* transport_belt_north_013.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229592F001B9F00BD619D /* transport_belt_north_013.png */; };
 		0DE229642F001B9F00BD619D /* transport_belt_north_002.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */; };
@@ -382,7 +382,6 @@
 		0D6FDBDE2EFDE1B500576EC3 /* boiler.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = boiler.png; sourceTree = "<group>"; };
 		0D6FDBDF2EFDE1B500576EC3 /* building_placeholder.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = building_placeholder.png; sourceTree = "<group>"; };
 		0D6FDBE02EFDE1B500576EC3 /* bullet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet.png; sourceTree = "<group>"; };
-		0D6FDBE12EFDE1B500576EC3 /* burner_miner_drill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = burner_miner_drill.png; sourceTree = "<group>"; };
 		0D6FDBE22EFDE1B500576EC3 /* chemical_science_pack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chemical_science_pack.png; sourceTree = "<group>"; };
 		0D6FDBE32EFDE1B500576EC3 /* coal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = coal.png; sourceTree = "<group>"; };
 		0D6FDBE42EFDE1B500576EC3 /* coal_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = coal_2.png; sourceTree = "<group>"; };
@@ -510,6 +509,7 @@
 		0DC1FBAF2F16BA870010585F /* stack_inserter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stack_inserter.png; sourceTree = "<group>"; };
 		0DC1FBB22F16BF840010585F /* fluid_tank.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = fluid_tank.png; sourceTree = "<group>"; };
 		0DC1FBB32F16BF840010585F /* pumpjack.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = pumpjack.png; sourceTree = "<group>"; };
+		0DC1FBB62F16E0880010585F /* burner_mining_drill.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = burner_mining_drill.png; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
 		0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_002.png; sourceTree = "<group>"; };
 		0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_003.png; sourceTree = "<group>"; };
@@ -720,6 +720,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DC1FBB62F16E0880010585F /* burner_mining_drill.png */,
 				0DC1FBB22F16BF840010585F /* fluid_tank.png */,
 				0DC1FBB32F16BF840010585F /* pumpjack.png */,
 				0DC1FBAE2F16BA870010585F /* rocket_fuel.png */,
@@ -811,7 +812,6 @@
 				0D6FDBDE2EFDE1B500576EC3 /* boiler.png */,
 				0D6FDBDF2EFDE1B500576EC3 /* building_placeholder.png */,
 				0D6FDBE02EFDE1B500576EC3 /* bullet.png */,
-				0D6FDBE12EFDE1B500576EC3 /* burner_miner_drill.png */,
 				0D6FDBE22EFDE1B500576EC3 /* chemical_science_pack.png */,
 				0D6FDBE32EFDE1B500576EC3 /* coal.png */,
 				0D6FDBE42EFDE1B500576EC3 /* coal_2.png */,
@@ -1556,6 +1556,7 @@
 				0D778B672F11D2B9003BC642 /* mining.md in Resources */,
 				0D778B682F11D2B9003BC642 /* rocketry.md in Resources */,
 				0D778B692F11D2B9003BC642 /* INSTRUCTIONS.md in Resources */,
+				0DC1FBB72F16E0880010585F /* burner_mining_drill.png in Resources */,
 				0D778B6A2F11D2B9003BC642 /* Oil.md in Resources */,
 				0D778B6B2F11D2B9003BC642 /* Research.md in Resources */,
 				0D778B6C2F11D2B9003BC642 /* Entity Selection.md in Resources */,
@@ -1600,7 +1601,6 @@
 				0DE2297C2F01796500BD619D /* little_maze.m4a in Resources */,
 				0DE229912F02199F00BD619D /* splash.png in Resources */,
 				0D6FDC432EFDE1B500576EC3 /* accumulator.png in Resources */,
-				0D6FDC442EFDE1B500576EC3 /* burner_miner_drill.png in Resources */,
 				0D6FDC452EFDE1B500576EC3 /* coal_2.png in Resources */,
 				0D6FDC462EFDE1B500576EC3 /* inserter.png in Resources */,
 				0D6FDC472EFDE1B500576EC3 /* stone_wall.png in Resources */,

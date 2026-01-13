@@ -476,18 +476,73 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     }
 }
 
+/// Metal-rendered recipe button for machine UI
+class MachineRecipeButton: UIElement {
+    var frame: Rect
+    let recipe: Recipe
+    var onTap: (() -> Void)?
+
+    init(frame: Rect, recipe: Recipe) {
+        self.frame = frame
+        self.recipe = recipe
+    }
+
+    func handleTap(at position: Vector2) -> Bool {
+        guard frame.contains(position) else { return false }
+        onTap?()
+        return true
+    }
+
+    func render(renderer: MetalRenderer) {
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+
+        // Subtle background
+        renderer.queueSprite(SpriteInstance(
+            position: frame.center,
+            size: frame.size,
+            textureRect: solidRect,
+            color: Color(r: 0.15, g: 0.15, b: 0.15, a: 0.8),
+            layer: .ui
+        ))
+
+        // Subtle border
+        renderer.queueSprite(SpriteInstance(
+            position: frame.center,
+            size: frame.size,
+            textureRect: solidRect,
+            color: Color(r: 0.3, g: 0.3, b: 0.3, a: 1.0),
+            layer: .ui
+        ))
+
+        // Inner background (slightly smaller)
+        let innerSize = frame.size * 0.95
+        renderer.queueSprite(SpriteInstance(
+            position: frame.center,
+            size: innerSize,
+            textureRect: solidRect,
+            color: Color(r: 0.12, g: 0.12, b: 0.12, a: 0.9),
+            layer: .ui
+        ))
+
+        // Recipe icon from texture atlas
+        let textureRect = renderer.textureAtlas.getTextureRect(for: recipe.textureId)
+        let iconSize = frame.size * 0.7
+        renderer.queueSprite(SpriteInstance(
+            position: frame.center,
+            size: iconSize,
+            textureRect: textureRect,
+            color: .white,
+            layer: .ui
+        ))
+    }
+}
+
 /// Component for assembly machines (furnaces, assemblers)
 class AssemblyMachineUIComponent: BaseMachineUIComponent {
-    private var recipeScrollView: UIScrollView?
-    private var recipeButtons: [UIKitButton] = []
+    private(set) var recipeButtons: [MachineRecipeButton] = []
     private var availableRecipes: [Recipe] = []
     private var recipeSelectionCallback: RecipeSelectionCallback?
     private weak var ui: MachineUI?
-
-    // Public accessor for scroll view (needed for touch event handling)
-    var publicScrollView: UIScrollView? {
-        return recipeScrollView
-    }
 
     convenience init(recipeSelectionCallback: @escaping RecipeSelectionCallback) {
         self.init()
@@ -496,7 +551,6 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
 
     override func setupUI(for entity: Entity, in ui: MachineUI) {
         self.ui = ui
-        setupRecipeScrollView(in: ui)
         refreshRecipeButtons(for: entity, in: ui)
     }
 
@@ -504,56 +558,26 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
         refreshRecipeButtons(for: entity, in: ui)
     }
 
+    override func getLabels() -> [UILabel] {
+        return []
+    }
+
     override func getScrollViews() -> [UIScrollView] {
-        return recipeScrollView.map { [$0] } ?? []
+        return []
     }
 
     override func render(in renderer: MetalRenderer) {
-        // Using UIKit images instead of Metal rendering for recipe icons
+        // Render all recipe buttons
+        for button in recipeButtons {
+            button.render(renderer: renderer)
+        }
     }
 
-    private func setupRecipeScrollView(in ui: MachineUI) {
-        // Remove existing scroll view and buttons
-        recipeScrollView?.removeFromSuperview()
-        recipeScrollView = nil
-        recipeButtons.removeAll()
-
-        // Position scrollview right under the progress bar
-        let screenBounds = UIScreen.main.bounds
-        let panelWidth: CGFloat = 600 * CGFloat(UIScale)
-        let panelHeight: CGFloat = 350 * CGFloat(UIScale)
-        let panelX = (screenBounds.width - panelWidth) / 2
-        let panelY = (screenBounds.height - panelHeight) / 2
-
-        // Progress bar is at panel center Y - 30 * UIScale, height 20 * UIScale
-        let progressBarBottomY = panelY + panelHeight/2 - 20 * CGFloat(UIScale)
-        let scrollViewTopMargin: CGFloat = 10 * CGFloat(UIScale)
-
-        let scrollViewWidth: CGFloat = 300
-        let scrollViewHeight: CGFloat = 140
-        let scrollViewX = panelX + (panelWidth - scrollViewWidth) / 2
-        let scrollViewY = progressBarBottomY + scrollViewTopMargin
-
-        let scrollViewFrame = CGRect(x: scrollViewX, y: scrollViewY, width: scrollViewWidth, height: scrollViewHeight)
-
-        let scrollView = UIScrollView(frame: scrollViewFrame)
-        scrollView.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 0.9)
-        scrollView.layer.borderColor = UIColor.black.cgColor
-        scrollView.layer.borderWidth = 2
-        scrollView.layer.cornerRadius = 8
-        scrollView.showsVerticalScrollIndicator = true
-        scrollView.showsHorizontalScrollIndicator = false
-
-        recipeScrollView = scrollView
-    }
 
     private func refreshRecipeButtons(for entity: Entity, in ui: MachineUI) {
-        guard let gameLoop = ui.gameLoop, let scrollView = recipeScrollView else { return }
+        guard let gameLoop = ui.gameLoop else { return }
 
         // Clear existing buttons
-        for button in recipeButtons {
-            button.removeFromSuperview()
-        }
         recipeButtons.removeAll()
 
         // Get available recipes for this machine
@@ -562,102 +586,35 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
         // For now, get all enabled recipes (TODO: filter by building type)
         self.availableRecipes = gameLoop.recipeRegistry.enabled
 
-        // Create buttons for each recipe
-        let buttonSize: CGFloat = 32
-        let buttonSpacing: CGFloat = 8
-        let buttonsPerRow = 4  // More buttons per row with smaller size
-        let totalWidth = CGFloat(buttonsPerRow) * buttonSize + CGFloat(buttonsPerRow - 1) * buttonSpacing
+        // Position buttons relative to the machine UI panel
+        let buttonSize: Float = 32 * UIScale
+        let buttonSpacing: Float = 8 * UIScale
+        let buttonsPerRow = 4
+        let totalWidth = Float(buttonsPerRow) * buttonSize + Float(buttonsPerRow - 1) * buttonSpacing
+
+        // Position buttons below the progress bar
+        let startX = ui.frame.center.x - totalWidth/2
+        let startY = ui.frame.center.y - 60 * UIScale  // Below progress bar
 
         for (index, recipe) in availableRecipes.enumerated() {
             let row = index / buttonsPerRow
             let col = index % buttonsPerRow
 
-            let buttonX = (scrollView.bounds.width - totalWidth) / 2 + CGFloat(col) * (buttonSize + buttonSpacing)
-            let buttonY = CGFloat(row) * (buttonSize + buttonSpacing) + 8
+            let buttonX = startX + Float(col) * (buttonSize + buttonSpacing)
+            let buttonY = startY + Float(row) * (buttonSize + buttonSpacing)
 
-            let buttonFrame = CGRect(x: buttonX, y: buttonY, width: buttonSize, height: buttonSize)
+            let buttonFrame = Rect(
+                center: Vector2(buttonX + buttonSize/2, buttonY + buttonSize/2),
+                size: Vector2(buttonSize, buttonSize)
+            )
 
-            let button = UIKitButton(type: .system)
-            button.frame = buttonFrame
-            button.backgroundColor = UIColor.darkGray
-            button.layer.borderColor = UIColor.white.cgColor
-            button.layer.borderWidth = 1
-            button.layer.cornerRadius = 2
-
-            // Try to load the recipe icon image
-            let textureId = recipe.textureId
-            var image: UIImage?
-
-            // Try direct file path first (for development)
-            let directPath = "/Users/rah/FactoryForge/FactoryForge/Assets/\(textureId).png"
-            image = UIImage(contentsOfFile: directPath)
-
-            // Load from bundle resources as fallback (for production)
-            if image == nil {
-                if let imagePath = Bundle.main.path(forResource: textureId, ofType: "png") {
-                    image = UIImage(contentsOfFile: imagePath)
-                    print("MachineUI: Found image in bundle for '\(textureId)'")
-                }
-            }
-
-            if image != nil {
-                print("MachineUI: Successfully loaded image for '\(textureId)'")
-            } else {
-                print("MachineUI: Failed to load image for '\(textureId)'")
-            }
-
-            // Try UIImage(named:) as fallback
-            if image == nil {
-                image = UIImage(named: textureId)
-                if image != nil {
-                    print("MachineUI: UIImage(named:) succeeded for '\(textureId)'")
-                } else {
-                    print("MachineUI: UIImage(named:) failed for '\(textureId)'")
-                }
-            }
-
-            if image == nil {
-                print("MachineUI: Could not load image for '\(textureId)' - using fallback")
-                // Create a fallback colored square
-                let colors: [UIColor] = [.red, .green, .blue, .yellow, .magenta, .cyan, .orange, .purple]
-                let color = colors[index % colors.count]
-                let imageSize = CGSize(width: 32, height: 32)
-                UIGraphicsBeginImageContextWithOptions(imageSize, false, 0)
-                color.setFill()
-                UIBezierPath(rect: CGRect(origin: .zero, size: imageSize)).fill()
-                image = UIGraphicsGetImageFromCurrentImageContext()
-                UIGraphicsEndImageContext()
-            } else {
-                print("MachineUI: Successfully loaded image for '\(textureId)'")
-                // Resize image to fit button size if needed
-                let targetSize = CGSize(width: 28, height: 28) // Slightly smaller than button for padding
-                if image!.size != targetSize {
-                    UIGraphicsBeginImageContextWithOptions(targetSize, false, 0)
-                    image!.draw(in: CGRect(origin: .zero, size: targetSize))
-                    image = UIGraphicsGetImageFromCurrentImageContext()
-                    UIGraphicsEndImageContext()
-                }
-            }
-
-            button.setImage(image, for: .normal)
-            button.imageView?.contentMode = .scaleAspectFit
-            button.imageEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
-            // Make sure the button shows the image and no text
-            button.setTitle(nil, for: .normal)
-            button.tintColor = .white
-
-            button.addAction(UIAction { [weak self] _ in
+            let button = MachineRecipeButton(frame: buttonFrame, recipe: recipe)
+            button.onTap = { [weak self] in
                 self?.recipeSelectionCallback?(entity, recipe)
-            }, for: .touchUpInside)
+            }
 
-            scrollView.addSubview(button)
             recipeButtons.append(button)
         }
-
-        // Update scroll view content size
-        let totalRows = (availableRecipes.count + buttonsPerRow - 1) / buttonsPerRow
-        let contentHeight = CGFloat(totalRows) * (buttonSize + buttonSpacing) + 16
-        scrollView.contentSize = CGSize(width: scrollView.bounds.width, height: contentHeight)
     }
 }
 
@@ -1511,7 +1468,18 @@ final class MachineUI: UIPanel_Base {
             return true
         }
 
-        // Check recipe buttons
+        // Check component recipe buttons
+        for component in machineComponents {
+            if let assemblyComponent = component as? AssemblyMachineUIComponent {
+                for button in assemblyComponent.recipeButtons {
+                    if button.handleTap(at: position) {
+                        return true
+                    }
+                }
+            }
+        }
+
+        // Check legacy recipe buttons (to be removed)
         for button in recipeButtons {
             if button.handleTap(at: position) {
                 return true
