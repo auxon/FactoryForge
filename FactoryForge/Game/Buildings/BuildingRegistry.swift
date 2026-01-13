@@ -605,10 +605,10 @@ final class BuildingRegistry {
                    ItemStack(itemId: "electronic-circuit", count: 2)]
         )
         waterPump.powerConsumption = 30  // kW - less than oil well
-        waterPump.extractionRate = 1.0   // 1 water per second at full power
-        waterPump.inventorySlots = 1     // Output slot for water
+        waterPump.extractionRate = 20.0  // 20 water per second - matches Factorio offshore pump
+        waterPump.inventorySlots = 0     // No inventory - outputs fluid directly to pipes
         waterPump.inputSlots = 0
-        waterPump.outputSlots = 1
+        waterPump.outputSlots = 0        // No item outputs
         waterPump.fuelSlots = 0
         register(waterPump)
 
@@ -714,7 +714,7 @@ final class BuildingRegistry {
             maxHealth: 50,
             cost: [ItemStack(itemId: "iron-plate", count: 1)]
         )
-        pipe.fluidCapacity = 100  // Basic pipe capacity
+        pipe.fluidCapacity = 100
         register(pipe)
 
         var undergroundPipe = BuildingDefinition(

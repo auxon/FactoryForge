@@ -867,12 +867,14 @@ final class GameLoop {
                     powerOutput: powerOutput,
                     fuelCategory: ""  // Steam engines don't use fuel categories
                 ), to: entity)
-                world.add(FluidConsumerComponent(
-                    buildingId: buildingDef.id,
-                    inputType: .steam,
-                    consumptionRate: 1.8,  // 1.8 steam/s = 900 kW output (Factorio balanced)
-                    efficiency: 1.0
-                ), to: entity)
+            let steamConsumer = FluidConsumerComponent(
+                buildingId: buildingDef.id,
+                inputType: .steam,
+                consumptionRate: 1.8,  // 1.8 steam/s = 900 kW output (Factorio balanced)
+                efficiency: 1.0
+            )
+            steamConsumer.inputType = .steam  // Ensure it's steam
+            world.add(steamConsumer, to: entity)
                 print("GameLoop: Added GeneratorComponent and FluidConsumerComponent to steam engine entity \(entity)")
             } else {
                 // Fallback for other generators
@@ -947,7 +949,7 @@ final class GameLoop {
             world.add(FluidProducerComponent(
                 buildingId: buildingDef.id,
                 outputType: .water,
-                productionRate: 200.0,  // 200 water/s - increased to ensure sufficient supply
+                productionRate: 20.0,  // 20 water/s - matches Factorio offshore pump (1200/minute)
                 powerConsumption: 0  // No power required, like Factorio offshore pumps
             ), to: entity)
             // No inventory needed - water pumps output fluid directly to pipes
