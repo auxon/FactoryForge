@@ -8,6 +8,7 @@ typealias UIKitButton = UIKit.UIButton
 final class FluidIndicator {
     let frame: Rect
     let isInput: Bool
+    var isProducer: Bool = false  // True for production indicators, false for tanks
     var fluidType: FluidType?
     var amount: Float = 0
     var maxAmount: Float = 0
@@ -31,12 +32,11 @@ final class FluidIndicator {
             layer: .ui
         ))
 
-        // Fluid fill indicator (semi-circle or fill level)
+        // Fluid fill indicator
         if let fluidType = fluidType, maxAmount > 0 {
             let fillLevel = amount / maxAmount
             let fluidColor = getFluidColor(fluidType)
 
-            // Create a fill indicator - for inputs show as a ring, for outputs show as filled
             if isInput {
                 // Input: show connection status with colored ring
                 if hasConnection {
@@ -51,18 +51,88 @@ final class FluidIndicator {
                     ))
                 }
             } else {
-                // Output: show fill level
-                let fillHeight = frame.size.y * fillLevel
-                let fillSize = Vector2(frame.size.x, fillHeight)
-                let fillPos = Vector2(frame.center.x, frame.minY + fillHeight/2)
+                if isProducer {
+                    // Producer (steam): show activity with animated/gas-like effect
+                    let activityLevel = min(fillLevel, 1.0) // Cap at 1.0
 
-                renderer.queueSprite(SpriteInstance(
-                    position: fillPos,
-                    size: fillSize,
-                    textureRect: solidRect,
-                    color: fluidColor.withAlpha(0.8),
-                    layer: .ui
-                ))
+                    // Add temporal instability for gas-like appearance (simple alpha fluctuation)
+                    let time = Float(CACurrentMediaTime())
+                    let flicker = sin(time * 3.0) * 0.1 + 0.9 // ±10% fluctuation
+                    let pulseColor = Color(r: 0.9, g: 0.9, b: 1.0, a: (0.5 + activityLevel * 0.3) * flicker)
+
+                    // Draw animated steam overlay
+                    renderer.queueSprite(SpriteInstance(
+                        position: frame.center,
+                        size: frame.size,
+                        textureRect: solidRect,
+                        color: pulseColor,
+                        layer: .ui
+                    ))
+
+                    // Add wispy steam layers with slight movement
+                    if activityLevel > 0.1 {
+                        let steamLayers = 3
+                        for i in 0..<steamLayers {
+                            let layerOffset = Float(i) * 1.5
+                            let layerSize = frame.size - Vector2(layerOffset * 2, layerOffset * 2)
+                            let layerAlpha = 0.2 * activityLevel * (1.0 - Float(i) / Float(steamLayers)) * flicker
+                            let layerColor = Color(r: 0.8, g: 0.9, b: 1.0, a: layerAlpha)
+
+                            renderer.queueSprite(SpriteInstance(
+                                position: frame.center,
+                                size: layerSize,
+                                textureRect: solidRect,
+                                color: layerColor,
+                                layer: .ui
+                            ))
+                        }
+                    }
+                } else {
+                    // Tank: show fill level from bottom up with gradient
+                    let minFillHeight: Float = 2.0 // Minimum visible height for low fill levels
+                    let fillHeight = max(frame.size.y * fillLevel, fillLevel > 0 ? minFillHeight : 0)
+                    let fillSize = Vector2(frame.size.x, fillHeight)
+                    let fillPos = Vector2(frame.center.x, frame.maxY - fillHeight/2)
+
+                    // Create fill color gradient: empty (dark) → full (brighter/tinted)
+                    let emptyColor = Color(r: 0.15, g: 0.15, b: 0.15, a: 0.8) // Dark gray for empty
+                    let fullColor = fluidColor.withAlpha(0.9) // Bright fluid color for full
+                    let fillColor = Color(
+                        r: emptyColor.r + (fullColor.r - emptyColor.r) * fillLevel,
+                        g: emptyColor.g + (fullColor.g - emptyColor.g) * fillLevel,
+                        b: emptyColor.b + (fullColor.b - emptyColor.b) * fillLevel,
+                        a: emptyColor.a + (fullColor.a - emptyColor.a) * fillLevel
+                    )
+
+                    renderer.queueSprite(SpriteInstance(
+                        position: fillPos,
+                        size: fillSize,
+                        textureRect: solidRect,
+                        color: fillColor,
+                        layer: .ui
+                    ))
+
+                    // Add container depth with inner well effect
+                    let wellInset: Float = 2.0
+                    let wellSize = frame.size - Vector2(wellInset * 2, wellInset * 2)
+                    renderer.queueSprite(SpriteInstance(
+                        position: frame.center,
+                        size: wellSize,
+                        textureRect: solidRect,
+                        color: Color(r: 0.1, g: 0.1, b: 0.1, a: 0.9), // Darker inner well
+                        layer: .ui
+                    ))
+
+                    // Add subtle outer border for container definition
+                    let borderThickness: Float = 1.5
+                    renderer.queueSprite(SpriteInstance(
+                        position: frame.center,
+                        size: frame.size + Vector2(borderThickness * 2, borderThickness * 2),
+                        textureRect: solidRect,
+                        color: Color(r: 0.05, g: 0.05, b: 0.05, a: 1.0), // Dark border
+                        layer: .ui
+                    ))
+                }
             }
         }
 
@@ -182,8 +252,8 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             let indicator = allIndicators[index]
 
             // Position label centered below the indicator
-            let labelWidth: Float = 80
-            let labelHeight: Float = 20
+            let labelWidth: Float = 100  // Increased width for longer text
+            let labelHeight: Float = 24  // Increased height for better readability
 
             let labelX = indicator.frame.center.x - labelWidth/2
             let labelY = indicator.frame.center.y + indicator.frame.size.y/2 + 4
@@ -199,21 +269,16 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     private func setupFluidIndicators(for entity: Entity, in ui: MachineUI) {
         guard let gameLoop = ui.gameLoop else { return }
 
-        let indicatorSize: Float = 48
-        let slotSize: Float = 40 * UIScale
-        let slotSpacing: Float = 5 * UIScale
+        let indicatorSize: Float = 40 * UIScale  // Match fuel slot size
 
-        // Calculate position below fuel slots
-        // Fuel slots start at y = frame.center.y - 120 * UIScale
-        // Assume up to 2 fuel slots, so fluid indicators go below that
-        let fuelAreaBottom = ui.frame.center.y - 120 * UIScale + 2 * (slotSize + slotSpacing) + 20 * UIScale
-        let fluidY = fuelAreaBottom + indicatorSize/2
+        // Position fluid indicators centered vertically in the panel
+        let fluidY = ui.frame.center.y
 
         var fluidIndex = 0
 
         // Check for fluid consumers (water input) - place first
         if gameLoop.world.get(FluidConsumerComponent.self, for: entity) != nil {
-            let spacing: Float = 80 * UIScale  // Spacing between indicators
+            let spacing: Float = 100 * UIScale  // Increased spacing between indicators
             let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing
 
             let inputFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
@@ -228,11 +293,12 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
         // Check for fluid producers (steam output) - place next
         if gameLoop.world.get(FluidProducerComponent.self, for: entity) != nil {
-            let spacing: Float = 80 * UIScale  // Spacing between indicators
+            let spacing: Float = 100 * UIScale  // Increased spacing between indicators
             let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing
 
             let outputFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
             let outputIndicator = FluidIndicator(frame: outputFrame, isInput: false)
+            outputIndicator.isProducer = true
             fluidOutputIndicators.append(outputIndicator)
 
             let outputLabel = ui.createFluidLabel()
@@ -241,14 +307,16 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             fluidIndex += 1
         }
 
-        // Check for fluid tanks - place after steam with extra spacing
+        // Check for fluid tanks - boilers have tanks for water buffer and steam buffer
         if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
-            let spacing: Float = 100 * UIScale  // More spacing before tanks
+            let tankSpacing: Float = 80 * UIScale  // Vertical spacing between stacked tanks
+            let tankBaseX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * 120 * UIScale  // Align tanks with the steam indicator
+
             for (index, _) in tank.tanks.enumerated() {
                 if index >= 2 { break } // Limit to 2 visible tanks
 
-                let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing + Float(index) * (indicatorSize + 20)
-                let tankFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
+                let tankY = fluidY + Float(index) * tankSpacing
+                let tankFrame = Rect(center: Vector2(tankBaseX, tankY), size: Vector2(indicatorSize, indicatorSize))
                 let tankIndicator = FluidIndicator(frame: tankFrame, isInput: false) // Tanks show as outputs
                 fluidOutputIndicators.append(tankIndicator)
 
@@ -1246,7 +1314,7 @@ final class MachineUI: UIPanel_Base {
     // Helper method to create fluid labels with consistent styling
     func createFluidLabel() -> UILabel {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 12, weight: .bold)
+        label.font = UIFont.systemFont(ofSize: 11, weight: .bold)
         label.textColor = .white
         label.textAlignment = .center
         label.text = "0.0 L/s"
@@ -1256,8 +1324,8 @@ final class MachineUI: UIPanel_Base {
         label.layer.cornerRadius = 4.0
         label.isHidden = false
 
-        // Set initial frame (like fuel labels do)
-        label.frame = CGRect(x: 0, y: 0, width: 60, height: 16)
+        // Set initial frame (larger for fluid labels with prefixes)
+        label.frame = CGRect(x: 0, y: 0, width: 100, height: 24)
 
         return label
     }
