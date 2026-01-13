@@ -150,6 +150,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
     override func setupUI(for entity: Entity, in ui: MachineUI) {
         setupFluidIndicators(for: entity, in: ui)
+        positionLabels(in: ui)
     }
 
     override func updateUI(for entity: Entity, in ui: MachineUI) {
@@ -157,13 +158,41 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     }
 
     override func getLabels() -> [UILabel] {
-        return fluidInputLabels + fluidOutputLabels
+        let labels = fluidInputLabels + fluidOutputLabels
+        print("FluidMachineUIComponent: Returning \(labels.count) labels (\(fluidInputLabels.count) input, \(fluidOutputLabels.count) output)")
+        return labels
     }
 
     override func render(in renderer: MetalRenderer) {
-        // Render fluid indicators
+        // Render all fluid indicators (producers, consumers, tanks)
         for indicator in fluidInputIndicators + fluidOutputIndicators {
             indicator.render(renderer: renderer)
+        }
+    }
+
+    func positionLabels(in ui: MachineUI) {
+        let scale = UIScreen.main.scale
+
+        // Position all fluid labels (inputs and outputs)
+        let allLabels = fluidInputLabels + fluidOutputLabels
+        let allIndicators = fluidInputIndicators + fluidOutputIndicators
+
+        for (index, label) in allLabels.enumerated() {
+            guard index < allIndicators.count else { continue }
+            let indicator = allIndicators[index]
+
+            // Position label centered below the indicator
+            let labelWidth: Float = 80
+            let labelHeight: Float = 20
+
+            let labelX = indicator.frame.center.x - labelWidth/2
+            let labelY = indicator.frame.center.y + indicator.frame.size.y/2 + 4
+
+            // Convert to UIView coordinates
+            let uiX = CGFloat(labelX) / scale
+            let uiY = CGFloat(labelY) / scale
+
+            label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
         }
     }
 
@@ -171,31 +200,62 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         guard let gameLoop = ui.gameLoop else { return }
 
         let indicatorSize: Float = 48
+        let slotSize: Float = 40 * UIScale
+        let slotSpacing: Float = 5 * UIScale
 
-        // Check for fluid producers (boilers)
-        if gameLoop.world.get(FluidProducerComponent.self, for: entity) != nil {
-            let outputX = ui.frame.center.x + 200 * UIScale + indicatorSize/2
-            let outputY = ui.frame.center.y - 140 * UIScale
+        // Calculate position below fuel slots
+        // Fuel slots start at y = frame.center.y - 120 * UIScale
+        // Assume up to 2 fuel slots, so fluid indicators go below that
+        let fuelAreaBottom = ui.frame.center.y - 120 * UIScale + 2 * (slotSize + slotSpacing) + 20 * UIScale
+        let fluidY = fuelAreaBottom + indicatorSize/2
 
-            let outputFrame = Rect(center: Vector2(outputX, outputY), size: Vector2(indicatorSize, indicatorSize))
-            let outputIndicator = FluidIndicator(frame: outputFrame, isInput: false)
-            fluidOutputIndicators.append(outputIndicator)
+        var fluidIndex = 0
 
-            let outputLabel = ui.createFluidLabel()
-            fluidOutputLabels.append(outputLabel)
-        }
-
-        // Check for fluid consumers (steam engines)
+        // Check for fluid consumers (water input) - place first
         if gameLoop.world.get(FluidConsumerComponent.self, for: entity) != nil {
-            let inputX = ui.frame.center.x - 200 * UIScale - indicatorSize/2
-            let inputY = ui.frame.center.y - 160 * UIScale
+            let spacing: Float = 80 * UIScale  // Spacing between indicators
+            let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing
 
-            let inputFrame = Rect(center: Vector2(inputX, inputY), size: Vector2(indicatorSize, indicatorSize))
+            let inputFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
             let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
             fluidInputIndicators.append(inputIndicator)
 
             let inputLabel = ui.createFluidLabel()
             fluidInputLabels.append(inputLabel)
+
+            fluidIndex += 1
+        }
+
+        // Check for fluid producers (steam output) - place next
+        if gameLoop.world.get(FluidProducerComponent.self, for: entity) != nil {
+            let spacing: Float = 80 * UIScale  // Spacing between indicators
+            let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing
+
+            let outputFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
+            let outputIndicator = FluidIndicator(frame: outputFrame, isInput: false)
+            fluidOutputIndicators.append(outputIndicator)
+
+            let outputLabel = ui.createFluidLabel()
+            fluidOutputLabels.append(outputLabel)
+
+            fluidIndex += 1
+        }
+
+        // Check for fluid tanks - place after steam with extra spacing
+        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            let spacing: Float = 100 * UIScale  // More spacing before tanks
+            for (index, _) in tank.tanks.enumerated() {
+                if index >= 2 { break } // Limit to 2 visible tanks
+
+                let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing + Float(index) * (indicatorSize + 20)
+                let tankFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
+                let tankIndicator = FluidIndicator(frame: tankFrame, isInput: false) // Tanks show as outputs
+                fluidOutputIndicators.append(tankIndicator)
+
+                // Add label for tank
+                let tankLabel = ui.createFluidLabel()
+                fluidOutputLabels.append(tankLabel)
+            }
         }
     }
 
@@ -211,7 +271,8 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             fluidOutputIndicators[0].hasConnection = !producer.connections.isEmpty
 
             let flowRateText = String(format: "%.1f L/s", producer.productionRate)
-            fluidOutputLabels[0].text = flowRateText
+            let fluidName = producer.outputType == .steam ? "Steam" : producer.outputType.rawValue
+            fluidOutputLabels[0].text = "\(fluidName): \(flowRateText)"
         }
 
         // Update fluid consumers
@@ -223,7 +284,29 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             fluidInputIndicators[0].hasConnection = !consumer.connections.isEmpty
 
             let flowRateText = String(format: "%.1f L/s", consumer.consumptionRate)
-            fluidInputLabels[0].text = flowRateText
+            let fluidName = consumer.inputType == .water ? "Water" : consumer.inputType!.rawValue
+            fluidInputLabels[0].text = "\(fluidName): \(flowRateText)"
+        }
+
+        // Update fluid tanks (remaining output indicators)
+        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            let tankIndicatorStart = gameLoop.world.has(FluidProducerComponent.self, for: entity) ? 1 : 0
+            for (index, stack) in tank.tanks.enumerated() {
+                let indicatorIndex = tankIndicatorStart + index
+                if indicatorIndex < fluidOutputIndicators.count {
+                    fluidOutputIndicators[indicatorIndex].fluidType = stack.type
+                    fluidOutputIndicators[indicatorIndex].amount = stack.amount
+                    fluidOutputIndicators[indicatorIndex].maxAmount = stack.maxAmount
+                    fluidOutputIndicators[indicatorIndex].hasConnection = !tank.connections.isEmpty
+
+                    // Update tank label
+                    let labelIndex = tankIndicatorStart + index
+                    if labelIndex < fluidOutputLabels.count {
+                        let tankText = String(format: "%.0f/%.0f L", stack.amount, stack.maxAmount)
+                        fluidOutputLabels[labelIndex].text = "Tank: \(tankText)"
+                    }
+                }
+            }
         }
     }
 }
@@ -347,9 +430,9 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
 
 /// UI for interacting with machines (assemblers, furnaces, etc.)
 final class MachineUI: UIPanel_Base {
-    private var screenSize: Vector2
+    private(set) var screenSize: Vector2
     private(set) weak var gameLoop: GameLoop?
-    private var currentEntity: Entity?
+    private(set) var currentEntity: Entity?
 
     // UI components for different machine types
     private var machineComponents: [MachineUIComponent] = []
@@ -556,13 +639,16 @@ final class MachineUI: UIPanel_Base {
         // Determine machine type and create appropriate components
         if let gameLoop = gameLoop {
             // Check for fluid-based machines
-            if gameLoop.world.has(FluidProducerComponent.self, for: entity) ||
-               gameLoop.world.has(FluidConsumerComponent.self, for: entity) {
+            let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entity)
+            let hasFluidConsumer = gameLoop.world.has(FluidConsumerComponent.self, for: entity)
+            if hasFluidProducer || hasFluidConsumer {
+                print("MachineUI: Creating FluidMachineUIComponent (producer: \(hasFluidProducer), consumer: \(hasFluidConsumer))")
                 machineComponents.append(FluidMachineUIComponent())
             }
 
             // Check for assembly machines
             if gameLoop.world.has(AssemblerComponent.self, for: entity) {
+                print("MachineUI: Creating AssemblyMachineUIComponent")
                 let recipeCallback: RecipeSelectionCallback = { [weak self] (entity: Entity, recipe: Recipe) in
                     self?.onSelectRecipeForMachine?(entity, recipe)
                 }
@@ -570,12 +656,15 @@ final class MachineUI: UIPanel_Base {
             }
         }
 
+        print("MachineUI: Created \(machineComponents.count) components for entity \(entity.id)")
+
         // Setup common UI elements
         setupSlots()
         setupSlotsForMachine(entity)
 
         // Setup machine-specific UI components
-        for component in machineComponents {
+        for (index, component) in machineComponents.enumerated() {
+            print("MachineUI: Setting up component \(index) (\(type(of: component)))")
             component.setupUI(for: entity, in: self)
         }
 
@@ -611,12 +700,23 @@ final class MachineUI: UIPanel_Base {
 
         // Add labels from machine components
         for component in machineComponents {
-            allLabels += component.getLabels()
+            let componentLabels = component.getLabels()
+            print("MachineUI: Component returned \(componentLabels.count) labels")
+            allLabels += componentLabels
         }
+
+        print("MachineUI: Total labels to add: \(allLabels.count) (fuel: \(fuelCountLabels.count), components: \(allLabels.count - inputCountLabels.count - outputCountLabels.count - fuelCountLabels.count))")
         onAddLabels?(allLabels)
 
         // Position the count labels
         positionCountLabels()
+
+        // Position fluid labels after adding to view
+        for component in machineComponents {
+            if let fluidComponent = component as? FluidMachineUIComponent {
+                fluidComponent.positionLabels(in: self)
+            }
+        }
 
         // Add rocket launch button for rocket silos
         if isRocketSilo {
@@ -877,6 +977,13 @@ final class MachineUI: UIPanel_Base {
         // Update machine components
         for component in machineComponents {
             component.updateUI(for: entity, in: self)
+        }
+
+        // Reposition fluid labels
+        for component in machineComponents {
+            if let fluidComponent = component as? FluidMachineUIComponent {
+                fluidComponent.positionLabels(in: self)
+            }
         }
     }
 
@@ -1148,7 +1255,6 @@ final class MachineUI: UIPanel_Base {
         label.layer.borderWidth = 1.0
         label.layer.cornerRadius = 4.0
         label.isHidden = false
-        label.translatesAutoresizingMaskIntoConstraints = false
 
         // Set initial frame (like fuel labels do)
         label.frame = CGRect(x: 0, y: 0, width: 60, height: 16)

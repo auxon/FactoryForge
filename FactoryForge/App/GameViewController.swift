@@ -458,8 +458,10 @@ class GameViewController: UIViewController {
         // Set up machine UI label callbacks
         uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             guard let self = self else { return }
+            print("GameViewController: Adding \(labels.count) machine labels")
             labels.forEach {
                 let originalFrame = $0.frame
+                print("GameViewController: Adding label '\($0.text ?? "nil")' at \(originalFrame)")
                 self.view.addSubview($0)
                 // Ensure labels are above the Metal view
                 if let metalView = self.metalView {
@@ -973,22 +975,29 @@ class GameViewController: UIViewController {
         }
 
         // MachineUI callbacks
-        uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-            guard let self = self else { return }
-            labels.forEach {
-                let originalFrame = $0.frame
-                self.view.addSubview($0)
-                // Ensure labels are above the Metal view
-                if let metalView = self.metalView {
-                    self.view.insertSubview($0, aboveSubview: metalView)
-                    // Set frame again after inserting (in case it was reset)
-                    $0.frame = originalFrame
+        print("GameViewController: Setting MachineUI callback")
+        if let machineUI = uiSystem?.getMachineUI() {
+            print("GameViewController: Got MachineUI instance, setting callback")
+            machineUI.onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
+                guard let self = self else { return }
+                print("GameViewController: Adding \(labels.count) machine labels")
+                labels.forEach {
+                    print("GameViewController: Adding label '\($0.text ?? "nil")' with frame \($0.frame)")
+                    print("GameViewController: Screen bounds: \(UIScreen.main.bounds)")
+                    self.view.addSubview($0)
+                    // Ensure labels are above the Metal view
+                    if let metalView = self.metalView {
+                        self.view.insertSubview($0, aboveSubview: metalView)
+                        print("GameViewController: Label positioned at \($0.frame)")
+                    }
+                    self.view.bringSubviewToFront($0)
                 }
-                self.view.bringSubviewToFront($0)
             }
-        }
-        uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
-            labels.forEach { $0.removeFromSuperview() }
+            machineUI.onRemoveLabels = { (labels: [UILabel]) -> Void in
+                labels.forEach { $0.removeFromSuperview() }
+            }
+        } else {
+            print("GameViewController: Failed to get MachineUI instance for callback setup")
         }
         uiSystem?.getMachineUI().onSelectRecipeForMachine = { [weak self] (entity: Entity, recipe: Recipe) -> Void in
             self?.gameLoop?.setMachineRecipe(entity, recipe)
