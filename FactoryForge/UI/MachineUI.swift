@@ -106,31 +106,267 @@ final class FluidIndicator {
     }
 }
 
-/// UI for interacting with machines (assemblers, furnaces, etc.)
-final class MachineUI: UIPanel_Base {
-    private weak var gameLoop: GameLoop?
-    private var currentEntity: Entity?
-    private var recipeButtons: [RecipeButton] = []
-    private var inputSlots: [InventorySlot] = []
-    private var outputSlots: [InventorySlot] = []
-    private var fuelSlots: [InventorySlot] = []
+/// Protocol for machine UI components
+protocol MachineUIComponent {
+    func setupUI(for entity: Entity, in ui: MachineUI)
+    func updateUI(for entity: Entity, in ui: MachineUI)
+    func getLabels() -> [UILabel]
+    func getScrollViews() -> [UIScrollView]
+    func render(in renderer: MetalRenderer)
+}
 
-    // Fluid input/output indicators
+/// Callback type for recipe selection
+typealias RecipeSelectionCallback = (Entity, Recipe) -> Void
+
+/// Base implementation for common machine UI functionality
+class BaseMachineUIComponent: MachineUIComponent {
+    func setupUI(for entity: Entity, in ui: MachineUI) {
+        // Common setup - override in subclasses
+    }
+
+    func updateUI(for entity: Entity, in ui: MachineUI) {
+        // Common updates - override in subclasses
+    }
+
+    func getLabels() -> [UILabel] {
+        return []
+    }
+
+    func getScrollViews() -> [UIScrollView] {
+        return []
+    }
+
+    func render(in renderer: MetalRenderer) {
+        // Common rendering - override in subclasses
+    }
+}
+
+/// Component for fluid-based machines (boilers, steam engines)
+class FluidMachineUIComponent: BaseMachineUIComponent {
     private var fluidInputIndicators: [FluidIndicator] = []
     private var fluidOutputIndicators: [FluidIndicator] = []
-
-    // Labels for fluid flow rates
     private var fluidInputLabels: [UILabel] = []
     private var fluidOutputLabels: [UILabel] = []
 
-    // Scrollable recipe area using UIKit
-    private var recipeScrollView: UIScrollView?
-    private var recipeUIButtons: [UIKitButton] = [] // UIKit buttons for recipes
+    override func setupUI(for entity: Entity, in ui: MachineUI) {
+        setupFluidIndicators(for: entity, in: ui)
+    }
 
-    // Count labels for input, output and fuel slots
+    override func updateUI(for entity: Entity, in ui: MachineUI) {
+        updateFluidIndicators(for: entity, in: ui)
+    }
+
+    override func getLabels() -> [UILabel] {
+        return fluidInputLabels + fluidOutputLabels
+    }
+
+    override func render(in renderer: MetalRenderer) {
+        // Render fluid indicators
+        for indicator in fluidInputIndicators + fluidOutputIndicators {
+            indicator.render(renderer: renderer)
+        }
+    }
+
+    private func setupFluidIndicators(for entity: Entity, in ui: MachineUI) {
+        guard let gameLoop = ui.gameLoop else { return }
+
+        let indicatorSize: Float = 48
+
+        // Check for fluid producers (boilers)
+        if gameLoop.world.get(FluidProducerComponent.self, for: entity) != nil {
+            let outputX = ui.frame.center.x + 200 * UIScale + indicatorSize/2
+            let outputY = ui.frame.center.y - 140 * UIScale
+
+            let outputFrame = Rect(center: Vector2(outputX, outputY), size: Vector2(indicatorSize, indicatorSize))
+            let outputIndicator = FluidIndicator(frame: outputFrame, isInput: false)
+            fluidOutputIndicators.append(outputIndicator)
+
+            let outputLabel = ui.createFluidLabel()
+            fluidOutputLabels.append(outputLabel)
+        }
+
+        // Check for fluid consumers (steam engines)
+        if gameLoop.world.get(FluidConsumerComponent.self, for: entity) != nil {
+            let inputX = ui.frame.center.x - 200 * UIScale - indicatorSize/2
+            let inputY = ui.frame.center.y - 160 * UIScale
+
+            let inputFrame = Rect(center: Vector2(inputX, inputY), size: Vector2(indicatorSize, indicatorSize))
+            let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
+            fluidInputIndicators.append(inputIndicator)
+
+            let inputLabel = ui.createFluidLabel()
+            fluidInputLabels.append(inputLabel)
+        }
+    }
+
+    private func updateFluidIndicators(for entity: Entity, in ui: MachineUI) {
+        guard let gameLoop = ui.gameLoop else { return }
+
+        // Update fluid producers
+        if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity),
+           fluidOutputIndicators.count > 0 && fluidOutputLabels.count > 0 {
+            fluidOutputIndicators[0].fluidType = producer.outputType
+            fluidOutputIndicators[0].amount = producer.currentProduction * 60.0
+            fluidOutputIndicators[0].maxAmount = producer.productionRate * 60.0
+            fluidOutputIndicators[0].hasConnection = !producer.connections.isEmpty
+
+            let flowRateText = String(format: "%.1f L/s", producer.productionRate)
+            fluidOutputLabels[0].text = flowRateText
+        }
+
+        // Update fluid consumers
+        if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity),
+           fluidInputIndicators.count > 0 && fluidInputLabels.count > 0 {
+            fluidInputIndicators[0].fluidType = consumer.inputType
+            fluidInputIndicators[0].amount = consumer.currentConsumption * 60.0
+            fluidInputIndicators[0].maxAmount = consumer.consumptionRate * 60.0
+            fluidInputIndicators[0].hasConnection = !consumer.connections.isEmpty
+
+            let flowRateText = String(format: "%.1f L/s", consumer.consumptionRate)
+            fluidInputLabels[0].text = flowRateText
+        }
+    }
+}
+
+/// Component for assembly machines (furnaces, assemblers)
+class AssemblyMachineUIComponent: BaseMachineUIComponent {
+    private var recipeScrollView: UIScrollView?
+    private var recipeButtons: [UIKitButton] = []
+    private var recipeSelectionCallback: RecipeSelectionCallback?
+
+    convenience init(recipeSelectionCallback: @escaping RecipeSelectionCallback) {
+        self.init()
+        self.recipeSelectionCallback = recipeSelectionCallback
+    }
+
+    override func setupUI(for entity: Entity, in ui: MachineUI) {
+        setupRecipeScrollView(in: ui)
+        refreshRecipeButtons(for: entity, in: ui)
+    }
+
+    override func updateUI(for entity: Entity, in ui: MachineUI) {
+        refreshRecipeButtons(for: entity, in: ui)
+    }
+
+    override func getScrollViews() -> [UIScrollView] {
+        return recipeScrollView.map { [$0] } ?? []
+    }
+
+    private func setupRecipeScrollView(in ui: MachineUI) {
+        // Remove existing scroll view and buttons
+        recipeScrollView?.removeFromSuperview()
+        recipeScrollView = nil
+        recipeButtons.removeAll()
+
+        // Position scrollview right under the progress bar
+        let screenBounds = UIScreen.main.bounds
+        let panelWidth: CGFloat = 600 * CGFloat(UIScale)
+        let panelHeight: CGFloat = 350 * CGFloat(UIScale)
+        let panelX = (screenBounds.width - panelWidth) / 2
+        let panelY = (screenBounds.height - panelHeight) / 2
+
+        // Progress bar is at panel center Y - 30 * UIScale, height 20 * UIScale
+        let progressBarBottomY = panelY + panelHeight/2 - 20 * CGFloat(UIScale)
+        let scrollViewTopMargin: CGFloat = 10 * CGFloat(UIScale)
+
+        let scrollViewWidth: CGFloat = 300
+        let scrollViewHeight: CGFloat = 140
+        let scrollViewX = panelX + (panelWidth - scrollViewWidth) / 2
+        let scrollViewY = progressBarBottomY + scrollViewTopMargin
+
+        let scrollViewFrame = CGRect(x: scrollViewX, y: scrollViewY, width: scrollViewWidth, height: scrollViewHeight)
+
+        let scrollView = UIScrollView(frame: scrollViewFrame)
+        scrollView.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 0.9)
+        scrollView.layer.borderColor = UIColor.black.cgColor
+        scrollView.layer.borderWidth = 2
+        scrollView.layer.cornerRadius = 8
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.showsHorizontalScrollIndicator = false
+
+        recipeScrollView = scrollView
+    }
+
+    private func refreshRecipeButtons(for entity: Entity, in ui: MachineUI) {
+        guard let gameLoop = ui.gameLoop, let scrollView = recipeScrollView else { return }
+
+        // Clear existing buttons
+        for button in recipeButtons {
+            button.removeFromSuperview()
+        }
+        recipeButtons.removeAll()
+
+        // Get available recipes for this machine
+        guard gameLoop.world.has(AssemblerComponent.self, for: entity) else { return }
+
+        // For now, get all enabled recipes (TODO: filter by building type)
+        let availableRecipes = gameLoop.recipeRegistry.enabled
+
+        // Create buttons for each recipe
+        let buttonWidth: CGFloat = 120
+        let buttonHeight: CGFloat = 40
+        let buttonSpacing: CGFloat = 8
+        let buttonsPerRow = 2
+        let totalWidth = CGFloat(buttonsPerRow) * buttonWidth + CGFloat(buttonsPerRow - 1) * buttonSpacing
+
+        for (index, recipe) in availableRecipes.enumerated() {
+            let row = index / buttonsPerRow
+            let col = index % buttonsPerRow
+
+            let buttonX = (scrollView.bounds.width - totalWidth) / 2 + CGFloat(col) * (buttonWidth + buttonSpacing)
+            let buttonY = CGFloat(row) * (buttonHeight + buttonSpacing) + 8
+
+            let buttonFrame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
+
+            let button = UIKitButton(type: .system)
+            button.frame = buttonFrame
+            button.setTitle(recipe.name, for: .normal)
+            button.titleLabel?.font = UIFont.systemFont(ofSize: 12)
+            button.backgroundColor = UIColor.darkGray
+            button.setTitleColor(.white, for: .normal)
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1
+            button.layer.cornerRadius = 4
+
+            // Add action using callback
+            let recipe = availableRecipes[index]
+            button.addAction(UIAction { [weak self] _ in
+                self?.recipeSelectionCallback?(entity, recipe)
+            }, for: .touchUpInside)
+
+            scrollView.addSubview(button)
+            recipeButtons.append(button)
+        }
+
+        // Update scroll view content size
+        let totalRows = (availableRecipes.count + buttonsPerRow - 1) / buttonsPerRow
+        let contentHeight = CGFloat(totalRows) * (buttonHeight + buttonSpacing) + 16
+        scrollView.contentSize = CGSize(width: scrollView.bounds.width, height: contentHeight)
+    }
+}
+
+/// UI for interacting with machines (assemblers, furnaces, etc.)
+final class MachineUI: UIPanel_Base {
+    private var screenSize: Vector2
+    private(set) weak var gameLoop: GameLoop?
+    private var currentEntity: Entity?
+
+    // UI components for different machine types
+    private var machineComponents: [MachineUIComponent] = []
+
+    // Common UI elements
+    private var inputSlots: [InventorySlot] = []
+    private var outputSlots: [InventorySlot] = []
+    private var fuelSlots: [InventorySlot] = []
     private var inputCountLabels: [UILabel] = []
     private var outputCountLabels: [UILabel] = []
     private var fuelCountLabels: [UILabel] = []
+
+    // Legacy recipe properties (kept for compatibility)
+    private var recipeButtons: [RecipeButton] = []
+    private var recipeScrollView: UIScrollView?
+    private var recipeUIButtons: [UIKitButton] = []
+
 
     // Research progress labels for labs
     private var researchProgressLabels: [UILabel] = []
@@ -174,6 +410,8 @@ final class MachineUI: UIPanel_Base {
     }
 
     init(screenSize: Vector2, gameLoop: GameLoop?) {
+        self.screenSize = screenSize
+
         let panelWidth: Float = 600 * UIScale
         let panelHeight: Float = 350 * UIScale
         let panelFrame = Rect(
@@ -185,7 +423,6 @@ final class MachineUI: UIPanel_Base {
         self.gameLoop = gameLoop
 
         setupSlots()
-        setupRecipeScrollView()
     }
 
     private func setupSlots() {
@@ -196,10 +433,6 @@ final class MachineUI: UIPanel_Base {
         inputCountLabels.removeAll()
         outputCountLabels.removeAll()
         fuelCountLabels.removeAll()
-        fluidInputIndicators.removeAll()
-        fluidOutputIndicators.removeAll()
-        fluidInputLabels.removeAll()
-        fluidOutputLabels.removeAll()
 
         // Get machine building definition
         guard let entity = currentEntity,
@@ -310,88 +543,41 @@ final class MachineUI: UIPanel_Base {
             outputCountLabels.append(label)
         }
 
-        // Setup fluid indicators based on machine type
-        setupFluidIndicators()
+        // Fluid indicators now set up by FluidMachineUIComponent
     }
 
-    private func setupFluidIndicators() {
-        guard let entity = currentEntity, let gameLoop = gameLoop else { return }
-
-        let indicatorSize: Float = 24 * UIScale
-        let indicatorSpacing: Float = 8 * UIScale
-
-        // Check for fluid producers (boilers, oil wells, water pumps)
-        if gameLoop.world.get(FluidProducerComponent.self, for: entity) != nil {
-            // Create output fluid indicator (right side, above output slots)
-            let outputX = frame.center.x + 200 * UIScale + indicatorSize/2
-            let outputY = frame.center.y - 140 * UIScale  // Position above output slots
-
-            let outputFrame = Rect(center: Vector2(outputX, outputY), size: Vector2(indicatorSize, indicatorSize))
-            let outputIndicator = FluidIndicator(frame: outputFrame, isInput: false)
-            fluidOutputIndicators.append(outputIndicator)
-
-            // Create label for output flow rate
-            let outputLabel = UILabel()
-            outputLabel.font = UIFont.systemFont(ofSize: 10, weight: .regular)
-            outputLabel.textColor = .yellow
-            outputLabel.textAlignment = .center
-            outputLabel.text = "0.0 L/s"
-            outputLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
-            outputLabel.isHidden = false
-            outputLabel.translatesAutoresizingMaskIntoConstraints = false
-            fluidOutputLabels.append(outputLabel)
-            onAddLabels?([outputLabel])
-
-            // Position the label below the indicator
-            outputLabel.frame = CGRect(x: CGFloat(outputX - 30), y: CGFloat(outputY + indicatorSize + 10), width: 60, height: 16)
-        }
-
-        // Check for fluid consumers (steam engines, chemical plants with fluid inputs)
-        if gameLoop.world.get(FluidConsumerComponent.self, for: entity) != nil {
-            // Create input fluid indicator (left side, well above fuel slots to avoid overlap)
-            let inputX = frame.center.x - 200 * UIScale - indicatorSize/2
-            let inputY = frame.center.y - 160 * UIScale  // Position well above fuel slots
-
-            let inputFrame = Rect(center: Vector2(inputX, inputY), size: Vector2(indicatorSize, indicatorSize))
-            let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
-            fluidInputIndicators.append(inputIndicator)
-
-            // Create label for input flow rate
-            let inputLabel = UILabel()
-            inputLabel.font = UIFont.systemFont(ofSize: 10, weight: .regular)
-            inputLabel.textColor = .cyan
-            inputLabel.textAlignment = .center
-            inputLabel.text = "0.0 L/s"
-            inputLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
-            inputLabel.isHidden = false
-            inputLabel.translatesAutoresizingMaskIntoConstraints = false
-            fluidInputLabels.append(inputLabel)
-            onAddLabels?([inputLabel])
-
-            // Position the label below the indicator
-            inputLabel.frame = CGRect(x: CGFloat(inputX - 30), y: CGFloat(inputY + indicatorSize + 10), width: 60, height: 16)
-        }
-
-        // Check for fluid tanks (chemical plants)
-        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
-            // Add tank indicators below the main input/output indicators
-            let tankY = frame.center.y - 100 * UIScale
-            for (index, _) in tank.tanks.enumerated() {
-                if index >= 4 { break } // Limit to 4 visible tanks
-
-                let tankX = frame.center.x - 150 * UIScale + Float(index) * (indicatorSize + indicatorSpacing)
-                let tankFrame = Rect(center: Vector2(tankX, tankY), size: Vector2(indicatorSize, indicatorSize))
-                let tankIndicator = FluidIndicator(frame: tankFrame, isInput: false) // Tanks show as outputs
-                fluidOutputIndicators.append(tankIndicator)
-            }
-        }
-    }
 
     func setEntity(_ entity: Entity) {
         currentEntity = entity
-        setupSlots() // Re-setup slots based on machine inventory size
+
+        // Clear existing components
+        machineComponents.removeAll()
+
+        // Determine machine type and create appropriate components
+        if let gameLoop = gameLoop {
+            // Check for fluid-based machines
+            if gameLoop.world.has(FluidProducerComponent.self, for: entity) ||
+               gameLoop.world.has(FluidConsumerComponent.self, for: entity) {
+                machineComponents.append(FluidMachineUIComponent())
+            }
+
+            // Check for assembly machines
+            if gameLoop.world.has(AssemblerComponent.self, for: entity) {
+                let recipeCallback: RecipeSelectionCallback = { [weak self] (entity: Entity, recipe: Recipe) in
+                    self?.onSelectRecipeForMachine?(entity, recipe)
+                }
+                machineComponents.append(AssemblyMachineUIComponent(recipeSelectionCallback: recipeCallback))
+            }
+        }
+
+        // Setup common UI elements
+        setupSlots()
         setupSlotsForMachine(entity)
-        refreshRecipeButtons()
+
+        // Setup machine-specific UI components
+        for component in machineComponents {
+            component.setupUI(for: entity, in: self)
+        }
 
         // Setup power label for generators
         setupPowerLabel(for: entity)
@@ -422,6 +608,11 @@ final class MachineUI: UIPanel_Base {
         if isGenerator, let powerLabel = powerLabel {
             allLabels.append(powerLabel)
         }
+
+        // Add labels from machine components
+        for component in machineComponents {
+            allLabels += component.getLabels()
+        }
         onAddLabels?(allLabels)
 
         // Position the count labels
@@ -432,19 +623,22 @@ final class MachineUI: UIPanel_Base {
             setupRocketLaunchButton()
         }
 
-        // Refresh recipe buttons for current machine
-        refreshRecipeButtons()
-
-        // Add scroll view for recipes
-        if let scrollView = recipeScrollView {
-            onAddScrollView?(scrollView)
-            scrollView.isHidden = false // Ensure it's visible when panel opens
+        // Add scroll views from machine components
+        for component in machineComponents {
+            for scrollView in component.getScrollViews() {
+                onAddScrollView?(scrollView)
+                scrollView.isHidden = false
+            }
         }
     }
 
     override func close() {
         // Remove all count labels from the view
-        var allLabels = inputCountLabels + outputCountLabels + fuelCountLabels + researchProgressLabels + fluidInputLabels + fluidOutputLabels
+        var allLabels = inputCountLabels + outputCountLabels + fuelCountLabels + researchProgressLabels
+        // Add labels from components
+        for component in machineComponents {
+            allLabels += component.getLabels()
+        }
         if let powerLabel = powerLabel {
             allLabels.append(powerLabel)
         }
@@ -456,238 +650,21 @@ final class MachineUI: UIPanel_Base {
             label.isHidden = true
         }
 
-        // Clear fluid labels
-        fluidInputLabels.removeAll()
-        fluidOutputLabels.removeAll()
+        // Fluid labels cleared by component cleanup
 
         // Remove rocket launch button
         launchButton = nil
 
-        // Remove scroll view
-        if let scrollView = recipeScrollView {
-            onRemoveScrollView?(scrollView)
+        // Remove scroll views from components
+        for component in machineComponents {
+            for scrollView in component.getScrollViews() {
+                onRemoveScrollView?(scrollView)
+            }
         }
 
         super.close()
     }
 
-    private func createBuildingRecipes(for gameLoop: GameLoop) -> [Recipe] {
-        var buildingRecipes: [Recipe] = []
-
-        // Advanced buildings that should be crafted in assemblers (not basic infrastructure)
-        // These are complex buildings that require assembly rather than simple hand crafting
-        let advancedBuildingIds = [
-            "assembling-machine-1", "assembling-machine-2", "assembling-machine-3",
-            "electric-furnace",
-            "lab",
-            "oil-refinery", "chemical-plant",
-            "centrifuge",
-            "solar-panel", "accumulator",
-            "rocket-silo"
-        ]
-
-        for buildingId in advancedBuildingIds {
-            // Only include buildings that are unlocked (have their prerequisites met)
-            if gameLoop.isRecipeUnlocked(buildingId),
-               let building = gameLoop.buildingRegistry.get(buildingId) {
-                // Create a recipe from the building definition
-                let recipe = Recipe(
-                    id: building.id,
-                    name: building.name,
-                    inputs: building.cost, // Use building cost as recipe inputs
-                    outputs: [ItemStack(itemId: building.id, count: 1)], // Output 1 building
-                    craftTime: 0.5, // Standard crafting time for buildings
-                    category: .crafting, // Buildings are crafted in assemblers
-                    enabled: true,
-                    order: "z" // Put buildings at the end of the recipe list
-                )
-                buildingRecipes.append(recipe)
-            }
-        }
-
-        return buildingRecipes.sorted { $0.order < $1.order }
-    }
-
-    private func setupRecipeScrollView() {
-        // Remove existing scroll view and buttons
-        recipeScrollView?.removeFromSuperview()
-        recipeScrollView = nil
-        recipeUIButtons.removeAll()
-
-        // Position scrollview right under the progress bar
-        // Panel is centered on screen, progress bar is positioned relative to panel center
-        let screenBounds = UIScreen.main.bounds
-        let panelWidth: CGFloat = 600 * CGFloat(UIScale)
-        let panelHeight: CGFloat = 350 * CGFloat(UIScale)
-        let panelX = (screenBounds.width - panelWidth) / 2
-        let panelY = (screenBounds.height - panelHeight) / 2
-
-        // Progress bar is at panel center Y - 30 * UIScale, height 20 * UIScale
-        // So progress bar bottom is at panel center Y - 20 * UIScale
-        let progressBarBottomY = panelY + panelHeight/2 - 20 * CGFloat(UIScale)
-        let scrollViewTopMargin: CGFloat = 10 * CGFloat(UIScale) // Small gap below progress bar
-
-        // Position scrollview under progress bar, centered horizontally
-        let scrollViewWidth: CGFloat = 300 // Fixed width that fits within typical panel
-        let scrollViewHeight: CGFloat = 140 // Fixed height to fit nicely
-        let scrollViewX = panelX + (panelWidth - scrollViewWidth) / 2 // Center horizontally in panel
-        let scrollViewY = progressBarBottomY + scrollViewTopMargin
-
-        let scrollViewFrame = CGRect(x: scrollViewX, y: scrollViewY, width: scrollViewWidth, height: scrollViewHeight)
-
-        let scrollView = UIScrollView(frame: scrollViewFrame)
-        scrollView.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 0.9)
-        scrollView.layer.borderColor = UIColor.black.cgColor
-        scrollView.layer.borderWidth = 2
-        scrollView.layer.cornerRadius = 8
-        scrollView.showsVerticalScrollIndicator = true
-        scrollView.showsHorizontalScrollIndicator = false
-
-        // Store reference
-        recipeScrollView = scrollView
-    }
-
-    private func refreshRecipeButtons() {
-        recipeButtons.removeAll()
-        recipeUIButtons.forEach { $0.removeFromSuperview() }
-        recipeUIButtons.removeAll()
-
-        guard let entity = currentEntity,
-              let gameLoop = gameLoop,
-              let scrollView = recipeScrollView else { return }
-
-        // Get available recipes for this machine type
-        var availableRecipes: [Recipe] = []
-
-        if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
-            print("MachineUI: Machine is assembler with category: \(assembler.craftingCategory)")
-            availableRecipes = gameLoop.recipeRegistry.recipes(in: CraftingCategory(rawValue: assembler.craftingCategory) ?? .crafting)
-            print("MachineUI: Found \(availableRecipes.count) crafting recipes for assembler")
-
-            // Add advanced building recipes for assemblers - complex machinery
-            let buildingRecipes = createBuildingRecipes(for: gameLoop)
-            availableRecipes += buildingRecipes
-            print("MachineUI: Added \(buildingRecipes.count) building recipes for assembler (total: \(availableRecipes.count))")
-        } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
-            print("MachineUI: Machine is furnace")
-            availableRecipes = gameLoop.recipeRegistry.recipes(in: .smelting)
-            print("MachineUI: Found \(availableRecipes.count) smelting recipes for furnace")
-        } else if gameLoop.world.has(MinerComponent.self, for: entity) {
-            print("MachineUI: Machine is mining drill (no recipes needed)")
-            availableRecipes = []
-        } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
-            print("MachineUI: Machine is generator/boiler (no recipes needed)")
-            availableRecipes = []
-        } else if gameLoop.world.has(LabComponent.self, for: entity) {
-            print("MachineUI: Machine is lab (no recipes needed)")
-            availableRecipes = []
-        } else if gameLoop.world.has(RocketSiloComponent.self, for: entity) {
-            print("MachineUI: Machine is rocket silo")
-            // Rocket silos don't have recipes, but show launch controls
-            availableRecipes = []
-        } else if gameLoop.world.has(FluidProducerComponent.self, for: entity) {
-            print("MachineUI: Machine is fluid producer (no recipes needed)")
-            availableRecipes = []
-        } else if gameLoop.world.has(FluidConsumerComponent.self, for: entity) {
-            print("MachineUI: Machine is fluid consumer (no recipes needed)")
-            availableRecipes = []
-        } else {
-            print("MachineUI: Machine type not recognized")
-            availableRecipes = []
-        }
-
-        // Create UIKit buttons inside scroll view
-        let buttonSize: CGFloat = 32 // Fixed 32x32 pixels for icons
-        let buttonSpacing: CGFloat = 4
-        let buttonsPerRow = 6  // Fewer per row to ensure they fit
-
-        var totalHeight: CGFloat = 0
-
-        for (index, recipe) in availableRecipes.enumerated() {
-            let row = index / buttonsPerRow
-            let col = index % buttonsPerRow
-
-            let x = CGFloat(col) * (buttonSize + buttonSpacing) + buttonSize/2
-            let y = CGFloat(row) * (buttonSize + buttonSpacing) + buttonSize/2
-
-            let buttonFrame = CGRect(x: x, y: y, width: buttonSize, height: buttonSize)
-
-            let button = UIKitButton(frame: buttonFrame)
-            button.layer.borderColor = UIColor.white.cgColor
-            button.layer.borderWidth = 1
-            button.layer.cornerRadius = 4
-
-            // Set background color based on item type
-            if let output = recipe.outputs.first {
-                button.backgroundColor = getColorForItem(itemId: output.itemId)
-            } else {
-                button.backgroundColor = UIColor.gray
-            }
-
-            // Add item icon image
-            if let output = recipe.outputs.first {
-                let imageName = output.itemId.replacingOccurrences(of: "-", with: "_")
-                if let iconImage = UIImage(named: imageName) {
-                    // Scale image to fit button
-                    let scaledImage = UIGraphicsImageRenderer(size: CGSize(width: buttonSize - 4, height: buttonSize - 4)).image { _ in
-                        iconImage.draw(in: CGRect(origin: .zero, size: CGSize(width: buttonSize - 4, height: buttonSize - 4)))
-                    }
-                    button.setImage(scaledImage, for: .normal)
-                    button.imageView?.contentMode = .scaleAspectFit
-                }
-            }
-
-            // Store recipe ID in button tag for lookup
-            button.tag = recipe.id.hashValue
-
-            // Add tap handler
-            button.addTarget(self, action: #selector(recipeButtonTapped(_:)), for: UIKit.UIControl.Event.touchUpInside)
-
-            scrollView.addSubview(button)
-            recipeUIButtons.append(button)
-
-            // Update total height
-            totalHeight = max(totalHeight, y + buttonSize)
-        }
-
-        // Set scroll view content size
-        scrollView.contentSize = CGSize(width: scrollView.frame.width, height: totalHeight + buttonSpacing)
-    }
-
-
-    private func getColorForItem(itemId: String) -> UIColor {
-        if itemId.contains("transport-belt") || itemId.contains("fast-transport-belt") {
-            return UIColor.yellow
-        } else if itemId.contains("express-transport-belt") {
-            return UIColor.purple
-        } else if itemId.contains("inserter") {
-            return UIColor.orange
-        } else if itemId.contains("chest") {
-            return UIColor.brown
-        } else if itemId.contains("furnace") || itemId.contains("assembler") {
-            return UIColor.gray
-        } else if itemId.contains("pole") {
-            return UIColor.lightGray
-        } else if itemId.contains("solar-panel") || itemId.contains("accumulator") {
-            return UIColor.blue
-        } else {
-            return UIColor.green // Default for other items
-        }
-    }
-
-    @objc func recipeButtonTapped(_ sender: AnyObject) {
-        guard let button = sender as? UIKitButton,
-              let entity = currentEntity,
-              let gameLoop = gameLoop else { return }
-
-        // Find recipe by ID stored in button tag
-        let recipeIdHash = button.tag
-        let allRecipes = gameLoop.recipeRegistry.all + (createBuildingRecipes(for: gameLoop))
-
-        if let recipe = allRecipes.first(where: { $0.id.hashValue == recipeIdHash }) {
-            onSelectRecipeForMachine?(entity, recipe)
-        }
-    }
 
     private func setupSlotsForMachine(_ entity: Entity) {
         guard let gameLoop = gameLoop else { return }
@@ -895,60 +872,15 @@ final class MachineUI: UIPanel_Base {
     func updateMachine(_ entity: Entity) {
         setupSlotsForMachine(entity)
         updateCountLabels(entity)
-        updateFluidIndicators(entity)
         positionCountLabels()
-    }
 
-    private func updateFluidIndicators(_ entity: Entity) {
-        guard let gameLoop = gameLoop else { return }
-
-        // Update fluid producers (first output indicator)
-        if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity),
-           fluidOutputIndicators.count > 0 && fluidOutputLabels.count > 0 {
-            fluidOutputIndicators[0].fluidType = producer.outputType
-            fluidOutputIndicators[0].amount = producer.currentProduction * 60.0 // Show per-minute rate for visual
-            fluidOutputIndicators[0].maxAmount = producer.productionRate * 60.0 // Max per minute
-            fluidOutputIndicators[0].hasConnection = !producer.connections.isEmpty
-            print("Boiler producer connections: \(producer.connections.count)")
-
-            // Update flow rate label - show the actual production rate
-            let flowRateText = String(format: "%.1f L/s", producer.productionRate)
-            fluidOutputLabels[0].text = flowRateText
-        }
-
-        // Update fluid consumers (first input indicator)
-        if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity),
-           fluidInputIndicators.count > 0 && fluidInputLabels.count > 0 {
-            fluidInputIndicators[0].fluidType = consumer.inputType
-            fluidInputIndicators[0].amount = consumer.currentConsumption * 60.0 // Show per-minute rate for visual
-            fluidInputIndicators[0].maxAmount = consumer.consumptionRate * 60.0 // Max per minute
-            fluidInputIndicators[0].hasConnection = !consumer.connections.isEmpty
-            print("Boiler consumer connections: \(consumer.connections.count)")
-
-            // Update flow rate label - show the actual consumption rate
-            let flowRateText = String(format: "%.1f L/s", consumer.consumptionRate)
-            fluidInputLabels[0].text = flowRateText
-        }
-
-        // Debug tank
-        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
-            print("Boiler tank connections: \(tank.connections.count)")
-        }
-
-        // Update fluid tanks (remaining output indicators)
-        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
-            let tankIndicatorStart = gameLoop.world.has(FluidProducerComponent.self, for: entity) ? 1 : 0
-            for (index, stack) in tank.tanks.enumerated() {
-                let indicatorIndex = tankIndicatorStart + index
-                if indicatorIndex < fluidOutputIndicators.count {
-                    fluidOutputIndicators[indicatorIndex].fluidType = stack.type
-                    fluidOutputIndicators[indicatorIndex].amount = stack.amount
-                    fluidOutputIndicators[indicatorIndex].maxAmount = stack.maxAmount
-                    fluidOutputIndicators[indicatorIndex].hasConnection = !tank.connections.isEmpty
-                }
-            }
+        // Update machine components
+        for component in machineComponents {
+            component.updateUI(for: entity, in: self)
         }
     }
+
+// Fluid updates now handled by FluidMachineUIComponent
 
     override func update(deltaTime: Float) {
         guard isOpen else { return }
@@ -964,7 +896,7 @@ final class MachineUI: UIPanel_Base {
 
         for uiButton in recipeUIButtons {
             let recipeIdHash = uiButton.tag
-            let allRecipes = gameLoop.recipeRegistry.all + (createBuildingRecipes(for: gameLoop))
+            let allRecipes = gameLoop.recipeRegistry.all
 
             if let recipe = allRecipes.first(where: { $0.id.hashValue == recipeIdHash }) {
                 let canCraft = recipe.canCraft(with: player.inventory)
@@ -1006,7 +938,7 @@ final class MachineUI: UIPanel_Base {
             updateMachine(entity)
         }
         
-        // Render recipe buttons
+        // Legacy recipe buttons (to be removed)
         for button in recipeButtons {
             button.render(renderer: renderer)
         }
@@ -1019,9 +951,9 @@ final class MachineUI: UIPanel_Base {
             button.render(renderer: renderer)
         }
 
-        // Render fluid indicators
-        for indicator in fluidInputIndicators + fluidOutputIndicators {
-            indicator.render(renderer: renderer)
+        // Render machine components
+        for component in machineComponents {
+            component.render(in: renderer)
         }
     }
 
@@ -1202,6 +1134,28 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
+// Fluid label positioning is now handled by FluidMachineUIComponent
+
+    // Helper method to create fluid labels with consistent styling
+    func createFluidLabel() -> UILabel {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 12, weight: .bold)
+        label.textColor = .white
+        label.textAlignment = .center
+        label.text = "0.0 L/s"
+        label.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.3, alpha: 0.9)
+        label.layer.borderColor = UIColor.cyan.cgColor
+        label.layer.borderWidth = 1.0
+        label.layer.cornerRadius = 4.0
+        label.isHidden = false
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        // Set initial frame (like fuel labels do)
+        label.frame = CGRect(x: 0, y: 0, width: 60, height: 16)
+
+        return label
+    }
+
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
 
@@ -1298,14 +1252,7 @@ final class MachineUI: UIPanel_Base {
             }
         }
 
-        // Check fluid indicators (they consume taps but don't do anything special yet)
-        for indicator in fluidInputIndicators + fluidOutputIndicators {
-            if indicator.frame.contains(position) {
-                // Fluid indicators consume taps but don't do anything special yet
-                // Could show tooltips in the future
-                return true
-            }
-        }
+// Fluid indicator tap handling moved to components
 
         // If tap didn't hit any UI elements, close the panel
         onClosePanel?()
