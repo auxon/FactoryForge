@@ -730,8 +730,8 @@ final class BuildingRegistry {
 
         // Storage Tank
         var storageTank = BuildingDefinition(
-            id: "storage-tank",
-            name: "Storage Tank",
+            id: "fluid-tank",
+            name: "Fluid Tank",
             type: .fluidTank,
             width: 3,
             height: 3,

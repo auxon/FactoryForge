@@ -591,7 +591,7 @@ Steam power is the first power generation method and requires careful fluid mana
 ### Fluid System Management
 - **Water Supply**: Always place water pumps on water tiles, not land
 - **Pipe Networks**: Plan complete pipe connections before building fluid machines
-- **Buffer Tanks**: Use storage tanks to prevent production interruptions
+- **Buffer Tanks**: Use fluid tanks to prevent production interruptions
 - **Monitor Boiler Water**: Boilers stop producing steam when water runs out
 
 ---

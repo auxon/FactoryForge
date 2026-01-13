@@ -188,7 +188,7 @@ Chemical plants process oil products into advanced materials.
 #### Oil Field Development
 - **Multiple Wells**: Place multiple oil wells on large deposits
 - **Power Infrastructure**: Oil wells require significant electricity (90 kW each)
-- **Storage Solutions**: Use storage tanks or transport oil efficiently
+- **Storage Solutions**: Use fluid tanks or transport oil efficiently
 
 #### Refining Capacity
 - **Parallel Refineries**: Build multiple refineries for high-volume processing

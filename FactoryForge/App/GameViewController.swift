@@ -458,6 +458,19 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
+        // Set up inventory UI scrollview callbacks
+        uiSystem?.getInventoryUI().onAddScrollView = { [weak self] (scrollView: UIScrollView) -> Void in
+            guard let self = self else { return }
+            self.view.addSubview(scrollView)
+            // Ensure scrollview is above the Metal view but below tooltips
+            if let metalView = self.metalView {
+                self.view.insertSubview(scrollView, aboveSubview: metalView)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveScrollView = { (scrollView: UIScrollView) -> Void in
+            scrollView.removeFromSuperview()
+        }
+
         // Set up machine UI label callbacks
         uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             guard let self = self else { return }
@@ -753,6 +766,19 @@ class GameViewController: UIViewController {
             labels.forEach { $0.removeFromSuperview() }
         }
 
+        // Re-set up inventory UI scrollview callbacks
+        uiSystem?.getInventoryUI().onAddScrollView = { [weak self] (scrollView: UIScrollView) -> Void in
+            guard let self = self else { return }
+            self.view.addSubview(scrollView)
+            // Ensure scrollview is above the Metal view but below tooltips
+            if let metalView = self.metalView {
+                self.view.insertSubview(scrollView, aboveSubview: metalView)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveScrollView = { (scrollView: UIScrollView) -> Void in
+            scrollView.removeFromSuperview()
+        }
+
         // Re-set up machine UI label callbacks
         uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             guard let self = self else { return }
@@ -975,6 +1001,19 @@ class GameViewController: UIViewController {
         }
         uiSystem?.getInventoryUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
             labels.forEach { $0.removeFromSuperview() }
+        }
+
+        // Inventory UI scrollview callbacks
+        uiSystem?.getInventoryUI().onAddScrollView = { [weak self] (scrollView: UIScrollView) -> Void in
+            guard let self = self else { return }
+            self.view.addSubview(scrollView)
+            // Ensure scrollview is above the Metal view but below tooltips
+            if let metalView = self.metalView {
+                self.view.insertSubview(scrollView, aboveSubview: metalView)
+            }
+        }
+        uiSystem?.getInventoryUI().onRemoveScrollView = { (scrollView: UIScrollView) -> Void in
+            scrollView.removeFromSuperview()
         }
 
         // MachineUI callbacks

@@ -8,8 +8,9 @@ final class InventoryUI: UIPanel_Base {
     private var countLabels: [UILabel] = []
     private var closeButton: CloseButton!
     private var trashTarget: UIButton!
-    private let slotsPerRow = 8
-    private let maxSlots = 64  // Maximum slots for player inventory (supports expansion)
+    private var scrollView: UIScrollView!
+    private let slotsPerRow = 10
+    private let maxSlots = 200  // Maximum slots for player inventory (supports expansion)
     private let screenSize: Vector2
 
     // Machine input mode
@@ -26,8 +27,8 @@ final class InventoryUI: UIPanel_Base {
     // Pending chest transfer mode - when selecting items to transfer to a chest
     private var pendingChestEntity: Entity?
 
-    // Current number of slots to display
-    private var totalSlots = 48
+    // Current number of slots to display (will be set dynamically based on player inventory)
+    private var totalSlots = 70
 
     // Drag and drop state
     private var draggedItemStack: ItemStack?
@@ -36,9 +37,11 @@ final class InventoryUI: UIPanel_Base {
     private var dragPreviewPosition: Vector2 = .zero
     private var hoveredSlotIndex: Int? = nil
 
-    // Callbacks for managing UIKit labels
+    // Callbacks for managing UIKit components
     var onAddLabels: (([UILabel]) -> Void)?
     var onRemoveLabels: (([UILabel]) -> Void)?
+    var onAddScrollView: ((UIScrollView) -> Void)?
+    var onRemoveScrollView: ((UIScrollView) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         self.screenSize = screenSize
@@ -301,21 +304,44 @@ final class InventoryUI: UIPanel_Base {
         let rows = (maxSlots + slotsPerRow - 1) / slotsPerRow  // Calculate rows needed
         let totalWidth = Float(slotsPerRow) * slotSize + Float(slotsPerRow - 1) * slotSpacing
         let totalHeight = Float(rows) * slotSize + Float(rows - 1) * slotSpacing
-        let startX = frame.center.x - totalWidth / 2 + slotSize / 2
-        let startY = frame.center.y - totalHeight / 2 + slotSize / 2
+
+        // Create scrollview that fits within the panel
+        let scrollViewHeight = min(totalHeight, frame.size.y * 0.8) // Max 80% of panel height
+        let scrollViewRect = Rect(
+            center: Vector2(frame.center.x, frame.center.y - 20 * UIScale), // Offset up slightly for close button
+            size: Vector2(totalWidth, scrollViewHeight)
+        )
+
+        scrollView = UIScrollView(frame: CGRect(
+            x: CGFloat(scrollViewRect.origin.x),
+            y: CGFloat(scrollViewRect.origin.y),
+            width: CGFloat(scrollViewRect.size.x),
+            height: CGFloat(scrollViewRect.size.y)
+        ))
+        scrollView.contentSize = CGSize(width: CGFloat(totalWidth), height: CGFloat(totalHeight))
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        // Position slots within the scrollview
+        let startX = slotSize / 2
+        let startY = slotSize / 2
 
         for i in 0..<maxSlots {
             let row = i / slotsPerRow
             let col = i % slotsPerRow
-            
+
             let slotX = startX + Float(col) * (slotSize + slotSpacing) + slotSize / 2
             let slotY = startY + Float(row) * (slotSize + slotSpacing) + slotSize / 2
-            
+
             slots.append(InventorySlot(
                 frame: Rect(center: Vector2(slotX, slotY), size: Vector2(slotSize, slotSize)),
                 index: i
             ))
         }
+
+        // Add scrollview to UI
+        onAddScrollView?(scrollView)
     }
 
     private func setupCountLabels() {
@@ -387,7 +413,8 @@ final class InventoryUI: UIPanel_Base {
         }
 
         // Determine total slots to show
-        self.totalSlots = playerSlots.count
+        let playerInventorySize = playerSlots.count
+        self.totalSlots = playerInventorySize
         if chestEntity != nil {
             // Chest mode - show both player and chest
             self.totalSlots += chestSlots.count
@@ -396,8 +423,16 @@ final class InventoryUI: UIPanel_Base {
             self.totalSlots = chestSlots.count
         } else if pendingChestEntity != nil {
             // Pending chest mode - show player slots for item selection
-            self.totalSlots = playerSlots.count
+            self.totalSlots = playerInventorySize
         }
+
+        // Update scrollview content size based on actual slots needed
+        let rows = (totalSlots + slotsPerRow - 1) / slotsPerRow
+        let slotSize: Float = 40 * UIScale
+        let slotSpacing: Float = 5 * UIScale
+        let totalWidth = Float(slotsPerRow) * slotSize + Float(slotsPerRow - 1) * slotSpacing
+        let totalHeight = Float(rows) * slotSize + Float(rows - 1) * slotSpacing
+        scrollView?.contentSize = CGSize(width: CGFloat(totalWidth), height: CGFloat(totalHeight))
 
         for (index, slot) in slots.enumerated() {
             if index < totalSlots {
@@ -421,39 +456,32 @@ final class InventoryUI: UIPanel_Base {
                 if index < countLabels.count && index < totalSlots {
                     let label = countLabels[index]
 
-                    // Position label in bottom-right corner of slot
+                    // Position label relative to slot within scrollview
                     let slotSize: Float = 40 * UIScale
                     let slotSpacing: Float = 5 * UIScale
-                    let rows = (maxSlots + self.slotsPerRow - 1) / self.slotsPerRow
 
-                    // Calculate slot position in grid
+                    // Calculate slot position in scrollview content
                     let row = index / self.slotsPerRow
                     let col = index % self.slotsPerRow
 
-                    // Calculate total grid size
-                    let totalWidth = Float(self.slotsPerRow) * slotSize + Float(self.slotsPerRow - 1) * slotSpacing
-                    let totalHeight = Float(rows) * slotSize + Float(rows - 1) * slotSpacing
+                    let startX: Float = slotSize / 2
+                    let startY: Float = slotSize / 2
 
-                    // Calculate grid top-left position (centered on screen)
-                    let gridStartX = (screenSize.x - totalWidth) / 2
-                    let gridStartY = (screenSize.y - totalHeight) / 2
-
-                    // Calculate this slot's top-left position
-                    let slotX = gridStartX + Float(col) * (slotSize + slotSpacing)
-                    let slotY = gridStartY + Float(row) * (slotSize + slotSpacing)
+                    let slotX = startX + Float(col) * (slotSize + slotSpacing)
+                    let slotY = startY + Float(row) * (slotSize + slotSpacing)
 
                     // Label position: bottom-right corner of slot
                     let labelWidth: Float = 24
                     let labelHeight: Float = 16
-                    let labelX = slotX + slotSize - labelWidth + 10
-                    let labelY = slotY + slotSize - labelHeight + 25
+                    let labelX = slotX + slotSize - labelWidth - 5
+                    let labelY = slotY + slotSize - labelHeight - 5
 
-                    // Convert to UIView coordinates (pixels to points)
+                    // Convert to UIView coordinates (pixels to points) relative to scrollview
                     let scale = UIScreen.main.scale
                     let uiX = CGFloat(labelX) / scale
                     let uiY = CGFloat(labelY) / scale
 
-                    // Set the frame
+                    // Set the frame relative to scrollview content
                     label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
 
                     // Show label only if item count > 1
@@ -546,6 +574,7 @@ final class InventoryUI: UIPanel_Base {
 
     override func close() {
         onRemoveLabels?(countLabels)
+        onRemoveScrollView?(scrollView)
         exitMachineInputMode()
         exitChestMode()
         exitChestOnlyMode()

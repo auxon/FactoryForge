@@ -60,7 +60,7 @@ final class Player {
         self.world = world
         self.itemRegistry = itemRegistry
         self.entity = world.spawn()
-        self.inventory = InventoryComponent(slots: 56, allowedItems: nil)
+        self.inventory = InventoryComponent(slots: 70, allowedItems: nil)
 
         // Set up player entity
         setupPlayerEntity()
