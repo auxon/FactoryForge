@@ -193,8 +193,6 @@ final class TextureAtlas {
             ("oil_refinery", nil),
             ("chemical_plant", nil),
             ("water_pump", nil),
-            ("sulfuric_acid", nil),
-            ("petroleum_gas", nil),
             
             // Items - Raw Materials (wood handled with fallback logic above)
             ("wood", nil),
@@ -241,24 +239,24 @@ final class TextureAtlas {
             ("chest", nil),
 
             // Advanced items
-            ("stack-inserter", nil),
+            ("stack_inserter", nil),
             ("centrifuge", nil),
-            ("nuclear-reactor", nil),
-            ("processing-unit", nil),
-            ("plastic-bar", nil),
+            ("nuclear_reactor", nil),
+            ("processing_unit", nil),
+            ("plastic_bar", nil),
             ("sulfur", nil),
             ("battery", nil),
             ("explosives", nil),
-            ("uranium-ore", nil),
-            ("uranium-235", nil),
-            ("uranium-238", nil),
-            ("nuclear-fuel", nil),
-            ("rocket-silo", nil),
-            ("rocket-fuel", nil),
-            ("rocket-part", nil),
+            ("uranium_ore", nil),
+            ("uranium_235", nil),
+            ("uranium_238", nil),
+            ("nuclear_fuel", nil),
+            ("rocket_silo", nil),
+            ("rocket_fuel", nil),
+            ("rocket_parts", nil),
             ("satellite", nil),
-            ("low-density-structure", nil),
-            ("solid-fuel", nil),
+            ("low_density_structure", nil),
+            ("solid_fuel", nil),
         ]
         
         print("Loading \(spriteFiles.count) sprite files...")

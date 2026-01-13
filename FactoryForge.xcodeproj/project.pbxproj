@@ -161,6 +161,9 @@
 		0DC1FBA82F16B54E0010585F /* heavy_oil.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA62F16B54E0010585F /* heavy_oil.png */; };
 		0DC1FBA92F16B54E0010585F /* lubricant.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA72F16B54E0010585F /* lubricant.png */; };
 		0DC1FBAB2F16B7CB0010585F /* wood.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBAA2F16B7CB0010585F /* wood.png */; };
+		0DC1FBAD2F16B92C0010585F /* sulfur.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBAC2F16B92C0010585F /* sulfur.png */; };
+		0DC1FBB02F16BA870010585F /* stack_inserter.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBAF2F16BA870010585F /* stack_inserter.png */; };
+		0DC1FBB12F16BA870010585F /* rocket_fuel.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBAE2F16BA870010585F /* rocket_fuel.png */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
 		0DE229632F001B9F00BD619D /* transport_belt_north_013.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229592F001B9F00BD619D /* transport_belt_north_013.png */; };
 		0DE229642F001B9F00BD619D /* transport_belt_north_002.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */; };
@@ -502,6 +505,9 @@
 		0DC1FBA62F16B54E0010585F /* heavy_oil.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = heavy_oil.png; sourceTree = "<group>"; };
 		0DC1FBA72F16B54E0010585F /* lubricant.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = lubricant.png; sourceTree = "<group>"; };
 		0DC1FBAA2F16B7CB0010585F /* wood.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wood.png; sourceTree = "<group>"; };
+		0DC1FBAC2F16B92C0010585F /* sulfur.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = sulfur.png; sourceTree = "<group>"; };
+		0DC1FBAE2F16BA870010585F /* rocket_fuel.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = rocket_fuel.png; sourceTree = "<group>"; };
+		0DC1FBAF2F16BA870010585F /* stack_inserter.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = stack_inserter.png; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
 		0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_002.png; sourceTree = "<group>"; };
 		0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_003.png; sourceTree = "<group>"; };
@@ -712,6 +718,9 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DC1FBAE2F16BA870010585F /* rocket_fuel.png */,
+				0DC1FBAF2F16BA870010585F /* stack_inserter.png */,
+				0DC1FBAC2F16B92C0010585F /* sulfur.png */,
 				0DC1FBAA2F16B7CB0010585F /* wood.png */,
 				0DC1FBA62F16B54E0010585F /* heavy_oil.png */,
 				0DC1FBA72F16B54E0010585F /* lubricant.png */,
@@ -1582,6 +1591,8 @@
 				0DE229992F022E6500BD619D /* biter_right.png in Resources */,
 				0D6FDC422EFDE1B500576EC3 /* radar.png in Resources */,
 				0DE229832F01781900BD619D /* belt.png in Resources */,
+				0DC1FBB02F16BA870010585F /* stack_inserter.png in Resources */,
+				0DC1FBB12F16BA870010585F /* rocket_fuel.png in Resources */,
 				0DE229772F006A6F00BD619D /* click.m4a in Resources */,
 				0DE2297C2F01796500BD619D /* little_maze.m4a in Resources */,
 				0DE229912F02199F00BD619D /* splash.png in Resources */,
@@ -1631,6 +1642,7 @@
 				0D7457F12EFF204D00C7C473 /* steel_plate.png in Resources */,
 				0D7457F22EFF204D00C7C473 /* stone_brick.png in Resources */,
 				0D6FDC4A2EFDE1B500576EC3 /* stone_furnace.png in Resources */,
+				0DC1FBAD2F16B92C0010585F /* sulfur.png in Resources */,
 				0D6FDC4B2EFDE1B500576EC3 /* big_electric_pole.png in Resources */,
 				0D6FDC4C2EFDE1B500576EC3 /* pipe.png in Resources */,
 				0D6FDC4D2EFDE1B500576EC3 /* copper_plate.png in Resources */,
