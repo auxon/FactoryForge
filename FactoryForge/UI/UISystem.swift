@@ -21,7 +21,7 @@ final class UISystem {
     private var machineUI: MachineUI
     private var loadingMenu: LoadingMenu
     private var autoplayMenu: AutoPlayMenu
-    private var helpMenu: HelpMenu
+    private var helpMenu: HelpMenu?
     private var documentViewer: DocumentViewer?
     private var entitySelectionDialog: EntitySelectionDialog?
     private var inserterConnectionDialog: InserterConnectionDialog?
@@ -41,7 +41,7 @@ final class UISystem {
         (inserterConnectionDialog?.isOpen ?? false) ||
         loadingMenu.isOpen ||
         autoplayMenu.isOpen ||
-        helpMenu.isOpen ||
+        (helpMenu?.isOpen ?? false) ||
         (documentViewer?.isOpen ?? false) ||
         (activePanel != nil)
     }
@@ -57,7 +57,6 @@ final class UISystem {
         
         loadingMenu = LoadingMenu(screenSize: screenSize)
         autoplayMenu = AutoPlayMenu(screenSize: screenSize)
-        helpMenu = HelpMenu(screenSize: screenSize)
         hud = HUD(screenSize: screenSize, gameLoop: gameLoop, inputManager: nil)
         inventoryUI = InventoryUI(screenSize: screenSize, gameLoop: gameLoop)
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
@@ -83,8 +82,8 @@ final class UISystem {
         researchUI = ResearchUI(screenSize: screenSize, gameLoop: gameLoop)
         machineUI = MachineUI(screenSize: screenSize, gameLoop: gameLoop)
 
-        // Recreate help menu and document viewer with new screen size
-        helpMenu = HelpMenu(screenSize: screenSize)
+        // Clear help menu and document viewer (will be recreated lazily)
+        helpMenu = nil
         documentViewer = nil
         
         // Reinitialize entity selection dialog with gameLoop
@@ -111,7 +110,11 @@ final class UISystem {
     }
 
     func getHelpMenu() -> HelpMenu {
-        return helpMenu
+        if helpMenu == nil {
+            let screenSize = renderer?.screenSize ?? Vector2(800, 600)
+            helpMenu = HelpMenu(screenSize: screenSize)
+        }
+        return helpMenu!
     }
 
     func getDocumentViewer() -> DocumentViewer? {
@@ -362,7 +365,7 @@ final class UISystem {
             } else if panel == .autoplayMenu {
                 autoplayMenu.update(deltaTime: deltaTime)
             } else if panel == .helpMenu {
-                helpMenu.update(deltaTime: deltaTime)
+                helpMenu?.update(deltaTime: deltaTime)
             } else if panel == .documentViewer {
                 documentViewer?.update(deltaTime: deltaTime)
             }
@@ -378,7 +381,7 @@ final class UISystem {
             case .autoplayMenu:
                 autoplayMenu.update(deltaTime: deltaTime)
             case .helpMenu:
-                helpMenu.update(deltaTime: deltaTime)
+                helpMenu?.update(deltaTime: deltaTime)
             case .documentViewer:
                 documentViewer?.update(deltaTime: deltaTime)
             case .inventory:
@@ -503,7 +506,7 @@ final class UISystem {
             if panel == .loadingMenu {
                 loadingMenu.render(renderer: renderer)
             } else if panel == .helpMenu {
-                helpMenu.render(renderer: renderer)
+                helpMenu?.render(renderer: renderer)
             } else if panel == .documentViewer {
                 documentViewer?.render(renderer: renderer)
             }
@@ -520,7 +523,7 @@ final class UISystem {
             case .autoplayMenu:
                 autoplayMenu.render(renderer: renderer)
             case .helpMenu:
-                helpMenu.render(renderer: renderer)
+                helpMenu?.render(renderer: renderer)
             case .documentViewer:
                 documentViewer?.render(renderer: renderer)
             case .inventory:
@@ -568,7 +571,7 @@ final class UISystem {
         case .autoplayMenu:
             autoplayMenu.open()
         case .helpMenu:
-            helpMenu.open()
+            helpMenu?.open()
         case .documentViewer:
             documentViewer?.open()
         case .inventory:
@@ -596,7 +599,7 @@ final class UISystem {
             case .autoplayMenu:
                 autoplayMenu.close()
             case .helpMenu:
-                helpMenu.close()
+                helpMenu?.close()
             case .documentViewer:
                 documentViewer?.close()
             case .inventory:
@@ -675,7 +678,7 @@ final class UISystem {
                           (inserterConnectionDialog?.isOpen ?? false) ||
                           loadingMenu.isOpen ||
                           autoplayMenu.isOpen ||
-                          helpMenu.isOpen ||
+                          (helpMenu?.isOpen ?? false) ||
                           (documentViewer?.isOpen ?? false)
 
         if anyPanelOpen {
@@ -688,7 +691,7 @@ final class UISystem {
                 case .autoplayMenu:
                     tapHandled = autoplayMenu.handleTap(at: screenPos)
                 case .helpMenu:
-                    tapHandled = helpMenu.handleTap(at: screenPos)
+                    tapHandled = helpMenu?.handleTap(at: screenPos) ?? false
                 case .documentViewer:
                     tapHandled = documentViewer?.handleTap(at: screenPos) ?? false
                 case .inventory:
@@ -723,7 +726,7 @@ final class UISystem {
                                    (inserterConnectionDialog?.isOpen ?? false) ||
                                    loadingMenu.isOpen ||
                                    autoplayMenu.isOpen ||
-                                   helpMenu.isOpen ||
+                                   (helpMenu?.isOpen ?? false) ||
                                    (documentViewer?.isOpen ?? false)
 
             if stillAnyPanelOpen {
@@ -757,7 +760,7 @@ final class UISystem {
                           (inserterConnectionDialog?.isOpen ?? false) ||
                           loadingMenu.isOpen ||
                           autoplayMenu.isOpen ||
-                          helpMenu.isOpen ||
+                          (helpMenu?.isOpen ?? false) ||
                           (documentViewer?.isOpen ?? false) ||
                           (activePanel != nil)
 

@@ -370,6 +370,9 @@ class GameViewController: UIViewController {
 
         // Setup text labels
         helpMenu.setupLabels(in: view)
+
+        // Open the menu after setup (since it was created lazily)
+        helpMenu.open()
     }
 
     private func showDocumentViewer(documentName: String) {
