@@ -199,6 +199,11 @@ final class TextureAtlas {
             // Items - Raw Materials (wood handled with fallback logic above)
             ("wood", nil),
             ("crude_oil", nil),
+            ("light_oil", nil),
+            ("heavy_oil", nil),
+            ("petroleum_gas", nil),
+            ("sulfuric_acid", nil),
+            ("lubricant", nil),
             ("uranium_ore", nil),
             
             // Items - Intermediate

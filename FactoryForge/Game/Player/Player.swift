@@ -143,15 +143,13 @@ final class Player {
             // Stone furnace (needed for boiler in recipes)
             ("stone-furnace", 2),
             // Iron gear wheels (water pump, steam engine)
-            ("iron-gear-wheel", 10),
+            ("iron-gear-wheel", 50),
             // Wood and coal for boiler fuel testing
             ("wood", 20),
             ("coal", 20),
             // Some copper and steel plates for broader test coverage
             ("copper-plate", 50),
-            ("steel-plate", 15),
-            // Water as an inventory item for fluid transport UI tests
-            ("water", 50),
+            ("steel-plate", 50),
             // Petroleum gas for chemical plant testing
             ("petroleum-gas", 50),
             // Light oil for chemical plant testing

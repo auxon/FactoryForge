@@ -158,6 +158,9 @@
 		0DC1FB852F1437CC0010585F /* FactoryForgeTests/FluidSystemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC1FB752F1437230010585F /* FactoryForgeTests/FluidSystemTests.swift */; };
 		0DC1FBA22F1586B60010585F /* pipe_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA02F1586B60010585F /* pipe_2.png */; };
 		0DC1FBA32F1586B60010585F /* underground_pipe.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA12F1586B60010585F /* underground_pipe.png */; };
+		0DC1FBA52F16B4780010585F /* light_oil.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA42F16B4780010585F /* light_oil.png */; };
+		0DC1FBA82F16B54E0010585F /* heavy_oil.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA62F16B54E0010585F /* heavy_oil.png */; };
+		0DC1FBA92F16B54E0010585F /* lubricant.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FBA72F16B54E0010585F /* lubricant.png */; };
 		0DE229622F001B9F00BD619D /* transport_belt_north_003.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */; };
 		0DE229632F001B9F00BD619D /* transport_belt_north_013.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229592F001B9F00BD619D /* transport_belt_north_013.png */; };
 		0DE229642F001B9F00BD619D /* transport_belt_north_002.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */; };
@@ -496,6 +499,9 @@
 		0DC1FB862F1437EB0010585F /* FactoryForge.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = FactoryForge.xctestplan; sourceTree = "<group>"; };
 		0DC1FBA02F1586B60010585F /* pipe_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = pipe_2.png; sourceTree = "<group>"; };
 		0DC1FBA12F1586B60010585F /* underground_pipe.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = underground_pipe.png; sourceTree = "<group>"; };
+		0DC1FBA42F16B4780010585F /* light_oil.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = light_oil.png; sourceTree = "<group>"; };
+		0DC1FBA62F16B54E0010585F /* heavy_oil.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = heavy_oil.png; sourceTree = "<group>"; };
+		0DC1FBA72F16B54E0010585F /* lubricant.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = lubricant.png; sourceTree = "<group>"; };
 		0DE2294D2F001B9F00BD619D /* transport_belt_north_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_001.png; sourceTree = "<group>"; };
 		0DE2294E2F001B9F00BD619D /* transport_belt_north_002.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_002.png; sourceTree = "<group>"; };
 		0DE2294F2F001B9F00BD619D /* transport_belt_north_003.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = transport_belt_north_003.png; sourceTree = "<group>"; };
@@ -706,6 +712,9 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DC1FBA62F16B54E0010585F /* heavy_oil.png */,
+				0DC1FBA72F16B54E0010585F /* lubricant.png */,
+				0DC1FBA42F16B4780010585F /* light_oil.png */,
 				0DC1FBA02F1586B60010585F /* pipe_2.png */,
 				0DC1FBA12F1586B60010585F /* underground_pipe.png */,
 				0DC1FB6F2F13217A0010585F /* low_density_structure.png */,
@@ -1569,6 +1578,7 @@
 				0D6FDC402EFDE1B500576EC3 /* stone.png in Resources */,
 				0D6FDC412EFDE1B500576EC3 /* uranium_ore.png in Resources */,
 				0DE229982F022E6500BD619D /* biter_left.png in Resources */,
+				0DC1FBA52F16B4780010585F /* light_oil.png in Resources */,
 				0D841AD62F0F2FE600F499B6 /* wall.png in Resources */,
 				0DE229992F022E6500BD619D /* biter_right.png in Resources */,
 				0D6FDC422EFDE1B500576EC3 /* radar.png in Resources */,
@@ -1667,6 +1677,8 @@
 				0D45A9952F0F5E03006B346C /* oil_well.png in Resources */,
 				0D6FDC5D2EFDE1B500576EC3 /* steel_chest.png in Resources */,
 				0D6FDC5E2EFDE1B500576EC3 /* long_handed_inserter.png in Resources */,
+				0DC1FBA82F16B54E0010585F /* heavy_oil.png in Resources */,
+				0DC1FBA92F16B54E0010585F /* lubricant.png in Resources */,
 				0D6FDC5F2EFDE1B500576EC3 /* steel_furnace.png in Resources */,
 				0DE2298D2F01B12700BD619D /* crafting_complete.m4a in Resources */,
 			);
