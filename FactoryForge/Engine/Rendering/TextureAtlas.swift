@@ -189,10 +189,11 @@ final class TextureAtlas {
             ("pipe", nil),
             ("pipe_2", nil),
             ("underground_pipe", nil),
-            ("oil_well", nil),
+            ("pumpjack", nil),
             ("oil_refinery", nil),
             ("chemical_plant", nil),
             ("water_pump", nil),
+            ("fluid_tank", nil),
             
             // Items - Raw Materials (wood handled with fallback logic above)
             ("wood", nil),

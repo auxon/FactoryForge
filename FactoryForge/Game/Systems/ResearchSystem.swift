@@ -42,7 +42,7 @@ final class ResearchSystem: System {
             "burner-mining-drill", "electric-mining-drill", "stone-furnace",
             "boiler", "steam-engine", "small-electric-pole",
             "firearm-magazine", "automation-science-pack", "lab", "radar",
-            "oil-well", "oil-refinery", "chemical-plant"
+            "pumpjack", "oil-refinery", "chemical-plant"
         ]
         
         for recipe in defaultRecipes {
@@ -316,7 +316,7 @@ final class ResearchSystem: System {
             "burner-mining-drill", "electric-mining-drill", "stone-furnace",
             "boiler", "steam-engine", "small-electric-pole",
             "firearm-magazine", "automation-science-pack", "lab", "radar",
-            "oil-well", "oil-refinery", "chemical-plant"
+            "pumpjack", "oil-refinery", "chemical-plant"
         ]
         for recipe in defaultRecipes {
             unlockedRecipes.insert(recipe)

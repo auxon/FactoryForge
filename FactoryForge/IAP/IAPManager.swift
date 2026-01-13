@@ -312,7 +312,7 @@ final class IAPManager: NSObject, ObservableObject {
         case "big_electric_pole": return ("big-electric-pole", 1)
 
         // Oil processing
-        case "oil_well": return ("oil-well", 1)
+        case "oil_well": return ("pumpjack", 1)
         case "oil_refinery": return ("oil-refinery", 1)
         case "chemical_plant": return ("chemical-plant", 1)
 

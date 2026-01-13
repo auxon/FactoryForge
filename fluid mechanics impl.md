@@ -85,7 +85,7 @@ The fluid mechanics system in FactoryForge implements a Factorio-like fluid netw
 ### Producers
 - **Boiler**: Consumes water (1.8L/s) + fuel → produces steam (1.8L/s)
 - **Water Pump**: Produces water (20L/s) from water tiles, no power required
-- **Oil Well**: Produces crude oil (varies by yield)
+- **Pumpjack**: Produces crude oil (varies by yield)
 
 ### Consumers
 - **Steam Engine**: Consumes steam (1.8L/s) → generates electricity
@@ -175,7 +175,7 @@ The fluid mechanics system in FactoryForge implements a Factorio-like fluid netw
 - Water Pump: 20L/s (matches Factorio offshore pump)
 - Boiler: 1.8L/s steam production
 - Steam Engine: 1.8L/s steam consumption
-- Oil Well: Variable based on yield
+- Pumpjack: Variable based on yield
 
 ### Capacities
 - Pipes: 10L default

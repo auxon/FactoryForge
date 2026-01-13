@@ -16,7 +16,7 @@ This document outlines comprehensive testing for the complete fluid production c
 5. Place additional pipes for fluid transport
 
 #### Expected Behavior:
-1. **Oil Well Production**:
+1. **Pumpjack Production**:
    - Produces 10 crude oil L/s when powered
    - Fluid appears in connected pipes
    - Pipes show crude oil fluid levels and tooltips

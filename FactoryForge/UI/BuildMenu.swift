@@ -57,15 +57,19 @@ final class BuildMenu: UIPanel_Base {
             (.belt, "belt"),
             (.pipe, "pipe"),
             (.inserter, "inserter"),
-            (.pumpjack, "oil_well"),
+            (.pumpjack, "pumpjack"),
             (.waterPump, "water_pump"),
             (.oilRefinery, "oil_refinery"),
             (.chemicalPlant, "chemical_plant"),
             (.powerPole, "power_pole"),
             (.generator, "steam_engine"),
+            (.fluidTank, "fluid_tank"),
             (.lab, "lab"),
             (.turret, "turret"),
-            (.chest, "chest")
+            (.chest, "chest"),
+            (.nuclearReactor, "nuclear_reactor"),
+            (.centrifuge, "centrifuge")
+            (.rocketSilo, "rocket_silo"),
         ]
 
         let buttonSize: Float = 40 * UIScale

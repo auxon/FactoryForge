@@ -527,7 +527,7 @@ Steam power is the first power generation method and requires careful fluid mana
 - **Research Speed 1** - +20% research speed bonus (100 Red + 100 Green packs)
 
 #### Tier 3 - Oil & Chemical Processing (Red + Green + Blue Science)
-- **Oil Processing** - Unlocks Oil Wells and basic refining (50 Red + 50 Green + 50 Blue packs)
+- **Oil Processing** - Unlocks Pumpjacks and basic refining (50 Red + 50 Green + 50 Blue packs)
 - **Advanced Oil Processing** - Unlocks Oil Refineries and advanced refining (50 Red + 50 Green + 50 Blue packs)
 - **Chemistry** - Unlocks Chemical Plants and basic chemical production (100 Red + 100 Green + 100 Blue packs)
 - **Oil Cracking** - Unlocks oil cracking for better yields (100 Red + 100 Green + 100 Blue packs)

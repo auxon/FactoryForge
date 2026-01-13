@@ -660,10 +660,10 @@ class FluidSystemTests: XCTestCase {
         XCTAssertEqual(boilerProduction, engineConsumption, accuracy: 0.01)
 
         // Oil well + Refinery balance (basic processing)
-        let oilWellProduction = 10.0 // crude oil/s
+        let pumpjackProduction = 10.0 // crude oil/s
         let refineryConsumption = 50.0 / 5.0 // 50L per 5s = 10L/s
 
-        XCTAssertEqual(oilWellProduction, refineryConsumption, accuracy: 0.01)
+        XCTAssertEqual(pumpjackProduction, refineryConsumption, accuracy: 0.01)
     }
 
     func testRecipeFluidBalance() {
@@ -864,14 +864,14 @@ class FluidNetworkSystem {
     func testOilProcessingChain() {
         // Test the complete oil processing chain
 
-        let oilWell = FluidProducerComponent(buildingId: "pumpjack", outputType: .crudeOil, productionRate: 10.0)
+        let pumpjack = FluidProducerComponent(buildingId: "pumpjack", outputType: .crudeOil, productionRate: 10.0)
 
         // Basic oil processing recipe balances
         let crudeInput = 50.0
         let processingTime = 5.0
         let crudeConsumptionRate = crudeInput / processingTime // 10 L/s
 
-        XCTAssertEqual(Double(oilWell.productionRate), crudeConsumptionRate, accuracy: 0.1)
+        XCTAssertEqual(Double(pumpjack.productionRate), crudeConsumptionRate, accuracy: 0.1)
 
         // Test that outputs can be further processed
         let lightOilOutput = 15.0

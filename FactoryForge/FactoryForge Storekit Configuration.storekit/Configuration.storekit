@@ -801,12 +801,12 @@
       "localizations" : [
         {
           "description" : "Oil extraction pump - Access crude oil resources",
-          "displayName" : "Oil Well",
+          "displayName" : "Pumpjack",
           "locale" : "en_US"
         }
       ],
       "productID" : "com.factoryforge.items.oil_well",
-      "referenceName" : "Oil Well",
+      "referenceName" : "Pumpjack",
       "type" : "Consumable"
     },
     {

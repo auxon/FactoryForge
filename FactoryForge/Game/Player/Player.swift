@@ -154,8 +154,8 @@ final class Player {
             ("stone-brick", 50),
 
             // OIL PROCESSING BUILDINGS
-            // Oil Well: 5 Steel Plates, 10 Iron Gear Wheels, 5 Electronic Circuits, 10 Pipes
-            ("oil-well", 2),  // Oil wells for crude oil extraction
+            // Pumpjack: 5 Steel Plates, 10 Iron Gear Wheels, 5 Electronic Circuits, 10 Pipes
+            ("pumpjack", 2),  // Oil wells for crude oil extraction
             // Oil Refinery: 15 Steel Plates, 10 Iron Gear Wheels, 10 Electronic Circuits, 10 Pipes, 10 Stone Bricks
             ("oil-refinery", 2),  // Oil refineries for processing crude oil
             // Chemical Plant: 5 Steel Plates, 5 Iron Gear Wheels, 5 Electronic Circuits, 5 Pipes

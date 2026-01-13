@@ -107,7 +107,7 @@ final class ItemRegistry {
         register(Item(id: "assembling-machine-2", name: "Assembling Machine 2", stackSize: 100, category: .production, order: "g", placedAs: "assembling-machine-2"))
         register(Item(id: "assembling-machine-3", name: "Assembling Machine 3", stackSize: 100, category: .production, order: "h", placedAs: "assembling-machine-3"))
         register(Item(id: "lab", name: "Lab", stackSize: 50, category: .production, order: "l", placedAs: "lab"))
-        register(Item(id: "oil-well", name: "Oil Well", stackSize: 50, category: .production, order: "m", placedAs: "oil-well"))
+        register(Item(id: "pumpjack", name: "Pumpjack", stackSize: 50, category: .production, order: "m", placedAs: "pumpjack"))
         register(Item(id: "oil-refinery", name: "Oil Refinery", stackSize: 50, category: .production, order: "n", placedAs: "oil-refinery"))
         register(Item(id: "chemical-plant", name: "Chemical Plant", stackSize: 50, category: .production, order: "o", placedAs: "chemical-plant"))
         register(Item(id: "nuclear-reactor", name: "Nuclear Reactor", stackSize: 20, category: .production, order: "p", placedAs: "nuclear-reactor"))

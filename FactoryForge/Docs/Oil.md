@@ -16,7 +16,7 @@ To unlock oil processing, research these technologies in order:
 #### 1. Oil Processing (Tier 3)
 **Prerequisites:** Advanced Electronics
 **Cost:** 50 Automation, 50 Logistic, 50 Chemical science packs
-**Unlocks:** Oil Well, Water Pump, Basic Oil Processing recipes
+**Unlocks:** Pumpjack, Water Pump, Basic Oil Processing recipes
 
 #### 2. Advanced Oil Processing (Tier 3)
 **Prerequisites:** Oil Processing
@@ -38,7 +38,7 @@ To unlock oil processing, research these technologies in order:
 **Cost:** 100 Automation, 100 Logistic, 100 Chemical science packs
 **Unlocks:** Light Oil Cracking, Heavy Oil Cracking recipes
 
-## Oil Well Construction
+## Pumpjack Construction
 
 ### Building Requirements
 **Recipe:**
@@ -204,12 +204,12 @@ Chemical plants process oil products into advanced materials.
 
 #### Basic Oil Setup
 ```
-Oil Well → Oil Refinery (Basic) → Petroleum Gas/Light Oil/Heavy Oil
+Pumpjack → Oil Refinery (Basic) → Petroleum Gas/Light Oil/Heavy Oil
 ```
 
 #### Advanced Oil Setup
 ```
-Oil Well → Oil Refinery (Advanced) → Enhanced yields + water consumption
+Pumpjack → Oil Refinery (Advanced) → Enhanced yields + water consumption
 Heavy Oil → Chemical Plant (Cracking) → Light Oil
 Light Oil → Chemical Plant (Cracking) → Petroleum Gas
 ```
@@ -223,7 +223,7 @@ Coal + Petroleum Gas → Chemical Plant → Solid Fuel
 ```
 
 ### Power Considerations
-- **Oil Wells**: 90 kW each
+- **Pumpjacks**: 90 kW each
 - **Oil Refineries**: 420 kW each
 - **Chemical Plants**: 210 kW each
 - **Total Load**: High electricity demand for oil infrastructure
@@ -253,7 +253,7 @@ Chemical science packs enable:
 
 ## Troubleshooting
 
-### Oil Well Issues
+### Pumpjack Issues
 - **No Production**: Check if placed on oil deposit (dark patches)
 - **Power Problems**: Ensure 90 kW power supply
 - **Full Inventory**: Empty output slot or provide storage

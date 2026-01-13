@@ -286,7 +286,7 @@ final class TechnologyRegistry {
                 ScienceCost("chemical-science-pack", count: 50)
             ],
             researchTime: 30,
-            unlocks: TechnologyUnlocks(recipes: ["oil-well", "water-pump", "basic-oil-processing"]),
+            unlocks: TechnologyUnlocks(recipes: ["pumpjack", "water-pump", "basic-oil-processing"]),
             order: "a",
             tier: 3
         ))

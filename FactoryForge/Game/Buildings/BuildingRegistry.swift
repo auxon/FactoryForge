@@ -577,9 +577,9 @@ final class BuildingRegistry {
         register(steelChest)
 
         // Oil processing buildings
-        var oilWell = BuildingDefinition(
-            id: "oil-well",
-            name: "Oil Well",
+        var pumpjack = BuildingDefinition(
+            id: "pumpjack",
+            name: "Pumpjack",
             type: .pumpjack,
             maxHealth: 200,
             cost: [ItemStack(itemId: "steel-plate", count: 5),
@@ -587,13 +587,13 @@ final class BuildingRegistry {
                    ItemStack(itemId: "electronic-circuit", count: 5),
                    ItemStack(itemId: "pipe", count: 10)]
         )
-        oilWell.powerConsumption = 90  // kW
-        oilWell.extractionRate = 1.0   // 1 crude oil per second at full power
-        oilWell.inventorySlots = 1     // Output slot for crude oil
-        oilWell.inputSlots = 0
-        oilWell.outputSlots = 1
-        oilWell.fuelSlots = 0
-        register(oilWell)
+        pumpjack.powerConsumption = 90  // kW
+        pumpjack.extractionRate = 1.0   // 1 crude oil per second at full power
+        pumpjack.inventorySlots = 1     // Output slot for crude oil
+        pumpjack.inputSlots = 0
+        pumpjack.outputSlots = 1
+        pumpjack.fuelSlots = 0
+        register(pumpjack)
 
         var waterPump = BuildingDefinition(
             id: "water-pump",
