@@ -42,14 +42,6 @@ final class InventoryUI: UIPanel_Base {
     // Current number of slots to display (will be set dynamically based on player inventory)
     private var totalSlots = 70
 
-
-    // Drag and drop state
-    private var draggedItemStack: ItemStack?
-    private var draggedSlotIndex: Int?
-    private var isDragging = false
-    private var dragPreviewPosition: Vector2 = .zero
-    private var hoveredSlotIndex: Int? = nil
-
     // Callbacks for managing UIKit components
     var onAddLabels: (([UILabel]) -> Void)?
     var onRemoveLabels: (([UILabel]) -> Void)?
@@ -564,46 +556,46 @@ final class InventoryUI: UIPanel_Base {
                 )
             )
 
+            // Calculate scroll offset for Metal rendering
+            let scrollOffset = Vector2(
+                Float(scrollView.contentOffset.x) * Float(UIScreen.main.scale),
+                Float(scrollView.contentOffset.y) * Float(UIScreen.main.scale)
+            )
+
             for (index, slot) in slots.enumerated() {
                 if index < totalSlots && visibleRect.intersects(slot.frame) {
-                    // Highlight hovered slot during drag operations
-                    let originalSelected = slot.isSelected
-                    if isDragging && hoveredSlotIndex == index {
-                        slot.isSelected = true
-                    }
-                    slot.render(renderer: renderer)
-                    slot.isSelected = originalSelected
+                    // Render slot with scroll offset applied to align with UIKit scrolling
+                    let scrolledFrame = Rect(
+                        center: slot.frame.center - scrollOffset,
+                        size: slot.frame.size
+                    )
+                    slot.render(renderer: renderer, frameOverride: scrolledFrame)
                 }
             }
         }
 
         // Render trash target
         trashTarget.render(renderer: renderer)
-
-        // Render drag preview
-        if isDragging, let draggedItem = draggedItemStack {
-            let textureRect = renderer.textureAtlas.getTextureRect(for: draggedItem.itemId.replacingOccurrences(of: "-", with: "_"))
-            let previewSize = Vector2(50, 50) // Slightly larger than slot size for visibility
-            renderer.queueSprite(SpriteInstance(
-                position: dragPreviewPosition,
-                size: previewSize,
-                textureRect: textureRect,
-                color: Color(r: 1, g: 1, b: 1, a: 0.8), // Semi-transparent
-                layer: .ui
-            ))
-        }
     }
     
     override func handleTap(at position: Vector2) -> Bool {
-        guard isOpen else { return false }
+        guard isOpen, let scrollView = scrollView else { return false }
 
-        // Check close button first
+        // Check close button first (stays in panel space)
         if closeButton.handleTap(at: position) {
             return true
         }
 
+        let scale = Float(UIScreen.main.scale)
+
+        // Convert screen → scroll content coordinates
+        let contentPos = Vector2(
+            position.x - Float(scrollView.frame.origin.x) * scale + Float(scrollView.contentOffset.x) * scale,
+            position.y - Float(scrollView.frame.origin.y) * scale + Float(scrollView.contentOffset.y) * scale
+        )
+
         for (index, slot) in slots.enumerated() {
-            if index < totalSlots && slot.handleTap(at: position) {
+            if index < totalSlots && slot.handleTap(at: contentPos) {
                 if machineEntity != nil {
                     // Machine input mode - add item to machine
                     handleMachineInput(slot: slot)
@@ -650,7 +642,6 @@ final class InventoryUI: UIPanel_Base {
         exitChestMode()
         exitChestOnlyMode()
         exitPendingChestMode()
-        endDrag() // Reset drag state
         super.close()
     }
 
@@ -724,49 +715,7 @@ final class InventoryUI: UIPanel_Base {
     }
 
     override func handleDrag(from startPos: Vector2, to endPos: Vector2) -> Bool {
-        dragPreviewPosition = endPos
-
-        // Check if drag started from an inventory slot
-        if !isDragging {
-            // Find which slot the drag started from
-            for (index, slot) in slots.enumerated() {
-                if index < totalSlots && slot.frame.contains(startPos), let itemStack = slot.item {
-                    isDragging = true
-                    draggedSlotIndex = index
-                    draggedItemStack = itemStack
-                    return true
-                }
-            }
-        } else {
-            // Handle ongoing drag
-            // Update hover state for visual feedback
-            hoveredSlotIndex = nil
-            for (index, slot) in slots.enumerated() {
-                if index < totalSlots && slot.frame.contains(endPos) {
-                    hoveredSlotIndex = index
-                    break
-                }
-            }
-
-            // Check if drag ended on trash
-            if trashTarget.frame.contains(endPos), let draggedIndex = draggedSlotIndex {
-                // Drop on trash - remove the item
-                handleTrashDrop(slotIndex: draggedIndex)
-                endDrag()
-                return true
-            }
-
-            // Check if drag ended on an inventory slot
-            for (index, slot) in slots.enumerated() {
-                if index < totalSlots && slot.frame.contains(endPos), let draggedIndex = draggedSlotIndex, draggedIndex != index {
-                    // Drop on inventory slot - handle move/combine/swap
-                    handleInventoryDrop(fromSlotIndex: draggedIndex, toSlotIndex: index)
-                    endDrag()
-                    return true
-                }
-            }
-        }
-
+        // Drag and drop disabled for now while fixing scrollView issues
         return false
     }
 
@@ -979,18 +928,19 @@ final class InventoryUI: UIPanel_Base {
         }
     }
 
-    private func endDrag() {
-        isDragging = false
-        draggedSlotIndex = nil
-        draggedItemStack = nil
-        hoveredSlotIndex = nil
-    }
 
-    func getTooltip(at position: Vector2) -> String? {
-        guard isOpen else { return nil }
+    func getTooltip(at screenPos: Vector2) -> String? {
+        guard isOpen, let scrollView = scrollView else { return nil }
+
+        // Convert screen position to scrollview content coordinates
+        let scale = Float(UIScreen.main.scale)
+        let contentPos = Vector2(
+            screenPos.x - Float(scrollView.frame.origin.x) * scale + Float(scrollView.contentOffset.x) * scale,
+            screenPos.y - Float(scrollView.frame.origin.y) * scale + Float(scrollView.contentOffset.y) * scale
+        )
 
         for slot in slots {
-            if slot.frame.contains(position), let item = slot.item, let itemRegistry = gameLoop?.itemRegistry {
+            if slot.frame.contains(contentPos), let item = slot.item, let itemRegistry = gameLoop?.itemRegistry {
                 return itemRegistry.get(item.itemId)?.name ?? item.itemId
             }
         }
@@ -1020,7 +970,9 @@ class InventorySlot: UIElement {
         return true
     }
     
-    func render(renderer: MetalRenderer) {
+    func render(renderer: MetalRenderer, frameOverride: Rect? = nil) {
+        let frameToUse = frameOverride ?? frame
+
         // Slot background - use custom color if provided, otherwise default
         let bgColor: Color
         if let customColor = backgroundColor {
@@ -1030,22 +982,22 @@ class InventorySlot: UIElement {
                 Color(r: 0.3, g: 0.3, b: 0.4, a: 1) :
                 Color(r: 0.2, g: 0.2, b: 0.25, a: 1)
         }
-        
+
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         renderer.queueSprite(SpriteInstance(
-            position: frame.center,
-            size: frame.size,
+            position: frameToUse.center,
+            size: frameToUse.size,
             textureRect: solidRect,
             color: bgColor,
             layer: .ui
         ))
-        
+
         // Item
         if let item = item {
             let textureRect = renderer.textureAtlas.getTextureRect(for: item.itemId.replacingOccurrences(of: "-", with: "_"))
             renderer.queueSprite(SpriteInstance(
-                position: frame.center,
-                size: frame.size * 0.8,
+                position: frameToUse.center,
+                size: frameToUse.size * 0.8,
                 textureRect: textureRect,
                 layer: .ui
             ))
@@ -1054,8 +1006,8 @@ class InventorySlot: UIElement {
             if isRequired {
                 let borderRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
                 renderer.queueSprite(SpriteInstance(
-                    position: frame.center,
-                    size: frame.size * 0.9,
+                    position: frameToUse.center,
+                    size: frameToUse.size * 0.9,
                     textureRect: borderRect,
                     color: Color(r: 1.0, g: 0.8, b: 0.2, a: 0.3), // Orange border for required items
                     layer: .ui
