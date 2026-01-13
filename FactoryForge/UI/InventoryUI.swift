@@ -509,26 +509,37 @@ final class InventoryUI: UIPanel_Base {
                     // Update slot frame (in content space)
                     slot.frame = Rect(center: Vector2(contentX, contentY), size: Vector2(slotSize, slotSize))
 
-                    // Label position: bottom-right corner of slot (in content space)
-                    let labelWidth: Float = 24
-                    let labelHeight: Float = 16
-                    let labelX = contentX + slotSize/2 - labelWidth - 5
-                    let labelY = contentY + slotSize/2 - labelHeight - 5
+                    // Label position: bottom-right corner of slot (use same scrolled coordinates as rendered slot)
+                    if let scrollView = scrollView {
+                        // Calculate scroll offset for positioning
+                        let scrollOffsetX = Float(scrollView.contentOffset.x) * Float(scale)
+                        let scrollOffsetY = Float(scrollView.contentOffset.y) * Float(scale)
+                        let scrollOffset = Vector2(scrollOffsetX, scrollOffsetY)
 
-                    // Convert to UIView coordinates (pixels to points) relative to scrollview content
-                    let uiX = CGFloat(labelX) / scale
-                    let uiY = CGFloat(labelY) / scale
+                        let labelWidth: Float = 24
+                        let labelHeight: Float = 16
+                        let scrolledFrame = Rect(
+                            center: slot.frame.center - scrollOffset,
+                            size: slot.frame.size
+                        )
+                        let labelX = scrolledFrame.center.x + scrolledFrame.size.x/2 - labelWidth - 5
+                        let labelY = scrolledFrame.center.y + scrolledFrame.size.y/2 - labelHeight - 5
 
-                    // Set the frame relative to scrollview content
-                    label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
+                        // Convert to UIView coordinates (pixels to points) relative to panel
+                        let uiX = CGFloat(labelX) / scale
+                        let uiY = CGFloat(labelY) / scale
 
-                    // Show label only if item count > 1
-                    if let item = slot.item, item.count > 1 {
-                        label.text = "\(item.count)"
-                        label.isHidden = false
-                    } else {
-                        label.text = ""
-                        label.isHidden = true
+                        // Set the frame relative to panel
+                        label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
+
+                        // Show label only if item count > 1
+                        if let item = slot.item, item.count > 1 {
+                            label.text = "\(item.count)"
+                            label.isHidden = false
+                        } else {
+                            label.text = ""
+                            label.isHidden = true
+                        }
                     }
                 }
             }
@@ -625,14 +636,12 @@ final class InventoryUI: UIPanel_Base {
         if scrollView == nil {
             setupSlots()
         }
-        // Add labels as subviews of the scrollview (not floating in panel space)
-        countLabels.forEach { scrollView?.addSubview($0) }
+        // Add labels to the UIKit view hierarchy via callback
         onAddLabels?(countLabels)
     }
 
     override func close() {
-        // Remove labels from scrollview before notifying callbacks
-        countLabels.forEach { $0.removeFromSuperview() }
+        // Remove labels from UIKit view hierarchy via callback
         onRemoveLabels?(countLabels)
         if scrollView != nil {
             onRemoveScrollView?(scrollView)
