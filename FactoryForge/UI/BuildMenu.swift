@@ -68,7 +68,7 @@ final class BuildMenu: UIPanel_Base {
             (.turret, "turret"),
             (.chest, "chest"),
             (.nuclearReactor, "nuclear_reactor"),
-            (.centrifuge, "centrifuge")
+            (.centrifuge, "centrifuge"),
             (.rocketSilo, "rocket_silo"),
         ]
 

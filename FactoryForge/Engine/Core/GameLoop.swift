@@ -987,6 +987,9 @@ final class GameLoop {
                 fuelCategory: buildingDef.fuelCategory ?? "nuclear"
             ), to: entity)
             world.add(InventoryComponent(slots: 1, allowedItems: ["uranium-fuel-cell"]), to: entity)
+
+        case .fluidTank:
+            world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: buildingDef.fluidCapacity), to: entity)
         }
     }
 

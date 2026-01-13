@@ -727,6 +727,23 @@ final class BuildingRegistry {
         )
         undergroundPipe.fluidCapacity = 300  // Underground pipe capacity
         register(undergroundPipe)
+
+        // Storage Tank
+        var storageTank = BuildingDefinition(
+            id: "storage-tank",
+            name: "Storage Tank",
+            type: .fluidTank,
+            width: 3,
+            height: 3,
+            maxHealth: 500,
+            cost: [
+                ItemStack(itemId: "iron-plate", count: 20),
+                ItemStack(itemId: "steel-plate", count: 5),
+                ItemStack(itemId: "iron-gear-wheel", count: 3)
+            ]
+        )
+        storageTank.fluidCapacity = 25000  // 25,000 unit capacity like Factorio
+        register(storageTank)
     }
 }
 

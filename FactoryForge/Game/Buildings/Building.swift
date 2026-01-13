@@ -105,6 +105,7 @@ enum BuildingType: String, Codable, CaseIterable {
     case rocketSilo
     case centrifuge
     case nuclearReactor
+    case fluidTank
 
     var displayName: String {
         switch self {
@@ -129,6 +130,7 @@ enum BuildingType: String, Codable, CaseIterable {
         case .rocketSilo: return "Rocket Silo"
         case .centrifuge: return "Centrifuge"
         case .nuclearReactor: return "Nuclear Reactor"
+        case .fluidTank: return "Storage Tank"
         }
     }
 }
