@@ -44,7 +44,7 @@ struct Recipe: Identifiable, Codable {
     
     /// Gets the texture ID for display
     var textureId: String {
-        return primaryOutput?.itemId.replacingOccurrences(of: "-", with: "_") ?? "unknown"
+        return primaryOutput?.itemId.replacingOccurrences(of: "-", with: "_") ?? "solid_white"
     }
     
     /// Checks if inputs can be fulfilled by an inventory and fluid tanks
