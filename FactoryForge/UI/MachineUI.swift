@@ -480,7 +480,14 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 class AssemblyMachineUIComponent: BaseMachineUIComponent {
     private var recipeScrollView: UIScrollView?
     private var recipeButtons: [UIKitButton] = []
+    private var availableRecipes: [Recipe] = []
     private var recipeSelectionCallback: RecipeSelectionCallback?
+    private weak var ui: MachineUI?
+
+    // Public accessor for scroll view (needed for touch event handling)
+    var publicScrollView: UIScrollView? {
+        return recipeScrollView
+    }
 
     convenience init(recipeSelectionCallback: @escaping RecipeSelectionCallback) {
         self.init()
@@ -488,6 +495,7 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
     }
 
     override func setupUI(for entity: Entity, in ui: MachineUI) {
+        self.ui = ui
         setupRecipeScrollView(in: ui)
         refreshRecipeButtons(for: entity, in: ui)
     }
@@ -498,6 +506,10 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
 
     override func getScrollViews() -> [UIScrollView] {
         return recipeScrollView.map { [$0] } ?? []
+    }
+
+    override func render(in renderer: MetalRenderer) {
+        // Using UIKit images instead of Metal rendering for recipe icons
     }
 
     private func setupRecipeScrollView(in ui: MachineUI) {
@@ -548,36 +560,92 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
         guard gameLoop.world.has(AssemblerComponent.self, for: entity) else { return }
 
         // For now, get all enabled recipes (TODO: filter by building type)
-        let availableRecipes = gameLoop.recipeRegistry.enabled
+        self.availableRecipes = gameLoop.recipeRegistry.enabled
 
         // Create buttons for each recipe
-        let buttonWidth: CGFloat = 120
-        let buttonHeight: CGFloat = 40
+        let buttonSize: CGFloat = 32
         let buttonSpacing: CGFloat = 8
-        let buttonsPerRow = 2
-        let totalWidth = CGFloat(buttonsPerRow) * buttonWidth + CGFloat(buttonsPerRow - 1) * buttonSpacing
+        let buttonsPerRow = 4  // More buttons per row with smaller size
+        let totalWidth = CGFloat(buttonsPerRow) * buttonSize + CGFloat(buttonsPerRow - 1) * buttonSpacing
 
         for (index, recipe) in availableRecipes.enumerated() {
             let row = index / buttonsPerRow
             let col = index % buttonsPerRow
 
-            let buttonX = (scrollView.bounds.width - totalWidth) / 2 + CGFloat(col) * (buttonWidth + buttonSpacing)
-            let buttonY = CGFloat(row) * (buttonHeight + buttonSpacing) + 8
+            let buttonX = (scrollView.bounds.width - totalWidth) / 2 + CGFloat(col) * (buttonSize + buttonSpacing)
+            let buttonY = CGFloat(row) * (buttonSize + buttonSpacing) + 8
 
-            let buttonFrame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
+            let buttonFrame = CGRect(x: buttonX, y: buttonY, width: buttonSize, height: buttonSize)
 
             let button = UIKitButton(type: .system)
             button.frame = buttonFrame
-            button.setTitle(recipe.name, for: .normal)
-            button.titleLabel?.font = UIFont.systemFont(ofSize: 12)
             button.backgroundColor = UIColor.darkGray
-            button.setTitleColor(.white, for: .normal)
             button.layer.borderColor = UIColor.white.cgColor
             button.layer.borderWidth = 1
-            button.layer.cornerRadius = 4
+            button.layer.cornerRadius = 2
 
-            // Add action using callback
-            let recipe = availableRecipes[index]
+            // Try to load the recipe icon image
+            let textureId = recipe.textureId
+            var image: UIImage?
+
+            // Try direct file path first (for development)
+            let directPath = "/Users/rah/FactoryForge/FactoryForge/Assets/\(textureId).png"
+            image = UIImage(contentsOfFile: directPath)
+
+            // Load from bundle resources as fallback (for production)
+            if image == nil {
+                if let imagePath = Bundle.main.path(forResource: textureId, ofType: "png") {
+                    image = UIImage(contentsOfFile: imagePath)
+                    print("MachineUI: Found image in bundle for '\(textureId)'")
+                }
+            }
+
+            if image != nil {
+                print("MachineUI: Successfully loaded image for '\(textureId)'")
+            } else {
+                print("MachineUI: Failed to load image for '\(textureId)'")
+            }
+
+            // Try UIImage(named:) as fallback
+            if image == nil {
+                image = UIImage(named: textureId)
+                if image != nil {
+                    print("MachineUI: UIImage(named:) succeeded for '\(textureId)'")
+                } else {
+                    print("MachineUI: UIImage(named:) failed for '\(textureId)'")
+                }
+            }
+
+            if image == nil {
+                print("MachineUI: Could not load image for '\(textureId)' - using fallback")
+                // Create a fallback colored square
+                let colors: [UIColor] = [.red, .green, .blue, .yellow, .magenta, .cyan, .orange, .purple]
+                let color = colors[index % colors.count]
+                let imageSize = CGSize(width: 32, height: 32)
+                UIGraphicsBeginImageContextWithOptions(imageSize, false, 0)
+                color.setFill()
+                UIBezierPath(rect: CGRect(origin: .zero, size: imageSize)).fill()
+                image = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+            } else {
+                print("MachineUI: Successfully loaded image for '\(textureId)'")
+                // Resize image to fit button size if needed
+                let targetSize = CGSize(width: 28, height: 28) // Slightly smaller than button for padding
+                if image!.size != targetSize {
+                    UIGraphicsBeginImageContextWithOptions(targetSize, false, 0)
+                    image!.draw(in: CGRect(origin: .zero, size: targetSize))
+                    image = UIGraphicsGetImageFromCurrentImageContext()
+                    UIGraphicsEndImageContext()
+                }
+            }
+
+            button.setImage(image, for: .normal)
+            button.imageView?.contentMode = .scaleAspectFit
+            button.imageEdgeInsets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
+            // Make sure the button shows the image and no text
+            button.setTitle(nil, for: .normal)
+            button.tintColor = .white
+
             button.addAction(UIAction { [weak self] _ in
                 self?.recipeSelectionCallback?(entity, recipe)
             }, for: .touchUpInside)
@@ -588,7 +656,7 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
 
         // Update scroll view content size
         let totalRows = (availableRecipes.count + buttonsPerRow - 1) / buttonsPerRow
-        let contentHeight = CGFloat(totalRows) * (buttonHeight + buttonSpacing) + 16
+        let contentHeight = CGFloat(totalRows) * (buttonSize + buttonSpacing) + 16
         scrollView.contentSize = CGSize(width: scrollView.bounds.width, height: contentHeight)
     }
 }
@@ -813,7 +881,6 @@ final class MachineUI: UIPanel_Base {
 
             // Check for assembly machines
             if gameLoop.world.has(AssemblerComponent.self, for: entity) {
-                print("MachineUI: Creating AssemblyMachineUIComponent")
                 let recipeCallback: RecipeSelectionCallback = { [weak self] (entity: Entity, recipe: Recipe) in
                     self?.onSelectRecipeForMachine?(entity, recipe)
                 }
@@ -895,6 +962,15 @@ final class MachineUI: UIPanel_Base {
                 scrollView.isHidden = false
             }
         }
+    }
+
+    // Public method to get all scroll views (needed for touch event handling)
+    func getAllScrollViews() -> [UIScrollView] {
+        var scrollViews: [UIScrollView] = []
+        for component in machineComponents {
+            scrollViews.append(contentsOf: component.getScrollViews())
+        }
+        return scrollViews
     }
 
     override func close() {

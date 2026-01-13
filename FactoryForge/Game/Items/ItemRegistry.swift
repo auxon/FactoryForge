@@ -67,7 +67,7 @@ final class ItemRegistry {
         register(Item(id: "uranium-238", name: "Uranium-238", stackSize: 100, category: .intermediate, order: "q"))
         register(Item(id: "nuclear-fuel", name: "Nuclear Fuel", stackSize: 10, category: .intermediate, order: "r"))
         register(Item(id: "rocket-fuel", name: "Rocket Fuel", stackSize: 100, category: .intermediate, order: "s"))
-        register(Item(id: "rocket-part", name: "Rocket Part", stackSize: 50, category: .intermediate, order: "t"))
+        register(Item(id: "rocket-parts", name: "Rocket Parts", stackSize: 50, category: .intermediate, order: "t"))
         register(Item(id: "satellite", name: "Satellite", stackSize: 10, category: .intermediate, order: "u"))
         register(Item(id: "low-density-structure", name: "Low Density Structure", stackSize: 100, category: .intermediate, order: "v"))
         register(Item(id: "solid-fuel", name: "Solid Fuel", stackSize: 500, category: .intermediate, order: "w", fuelValue: 25000, fuelCategory: "chemical"))

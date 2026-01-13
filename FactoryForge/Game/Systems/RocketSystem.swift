@@ -90,7 +90,7 @@ final class RocketSystem: System {
         let requiredParts = 100
         let requiredFuel = 50
 
-        let partsCount = inventory.count(of: "rocket-part")
+        let partsCount = inventory.count(of: "rocket-parts")
         let fuelCount = inventory.count(of: "rocket-fuel")
         let satelliteCount = inventory.count(of: "satellite")
 
@@ -106,7 +106,7 @@ final class RocketSystem: System {
         let requiredParts = 100
         let requiredFuel = 50
 
-        _ = inventory.remove(itemId: "rocket-part", count: requiredParts)
+        _ = inventory.remove(itemId: "rocket-parts", count: requiredParts)
         _ = inventory.remove(itemId: "rocket-fuel", count: requiredFuel)
         _ = inventory.remove(itemId: "satellite", count: 1)
 

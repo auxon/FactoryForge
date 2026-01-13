@@ -599,6 +599,7 @@ final class InputManager: NSObject {
             if let uiSystem = gameLoop.uiSystem {
                 // Check if any panel is open that should consume drags
                 if uiSystem.isAnyPanelOpen {
+                    // When panels are open, disable joystick and other game controls
                     // Check if the drag starts within a panel that handles drags
                     // Try to handle drag immediately if it starts in a UI element
                     // This prevents game world interactions when dragging within UI panels
@@ -607,10 +608,12 @@ final class InputManager: NSObject {
                         // Don't return here - let the gesture continue so .changed and .ended events fire
                         // But isUIDragging flag will prevent game world interactions in .changed state
                     }
+                    // Skip joystick activation when panels are open
+                    return
                 }
             }
 
-            // Check if touch started in joystick area FIRST
+            // Check if touch started in joystick area (only when no panels are open)
             if let joystick = joystick {
                 // Ensure joystick is up to date with current screen size
                 joystick.updateScreenSize(renderer.screenSize)
@@ -1894,6 +1897,30 @@ extension InputManager: UIGestureRecognizerDelegate {
     // This allows us to get .changed and .ended events
 
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Allow scroll views to handle their own pan gestures
+        if gestureRecognizer is UIPanGestureRecognizer, let gameLoop = gameLoop {
+            let touchLocation = gestureRecognizer.location(in: view)
+
+            // Check if touch is within any UI scroll view
+            if let uiSystem = gameLoop.uiSystem, uiSystem.isAnyPanelOpen {
+                // Check inventory scroll view
+                if let inventoryUI = uiSystem.getInventoryUI() as? InventoryUI,
+                   let scrollView = inventoryUI.publicScrollView,
+                   scrollView.frame.contains(touchLocation) {
+                    return false
+                }
+
+                // Check machine UI scroll views
+                if let machineUI = uiSystem.getMachineUI() as? MachineUI {
+                    for scrollView in machineUI.getAllScrollViews() {
+                        if scrollView.frame.contains(touchLocation) {
+                            return false
+                        }
+                    }
+                }
+            }
+        }
+
         return true
     }
 
@@ -1925,6 +1952,15 @@ extension InputManager: UIGestureRecognizerDelegate {
         if gestureRecognizer is UITapGestureRecognizer && otherGestureRecognizer is UITapGestureRecognizer {
             return true
         }
+
+        // Allow simultaneous recognition with scroll view pan gestures
+        if gestureRecognizer is UIPanGestureRecognizer && otherGestureRecognizer.view is UIScrollView {
+            return true
+        }
+        if otherGestureRecognizer is UIPanGestureRecognizer && gestureRecognizer.view is UIScrollView {
+            return true
+        }
+
         // print("Not allowing simultaneous recognition")
         return false
     }

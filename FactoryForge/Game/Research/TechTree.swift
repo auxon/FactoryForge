@@ -494,7 +494,7 @@ final class TechnologyRegistry {
                 ScienceCost("chemical-science-pack", count: 300)
             ],
             researchTime: 45,
-            unlocks: TechnologyUnlocks(recipes: ["rocket-part"]),
+            unlocks: TechnologyUnlocks(recipes: ["rocket-parts"]),
             order: "n",
             tier: 3
         ))

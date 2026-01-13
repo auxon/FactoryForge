@@ -773,15 +773,15 @@ final class RecipeRegistry {
         ))
 
         register(Recipe(
-            id: "rocket-part",
-            name: "Rocket Part",
+            id: "rocket-parts",
+            name: "Rocket Parts",
             inputs: [
                 ItemStack(itemId: "steel-plate", count: 10),
                 ItemStack(itemId: "low-density-structure", count: 10),
                 ItemStack(itemId: "rocket-fuel", count: 10),
                 ItemStack(itemId: "electronic-circuit", count: 10)
             ],
-            outputs: [ItemStack(itemId: "rocket-part", count: 1)],
+            outputs: [ItemStack(itemId: "rocket-parts", count: 1)],
             craftTime: 3,
             category: .crafting,
             order: "ag"
