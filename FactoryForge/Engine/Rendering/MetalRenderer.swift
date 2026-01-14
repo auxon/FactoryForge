@@ -38,7 +38,10 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     // UI system reference (needed for loading menu)
     weak var uiSystem: UISystem?
-    
+
+    // MTKView reference for coordinate system consistency
+    private(set) weak var view: MTKView?
+
     // Selected entity for highlighting
     var selectedEntity: Entity?
 
@@ -61,6 +64,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     init(device: MTLDevice, view: MTKView) {
         self.device = device
+        self.view = view
         
         guard let commandQueue = device.makeCommandQueue() else {
             fatalError("Failed to create command queue")

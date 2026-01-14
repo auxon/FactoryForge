@@ -83,6 +83,7 @@ final class InventoryUI: UIPanel_Base {
     // Callbacks for managing UIKit components
     var onAddScrollView: ((ClearScrollView) -> Void)?
     var onRemoveScrollView: ((ClearScrollView) -> Void)?
+    var onShowTooltip: ((String) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         self.screenSize = screenSize
@@ -286,7 +287,6 @@ final class InventoryUI: UIPanel_Base {
             }
         } else {
             // Empty chest slot - open player inventory for item selection
-            print("InventoryUI: Empty chest slot clicked, opening player inventory for selection")
             enterPendingChestMode(entity: chestOnlyEntity)
             exitChestOnlyMode()
         }
@@ -412,12 +412,16 @@ final class InventoryUI: UIPanel_Base {
             label.font = UIFont.systemFont(ofSize: 10, weight: UIFont.Weight.bold)
             label.textColor = UIColor.white
             label.textAlignment = NSTextAlignment.right
-            label.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            label.backgroundColor = .clear
             label.layer.cornerRadius = 2
             label.layer.masksToBounds = true
             label.translatesAutoresizingMaskIntoConstraints = true
             label.text = ""
             label.isHidden = true
+
+            // ✅ critical: don't let labels steal touches
+            label.isUserInteractionEnabled = false
+
             countLabels.append(label)
         }
     }
@@ -486,7 +490,7 @@ final class InventoryUI: UIPanel_Base {
 
         // --- constants (compute once per update) ---
         guard let sv = scrollView else { return }
-        let scale = CGFloat(UIScreen.main.scale)
+        let scale = gameLoop.renderer?.view?.contentScaleFactor ?? UIScreen.main.scale
 
         // Define slot geometry in *points* (UIKit space)
         let slotSizePt    = CGFloat(40 * UIScale) / scale
@@ -545,12 +549,6 @@ final class InventoryUI: UIPanel_Base {
             // ---- label ----
             let label = countLabels[index]
 
-            // Debug: check superview for first label
-            if index == 0 {
-                print("InventoryUI: label.superview:", label.superview as Any)
-                print("InventoryUI: scrollView:", scrollView as Any)
-            }
-
             // Label size/inset in *points* (proportional to slot size)
             let labelWPt: CGFloat = slotSizePt * 0.65  // proportional to slot
             let labelHPt: CGFloat = slotSizePt * 0.40  // proportional to slot
@@ -587,7 +585,8 @@ final class InventoryUI: UIPanel_Base {
 
         guard let scrollView = scrollView else { return }
 
-        let scale = Float(UIScreen.main.scale)
+        // Use Metal view's content scale factor for consistency
+        let scale = Float(renderer.view?.contentScaleFactor ?? UIScreen.main.scale)
 
         // ScrollView origin in *pixels* (screen space)
         let svOriginPx = Vector2(
@@ -638,7 +637,8 @@ final class InventoryUI: UIPanel_Base {
             return true
         }
 
-        let scale = Float(UIScreen.main.scale)
+        // Use Metal view's content scale factor for consistency with rendering
+        let scale = Float(gameLoop?.renderer?.view?.contentScaleFactor ?? UIScreen.main.scale)
 
         // Screen → scroll content space
         let contentPos = Vector2(
@@ -655,6 +655,16 @@ final class InventoryUI: UIPanel_Base {
             guard index < totalSlots else { continue }
 
             if slot.frame.contains(contentPos) {
+                // Set selection highlight
+                for j in 0..<totalSlots { slots[j].isSelected = false } // clear previous
+                slot.isSelected = true
+
+                // Show tooltip for tapped item
+                if let item = slot.item, let itemRegistry = gameLoop?.itemRegistry {
+                    let tooltip = itemRegistry.get(item.itemId)?.name ?? item.itemId
+                    onShowTooltip?(tooltip)
+                }
+
                 if machineEntity != nil {
                     handleMachineInput(slot: slot)
                 } else if chestEntity != nil {
@@ -688,7 +698,7 @@ final class InventoryUI: UIPanel_Base {
 
         // Convert from pixel space to points - show ~8 rows total
         let scrollViewHeightPt: CGFloat = (360 * CGFloat(UIScale)) / screenScale
-        let topSafe = UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0
+        let topSafe = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.windows.first?.safeAreaInsets.top ?? 0
         let topMarginPt: CGFloat = topSafe + (12 * CGFloat(UIScale)) / screenScale
 
         sv.frame = CGRect(
@@ -1008,27 +1018,43 @@ final class InventoryUI: UIPanel_Base {
 
 
     func getTooltip(at screenPos: Vector2) -> String? {
-        guard isOpen, let scrollView = scrollView else { return nil }
+        guard isOpen, let sv = scrollView else { return nil }
+        guard let itemRegistry = gameLoop?.itemRegistry else { return nil }
 
-        // Convert screen position to scrollview content coordinates
-        let scale = Float(UIScreen.main.scale)
+        // Use the same scale and mapping as handleTap()
+        let scale = Float(gameLoop?.renderer?.view?.contentScaleFactor ?? UIScreen.main.scale)
+
+        // If the pointer is outside the scroll view, there is no tooltip from inventory.
+        let svRectPx = Rect(
+            center: Vector2(Float(sv.frame.midX) * scale, Float(sv.frame.midY) * scale),
+            size:   Vector2(Float(sv.bounds.width) * scale, Float(sv.bounds.height) * scale)
+        )
+        guard svRectPx.contains(screenPos) else { return nil }
+
+        // Screen(px) -> content(px)
         let contentPos = Vector2(
-            screenPos.x - Float(scrollView.frame.origin.x) * scale + Float(scrollView.contentOffset.x) * scale,
-            screenPos.y - Float(scrollView.frame.origin.y) * scale + Float(scrollView.contentOffset.y) * scale
+            screenPos.x - Float(sv.frame.origin.x) * scale + Float(sv.contentOffset.x) * scale,
+            screenPos.y - Float(sv.frame.origin.y) * scale + Float(sv.contentOffset.y) * scale
         )
 
-        for slot in slots {
-            if slot.frame.contains(contentPos), let item = slot.item, let itemRegistry = gameLoop?.itemRegistry {
+        // Only check slots that are actually active
+        for i in 0..<totalSlots {
+            let slot = slots[i]
+            if slot.frame.contains(contentPos), let item = slot.item {
                 return itemRegistry.get(item.itemId)?.name ?? item.itemId
             }
         }
-
         return nil
     }
 
 }
 
 class InventorySlot: UIElement {
+    func handleTap(at position: Vector2) -> Bool {
+        print("InventorySlot:  handleTap invoked.")
+        return true
+    }
+    
     var frame: Rect
     let index: Int
     var item: ItemStack?
@@ -1040,12 +1066,6 @@ class InventorySlot: UIElement {
         self.frame = frame
         self.index = index
         self.backgroundColor = backgroundColor
-    }
-    
-    func handleTap(at position: Vector2) -> Bool {
-        guard frame.contains(position) else { return false }
-        isSelected = true
-        return true
     }
     
     func render(renderer: MetalRenderer, frameOverride: Rect? = nil) {

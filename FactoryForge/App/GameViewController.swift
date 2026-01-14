@@ -4,12 +4,15 @@ import Security
 import Darwin
 
 @available(iOS 17.0, *)
-class GameViewController: UIViewController {
+class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     private var metalView: MTKView!
     private var renderer: MetalRenderer!
     private var gameLoop: GameLoop?
     private var inputManager: InputManager?
     var uiSystem: UISystem?
+
+    // Inventory UI reference for gesture forwarding
+    private weak var inventoryUI: InventoryUI?
     
     // Tooltip label
     private var tooltipLabel: UILabel!
@@ -450,6 +453,15 @@ class GameViewController: UIViewController {
             // keep tooltips on top
             self.view.bringSubviewToFront(self.tooltipLabel)
             self.view.bringSubviewToFront(self.tooltipIconView)
+
+            // Wire up gesture forwarding for inventory interaction
+            if let ui = self.uiSystem?.getInventoryUI() {
+                self.wireInventoryUI(ui)
+                // Set up tooltip callback
+                ui.onShowTooltip = { [weak self] tooltip in
+                    self?.showTooltip(tooltip, duration: 2.0)
+                }
+            }
         }
 
         uiSystem?.getInventoryUI().onRemoveScrollView = { sv in
@@ -1505,6 +1517,40 @@ class GameViewController: UIViewController {
         } catch {
             print("GameViewController: Error clearing saved chunks: \(error)")
         }
+    }
+
+    // MARK: - Inventory UI Gesture Forwarding
+
+    func wireInventoryUI(_ ui: InventoryUI) {
+        self.inventoryUI = ui
+        guard let sv = ui.publicScrollView else { return }
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(onInventoryTap(_:)))
+        tap.cancelsTouchesInView = false                 // don't break scrolling
+        tap.delaysTouchesBegan = false
+        tap.delaysTouchesEnded = false
+        tap.delegate = self
+
+        sv.addGestureRecognizer(tap)
+    }
+
+    // Allow tap recognizer + scrollView pan recognizer together
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
+
+    @objc private func onInventoryTap(_ gr: UITapGestureRecognizer) {
+        guard let ui = inventoryUI else { return }
+
+        // Location in the Metal view's coordinate space (points)
+        let pPt = gr.location(in: metalView)
+
+        // Convert to your engine "screenPos" (pixels)
+        let s = Float(metalView.contentScaleFactor)
+        let pPx = Vector2(Float(pPt.x) * s, Float(pPt.y) * s)
+
+        _ = ui.handleTap(at: pPx)
     }
 }
 
