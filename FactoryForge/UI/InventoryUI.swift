@@ -1,6 +1,44 @@
 import Foundation
 import UIKit
 
+/// Custom scroll view that forcibly removes any internal background/backdrop views
+/// that UIKit might insert during scrolling, ensuring Metal content shows through cleanly
+final class ClearScrollView: UIScrollView {
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        // Ensure the scroll view itself is transparent
+        backgroundColor = .clear
+        isOpaque = false
+        layer.backgroundColor = UIColor.clear.cgColor
+
+        // iOS sometimes inserts private backdrop/background views inside UIScrollView
+        // (especially visible during scrolling/dragging).
+        var hiddenViews: [String] = []
+        for v in subviews {
+            let name = NSStringFromClass(type(of: v))
+
+            // Common private/internal culprits across iOS versions
+            if name.contains("Backdrop") ||
+               name.contains("Background") ||
+               name.contains("Shadow") ||
+               name.contains("ScrollBarBackground") ||
+               name.contains("_UI") && name.contains("Background") {
+
+                hiddenViews.append(name)
+                v.isHidden = true
+                v.backgroundColor = .clear
+                v.isOpaque = false
+                v.layer.backgroundColor = UIColor.clear.cgColor
+            }
+        }
+
+        if !hiddenViews.isEmpty {
+            print("ClearScrollView: Hidden internal background views: \(hiddenViews)")
+        }
+    }
+}
+
 /// Player inventory panel
 final class InventoryUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?
@@ -8,7 +46,7 @@ final class InventoryUI: UIPanel_Base {
     private var countLabels: [UILabel] = []
     private var closeButton: CloseButton!
     private var trashTarget: UIButton!
-    private var scrollView: UIScrollView!
+    private var scrollView: ClearScrollView!
 
     // Public accessor for scroll view (needed for touch event handling)
     var publicScrollView: UIScrollView? {
@@ -43,10 +81,8 @@ final class InventoryUI: UIPanel_Base {
     private var totalSlots = 70
 
     // Callbacks for managing UIKit components
-    var onAddLabels: (([UILabel]) -> Void)?
-    var onRemoveLabels: (([UILabel]) -> Void)?
-    var onAddScrollView: ((UIScrollView) -> Void)?
-    var onRemoveScrollView: ((UIScrollView) -> Void)?
+    var onAddScrollView: ((ClearScrollView) -> Void)?
+    var onRemoveScrollView: ((ClearScrollView) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         self.screenSize = screenSize
@@ -322,7 +358,7 @@ final class InventoryUI: UIPanel_Base {
         let scrollViewX = CGFloat(screenSize.x) / scale / 2  // Center horizontally
 
 
-        scrollView = UIScrollView(frame: CGRect(
+        scrollView = ClearScrollView(frame: CGRect(
             x: scrollViewX - scrollViewWidth / 2,
             y: scrollViewY - scrollViewHeight / 2,
             width: scrollViewWidth,
@@ -343,10 +379,18 @@ final class InventoryUI: UIPanel_Base {
         }
         scrollView.showsVerticalScrollIndicator = true
         scrollView.showsHorizontalScrollIndicator = false
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = true  // Use frame-based layout
         scrollView.isScrollEnabled = true
         scrollView.alwaysBounceVertical = true
         scrollView.delaysContentTouches = false
+
+        // Make scrollView transparent so Metal slots show through
+        scrollView.backgroundColor = .clear
+        scrollView.isOpaque = false
+        scrollView.layer.backgroundColor = UIColor.clear.cgColor
+        scrollView.clipsToBounds = true
+        scrollView.layer.compositingFilter = nil
+        scrollView.layer.opacity = 1.0
 
         // Position slots within the scrollview - initial setup, positioning handled in update()
 
@@ -440,18 +484,26 @@ final class InventoryUI: UIPanel_Base {
             self.totalSlots = playerInventorySize
         }
 
-        // Update scrollview content size based on actual slots needed
-        let rows = (totalSlots + slotsPerRow - 1) / slotsPerRow
-        let slotSize: Float = 40 * UIScale
-        let slotSpacing: Float = 5 * UIScale
-        let totalWidth = Float(slotsPerRow) * slotSize + Float(slotsPerRow - 1) * slotSpacing
-        let totalHeight = Float(rows) * slotSize + Float(rows - 1) * slotSpacing
+        // --- constants (compute once per update) ---
+        guard let sv = scrollView else { return }
+        let scale = CGFloat(UIScreen.main.scale)
 
-        // Content size in points (UIKit coordinates)
-        let scale = UIScreen.main.scale
-        let contentWidthPoints = max(CGFloat(totalWidth) / scale, scrollView?.frame.width ?? 0)
-        let contentHeightPoints = CGFloat(totalHeight) / scale
-        scrollView?.contentSize = CGSize(width: contentWidthPoints, height: contentHeightPoints)
+        // Define slot geometry in *points* (UIKit space)
+        let slotSizePt    = CGFloat(40 * UIScale) / scale
+        let slotSpacingPt = CGFloat(5  * UIScale) / scale
+
+        let rows = (totalSlots + slotsPerRow - 1) / slotsPerRow
+        let totalWidthPt  = CGFloat(slotsPerRow) * slotSizePt + CGFloat(slotsPerRow - 1) * slotSpacingPt
+        let totalHeightPt = CGFloat(rows)       * slotSizePt + CGFloat(rows - 1)       * slotSpacingPt
+
+        // Update scroll content size in *points*
+        let contentWidthPt  = max(totalWidthPt, sv.bounds.width)
+        let contentHeightPt = totalHeightPt
+        sv.contentSize = CGSize(width: contentWidthPt, height: contentHeightPt)
+
+        // Center grid in the visible width (points)
+        let gridOriginXPt: CGFloat = (totalWidthPt < sv.bounds.width) ? (sv.bounds.width - totalWidthPt) * 0.5 : 0.0
+        let gridOriginYPt: CGFloat = 0.0
 
         for (index, slot) in slots.enumerated() {
             if index < totalSlots {
@@ -471,77 +523,57 @@ final class InventoryUI: UIPanel_Base {
                 slot.item = nil
             }
 
-                // Update count label
-                if index < countLabels.count && index < totalSlots {
-                    let label = countLabels[index]
+            guard index < totalSlots else { continue }
 
-                    // Position label relative to slot within scrollview
-                    let slotSize: Float = 40 * UIScale
-                    let slotSpacing: Float = 5 * UIScale
+            let row = index / slotsPerRow
+            let col = index % slotsPerRow
 
-                    // Calculate slot position in scrollview content (same as setupSlots)
-                    let row = index / self.slotsPerRow
-                    let col = index % self.slotsPerRow
+            // Slot center in *points* (scrollView content coordinates)
+            let slotCenterXPt = gridOriginXPt + slotSizePt * 0.5 + CGFloat(col) * (slotSizePt + slotSpacingPt)
+            let slotCenterYPt = gridOriginYPt + slotSizePt * 0.5 + CGFloat(row) * (slotSizePt + slotSpacingPt)
 
-                    // Center slots within the scroll view's visible width
-                    let scale = UIScreen.main.scale
-                    let scrollViewWidthPixels = Float(scrollView?.frame.width ?? 0) * Float(scale)  // Convert points to pixels
-                    let totalWidth = Float(self.slotsPerRow) * slotSize + Float(self.slotsPerRow - 1) * slotSpacing
+            // Update slot frame in *pixels* for Metal (engine space)
+            let slotCenterXPx = Float(slotCenterXPt * scale)
+            let slotCenterYPx = Float(slotCenterYPt * scale)
+            let slotSizePx    = Float(slotSizePt * scale)
 
-                    // If slots are narrower than scroll view, center them. Otherwise, start from left edge.
-                    let gridStartX: Float
-                    if totalWidth < scrollViewWidthPixels {
-                        // Center within scroll view
-                        gridStartX = (scrollViewWidthPixels - totalWidth) / 2 + slotSize / 2
-                    } else {
-                        // Start from left edge
-                        gridStartX = slotSize / 2
-                    }
+            slot.frame = Rect(
+                center: Vector2(slotCenterXPx, slotCenterYPx),
+                size: Vector2(slotSizePx, slotSizePx)
+            )
 
+            // ---- label ----
+            let label = countLabels[index]
 
-                    let slotX = gridStartX + Float(col) * (slotSize + slotSpacing)
-                    let slotY = slotSize / 2 + Float(row) * (slotSize + slotSpacing)
+            // Debug: check superview for first label
+            if index == 0 {
+                print("InventoryUI: label.superview:", label.superview as Any)
+                print("InventoryUI: scrollView:", scrollView as Any)
+            }
 
-                    // Position slots in scrollview content space (UIKit manages scrolling)
-                    let contentX = slotX
-                    let contentY = slotY
+            // Label size/inset in *points* (proportional to slot size)
+            let labelWPt: CGFloat = slotSizePt * 0.65  // proportional to slot
+            let labelHPt: CGFloat = slotSizePt * 0.40  // proportional to slot
+            let insetPt:  CGFloat = slotSizePt * 0.10  // proportional inset
 
-                    // Update slot frame (in content space)
-                    slot.frame = Rect(center: Vector2(contentX, contentY), size: Vector2(slotSize, slotSize))
+            // Bottom-right inside the slot, in *points*
+            let labelXPt = (slotCenterXPt + slotSizePt * 0.5) - labelWPt - insetPt
+            let labelYPt = (slotCenterYPt + slotSizePt * 0.5) - labelHPt - insetPt
 
-                    // Label position: bottom-right corner of slot (use same scrolled coordinates as rendered slot)
-                    if let scrollView = scrollView {
-                        // Calculate scroll offset for positioning
-                        let scrollOffsetX = Float(scrollView.contentOffset.x) * Float(scale)
-                        let scrollOffsetY = Float(scrollView.contentOffset.y) * Float(scale)
-                        let scrollOffset = Vector2(scrollOffsetX, scrollOffsetY)
+            label.frame = CGRect(x: labelXPt, y: labelYPt, width: labelWPt, height: labelHPt)
 
-                        let labelWidth: Float = 24
-                        let labelHeight: Float = 16
-                        let scrolledFrame = Rect(
-                            center: slot.frame.center - scrollOffset,
-                            size: slot.frame.size
-                        )
-                        let labelX = scrolledFrame.center.x + scrolledFrame.size.x/2 - labelWidth - 5
-                        let labelY = scrolledFrame.center.y + scrolledFrame.size.y/2 - labelHeight - 5
+            // Check if label is visible within scroll view bounds
+            let labelRect = label.frame
+            let viewportRect = sv.bounds  // in scrollView's content coordinate system (points)
+            let isVisible = viewportRect.intersects(labelRect)
 
-                        // Convert to UIView coordinates (pixels to points) relative to panel
-                        let uiX = CGFloat(labelX) / scale
-                        let uiY = CGFloat(labelY) / scale
-
-                        // Set the frame relative to panel
-                        label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
-
-                        // Show label only if item count > 1
-                        if let item = slot.item, item.count > 1 {
-                            label.text = "\(item.count)"
-                            label.isHidden = false
-                        } else {
-                            label.text = ""
-                            label.isHidden = true
-                        }
-                    }
-                }
+            if let item = slot.item, item.count > 1, isVisible {
+                label.text = "\(item.count)"
+                label.isHidden = false
+            } else {
+                label.text = ""
+                label.isHidden = true
+            }
             }
     }
 
@@ -553,36 +585,45 @@ final class InventoryUI: UIPanel_Base {
         // Render close button
         closeButton.render(renderer: renderer)
 
-        // Render slots (only up to totalSlots and within visible scrollview content area)
-        if let scrollView = scrollView {
-            // Calculate visible content area accounting for scroll offset
-            let visibleRect = Rect(
-                center: Vector2(
-                    Float(scrollView.contentOffset.x + scrollView.bounds.midX) * Float(UIScreen.main.scale),
-                    Float(scrollView.contentOffset.y + scrollView.bounds.midY) * Float(UIScreen.main.scale)
-                ),
-                size: Vector2(
-                    Float(scrollView.bounds.width) * Float(UIScreen.main.scale),
-                    Float(scrollView.bounds.height) * Float(UIScreen.main.scale)
-                )
-            )
+        guard let scrollView = scrollView else { return }
 
-            // Calculate scroll offset for Metal rendering
-            let scrollOffset = Vector2(
-                Float(scrollView.contentOffset.x) * Float(UIScreen.main.scale),
-                Float(scrollView.contentOffset.y) * Float(UIScreen.main.scale)
-            )
+        let scale = Float(UIScreen.main.scale)
 
-            for (index, slot) in slots.enumerated() {
-                if index < totalSlots && visibleRect.intersects(slot.frame) {
-                    // Render slot with scroll offset applied to align with UIKit scrolling
-                    let scrolledFrame = Rect(
-                        center: slot.frame.center - scrollOffset,
-                        size: slot.frame.size
-                    )
-                    slot.render(renderer: renderer, frameOverride: scrolledFrame)
-                }
-            }
+        // ScrollView origin in *pixels* (screen space)
+        let svOriginPx = Vector2(
+            Float(scrollView.frame.origin.x) * scale,
+            Float(scrollView.frame.origin.y) * scale
+        )
+
+        // Scroll offset in *pixels* (content space)
+        let scrollOffsetPx = Vector2(
+            Float(scrollView.contentOffset.x) * scale,
+            Float(scrollView.contentOffset.y) * scale
+        )
+
+        // ScrollView rect in *screen pixels*
+        let svScreenRectPx = Rect(
+            center: Vector2(
+                Float(scrollView.frame.midX) * scale,
+                Float(scrollView.frame.midY) * scale
+            ),
+            size: Vector2(
+                Float(scrollView.bounds.width) * scale,
+                Float(scrollView.bounds.height) * scale
+            )
+        )
+
+        for (index, slot) in slots.enumerated() {
+            guard index < totalSlots else { continue }
+
+            // contentPx -> screenPx:
+            let screenCenter = svOriginPx + (slot.frame.center - scrollOffsetPx)
+            let scrolledFrame = Rect(center: screenCenter, size: slot.frame.size)
+
+            // Cull in SCREEN space, not content space
+            guard svScreenRectPx.intersects(scrolledFrame) else { continue }
+
+            slot.render(renderer: renderer, frameOverride: scrolledFrame)
         }
 
         // Render trash target
@@ -592,42 +633,43 @@ final class InventoryUI: UIPanel_Base {
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen, let scrollView = scrollView else { return false }
 
-        // Check close button first (stays in panel space)
+        // Close button stays in panel/screen space
         if closeButton.handleTap(at: position) {
             return true
         }
 
         let scale = Float(UIScreen.main.scale)
 
-        // Convert screen → scroll content coordinates
+        // Screen → scroll content space
         let contentPos = Vector2(
-            position.x - Float(scrollView.frame.origin.x) * scale + Float(scrollView.contentOffset.x) * scale,
-            position.y - Float(scrollView.frame.origin.y) * scale + Float(scrollView.contentOffset.y) * scale
+            position.x
+                - Float(scrollView.frame.origin.x) * scale
+                + Float(scrollView.contentOffset.x) * scale,
+
+            position.y
+                - Float(scrollView.frame.origin.y) * scale
+                + Float(scrollView.contentOffset.y) * scale
         )
 
         for (index, slot) in slots.enumerated() {
-            if index < totalSlots && slot.handleTap(at: contentPos) {
+            guard index < totalSlots else { continue }
+
+            if slot.frame.contains(contentPos) {
                 if machineEntity != nil {
-                    // Machine input mode - add item to machine
                     handleMachineInput(slot: slot)
                 } else if chestEntity != nil {
-                    // Chest inventory mode - transfer items between player and chest
                     handleChestTransfer(slot: slot)
                 } else if chestOnlyEntity != nil {
-                    // Chest-only mode - handle chest slot interactions
                     handleChestOnlyInteraction(slot: slot)
                 } else if pendingChestEntity != nil {
-                    // Pending chest transfer mode - transfer items from player to chest
                     handlePendingChestTransfer(slot: slot)
-                } else {
-                    // Normal inventory mode - building placement is handled via Build Menu only
-                    // Placeable items in inventory are just managed as regular items
                 }
+
                 return true
             }
         }
 
-        return super.handleTap(at: position)
+        return false
     }
 
     override func open() {
@@ -636,13 +678,40 @@ final class InventoryUI: UIPanel_Base {
         if scrollView == nil {
             setupSlots()
         }
-        // Add labels to the UIKit view hierarchy via callback
-        onAddLabels?(countLabels)
+
+        guard let sv = scrollView else { return }
+
+        // Reposition scrollview using actual screen bounds in points
+        let screenBounds = UIScreen.main.bounds
+        let screenScale = UIScreen.main.scale
+        let scrollViewWidth = screenBounds.width * 0.9
+
+        // Convert from pixel space to points
+        let scrollViewHeightPt: CGFloat = (220 * CGFloat(UIScale)) / screenScale
+        let topSafe = UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0
+        let topMarginPt: CGFloat = topSafe + (12 * CGFloat(UIScale)) / screenScale
+
+        sv.frame = CGRect(
+            x: (screenBounds.width - scrollViewWidth) * 0.5,
+            y: topMarginPt,
+            width: scrollViewWidth,
+            height: scrollViewHeightPt
+        )
+
+        // If any labels were previously added somewhere else, yank them back.
+        for label in countLabels {
+            if label.superview !== sv {
+                label.removeFromSuperview()
+                sv.addSubview(label)
+            }
+        }
     }
 
     override func close() {
-        // Remove labels from UIKit view hierarchy via callback
-        onRemoveLabels?(countLabels)
+        // Remove labels from scrollView
+        for label in countLabels {
+            label.removeFromSuperview()
+        }
         if scrollView != nil {
             onRemoveScrollView?(scrollView)
             scrollView = nil
