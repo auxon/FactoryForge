@@ -12,6 +12,7 @@ struct Recipe: Identifiable, Codable {
     let category: CraftingCategory
     let enabled: Bool
     let order: String
+    let customTextureId: String? // Optional custom texture ID
 
     init(
         id: String,
@@ -23,7 +24,8 @@ struct Recipe: Identifiable, Codable {
         craftTime: Float = 0.5,
         category: CraftingCategory = .crafting,
         enabled: Bool = true,
-        order: String = "a"
+        order: String = "a",
+        customTextureId: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -35,6 +37,7 @@ struct Recipe: Identifiable, Codable {
         self.category = category
         self.enabled = enabled
         self.order = order
+        self.customTextureId = customTextureId
     }
     
     /// Primary output item
@@ -44,6 +47,9 @@ struct Recipe: Identifiable, Codable {
     
     /// Gets the texture ID for display
     var textureId: String {
+        if let customTextureId = customTextureId {
+            return customTextureId
+        }
         return primaryOutput?.itemId.replacingOccurrences(of: "-", with: "_") ?? "solid_white"
     }
     

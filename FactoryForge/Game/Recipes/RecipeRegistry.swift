@@ -545,7 +545,8 @@ final class RecipeRegistry {
             ],
             craftTime: 5,
             category: .oilProcessing,
-            order: "a"
+            order: "a",
+            customTextureId: "oil_refinery"
         ))
 
         register(Recipe(
@@ -562,7 +563,8 @@ final class RecipeRegistry {
             ],
             craftTime: 5,
             category: .oilProcessing,
-            order: "c"
+            order: "c",
+            customTextureId: "oil_refinery"
         ))
 
         register(Recipe(
@@ -575,7 +577,8 @@ final class RecipeRegistry {
             fluidOutputs: [FluidStack(type: .petroleumGas, amount: 10)],  // 10L petroleum gas (2L/s output)
             craftTime: 5,
             category: .chemistry,
-            order: "c"
+            order: "c",
+            customTextureId: "chemical_plant"
         ))
 
         register(Recipe(
@@ -588,7 +591,8 @@ final class RecipeRegistry {
             fluidOutputs: [FluidStack(type: .lightOil, amount: 15)],  // 15L light oil (3L/s output)
             craftTime: 5,
             category: .chemistry,
-            order: "d"
+            order: "d",
+            customTextureId: "chemical_plant"
         ))
 
         // Chemical products
@@ -628,7 +632,8 @@ final class RecipeRegistry {
             fluidOutputs: [FluidStack(type: .sulfuricAcid, amount: 50)], // 50L sulfuric acid (50L/s output)
             craftTime: 1,
             category: .chemistry,
-            order: "g"
+            order: "g",
+            customTextureId: "chemical_plant"
         ))
 
         register(Recipe(
@@ -638,7 +643,8 @@ final class RecipeRegistry {
             fluidOutputs: [FluidStack(type: .lubricant, amount: 5)], // 5L lubricant (5L/s output)
             craftTime: 1,
             category: .chemistry,
-            order: "h"
+            order: "h",
+            customTextureId: "chemical_plant"
         ))
 
         register(Recipe(

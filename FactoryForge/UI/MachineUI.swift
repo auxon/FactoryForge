@@ -1095,6 +1095,10 @@ final class MachineUI: UIPanel_Base {
             filename = "belt"  // Use same image
         case "express_transport_belt":
             filename = "belt"  // Use same image
+        case "oil_refinery":
+            filename = "oil_refinery"  // Use the actual asset name
+        case "chemical_plant":
+            filename = "chemical_plant"  // Use the actual asset name
         default:
             // Replace underscores with nothing for some cases
             filename = textureId.replacingOccurrences(of: "-", with: "_")
@@ -1213,25 +1217,18 @@ final class MachineUI: UIPanel_Base {
         let iconSize: CGFloat = 30
         let iconSpacing: CGFloat = 40
 
-        // Show input requirements
+        // Show input requirements (items and fluids)
         var currentX: CGFloat = 20
+
+        // Item inputs
         for input in recipe.inputs {
-            // Create item icon
-            if let image = loadRecipeImage(for: input.itemId) {
-                let iconView = UIImageView(image: image)
-                iconView.frame = CGRect(x: currentX, y: detailsY, width: iconSize, height: iconSize)
-                iconView.contentMode = .scaleAspectFit
-                rootView.addSubview(iconView)
-                recipeLabels.append(iconView) // Reuse recipeLabels array for all views
+            addItemIcon(input.itemId, count: input.count, atX: currentX, y: detailsY, iconSize: iconSize, to: rootView)
+            currentX += iconSpacing
+        }
 
-                // Create count label if count > 1
-                if input.count > 1 {
-                    let countLabel = createCountLabel(text: "\(input.count)", for: iconView)
-                    rootView.addSubview(countLabel)
-                    recipeLabels.append(countLabel)
-                }
-            }
-
+        // Fluid inputs
+        for fluidInput in recipe.fluidInputs {
+            addFluidIcon(fluidInput.type, amount: fluidInput.amount, atX: currentX, y: detailsY, iconSize: iconSize, to: rootView)
             currentX += iconSpacing
         }
 
@@ -1248,25 +1245,128 @@ final class MachineUI: UIPanel_Base {
 
         currentX += arrowLabel.frame.width + 8
 
-        // Show output
+        // Show outputs (items and fluids)
+        // Item outputs
         for output in recipe.outputs {
-            // Create item icon
-            if let image = loadRecipeImage(for: output.itemId) {
-                let iconView = UIImageView(image: image)
-                iconView.frame = CGRect(x: currentX, y: detailsY, width: iconSize, height: iconSize)
-                iconView.contentMode = .scaleAspectFit
-                rootView.addSubview(iconView)
-                recipeLabels.append(iconView)
-
-                // Create count label if count > 1
-                if output.count > 1 {
-                    let countLabel = createCountLabel(text: "\(output.count)", for: iconView)
-                    rootView.addSubview(countLabel)
-                    recipeLabels.append(countLabel)
-                }
-            }
-
+            addItemIcon(output.itemId, count: output.count, atX: currentX, y: detailsY, iconSize: iconSize, to: rootView)
             currentX += iconSpacing
+        }
+
+        // Fluid outputs
+        for fluidOutput in recipe.fluidOutputs {
+            addFluidIcon(fluidOutput.type, amount: fluidOutput.amount, atX: currentX, y: detailsY, iconSize: iconSize, to: rootView)
+            currentX += iconSpacing
+        }
+    }
+
+    private func addItemIcon(_ itemId: String, count: Int, atX x: CGFloat, y: CGFloat, iconSize: CGFloat, to rootView: UIView) {
+        // Create item icon
+        if let image = loadRecipeImage(for: itemId) {
+            let iconView = UIImageView(image: image)
+            iconView.frame = CGRect(x: x, y: y, width: iconSize, height: iconSize)
+            iconView.contentMode = .scaleAspectFit
+            rootView.addSubview(iconView)
+            recipeLabels.append(iconView)
+
+            // Create count label if count > 1
+            if count > 1 {
+                let countLabel = createCountLabel(text: "\(count)", for: iconView)
+                rootView.addSubview(countLabel)
+                recipeLabels.append(countLabel)
+            }
+        }
+    }
+
+    private func addFluidIcon(_ fluidType: FluidType, amount: Float, atX x: CGFloat, y: CGFloat, iconSize: CGFloat, to rootView: UIView) {
+        // Create fluid representation (colored rectangle with text)
+        let fluidView = UIView()
+        fluidView.frame = CGRect(x: x, y: y, width: iconSize, height: iconSize)
+        fluidView.layer.cornerRadius = 4
+        fluidView.layer.borderWidth = 1
+        fluidView.layer.borderColor = UIColor.white.cgColor
+
+        // Set background color based on fluid type
+        fluidView.backgroundColor = colorForFluidType(fluidType)
+
+        rootView.addSubview(fluidView)
+        recipeLabels.append(fluidView)
+
+        // Add fluid name text
+        let fluidLabel = UILabel()
+        fluidLabel.text = displayNameForFluidType(fluidType)
+        fluidLabel.font = UIFont.systemFont(ofSize: 6, weight: .bold)
+        fluidLabel.textColor = .white
+        fluidLabel.textAlignment = .center
+        fluidLabel.numberOfLines = 2
+        fluidLabel.adjustsFontSizeToFitWidth = true
+        fluidLabel.minimumScaleFactor = 0.5
+        fluidLabel.frame = CGRect(x: 0, y: 0, width: iconSize, height: iconSize)
+        fluidView.addSubview(fluidLabel)
+
+        // Add amount label if amount > 10
+        if amount > 10 {
+            let amountText = amount >= 100 ? "\(Int(amount/100))00" : "\(Int(amount))"
+            let amountLabel = UILabel()
+            amountLabel.text = amountText
+            amountLabel.font = UIFont.systemFont(ofSize: 6, weight: .bold)
+            amountLabel.textColor = .yellow
+            amountLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+            amountLabel.textAlignment = .center
+            amountLabel.layer.cornerRadius = 2
+            amountLabel.layer.masksToBounds = true
+            amountLabel.sizeToFit()
+
+            let padding: CGFloat = 2
+            amountLabel.frame.size.width = max(amountLabel.frame.width + padding * 2, 12)
+            amountLabel.frame.size.height = max(amountLabel.frame.height + padding, 8)
+
+            // Position in bottom-right corner
+            amountLabel.frame.origin.x = iconSize - amountLabel.frame.width
+            amountLabel.frame.origin.y = iconSize - amountLabel.frame.height
+
+            fluidView.addSubview(amountLabel)
+        }
+    }
+
+    private func colorForFluidType(_ fluidType: FluidType) -> UIColor {
+        switch fluidType {
+        case .water:
+            return UIColor.blue.withAlphaComponent(0.7)
+        case .steam:
+            return UIColor.lightGray.withAlphaComponent(0.7)
+        case .crudeOil:
+            return UIColor.black.withAlphaComponent(0.7)
+        case .heavyOil:
+            return UIColor.brown.withAlphaComponent(0.7)
+        case .lightOil:
+            return UIColor.orange.withAlphaComponent(0.7)
+        case .petroleumGas:
+            return UIColor.green.withAlphaComponent(0.7)
+        case .sulfuricAcid:
+            return UIColor.yellow.withAlphaComponent(0.7)
+        case .lubricant:
+            return UIColor.purple.withAlphaComponent(0.7)
+        }
+    }
+
+    private func displayNameForFluidType(_ fluidType: FluidType) -> String {
+        switch fluidType {
+        case .water:
+            return "Water"
+        case .steam:
+            return "Steam"
+        case .crudeOil:
+            return "Oil"
+        case .heavyOil:
+            return "Heavy\nOil"
+        case .lightOil:
+            return "Light\nOil"
+        case .petroleumGas:
+            return "Gas"
+        case .sulfuricAcid:
+            return "Acid"
+        case .lubricant:
+            return "Lube"
         }
     }
 
