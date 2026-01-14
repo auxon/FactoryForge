@@ -13,6 +13,9 @@ final class CraftingSystem: System {
     // Callback for when crafting completes (to update UI)
     var onCraftingCompleted: ((Entity) -> Void)?
 
+    // Queue of entities that completed crafting this frame (to avoid concurrent access)
+    private var completedEntities: [Entity] = []
+
     init(world: World, recipeRegistry: RecipeRegistry, itemRegistry: ItemRegistry, buildingRegistry: BuildingRegistry) {
         self.world = world
         self.recipeRegistry = recipeRegistry
@@ -21,11 +24,19 @@ final class CraftingSystem: System {
     }
     
     func update(deltaTime: Float) {
+        // Clear previous frame's completed entities
+        completedEntities.removeAll()
+
         // Update assemblers
         updateAssemblers(deltaTime: deltaTime)
 
         // Update furnaces
         updateFurnaces(deltaTime: deltaTime)
+
+        // Notify UI about completed crafting (after iteration is complete to avoid concurrent access)
+        for entity in completedEntities {
+            onCraftingCompleted?(entity)
+        }
     }
     
     private func updateAssemblers(deltaTime: Float) {
@@ -51,8 +62,8 @@ final class CraftingSystem: System {
                     completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: assembler, entity: entity, world: world)
                     assembler.craftingProgress = 0
                     world.add(inventory, to: entity)
-                    // Notify UI that crafting completed
-                    onCraftingCompleted?(entity)
+                    // Queue entity for UI update (avoid concurrent access during iteration)
+                    completedEntities.append(entity)
                 }
             } else {
                 // Try to start crafting
@@ -118,8 +129,8 @@ final class CraftingSystem: System {
                     furnace.smeltingProgress = 0
                     furnace.recipe = nil  // Reset to auto-select next
                     world.add(inventory, to: entity)
-                    // Notify UI that crafting completed
-                    onCraftingCompleted?(entity)
+                    // Queue entity for UI update (avoid concurrent access during iteration)
+                    completedEntities.append(entity)
                 }
             } else {
                 // Try to start a new recipe
