@@ -776,18 +776,14 @@ final class MachineUI: UIPanel_Base {
 
         // Create fuel slots (left side, top) - UIKit buttons
         for i in 0..<fuelCount {
-            // Convert Metal pixel coordinates to UIKit points relative to panel
-            let screenScale = UIScreen.main.scale
+            // Simple positioning relative to panel center in points
             let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
+            let buttonSizePoints: CGFloat = 32  // Already in points
+            let spacingPoints: CGFloat = 8
 
             // Position relative to panel center
-            let relativeX = -200 * UIScale  // Left side
-            let relativeY = -120 * UIScale + Float(i) * (slotSize + slotSpacing)  // Top area
-
-            // Convert to points and panel-relative coordinates
-            let buttonX = panelBounds.midX + CGFloat(relativeX) / screenScale
-            let buttonY = panelBounds.midY + CGFloat(relativeY) / screenScale
-            let buttonSizePoints = CGFloat(slotSize) / screenScale
+            let buttonX = panelBounds.midX - 200  // Left side
+            let buttonY = panelBounds.midY - 120 + (buttonSizePoints + spacingPoints) * CGFloat(i)  // Top area
 
             let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
 
@@ -821,18 +817,14 @@ final class MachineUI: UIPanel_Base {
 
         // Create input slots (left side, below fuel) - UIKit buttons
         for i in 0..<inputCount {
-            // Convert Metal pixel coordinates to UIKit points relative to panel
-            let screenScale = UIScreen.main.scale
+            // Simple positioning relative to panel center in points
             let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
+            let buttonSizePoints: CGFloat = 32  // Already in points
+            let spacingPoints: CGFloat = 8
 
             // Position relative to panel center
-            let relativeX = -200 * UIScale  // Left side
-            let relativeY = -80 * UIScale + Float(i) * (slotSize + slotSpacing)  // Below fuel area
-
-            // Convert to points and panel-relative coordinates
-            let buttonX = panelBounds.midX + CGFloat(relativeX) / screenScale
-            let buttonY = panelBounds.midY + CGFloat(relativeY) / screenScale
-            let buttonSizePoints = CGFloat(slotSize) / screenScale
+            let buttonX = panelBounds.midX - 200 + (buttonSizePoints + spacingPoints) * CGFloat(i % 2)  // Left side, 2 columns
+            let buttonY = panelBounds.midY - 80 + (buttonSizePoints + spacingPoints) * CGFloat(i / 2)   // Below fuel area
 
             let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
 
@@ -866,18 +858,14 @@ final class MachineUI: UIPanel_Base {
 
         // Create output slots (right side) - UIKit buttons
         for i in 0..<outputCount {
-            // Convert Metal pixel coordinates to UIKit points relative to panel
-            let screenScale = UIScreen.main.scale
+            // Simple positioning relative to panel center in points
             let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
+            let buttonSizePoints: CGFloat = 32  // Already in points
+            let spacingPoints: CGFloat = 8
 
             // Position relative to panel center
-            let relativeX = 200 * UIScale  // Right side
-            let relativeY = -80 * UIScale + Float(i) * (slotSize + slotSpacing)  // Same Y as inputs
-
-            // Convert to points and panel-relative coordinates
-            let buttonX = panelBounds.midX + CGFloat(relativeX) / screenScale
-            let buttonY = panelBounds.midY + CGFloat(relativeY) / screenScale
-            let buttonSizePoints = CGFloat(slotSize) / screenScale
+            let buttonX = panelBounds.midX + 200 - (buttonSizePoints + spacingPoints)  // Right side
+            let buttonY = panelBounds.midY - 80 + (buttonSizePoints + spacingPoints) * CGFloat(i)   // Same Y as inputs
 
             let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
 
@@ -1161,29 +1149,29 @@ final class MachineUI: UIPanel_Base {
         // Create UIKit panel container view
         if panelView == nil {
             panelView = UIView(frame: panelFrameInPoints())
-        panelView!.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.95)
-        panelView!.layer.cornerRadius = 12
-        panelView!.layer.borderWidth = 1
-        panelView!.layer.borderColor = UIColor(white: 1, alpha: 0.15).cgColor
+            panelView!.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.95)
+            panelView!.layer.cornerRadius = 12
+            panelView!.layer.borderWidth = 1
+            panelView!.layer.borderColor = UIColor(white: 1, alpha: 0.15).cgColor
 
-        // Create progress bar views
-        let panelBounds = panelView!.bounds
-        let barWidth: CGFloat = 300
-        let barHeight: CGFloat = 20
-        let barX = panelBounds.midX - barWidth/2
-        let barY = panelBounds.midY - 60
+            // Create progress bar views
+            let panelBounds = panelView!.bounds
+            let barWidth: CGFloat = 300
+            let barHeight: CGFloat = 20
+            let barX = panelBounds.midX - barWidth/2
+            let barY = panelBounds.midY - 60
 
-        // Background
-        progressBarBackground = UIView(frame: CGRect(x: barX, y: barY, width: barWidth, height: barHeight))
-        progressBarBackground!.backgroundColor = UIColor.gray
-        progressBarBackground!.layer.cornerRadius = 4
-        panelView!.addSubview(progressBarBackground!)
+            // Background
+            progressBarBackground = UIView(frame: CGRect(x: barX, y: barY, width: barWidth, height: barHeight))
+            progressBarBackground!.backgroundColor = UIColor.gray
+            progressBarBackground!.layer.cornerRadius = 4
+            panelView!.addSubview(progressBarBackground!)
 
-        // Fill
-        progressBarFill = UIView(frame: CGRect(x: barX, y: barY, width: 0, height: barHeight))
-        progressBarFill!.backgroundColor = UIColor.blue
-        progressBarFill!.layer.cornerRadius = 4
-        panelView!.addSubview(progressBarFill!)
+            // Fill
+            progressBarFill = UIView(frame: CGRect(x: barX, y: barY, width: 0, height: barHeight))
+            progressBarFill!.backgroundColor = UIColor.blue
+            progressBarFill!.layer.cornerRadius = 4
+            panelView!.addSubview(progressBarFill!)
         }
 
         // Add panel view to hierarchy
@@ -1380,7 +1368,8 @@ final class MachineUI: UIPanel_Base {
                 inventoryIndex += 1
             }
             // Clear remaining input slots
-            for i in recipe.inputs.count..<inputSlots.count {
+            let startIndex = min(recipe.inputs.count, inputSlots.count)
+            for i in startIndex..<inputSlots.count {
                 inputSlots[i].item = nil
                 inputSlots[i].isRequired = false
             }
@@ -1414,7 +1403,8 @@ final class MachineUI: UIPanel_Base {
                 inventoryIndex += 1
             }
             // Clear remaining output slots
-            for i in recipe.outputs.count..<outputSlots.count {
+            let startIndex = min(recipe.outputs.count, outputSlots.count)
+            for i in startIndex..<outputSlots.count {
                 outputSlots[i].item = nil
                 outputSlots[i].isRequired = false
             }
@@ -1643,7 +1633,19 @@ final class MachineUI: UIPanel_Base {
 
     @objc private func fuelSlotTapped(_ sender: UIKit.UIButton) {
         guard let entity = currentEntity, let gameLoop = gameLoop else { return }
-        handleSlotTap(entity: entity, slotIndex: sender.tag, gameLoop: gameLoop)
+
+        let slotIndex = sender.tag
+
+        // Check if the slot has an item
+        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+           slotIndex < machineInventory.slots.count,
+           machineInventory.slots[slotIndex] != nil {
+            // Slot has an item - take it out
+            handleSlotTap(entity: entity, slotIndex: slotIndex, gameLoop: gameLoop)
+        } else {
+            // Slot is empty - open inventory to add fuel
+            handleEmptySlotTap(entity: entity, slotIndex: slotIndex)
+        }
     }
 
     @objc private func inputSlotTapped(_ sender: UIKit.UIButton) {
@@ -1652,7 +1654,17 @@ final class MachineUI: UIPanel_Base {
         guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { return }
 
         let slotIndex = buildingDef.fuelSlots + sender.tag
-        handleSlotTap(entity: entity, slotIndex: slotIndex, gameLoop: gameLoop)
+
+        // Check if the slot has an item
+        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+           slotIndex < machineInventory.slots.count,
+           machineInventory.slots[slotIndex] != nil {
+            // Slot has an item - take it out
+            handleSlotTap(entity: entity, slotIndex: slotIndex, gameLoop: gameLoop)
+        } else {
+            // Slot is empty - open inventory to add items
+            handleEmptySlotTap(entity: entity, slotIndex: slotIndex)
+        }
     }
 
     @objc private func outputSlotTapped(_ sender: UIKit.UIButton) {

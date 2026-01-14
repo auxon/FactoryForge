@@ -982,6 +982,22 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         uiSystem?.getMachineUI().onSelectRecipeForMachine = { [weak self] (entity: Entity, recipe: Recipe) -> Void in
             self?.gameLoop?.setMachineRecipe(entity, recipe)
         }
+        uiSystem?.getMachineUI().onOpenInventoryForMachine = { [weak self] (entity: Entity, slotIndex: Int) -> Void in
+            guard let self = self else { return }
+            // Open inventory in machine input mode for the specified slot
+            if let inventoryUI = self.uiSystem?.getInventoryUI() {
+                inventoryUI.enterMachineInputMode(entity: entity, slotIndex: slotIndex)
+                inventoryUI.open()
+            }
+        }
+        uiSystem?.getInventoryUI().onMachineInputCompleted = { [weak self] in
+            guard let self = self else { return }
+            // Refresh machine UI after items were transferred
+            if let machineUI = self.uiSystem?.getMachineUI(),
+               let currentEntity = machineUI.currentEntity {
+                machineUI.updateMachine(currentEntity)
+            }
+        }
         uiSystem?.getMachineUI().onAddScrollView = { [weak self] (view: UIView) in
             guard let self = self else { return }
             // Remove if already added to avoid duplicates
