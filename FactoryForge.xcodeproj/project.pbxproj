@@ -38,7 +38,6 @@
 		0D45A98F2F0F4D37006B346C /* research.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D45A98E2F0F4D37006B346C /* research.png */; };
 		0D45A9932F0F5D75006B346C /* oil_refinery.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D45A9922F0F5D75006B346C /* oil_refinery.png */; };
 		0D45A9972F0F5E7A006B346C /* chemical_plant.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D45A9962F0F5E7A006B346C /* chemical_plant.png */; };
-		0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBD42EFDD03C00576EC3 /* player.png */; };
 		0D6FDC1B2EFDE1B500576EC3 /* small_electric_pole.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDC092EFDE1B500576EC3 /* small_electric_pole.png */; };
 		0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBE72EFDE1B500576EC3 /* copper_ore _2.png */; };
 		0D6FDC1D2EFDE1B500576EC3 /* iron_ore_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D6FDBFB2EFDE1B500576EC3 /* iron_ore_2.png */; };
@@ -147,6 +146,9 @@
 		0D778B7D2F11DA87003BC642 /* Crafting.md in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B7C2F11DA87003BC642 /* Crafting.md */; };
 		0D778B802F11E644003BC642 /* rocket_parts.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B7E2F11E644003BC642 /* rocket_parts.png */; };
 		0D778B812F11E644003BC642 /* solid_fuel.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D778B7F2F11E644003BC642 /* solid_fuel.png */; };
+		0D7D82FB2F173E1C001CA74A /* player_down.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7D82F72F173E1C001CA74A /* player_down.png */; };
+		0D7D82FC2F173E1C001CA74A /* player_up.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7D82FA2F173E1C001CA74A /* player_up.png */; };
+		0D7D83002F17459C001CA74A /* player_right.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7D82FF2F17459C001CA74A /* player_right.png */; };
 		0D841AD62F0F2FE600F499B6 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D841AD52F0F2FE600F499B6 /* wall.png */; };
 		0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */; };
 		0DC1FB702F13217A0010585F /* low_density_structure.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FB6F2F13217A0010585F /* low_density_structure.png */; };
@@ -370,7 +372,6 @@
 		0D45A98E2F0F4D37006B346C /* research.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = research.png; sourceTree = "<group>"; };
 		0D45A9922F0F5D75006B346C /* oil_refinery.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = oil_refinery.png; sourceTree = "<group>"; };
 		0D45A9962F0F5E7A006B346C /* chemical_plant.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chemical_plant.png; sourceTree = "<group>"; };
-		0D6FDBD42EFDD03C00576EC3 /* player.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player.png; sourceTree = "<group>"; };
 		0D6FDBD62EFDE1B500576EC3 /* accumulator.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = accumulator.png; sourceTree = "<group>"; };
 		0D6FDBD72EFDE1B500576EC3 /* advanced_circuit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = advanced_circuit.png; sourceTree = "<group>"; };
 		0D6FDBD82EFDE1B500576EC3 /* assembling_machine_1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = assembling_machine_1.png; sourceTree = "<group>"; };
@@ -490,6 +491,9 @@
 		0D778B7C2F11DA87003BC642 /* Crafting.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Crafting.md; sourceTree = "<group>"; };
 		0D778B7E2F11E644003BC642 /* rocket_parts.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = rocket_parts.png; sourceTree = "<group>"; };
 		0D778B7F2F11E644003BC642 /* solid_fuel.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = solid_fuel.png; sourceTree = "<group>"; };
+		0D7D82F72F173E1C001CA74A /* player_down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player_down.png; sourceTree = "<group>"; };
+		0D7D82FA2F173E1C001CA74A /* player_up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player_up.png; sourceTree = "<group>"; };
+		0D7D82FF2F17459C001CA74A /* player_right.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player_right.png; sourceTree = "<group>"; };
 		0D841AD52F0F2FE600F499B6 /* wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wall.png; sourceTree = "<group>"; };
 		0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FactoryForge Storekit Configuration.storekit"; sourceTree = "<group>"; };
 		0DC1FB6F2F13217A0010585F /* low_density_structure.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = low_density_structure.png; sourceTree = "<group>"; };
@@ -720,6 +724,9 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0D7D82FF2F17459C001CA74A /* player_right.png */,
+				0D7D82F72F173E1C001CA74A /* player_down.png */,
+				0D7D82FA2F173E1C001CA74A /* player_up.png */,
 				0DC1FBB62F16E0880010585F /* burner_mining_drill.png */,
 				0DC1FBB22F16BF840010585F /* fluid_tank.png */,
 				0DC1FBB32F16BF840010585F /* pumpjack.png */,
@@ -868,7 +875,6 @@
 				0D6FDC172EFDE1B500576EC3 /* utility_science_pack.png */,
 				0D6FDC182EFDE1B500576EC3 /* water.png */,
 				0D6FDC1A2EFDE1B500576EC3 /* wooden_chest.png */,
-				0D6FDBD42EFDD03C00576EC3 /* player.png */,
 			);
 			path = Assets;
 			sourceTree = "<group>";
@@ -1468,7 +1474,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				0D3A37202F04961100941686 /* rotate.png in Resources */,
-				0D6FDBD52EFDD03C00576EC3 /* player.png in Resources */,
 				0D6FDC1B2EFDE1B500576EC3 /* small_electric_pole.png in Resources */,
 				0D6FDC1C2EFDE1B500576EC3 /* copper_ore _2.png in Resources */,
 				0D45A9932F0F5D75006B346C /* oil_refinery.png in Resources */,
@@ -1657,8 +1662,11 @@
 				0DE229952F02281C00BD619D /* chop.m4a in Resources */,
 				0D6FDC502EFDE1B500576EC3 /* iron_plate.png in Resources */,
 				0D6FDC512EFDE1B500576EC3 /* steam_engine.png in Resources */,
+				0D7D83002F17459C001CA74A /* player_right.png in Resources */,
 				0D3A371A2F044AC200941686 /* recycle.png in Resources */,
 				0D6FDC522EFDE1B500576EC3 /* spawner.png in Resources */,
+				0D7D82FB2F173E1C001CA74A /* player_down.png in Resources */,
+				0D7D82FC2F173E1C001CA74A /* player_up.png in Resources */,
 				0D0E9B522F09A79200943D17 /* clear.png in Resources */,
 				0D6FDC532EFDE1B500576EC3 /* gun_turret.png in Resources */,
 				0DE229892F01799C00BD619D /* turret.png in Resources */,

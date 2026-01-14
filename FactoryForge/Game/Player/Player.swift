@@ -55,6 +55,8 @@ final class Player {
     /// Player animations for different directions
     private var playerAnimationLeft: SpriteAnimation?
     private var playerAnimationRight: SpriteAnimation?
+    private var playerAnimationUp: SpriteAnimation?
+    private var playerAnimationDown: SpriteAnimation?
     
     init(world: World, itemRegistry: ItemRegistry) {
         self.world = world
@@ -79,9 +81,11 @@ final class Player {
         world.add(PositionComponent(tilePosition: .zero), to: entity)
         
         // Create player animation with all 16 frames for both directions
-        let playerFramesRight = (0..<16).map { "player_\($0)" }
+        let playerFramesRight = (0..<16).map { "player_right_\($0)" }
         let playerFramesLeft = (0..<16).map { "player_left_\($0)" }
-        
+        let playerFramesUp = (0..<16).map { "player_up_\($0)" }
+        let playerFramesDown = (0..<16).map { "player_down_\($0)" }
+
         var playerAnimationRight = SpriteAnimation(
             frames: playerFramesRight,
             frameTime: 0.08,  // 80ms per frame for smooth walking animation
@@ -96,8 +100,22 @@ final class Player {
         )
         playerAnimationLeft.pause()
         
+        var playerAnimationUp = SpriteAnimation(
+            frames: playerFramesUp,
+            frameTime: 0.08,
+            isLooping: true
+        )
+        playerAnimationUp.pause()
+        
+        var playerAnimationDown = SpriteAnimation(
+            frames: playerFramesDown,
+            frameTime: 0.08,
+            isLooping: true
+        )
+        playerAnimationDown.pause()
+        
         var spriteComponent = SpriteComponent(
-            textureId: "player_0",  // Default to first frame
+            textureId: "player_down_0",  // Default to first frame
             size: Vector2(1.0, 1.0),  // Normal tile size
             tint: .white,
             layer: .entity,
@@ -108,6 +126,8 @@ final class Player {
         // Store references to both animations for switching directions
         self.playerAnimationRight = playerAnimationRight
         self.playerAnimationLeft = playerAnimationLeft
+        self.playerAnimationUp = playerAnimationUp
+        self.playerAnimationDown = playerAnimationDown
         
         world.add(spriteComponent, to: entity)
         world.add(HealthComponent(maxHealth: 250, immunityDuration: 0.5), to: entity)
@@ -621,10 +641,68 @@ final class Player {
         
         if isMoving {
             // Determine direction and switch animation if needed
-            let isMovingLeft = moveDirection.x < -0.01
+            let isMovingLeft = moveDirection.x < -0.1
+            let isMovingUp = moveDirection.y > 0.1
+            let isMovingDown = moveDirection.y < -0.1
+            let isMovingRight = moveDirection.x > 0.1
+
             let currentFirstFrame = animation.frames.first ?? ""
             let isUsingLeftAnimation = currentFirstFrame == "player_left_0"
+            let isUsingUpAnimation = currentFirstFrame == "player_up_0"
+            let isUsingDownAnimation = currentFirstFrame == "player_down_0"
+            let isUsingRightAnimation = currentFirstFrame == "player_right_0"
             
+            if isMovingUp && !isUsingUpAnimation {
+                // Switch to up animation
+                if var upAnim = playerAnimationUp {
+                    upAnim.currentFrame = animation.currentFrame
+                    upAnim.elapsedTime = animation.elapsedTime
+                    upAnim.isPlaying = animation.isPlaying
+                    animation = upAnim
+                    sprite.animation = animation
+                    // Immediately update texture to match current frame
+                    if let currentFrame = animation.update(deltaTime: 0) {
+                        sprite.textureId = currentFrame
+                        // print("Switched to UP animation, frame: \(currentFrame)")
+                    }
+                } else {
+                    print("ERROR: playerAnimationUp is nil!")
+                }
+            }
+            if isMovingDown && !isUsingDownAnimation {
+                // Switch to down animation
+                if var downAnim = playerAnimationDown {
+                    downAnim.currentFrame = animation.currentFrame
+                    downAnim.elapsedTime = animation.elapsedTime
+                    downAnim.isPlaying = animation.isPlaying
+                    animation = downAnim
+                    sprite.animation = animation
+                    // Immediately update texture to match current frame
+                    if let currentFrame = animation.update(deltaTime: 0) {
+                        sprite.textureId = currentFrame
+                        // print("Switched to DOWN animation, frame: \(currentFrame)")
+                    }
+                } else {
+                    print("ERROR: playerAnimationDown is nil!")
+                }
+            }
+            if isMovingRight && !isUsingRightAnimation {
+                // Switch to right animation
+                if var rightAnim = playerAnimationRight {
+                    rightAnim.currentFrame = animation.currentFrame
+                    rightAnim.elapsedTime = animation.elapsedTime
+                    rightAnim.isPlaying = animation.isPlaying
+                    animation = rightAnim
+                    sprite.animation = animation
+                    // Immediately update texture to match current frame
+                    if let currentFrame = animation.update(deltaTime: 0) {
+                        sprite.textureId = currentFrame
+                        // print("Switched to RIGHT animation, frame: \(currentFrame)")
+                    }
+                } else {
+                    print("ERROR: playerAnimationRight is nil!")
+                }
+            }
             // Switch animation set if direction changed
             if isMovingLeft && !isUsingLeftAnimation {
                 // Switch to left animation
@@ -641,22 +719,6 @@ final class Player {
                     }
                 } else {
                     print("ERROR: playerAnimationLeft is nil!")
-                }
-            } else if !isMovingLeft && isUsingLeftAnimation {
-                // Switch to right animation
-                if var rightAnim = playerAnimationRight {
-                    rightAnim.currentFrame = animation.currentFrame
-                    rightAnim.elapsedTime = animation.elapsedTime
-                    rightAnim.isPlaying = animation.isPlaying
-                    animation = rightAnim
-                    sprite.animation = animation
-                    // Immediately update texture to match current frame
-                    if let currentFrame = animation.update(deltaTime: 0) {
-                        sprite.textureId = currentFrame
-                        // print("Switched to RIGHT animation, frame: \(currentFrame)")
-                    }
-                } else {
-                    print("ERROR: playerAnimationRight is nil!")
                 }
             }
             
@@ -675,7 +737,7 @@ final class Player {
                 animation.reset()
             }
             // Default to right-facing first frame
-            sprite.textureId = animation.frames.first ?? "player_0"
+            sprite.textureId = animation.frames.first ?? "player_down_0"
         }
         
         sprite.animation = animation

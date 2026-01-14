@@ -605,7 +605,7 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
     }
 
     override func render(in renderer: MetalRenderer) {
-        // Render scroll area background (slightly inset to show border)
+        // Render scroll area background and border (outside scissor so they're always visible)
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
         let backgroundSize = scrollArea.size * 0.98  // Slightly smaller than border
         renderer.queueSprite(SpriteInstance(
@@ -625,6 +625,10 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
             layer: .ui
         ))
 
+        // GPU clip to scroll area for content
+        renderer.pushClip(scrollArea)
+        defer { renderer.popClip() }
+
         // Render visible recipe buttons with scroll offset
         for button in recipeButtons {
             let scrolledFrame = Rect(
@@ -632,17 +636,15 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
                 size: button.frame.size
             )
 
-            // Only render if button is visible in scroll area
-            if scrollArea.intersects(scrolledFrame) {
-                // Temporarily modify button frame for rendering
-                let originalFrame = button.frame
-                button.frame = scrolledFrame
-                button.render(renderer: renderer)
-                button.frame = originalFrame  // Restore original frame
-            }
+            // Scissor will handle clipping, so we can render all buttons
+            // (partial buttons will be clipped by GPU)
+            let originalFrame = button.frame
+            button.frame = scrolledFrame
+            button.render(renderer: renderer)
+            button.frame = originalFrame  // Restore original frame
         }
 
-        // Render scroll indicator if needed
+        // Render scroll indicator (also clipped to scroll area)
         if maxScrollOffset > 0 {
             renderScrollIndicator(renderer: renderer)
         }
@@ -677,11 +679,11 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
         // For now, get all enabled recipes (TODO: filter by building type)
         self.availableRecipes = gameLoop.recipeRegistry.enabled
 
-        // Set up scroll area (same as original scroll view dimensions)
-        let scrollAreaWidth: Float = 300 * UIScale
-        let scrollAreaHeight: Float = 140 * UIScale
+        // Set up scroll area (dimensions in pixels, same proportions as original)
+        let scrollAreaWidth: Float = 300 * UIScale  // Already in pixels
+        let scrollAreaHeight: Float = 140 * UIScale // Already in pixels
         let scrollAreaX = ui.frame.center.x - scrollAreaWidth/2
-        // Position below progress bar: progress bar bottom + margin
+        // Position below progress bar: progress bar bottom + margin (in pixels)
         let scrollAreaY = ui.frame.center.y - 10 * UIScale
 
         scrollArea = Rect(
@@ -690,8 +692,8 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
         )
 
         // Position buttons in a grid within the content area
-        let buttonSize: Float = 32 * UIScale
-        let buttonSpacing: Float = 8 * UIScale
+        let buttonSize: Float = 32 * UIScale  // Button size in pixels
+        let buttonSpacing: Float = 8 * UIScale // Button spacing in pixels
         let buttonsPerRow = 4
 
         // Calculate content dimensions
@@ -706,7 +708,7 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
 
         // Center the button grid horizontally within the content
         let startX = contentStartX + (contentWidth - (Float(buttonsPerRow) * buttonSize + Float(buttonsPerRow - 1) * buttonSpacing)) / 2
-        let startY = contentStartY + 4 * UIScale  // Small top margin
+        let startY = contentStartY + 4 * UIScale  // Small top margin in pixels
 
         for (index, recipe) in availableRecipes.enumerated() {
             let row = index / buttonsPerRow
@@ -802,6 +804,8 @@ final class MachineUI: UIPanel_Base {
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         self.screenSize = screenSize
 
+        // Create panel frame in pixels (Metal renderer expects pixel coordinates)
+        // UIScale already converts from points to pixels, so use it directly
         let panelWidth: Float = 600 * UIScale
         let panelHeight: Float = 350 * UIScale
         let panelFrame = Rect(
@@ -1307,10 +1311,6 @@ final class MachineUI: UIPanel_Base {
     override func update(deltaTime: Float) {
         guard isOpen else { return }
 
-        // Update inventory slots to reflect current inventory state
-        if let entity = currentEntity {
-            setupSlotsForMachine(entity)
-        }
 
         // Update button states based on craftability and crafting status
         guard let player = gameLoop?.player,
@@ -1335,10 +1335,57 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
+    /// Render custom tiled background for MachineUI to avoid texture stretching
+    private func renderCustomBackground(renderer: MetalRenderer) {
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+
+        // Create inset frame for background (leave room for border)
+        let insetAmount: Float = 2 * UIScale
+        let backgroundFrame = Rect(
+            origin: Vector2(frame.minX + insetAmount, frame.minY + insetAmount),
+            size: Vector2(frame.size.x - insetAmount * 2, frame.size.y - insetAmount * 2)
+        )
+
+        // Tile the background with solid_white texture
+        let tileSize: Float = 64 * UIScale  // 64 pixel tiles
+        let tilesX = Int(ceil(backgroundFrame.size.x / tileSize))
+        let tilesY = Int(ceil(backgroundFrame.size.y / tileSize))
+
+        for y in 0..<tilesY {
+            for x in 0..<tilesX {
+                let tileX = backgroundFrame.minX + Float(x) * tileSize + tileSize/2
+                let tileY = backgroundFrame.minY + Float(y) * tileSize + tileSize/2
+
+                // Calculate tile size (edge tiles might be smaller)
+                let tileWidth = min(tileSize, backgroundFrame.maxX - (backgroundFrame.minX + Float(x) * tileSize))
+                let tileHeight = min(tileSize, backgroundFrame.maxY - (backgroundFrame.minY + Float(y) * tileSize))
+
+                renderer.queueSprite(SpriteInstance(
+                    position: Vector2(tileX, tileY),
+                    size: Vector2(tileWidth, tileHeight),
+                    textureRect: solidRect,
+                    color: backgroundColor,
+                    layer: .ui
+                ))
+            }
+        }
+    }
+
     override func render(renderer: MetalRenderer) {
         guard isOpen else { return }
 
-        super.render(renderer: renderer)
+        // Render panel border first (so it appears behind the background)
+        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+        renderer.queueSprite(SpriteInstance(
+            position: frame.center,
+            size: frame.size,
+            textureRect: solidRect,
+            color: Color(r: 0.3, g: 0.3, b: 0.3, a: 1.0), // Border color
+            layer: .ui
+        ))
+
+        // Custom background rendering for MachineUI (avoids texture stretching issues)
+        renderCustomBackground(renderer: renderer)
 
         // Render fuel slots
         for i in 0..<fuelSlots.count {
@@ -1355,10 +1402,7 @@ final class MachineUI: UIPanel_Base {
             outputSlots[i].render(renderer: renderer)
         }
 
-        // update count labels
-        if let entity = currentEntity {
-            updateMachine(entity)
-        }
+        // Count labels are updated in updateMachine() which is called from update(deltaTime:)
         
         // Legacy recipe buttons (to be removed)
         for button in recipeButtons {

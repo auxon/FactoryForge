@@ -1204,10 +1204,17 @@ class UIPanel_Base {
     func update(deltaTime: Float) {}
     
     func render(renderer: MetalRenderer) {
-        guard isOpen else { return }
-        
-        // Render background
+        guard isOpen else {
+            print("UIPanel_Base: not open, skipping render")
+            return
+        }
+
+        // TEMP: Don't clip the panel to test if clipping is the issue
+        // renderer.pushClip(frame)
+        // defer { renderer.popClip() }
+
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
+
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size,
@@ -1215,7 +1222,10 @@ class UIPanel_Base {
             color: backgroundColor,
             layer: .ui
         ))
+
+        print("UIPanel_Base: sprite queued")
     }
+
     
     func handleTap(at position: Vector2) -> Bool {
         return frame.contains(position)

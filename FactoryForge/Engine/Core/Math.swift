@@ -203,6 +203,12 @@ struct Rect: Codable {
     }
 }
 
+extension Rect: Equatable {
+    static func == (lhs: Rect, rhs: Rect) -> Bool {
+        return lhs.origin == rhs.origin && lhs.size == rhs.size
+    }
+}
+
 // MARK: - Direction
 enum Direction: Int, CaseIterable, Codable {
     case north = 0

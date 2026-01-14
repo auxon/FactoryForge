@@ -100,8 +100,10 @@ final class TextureAtlas {
             ("solid_white", nil),
 
             // Entities (load sprite sheets first - they extract all frames)
-            ("player", nil),
+            ("player_right", nil),
             ("player_left", nil),
+            ("player_up", nil),
+            ("player_down", nil),
             ("biter_left", nil),
             ("biter_right", nil),
             ("biter", nil),
@@ -363,11 +365,11 @@ final class TextureAtlas {
         
         // Check if this is a sprite sheet with animations (player or biter)
         // Player and biter sprite sheets are 1024x1024 with 4x4 grid (16 frames, each 256x256)
-        if (name == "player" || name == "player_left") && imageWidth == 1024 && imageHeight == 1024 {
+        if (name == "player_right" || name == "player_left" || name == "player_up" || name == "player_down") && imageWidth == 1024 && imageHeight == 1024 {
             // Load all 16 frames from 4x4 grid for player
             let frameSize = 256  // 1024 / 4 = 256
             let framesPerRow = 4
-            let prefix = name == "player_left" ? "player_left" : "player"
+            let prefix = name == "player_right" ? "player_right" : name == "player_left" ? "player_left" : name == "player_up" ? "player_up" : "player_down"
 
             for frameIndex in 0..<16 {
                 let row = frameIndex / framesPerRow

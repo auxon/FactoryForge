@@ -32,10 +32,17 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     // Screen size
     private(set) var screenSize: Vector2 = .zero
-    
+
+    // Drawable size for scissor calculations
+    var drawableSize: CGSize = .zero
+
+    // UI clip stack and batching for proper scissor support
+    private var uiClipStack: [Rect] = []
+    private var uiBatches: [(clip: Rect?, sprites: [SpriteInstance])] = []
+
     // Game loop reference
     weak var gameLoop: GameLoop?
-    
+
     // UI system reference (needed for loading menu)
     weak var uiSystem: UISystem?
 
@@ -53,7 +60,27 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         showFluidDebug.toggle()
         print("Fluid debug visualization: \(showFluidDebug ? "ON" : "OFF")")
     }
-    
+
+    /// Push a UI clip rect for sprite batching
+    func pushClip(_ rect: Rect) {
+        uiClipStack.append(rect)
+    }
+
+    /// Pop the current UI clip rect
+    func popClip() {
+        _ = uiClipStack.popLast()
+    }
+
+    private func currentClip() -> Rect? {
+        return uiClipStack.last
+    }
+
+    #if DEBUG
+    func debugCurrentClip() -> Rect? { currentClip() }
+    #endif
+
+
+
     // Frame statistics
     private(set) var drawCallCount: Int = 0
     private(set) var triangleCount: Int = 0
@@ -194,10 +221,14 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     }
     
     func draw(in view: MTKView) {
+        // Safety reset - prevents stale clip state from poisoning frames
+        uiClipStack.removeAll(keepingCapacity: true)
+        uiBatches.removeAll(keepingCapacity: true)
+
         // Reset stats
         drawCallCount = 0
         triangleCount = 0
-        
+
         // Update game logic
         gameLoop?.update()
         
@@ -222,7 +253,10 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         guard let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             return
         }
-        
+
+        // Set drawable size for scissor calculations
+        drawableSize = view.drawableSize
+
         encoder.setDepthStencilState(depthState)
         
         // Calculate view-projection matrix
@@ -267,14 +301,34 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     
     func queueSprite(_ sprite: SpriteInstance) {
         if sprite.layer == .ui {
-            uiSprites.append(sprite)
+
+            // Batch UI sprites by current clip rect
+            let clip = currentClip()
+
+            // Check if we can append to the last batch
+            if let lastBatch = uiBatches.last {
+                let sameClip =
+                    (clip == nil && lastBatch.clip == nil) ||
+                    (clip != nil && lastBatch.clip != nil &&
+                     abs(clip!.minX - lastBatch.clip!.minX) < 0.1 &&
+                     abs(clip!.minY - lastBatch.clip!.minY) < 0.1 &&
+                     abs(clip!.size.x - lastBatch.clip!.size.x) < 0.1 &&
+                     abs(clip!.size.y - lastBatch.clip!.size.y) < 0.1)
+
+                if sameClip {
+                    uiBatches[uiBatches.count - 1].sprites.append(sprite)
+                } else {
+                    uiBatches.append((clip: clip, sprites: [sprite]))
+                }
+            } else {
+                // No existing batches, create the first one
+                uiBatches.append((clip: clip, sprites: [sprite]))
+            }
         } else {
             spriteRenderer.queue(sprite)
         }
     }
     
-    // UI sprites rendered in screen space
-    private var uiSprites: [SpriteInstance] = []
     
     func queueParticle(_ particle: ParticleInstance) {
         particleRenderer.queue(particle)
@@ -295,71 +349,96 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     // MARK: - UI Rendering
     
     private func renderUISprites(encoder: MTLRenderCommandEncoder) {
-        guard !uiSprites.isEmpty else {
-            return
-        }
-        
-        // Create UI vertex data directly
-        var vertices: [UIVertex] = []
-        vertices.reserveCapacity(uiSprites.count * 6)
-        
-        for sprite in uiSprites {
-            // print("  UI sprite at (\(sprite.position.x), \(sprite.position.y)) size (\(sprite.size.x), \(sprite.size.y))")
-            let halfSize = sprite.size * 0.5
-            let center = sprite.position
-            
-            // Quad corners in screen space
-            let topLeft = center + Vector2(-halfSize.x, -halfSize.y)
-            let topRight = center + Vector2(halfSize.x, -halfSize.y)
-            let bottomLeft = center + Vector2(-halfSize.x, halfSize.y)
-            let bottomRight = center + Vector2(halfSize.x, halfSize.y)
-            
-            let uvOrigin = sprite.textureRect.origin
-            let uvSize = sprite.textureRect.size
-            let uvTopLeft = Vector2(uvOrigin.x, uvOrigin.y)
-            let uvTopRight = Vector2(uvOrigin.x + uvSize.x, uvOrigin.y)
-            let uvBottomLeft = Vector2(uvOrigin.x, uvOrigin.y + uvSize.y)
-            let uvBottomRight = Vector2(uvOrigin.x + uvSize.x, uvOrigin.y + uvSize.y)
-            
-            let color = sprite.color.vector4
-            
-            // Two triangles
-            vertices.append(UIVertex(position: topLeft, texCoord: uvTopLeft, color: color))
-            vertices.append(UIVertex(position: topRight, texCoord: uvTopRight, color: color))
-            vertices.append(UIVertex(position: bottomRight, texCoord: uvBottomRight, color: color))
-            
-            vertices.append(UIVertex(position: topLeft, texCoord: uvTopLeft, color: color))
-            vertices.append(UIVertex(position: bottomRight, texCoord: uvBottomRight, color: color))
-            vertices.append(UIVertex(position: bottomLeft, texCoord: uvBottomLeft, color: color))
-        }
-        
-        uiSprites.removeAll(keepingCapacity: true)
-        
-        guard !vertices.isEmpty else { return }
+        guard !uiBatches.isEmpty else { return }
         guard let uiVertexBuffer = uiVertexBuffer else { return }
-        
-        // Limit to max vertices
-        let vertexCount = min(vertices.count, maxUIVertices)
-        
-        // Copy vertex data to buffer
-        uiVertexBuffer.contents().copyMemory(
-            from: vertices,
-            byteCount: MemoryLayout<UIVertex>.stride * vertexCount
-        )
-        
-        // Set uniforms
+
         var uniforms = UIUniforms(screenSize: screenSize)
         encoder.setVertexBytes(&uniforms, length: MemoryLayout<UIUniforms>.size, index: 0)
-        
-        // Set vertex buffer
         encoder.setVertexBuffer(uiVertexBuffer, offset: 0, index: 1)
-        
-        // Set texture
         encoder.setFragmentTexture(textureAtlas.atlasTexture, index: 0)
         encoder.setFragmentSamplerState(textureAtlas.sampler, index: 0)
-        
-        // Draw
-        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+
+        // Render each batch with its clip rect
+        for batch in uiBatches {
+            // Apply scissor for this batch
+            if let clipRect = batch.clip {
+                let scissor = clipRect.toScissorRect(drawableSize: drawableSize)
+                encoder.setScissorRect(scissor)
+            } else {
+                // Reset to full framebuffer if no clip
+                encoder.setScissorRect(MTLScissorRect(
+                    x: 0, y: 0,
+                    width: Int(drawableSize.width),
+                    height: Int(drawableSize.height)
+                ))
+            }
+
+            // Build vertices for this batch
+            var vertices: [UIVertex] = []
+            vertices.reserveCapacity(batch.sprites.count * 6)
+
+            for sprite in batch.sprites {
+                let halfSize = sprite.size * 0.5
+                let center = sprite.position
+
+                // Quad corners in screen space
+                let topLeft = center + Vector2(-halfSize.x, -halfSize.y)
+                let topRight = center + Vector2(halfSize.x, -halfSize.y)
+                let bottomLeft = center + Vector2(-halfSize.x, halfSize.y)
+                let bottomRight = center + Vector2(halfSize.x, halfSize.y)
+
+                // TextureAtlas already returns normalized UV coordinates
+                let uvOrigin = sprite.textureRect.origin
+                let uvSize = sprite.textureRect.size
+
+                let uvTopLeft = Vector2(uvOrigin.x, uvOrigin.y)
+                let uvTopRight = Vector2(uvOrigin.x + uvSize.x, uvOrigin.y)
+                let uvBottomLeft = Vector2(uvOrigin.x, uvOrigin.y + uvSize.y)
+                let uvBottomRight = Vector2(uvOrigin.x + uvSize.x, uvOrigin.y + uvSize.y)
+
+                let color = sprite.color.vector4
+
+                // Two triangles
+                vertices.append(UIVertex(position: topLeft, texCoord: uvTopLeft, color: color))
+                vertices.append(UIVertex(position: topRight, texCoord: uvTopRight, color: color))
+                vertices.append(UIVertex(position: bottomRight, texCoord: uvBottomRight, color: color))
+
+                vertices.append(UIVertex(position: topLeft, texCoord: uvTopLeft, color: color))
+                vertices.append(UIVertex(position: bottomRight, texCoord: uvBottomRight, color: color))
+                vertices.append(UIVertex(position: bottomLeft, texCoord: uvBottomLeft, color: color))
+            }
+
+            guard !vertices.isEmpty else { continue }
+
+            // Limit to max vertices
+            let vertexCount = min(vertices.count, maxUIVertices)
+
+            // Copy vertex data to buffer
+            uiVertexBuffer.contents().copyMemory(
+                from: vertices,
+                byteCount: MemoryLayout<UIVertex>.stride * vertexCount
+            )
+
+            // Draw this batch
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: vertexCount)
+        }
+
+        uiBatches.removeAll(keepingCapacity: true)
+
+        // Reset scissor to full screen after UI rendering
+        encoder.setScissorRect(MTLScissorRect(
+            x: 0, y: 0,
+            width: Int(drawableSize.width),
+            height: Int(drawableSize.height)
+        ))
+
+        // Debug: Assert clip stack is empty (catch unbalanced push/pop)
+        #if DEBUG
+        if !uiClipStack.isEmpty {
+            print("ERROR: uiClipStack not empty at end of frame: \(uiClipStack.count)")
+            uiClipStack.removeAll(keepingCapacity: true)
+        }
+        #endif
     }
 
     /// Clear any cached rendering data when starting a new game
@@ -367,6 +446,28 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         // Clear any renderer-specific cached data here
         // Currently no persistent caches, but this method ensures
         // future caches get cleared when starting new games
+    }
+}
+
+// MARK: - UI Clipping Extensions
+
+extension Rect {
+    func toScissorRect(drawableSize: CGSize) -> MTLScissorRect {
+        let x = Int(floor(minX))
+        let y = Int(floor(minY))
+        let w = Int(ceil(size.x))
+        let h = Int(ceil(size.y))
+
+        // Clamp to framebuffer bounds (Metal dislikes out-of-range scissors)
+        let maxW = Int(drawableSize.width)
+        let maxH = Int(drawableSize.height)
+
+        let cx = max(0, min(x, maxW))
+        let cy = max(0, min(y, maxH))
+        let cw = max(0, min(w, maxW - cx))
+        let ch = max(0, min(h, maxH - cy))
+
+        return MTLScissorRect(x: cx, y: cy, width: cw, height: ch)
     }
 }
 
@@ -503,10 +604,12 @@ struct SpriteInstance {
     var layer: RenderLayer
     var flipX: Bool
     var flipY: Bool
+    var scissor: MTLScissorRect?
     
     init(position: Vector2, size: Vector2 = Vector2(1, 1), rotation: Float = 0,
          textureRect: Rect = Rect(x: 0, y: 0, width: 1, height: 1),
-         color: Color = .white, layer: RenderLayer = .entity, flipX: Bool = false, flipY: Bool = false) {
+         color: Color = .white, layer: RenderLayer = .entity, flipX: Bool = false, flipY: Bool = false,
+         scissor: MTLScissorRect? = nil) {
         self.position = position
         self.size = size
         self.rotation = rotation
@@ -515,6 +618,7 @@ struct SpriteInstance {
         self.flipX = flipX
         self.flipY = flipY
         self.layer = layer
+        self.scissor = scissor
     }
 }
 
