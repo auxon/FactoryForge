@@ -629,20 +629,7 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
         renderer.pushClip(scrollArea)
         defer { renderer.popClip() }
 
-        // Render visible recipe buttons with scroll offset
-        for button in recipeButtons {
-            let scrolledFrame = Rect(
-                center: button.frame.center - Vector2(0, scrollOffset),
-                size: button.frame.size
-            )
-
-            // Scissor will handle clipping, so we can render all buttons
-            // (partial buttons will be clipped by GPU)
-            let originalFrame = button.frame
-            button.frame = scrolledFrame
-            button.render(renderer: renderer)
-            button.frame = originalFrame  // Restore original frame
-        }
+        // Recipe buttons are now handled by UIKit - no Metal rendering needed
 
         // Render scroll indicator (also clipped to scroll area)
         if maxScrollOffset > 0 {
@@ -670,8 +657,8 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
     private func refreshRecipeButtons(for entity: Entity, in ui: MachineUI) {
         guard let gameLoop = ui.gameLoop else { return }
 
-        // Clear existing buttons
-        recipeButtons.removeAll()
+        // Clear existing buttons (disabled - using UIKit now)
+        // recipeButtons.removeAll()
 
         // Get available recipes for this machine
         guard gameLoop.world.has(AssemblerComponent.self, for: entity) else { return }
@@ -722,12 +709,12 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
                 size: Vector2(buttonSize, buttonSize)
             )
 
-            let button = MachineRecipeButton(frame: buttonFrame, recipe: recipe)
-            button.onTap = { [weak self] in
-                self?.recipeSelectionCallback?(entity, recipe)
-            }
-
-            recipeButtons.append(button)
+            // Recipe buttons are now handled by UIKit in MachineUI - no Metal buttons needed
+            // let button = MachineRecipeButton(frame: buttonFrame, recipe: recipe)
+            // button.onTap = { [weak self] in
+            //     self?.recipeSelectionCallback?(entity, recipe)
+            // }
+            // recipeButtons.append(button)
         }
 
         // Calculate max scroll offset
@@ -1588,11 +1575,8 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Count labels are updated in updateMachine() which is called from update(deltaTime:)
-        
-        // Legacy recipe buttons (to be removed)
-        for button in recipeButtons {
-            button.render(renderer: renderer)
-        }
+
+        // Recipe buttons are now handled by UIKit - no Metal rendering needed
 
         // Render progress bar
         renderProgressBar(renderer: renderer)
@@ -1814,33 +1798,9 @@ final class MachineUI: UIPanel_Base {
             return true
         }
 
-        // Check component recipe buttons (with scroll offset)
-        for component in machineComponents {
-            if let assemblyComponent = component as? AssemblyMachineUIComponent {
-                for button in assemblyComponent.recipeButtons {
-                    // Adjust button position for scroll offset
-                    let scrolledFrame = Rect(
-                        center: button.frame.center - Vector2(0, assemblyComponent.scrollOffset),
-                        size: button.frame.size
-                    )
+        // Recipe buttons are now UIKit buttons - taps handled by UIKit
 
-                    // Create a temporary button with scrolled position for tap checking
-                    let scrolledButton = MachineRecipeButton(frame: scrolledFrame, recipe: button.recipe)
-                    scrolledButton.onTap = button.onTap
-
-                    if scrolledButton.handleTap(at: position) {
-                        return true
-                    }
-                }
-            }
-        }
-
-        // Check legacy recipe buttons (to be removed)
-        for button in recipeButtons {
-            if button.handleTap(at: position) {
-                return true
-            }
-        }
+        // Recipe buttons are now UIKit buttons - taps handled by UIKit
 
         // Get building component for inventory index calculations
         guard let entity = currentEntity, let gameLoop = gameLoop else { return false }
