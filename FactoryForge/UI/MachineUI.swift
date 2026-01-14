@@ -766,9 +766,6 @@ final class MachineUI: UIPanel_Base {
             return
         }
 
-        let slotSize: Float = 40 * UIScale
-        let slotSpacing: Float = 5 * UIScale
-
         let inputCount = buildingDef.inputSlots
         let outputCount = buildingDef.outputSlots
         let fuelCount = buildingDef.fuelSlots
@@ -789,10 +786,16 @@ final class MachineUI: UIPanel_Base {
 
             // Configure button appearance
             var config = UIKit.UIButton.Configuration.plain()
-            config.background.backgroundColor = UIColor(red: 0.35, green: 0.35, blue: 0.35, alpha: 1.0) // Lighter gray for fuel
+            config.background.backgroundColor = UIColor(red: 0.5, green: 0.5, blue: 0.6, alpha: 1.0) // Distinct blue-gray for fuel
             config.background.strokeColor = UIColor.white
             config.background.strokeWidth = 1.0
             config.background.cornerRadius = 4.0
+
+            // Add pressed state feedback
+            config.background.backgroundColorTransformer = UIConfigurationColorTransformer { color in
+                return color.withAlphaComponent(0.7) // Dim when pressed
+            }
+
             button.configuration = config
 
             fuelSlotButtons.append(button)
@@ -804,13 +807,13 @@ final class MachineUI: UIPanel_Base {
             // Add to panel view
             panelView?.addSubview(button)
 
-            // Count label
+            // Count label - position bottom-right of slot like InventoryUI
             let label = UILabel()
             label.text = "0"
-            label.font = UIFont.systemFont(ofSize: 12)
+            label.font = UIFont.systemFont(ofSize: 10)
             label.textColor = .white
             label.textAlignment = .center
-            label.frame = CGRect(x: buttonX - 25, y: buttonY + buttonSizePoints + 2, width: 20, height: 12)
+            label.frame = CGRect(x: buttonX + buttonSizePoints - 18, y: buttonY + buttonSizePoints - 12, width: 16, height: 10)
             fuelCountLabels.append(label)
             panelView?.addSubview(label)
         }
@@ -830,10 +833,16 @@ final class MachineUI: UIPanel_Base {
 
             // Configure button appearance
             var config = UIKit.UIButton.Configuration.plain()
-            config.background.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 1.0) // Standard slot color
+            config.background.backgroundColor = UIColor(red: 0.4, green: 0.4, blue: 0.5, alpha: 1.0) // Distinct purple-gray for input
             config.background.strokeColor = UIColor.white
             config.background.strokeWidth = 1.0
             config.background.cornerRadius = 4.0
+
+            // Add pressed state feedback
+            config.background.backgroundColorTransformer = UIConfigurationColorTransformer { color in
+                return color.withAlphaComponent(0.7) // Dim when pressed
+            }
+
             button.configuration = config
 
             inputSlotButtons.append(button)
@@ -845,13 +854,13 @@ final class MachineUI: UIPanel_Base {
             // Add to panel view
             panelView?.addSubview(button)
 
-            // Count label
+            // Count label - position bottom-right of slot like InventoryUI
             let label = UILabel()
             label.text = "0"
-            label.font = UIFont.systemFont(ofSize: 12)
+            label.font = UIFont.systemFont(ofSize: 10)
             label.textColor = .white
             label.textAlignment = .center
-            label.frame = CGRect(x: buttonX - 25, y: buttonY + buttonSizePoints + 2, width: 20, height: 12)
+            label.frame = CGRect(x: buttonX + buttonSizePoints - 18, y: buttonY + buttonSizePoints - 12, width: 16, height: 10)
             inputCountLabels.append(label)
             panelView?.addSubview(label)
         }
@@ -871,10 +880,16 @@ final class MachineUI: UIPanel_Base {
 
             // Configure button appearance
             var config = UIKit.UIButton.Configuration.plain()
-            config.background.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 1.0) // Standard slot color
+            config.background.backgroundColor = UIColor(red: 0.3, green: 0.5, blue: 0.3, alpha: 1.0) // Green for output
             config.background.strokeColor = UIColor.white
             config.background.strokeWidth = 1.0
             config.background.cornerRadius = 4.0
+
+            // Add pressed state feedback
+            config.background.backgroundColorTransformer = UIConfigurationColorTransformer { color in
+                return color.withAlphaComponent(0.7) // Dim when pressed
+            }
+
             button.configuration = config
 
             outputSlotButtons.append(button)
@@ -886,13 +901,13 @@ final class MachineUI: UIPanel_Base {
             // Add to panel view
             panelView?.addSubview(button)
 
-            // Count label
+            // Count label - position bottom-right of slot like InventoryUI
             let label = UILabel()
             label.text = "0"
-            label.font = UIFont.systemFont(ofSize: 12)
+            label.font = UIFont.systemFont(ofSize: 10)
             label.textColor = .white
             label.textAlignment = .center
-            label.frame = CGRect(x: buttonX - 25, y: buttonY + buttonSizePoints + 2, width: 20, height: 12)
+            label.frame = CGRect(x: buttonX + buttonSizePoints - 18, y: buttonY + buttonSizePoints - 12, width: 16, height: 10)
             outputCountLabels.append(label)
             panelView?.addSubview(label)
         }
@@ -940,6 +955,20 @@ final class MachineUI: UIPanel_Base {
 
         // Setup power label for generators
         setupPowerLabel(for: entity)
+
+        // Recreate UIKit slot buttons if UI is open
+        if isOpen {
+            // Clear existing buttons
+            fuelSlotButtons.forEach { $0.removeFromSuperview() }
+            inputSlotButtons.forEach { $0.removeFromSuperview() }
+            outputSlotButtons.forEach { $0.removeFromSuperview() }
+            fuelSlotButtons.removeAll()
+            inputSlotButtons.removeAll()
+            outputSlotButtons.removeAll()
+
+            // Recreate buttons
+            setupSlotButtons()
+        }
     }
 
     private func setupPowerLabel(for entity: Entity) {
@@ -992,6 +1021,141 @@ final class MachineUI: UIPanel_Base {
 
         // Content size will be set when buttons are added
         scrollView.contentSize = CGSize(width: scrollViewWidth, height: scrollViewHeight)
+    }
+
+    private func setupSlotButtons() {
+        guard let entity = currentEntity,
+              let gameLoop = gameLoop else { return }
+
+        // Get building definition to know how many slots
+        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { return }
+
+        let inputCount = buildingDef.inputSlots
+        let outputCount = buildingDef.outputSlots
+        let fuelCount = buildingDef.fuelSlots
+
+        // Create fuel slots (left side, top) - UIKit buttons
+        for i in 0..<fuelCount {
+            // Simple positioning relative to panel center in points
+            let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
+            let buttonSizePoints: CGFloat = 32  // Already in points
+            let spacingPoints: CGFloat = 8
+
+            // Position relative to panel center
+            let buttonX = panelBounds.midX - 200  // Left side
+            let buttonY = panelBounds.midY - 120 + (buttonSizePoints + spacingPoints) * CGFloat(i)  // Top area
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+
+            // Configure button appearance
+            button.backgroundColor = UIColor(red: 0.5, green: 0.5, blue: 0.6, alpha: 1.0) // Distinct blue-gray for fuel
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1.0
+            button.layer.cornerRadius = 4.0
+            button.translatesAutoresizingMaskIntoConstraints = false
+
+            fuelSlotButtons.append(button)
+
+            // Add tap handler
+            button.tag = i
+            button.addTarget(self, action: #selector(fuelSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+
+            // Add to panel view
+            panelView?.addSubview(button)
+
+            // Count label - position bottom-right of slot like InventoryUI
+            let label = UILabel()
+            label.text = "0"
+            label.font = UIFont.systemFont(ofSize: 10)
+            label.textColor = .white
+            label.textAlignment = .center
+            label.frame = CGRect(x: buttonX + buttonSizePoints - 18, y: buttonY + buttonSizePoints - 12, width: 16, height: 10)
+            label.translatesAutoresizingMaskIntoConstraints = false
+            fuelCountLabels.append(label)
+            panelView?.addSubview(label)
+        }
+
+        // Create input slots (left side, below fuel) - UIKit buttons
+        for i in 0..<inputCount {
+            // Simple positioning relative to panel center in points
+            let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
+            let buttonSizePoints: CGFloat = 32  // Already in points
+            let spacingPoints: CGFloat = 8
+
+            // Position relative to panel center - single column
+            let buttonX = panelBounds.midX - 200  // Left side
+            let buttonY = panelBounds.midY - 80 + (buttonSizePoints + spacingPoints) * CGFloat(i)   // Below fuel area, vertical stack
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+
+            // Configure button appearance
+            button.backgroundColor = UIColor(red: 0.4, green: 0.4, blue: 0.5, alpha: 1.0) // Distinct purple-gray for input
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1.0
+            button.layer.cornerRadius = 4.0
+            button.translatesAutoresizingMaskIntoConstraints = false
+
+            inputSlotButtons.append(button)
+
+            // Add tap handler
+            button.tag = i
+            button.addTarget(self, action: #selector(inputSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+
+            // Add to panel view
+            panelView?.addSubview(button)
+
+            // Count label - position bottom-right of slot like InventoryUI
+            let label = UILabel()
+            label.text = "0"
+            label.font = UIFont.systemFont(ofSize: 10)
+            label.textColor = .white
+            label.textAlignment = .center
+            label.frame = CGRect(x: buttonX + buttonSizePoints - 18, y: buttonY + buttonSizePoints - 12, width: 16, height: 10)
+            label.translatesAutoresizingMaskIntoConstraints = false
+            inputCountLabels.append(label)
+            panelView?.addSubview(label)
+        }
+
+        // Create output slots (right side) - UIKit buttons
+        for i in 0..<outputCount {
+            // Simple positioning relative to panel center in points
+            let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
+            let buttonSizePoints: CGFloat = 32  // Already in points
+            let spacingPoints: CGFloat = 8
+
+            // Position relative to panel center - single column
+            let buttonX = panelBounds.midX + 200  // Right side
+            let buttonY = panelBounds.midY - 80 + (buttonSizePoints + spacingPoints) * CGFloat(i)   // Same Y as inputs
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+
+            // Configure button appearance
+            button.backgroundColor = UIColor(red: 0.3, green: 0.5, blue: 0.3, alpha: 1.0) // Green for output
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1.0
+            button.layer.cornerRadius = 4.0
+            button.translatesAutoresizingMaskIntoConstraints = false
+
+            outputSlotButtons.append(button)
+
+            // Add tap handler
+            button.tag = i
+            button.addTarget(self, action: #selector(outputSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+
+            // Add to panel view
+            panelView?.addSubview(button)
+
+            // Count label - position bottom-right of slot like InventoryUI
+            let label = UILabel()
+            label.text = "0"
+            label.font = UIFont.systemFont(ofSize: 10)
+            label.textColor = .white
+            label.textAlignment = .center
+            label.frame = CGRect(x: buttonX + buttonSizePoints - 18, y: buttonY + buttonSizePoints - 12, width: 16, height: 10)
+            label.translatesAutoresizingMaskIntoConstraints = false
+            outputCountLabels.append(label)
+            panelView?.addSubview(label)
+        }
     }
 
     private func setupRecipeButtons() {
@@ -1099,30 +1263,13 @@ final class MachineUI: UIPanel_Base {
             filename = "belt"  // Use same image
         case "express_transport_belt":
             filename = "belt"  // Use same image
-        case "iron-plate":
-            filename = "iron_plate"
-        case "copper-plate":
-            filename = "copper_plate"
-        case "steel-plate":
-            filename = "steel_plate"
         default:
             // Replace underscores with nothing for some cases
-            filename = textureId.replacingOccurrences(of: "_", with: "")
+            filename = textureId.replacingOccurrences(of: "-", with: "_")
         }
 
         // Try to load from bundle
         if let imagePath = Bundle.main.path(forResource: filename, ofType: "png") {
-            return UIImage(contentsOfFile: imagePath)
-        }
-
-        // Try with underscore replacement
-        let underscoreFilename = filename.replacingOccurrences(of: "-", with: "_")
-        if let imagePath = Bundle.main.path(forResource: underscoreFilename, ofType: "png") {
-            return UIImage(contentsOfFile: imagePath)
-        }
-
-        // Try original name with underscores
-        if let imagePath = Bundle.main.path(forResource: textureId.replacingOccurrences(of: "-", with: "_"), ofType: "png") {
             return UIImage(contentsOfFile: imagePath)
         }
 
@@ -1139,7 +1286,63 @@ final class MachineUI: UIPanel_Base {
 
         if recipeIndex >= 0 && recipeIndex < availableRecipes.count {
             let recipe = availableRecipes[recipeIndex]
-            onSelectRecipeForMachine?(entity, recipe)
+
+            // Check if player has all required items and transfer them automatically
+            var playerInventory = gameLoop.player.inventory
+            var canCraft = true
+
+            // Check each input item
+            for input in recipe.inputs {
+                if !playerInventory.has(itemId: input.itemId, count: input.count) {
+                    canCraft = false
+                    break
+                }
+            }
+
+            if canCraft {
+                // Automatically transfer items from player inventory to machine input slots
+                guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+                      let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else {
+                    return
+                }
+
+                // Transfer each input item to the appropriate machine input slot
+                for (index, input) in recipe.inputs.enumerated() {
+                    let machineSlotIndex = buildingDef.fuelSlots + index
+                    if machineSlotIndex < machineInventory.slots.count {
+                        // Remove from player
+                        let _ = playerInventory.remove(itemId: input.itemId, count: input.count)
+
+                        // Add to machine input slot
+                        machineInventory.slots[machineSlotIndex] = ItemStack(
+                            itemId: input.itemId,
+                            count: input.count,
+                            maxStack: input.count // Use the required count as max
+                        )
+                    }
+                }
+
+                // Update the machine inventory
+                gameLoop.world.add(machineInventory, to: entity)
+
+                // Reset button appearance
+                var config = button.configuration ?? .plain()
+                config.baseBackgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 0.8) // Normal color
+                button.configuration = config
+
+                // Set the recipe on the machine
+                onSelectRecipeForMachine?(entity, recipe)
+
+                // Update the UI
+                updateMachine(entity)
+            } else {
+                // Cannot craft - show missing items in red on the recipe button
+                var config = button.configuration ?? .plain()
+                config.baseBackgroundColor = UIColor.red.withAlphaComponent(0.3)
+                button.configuration = config
+
+                // Could also show missing item textures, but for now just indicate with red background
+            }
         }
     }
 
@@ -1149,10 +1352,11 @@ final class MachineUI: UIPanel_Base {
         // Create UIKit panel container view
         if panelView == nil {
             panelView = UIView(frame: panelFrameInPoints())
-            panelView!.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.95)
-            panelView!.layer.cornerRadius = 12
-            panelView!.layer.borderWidth = 1
-            panelView!.layer.borderColor = UIColor(white: 1, alpha: 0.15).cgColor
+        panelView!.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.95)
+        panelView!.isUserInteractionEnabled = true  // Allow interaction
+        panelView!.layer.cornerRadius = 12
+        panelView!.layer.borderWidth = 1
+        panelView!.layer.borderColor = UIColor(white: 1, alpha: 0.15).cgColor
 
             // Create progress bar views
             let panelBounds = panelView!.bounds
@@ -1184,6 +1388,11 @@ final class MachineUI: UIPanel_Base {
             setupRecipeScrollView()
         }
         setupRecipeButtons()
+
+        // Set up UIKit slot buttons (deferred from init because panelView needs to be created first)
+        if fuelSlotButtons.isEmpty && inputSlotButtons.isEmpty && outputSlotButtons.isEmpty {
+            setupSlotButtons()
+        }
 
         // Add scroll view inside panel view
         if let recipeScrollView = recipeScrollView, let panelView = panelView {
@@ -1264,6 +1473,14 @@ final class MachineUI: UIPanel_Base {
 
         // Remove rocket launch button
         launchButton = nil
+
+        // Clear UIKit button arrays
+        fuelSlotButtons.forEach { $0.removeFromSuperview() }
+        inputSlotButtons.forEach { $0.removeFromSuperview() }
+        outputSlotButtons.forEach { $0.removeFromSuperview() }
+        fuelSlotButtons.removeAll()
+        inputSlotButtons.removeAll()
+        outputSlotButtons.removeAll()
 
         // Remove UIKit components
         if let panelView = panelView {
@@ -1452,38 +1669,104 @@ final class MachineUI: UIPanel_Base {
         let totalSlots = inventory.slots.count
         var inventoryIndex = 0
 
-        // Update fuel slot labels
+        // Update fuel slot labels and button images
         for i in 0..<fuelCountLabels.count {
             if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
                 fuelCountLabels[i].text = "\(item.count)"
                 fuelCountLabels[i].isHidden = false
+
+                // Update button image
+                if i < fuelSlotButtons.count {
+                    if let image = loadRecipeImage(for: item.itemId) {
+                        // Scale image to 80% of button size like InventoryUI does for icons
+                        let buttonSizePoints: CGFloat = 32
+                        let scaledSize = CGSize(width: buttonSizePoints * 0.8, height: buttonSizePoints * 0.8)
+                        UIGraphicsBeginImageContextWithOptions(scaledSize, false, 0.0)
+                        image.draw(in: CGRect(origin: .zero, size: scaledSize))
+                        let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
+                        UIGraphicsEndImageContext()
+
+                        fuelSlotButtons[i].setImage(scaledImage, for: .normal)
+                    } else {
+                        fuelSlotButtons[i].setImage(nil, for: .normal)
+                    }
+                }
             } else {
                 fuelCountLabels[i].text = "0"
                 fuelCountLabels[i].isHidden = true
+
+                // Clear button image
+                if i < fuelSlotButtons.count {
+                    fuelSlotButtons[i].setImage(nil, for: .normal)
+                }
             }
             inventoryIndex += 1
         }
 
-        // Update input slot labels
+        // Update input slot labels and button images
         for i in 0..<inputCountLabels.count {
             if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
                 inputCountLabels[i].text = "\(item.count)"
                 inputCountLabels[i].isHidden = false
+
+                // Update button image
+                if i < inputSlotButtons.count {
+                    if let image = loadRecipeImage(for: item.itemId) {
+                        // Scale image to 80% of button size like InventoryUI does for icons
+                        let buttonSizePoints: CGFloat = 32
+                        let scaledSize = CGSize(width: buttonSizePoints * 0.8, height: buttonSizePoints * 0.8)
+                        UIGraphicsBeginImageContextWithOptions(scaledSize, false, 0.0)
+                        image.draw(in: CGRect(origin: .zero, size: scaledSize))
+                        let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
+                        UIGraphicsEndImageContext()
+
+                        inputSlotButtons[i].setImage(scaledImage, for: .normal)
+                    } else {
+                        inputSlotButtons[i].setImage(nil, for: .normal)
+                    }
+                }
             } else {
                 inputCountLabels[i].text = "0"
                 inputCountLabels[i].isHidden = true
+
+                // Clear button image
+                if i < inputSlotButtons.count {
+                    inputSlotButtons[i].setImage(nil, for: .normal)
+                }
             }
             inventoryIndex += 1
         }
 
-        // Update output slot labels
+        // Update output slot labels and button images
         for i in 0..<outputCountLabels.count {
             if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
                 outputCountLabels[i].text = "\(item.count)"
                 outputCountLabels[i].isHidden = false
+
+                // Update button image
+                if i < outputSlotButtons.count {
+                    if let image = loadRecipeImage(for: item.itemId) {
+                        // Scale image to 80% of button size like InventoryUI does for icons
+                        let buttonSizePoints: CGFloat = 32
+                        let scaledSize = CGSize(width: buttonSizePoints * 0.8, height: buttonSizePoints * 0.8)
+                        UIGraphicsBeginImageContextWithOptions(scaledSize, false, 0.0)
+                        image.draw(in: CGRect(origin: .zero, size: scaledSize))
+                        let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
+                        UIGraphicsEndImageContext()
+
+                        outputSlotButtons[i].setImage(scaledImage, for: .normal)
+                    } else {
+                        outputSlotButtons[i].setImage(nil, for: .normal)
+                    }
+                }
             } else {
                 outputCountLabels[i].text = "0"
                 outputCountLabels[i].isHidden = true
+
+                // Clear button image
+                if i < outputSlotButtons.count {
+                    outputSlotButtons[i].setImage(nil, for: .normal)
+                }
             }
             inventoryIndex += 1
         }
