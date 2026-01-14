@@ -947,6 +947,7 @@ final class MachineUI: UIPanel_Base {
 
             // Add to root view
             rootView.addSubview(button)
+            print("MachineUI: Created input slot button \(i) at (\(buttonX), \(buttonY))")
 
             // Count label positioned relative to button
             let label = attachCountLabel(to: button)
@@ -1165,6 +1166,11 @@ final class MachineUI: UIPanel_Base {
 
                 // Update the UI
                 updateMachine(entity)
+
+                // Also update after a short delay to catch production completion
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.updateMachine(entity)
+                }
             } else {
                 // Cannot craft - show missing items in red on the recipe button
                 var config = button.configuration ?? .plain()
@@ -1750,18 +1756,31 @@ final class MachineUI: UIPanel_Base {
         let slotIndex = sender.tag
 
         // Check if the slot has an item
-        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-           slotIndex < machineInventory.slots.count,
-           machineInventory.slots[slotIndex] != nil {
-            // Slot has an item - take it out
-            handleSlotTap(entity: entity, slotIndex: slotIndex, gameLoop: gameLoop)
+        print("MachineUI: Checking slot \(slotIndex)")
+        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
+            print("MachineUI: Found inventory with \(machineInventory.slots.count) slots")
+            if slotIndex < machineInventory.slots.count {
+                if let item = machineInventory.slots[slotIndex] {
+                    print("MachineUI: Slot \(slotIndex) has item: \(item.itemId) x\(item.count)")
+                    // Slot has an item - take it out
+                    handleSlotTap(entity: entity, slotIndex: slotIndex, gameLoop: gameLoop)
+                } else {
+                    print("MachineUI: Slot \(slotIndex) is empty")
+                    // Slot is empty - open inventory to add items
+                    handleEmptySlotTap(entity: entity, slotIndex: slotIndex)
+                }
+            } else {
+                print("MachineUI: Slot index \(slotIndex) >= inventory count \(machineInventory.slots.count)")
+                handleEmptySlotTap(entity: entity, slotIndex: slotIndex)
+            }
         } else {
-            // Slot is empty - open inventory to add fuel
+            print("MachineUI: No inventory found for entity")
             handleEmptySlotTap(entity: entity, slotIndex: slotIndex)
         }
     }
 
     @objc private func inputSlotTapped(_ sender: UIKit.UIButton) {
+        print("MachineUI: inputSlotTapped tag=\(sender.tag)")
         guard let entity = currentEntity, let gameLoop = gameLoop else { return }
 
         guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { return }
@@ -1864,8 +1883,10 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func handleEmptySlotTap(entity: Entity, slotIndex: Int) {
+        print("MachineUI: handleEmptySlotTap called for slot \(slotIndex)")
         // Open inventory UI in machine input mode for this slot
         onOpenInventoryForMachine?(entity, slotIndex)
+        print("MachineUI: onOpenInventoryForMachine callback called")
     }
 
 

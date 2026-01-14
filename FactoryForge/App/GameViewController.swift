@@ -906,12 +906,22 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         uiSystem?.getMachineUI().onSelectRecipeForMachine = { [weak self] (entity: Entity, recipe: Recipe) -> Void in
             self?.gameLoop?.setMachineRecipe(entity, recipe)
         }
+        // MachineUI callback for opening inventory
         uiSystem?.getMachineUI().onOpenInventoryForMachine = { [weak self] (entity: Entity, slotIndex: Int) -> Void in
             guard let self = self else { return }
-            // Open inventory in machine input mode for the specified slot
+            print("GameViewController: onOpenInventoryForMachine - opening inventory for machine input")
+            // Open inventory UI in machine input mode for this slot
             if let inventoryUI = self.uiSystem?.getInventoryUI() {
                 inventoryUI.enterMachineInputMode(entity: entity, slotIndex: slotIndex)
-                inventoryUI.open()
+                inventoryUI.onMachineInputCompleted = { [weak self] in
+                    guard let self = self else { return }
+                    print("GameViewController: Machine input completed, reopening machine UI")
+                    // Reopen machine UI after inventory input is completed
+                    self.uiSystem?.openPanel(.machine)
+                }
+                self.uiSystem?.openPanel(.inventory)
+            } else {
+                print("GameViewController: Could not get inventoryUI")
             }
         }
         uiSystem?.getInventoryUI().onMachineInputCompleted = { [weak self] in
