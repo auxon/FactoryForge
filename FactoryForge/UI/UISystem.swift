@@ -1187,7 +1187,7 @@ class UIButton: UIElement {
 class UIPanel_Base {
     var frame: Rect
     var isOpen: Bool = false
-    var backgroundColor: Color = Color(r: 0.1, g: 0.1, b: 0.15, a: 0.95)
+    var backgroundColor: Color = Color(r: 0.1, g: 0.1, b: 0.15, a: 1.0) // Changed from 0.95 to 1.0 for full opacity
     
     init(frame: Rect) {
         self.frame = frame

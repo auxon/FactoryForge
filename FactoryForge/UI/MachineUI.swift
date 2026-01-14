@@ -1136,7 +1136,34 @@ final class MachineUI: UIPanel_Base {
 
             // Show craft button
             showCraftButton()
+
+            // Show tooltip for the selected recipe
+            showRecipeTooltip(recipe)
         }
+    }
+
+    private func showRecipeTooltip(_ recipe: Recipe) {
+        var tooltip = recipe.name
+        let timeString = String(format: "%.1f", recipe.craftTime)
+        tooltip += " (\(timeString)s)"
+
+        // Check if player can craft this recipe
+        var canCraft = true
+        if let gameLoop = gameLoop {
+            for input in recipe.inputs {
+                if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                    canCraft = false
+                    break
+                }
+            }
+        }
+
+        if !canCraft {
+            tooltip += " - Missing ingredients"
+        }
+
+        // Show the tooltip using the game's tooltip system
+        gameLoop?.inputManager?.onTooltip?(tooltip)
     }
 
     private func updateRecipeButtonStates() {
@@ -1400,9 +1427,9 @@ final class MachineUI: UIPanel_Base {
             }
         }
 
-        // If no output space, show feedback and don't craft
+        // If no output space, show tooltip and don't craft
         if !hasOutputSpace {
-            showCraftFeedback("All output slots filled. Tap on an output slot to clear it.")
+            gameLoop.inputManager?.onTooltip?("All output slots filled. Tap on an output slot to clear it.")
             return
         }
 
@@ -1559,74 +1586,65 @@ final class MachineUI: UIPanel_Base {
     }
 
     func getTooltip(at screenPos: Vector2) -> String? {
-        guard isOpen, let rootView = rootView else { return nil }
+        guard isOpen, let rootView = rootView, let recipeScrollView = recipeScrollView else { return nil }
 
-        // Convert screen position to view coordinates
+        // Convert screen position to UIKit points
         let scale = Float(UIScreen.main.scale)
-        let viewPos = Vector2(
-            screenPos.x - Float(rootView.frame.minX) * scale,
-            screenPos.y - Float(rootView.frame.minY) * scale
+        let screenPosInPoints = screenPos / scale
+
+        // Check if position is within the scroll view bounds
+        let scrollViewFrame = recipeScrollView.frame
+        let scrollViewBounds = CGRect(
+            x: rootView.frame.minX + scrollViewFrame.minX,
+            y: rootView.frame.minY + scrollViewFrame.minY,
+            width: scrollViewFrame.width,
+            height: scrollViewFrame.height
         )
 
-        // Check craft button first
-        if let craftButton = craftButton,
-           let recipe = selectedRecipe,
-           let entity = currentEntity,
-           let gameLoop = gameLoop {
-
-            let buttonRect = Rect(
-                center: Vector2(Float(craftButton.center.x), Float(craftButton.center.y)),
-                size: Vector2(Float(craftButton.frame.width), Float(craftButton.frame.height))
-            )
-
-            if buttonRect.contains(viewPos) {
-                // Check if output slots are full
-                var hasOutputSpace = false
-                if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-                   let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
-                    let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
-                    let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
-
-                    // Check if any output slot is empty or can accept more of the output items
-                    for output in recipe.outputs {
-                        for slotIndex in outputStartIndex...outputEndIndex {
-                            if let existingStack = machineInventory.slots[slotIndex] {
-                                // Slot has an item - check if it's the same item and not full
-                                if existingStack.itemId == output.itemId &&
-                                   existingStack.count < existingStack.maxStack {
-                                    hasOutputSpace = true
-                                    break
-                                }
-                            } else {
-                                // Empty slot available
-                                hasOutputSpace = true
-                                break
-                            }
-                        }
-                        if hasOutputSpace { break }
-                    }
-                }
-
-                if !hasOutputSpace {
-                    return "All output slots filled. Tap on an output slot to clear it."
-                } else {
-                    return "Craft \(recipe.name)"
-                }
-            }
+        guard scrollViewBounds.contains(CGPoint(x: CGFloat(screenPosInPoints.x), y: CGFloat(screenPosInPoints.y))) else {
+            // Check craft button if outside scroll view
+            return getCraftButtonTooltip(at: screenPosInPoints)
         }
 
-        // Check recipe buttons
-        for (index, button) in recipeUIButtons.enumerated() {
-            let buttonRect = Rect(
-                center: Vector2(Float(button.center.x), Float(button.center.y)),
-                size: Vector2(Float(button.frame.width), Float(button.frame.height))
-            )
+        // Convert to scroll view content coordinates
+        let contentPos = CGPoint(
+            x: CGFloat(screenPosInPoints.x) - scrollViewBounds.minX + recipeScrollView.contentOffset.x,
+            y: CGFloat(screenPosInPoints.y) - scrollViewBounds.minY + recipeScrollView.contentOffset.y
+        )
 
-            if buttonRect.contains(viewPos) {
+        // Check recipe buttons in content coordinates
+        for (index, button) in recipeUIButtons.enumerated() {
+            if button.frame.contains(contentPos) {
                 let availableRecipes = gameLoop?.recipeRegistry.enabled ?? []
                 if index < availableRecipes.count {
                     let recipe = availableRecipes[index]
-                    return recipe.name
+
+                    // Show recipe name and crafting time
+                    var tooltip = recipe.name
+                    let timeString = String(format: "%.1f", recipe.craftTime)
+                    tooltip += " (\(timeString)s)"
+
+                    // If this recipe is selected, add a note
+                    if selectedRecipe?.id == recipe.id {
+                        tooltip += " [Selected]"
+                    }
+
+                    // Check if player can craft this recipe
+                    var canCraft = true
+                    if let gameLoop = gameLoop {
+                        for input in recipe.inputs {
+                            if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                                canCraft = false
+                                break
+                            }
+                        }
+                    }
+
+                    if !canCraft {
+                        tooltip += " - Missing ingredients"
+                    }
+
+                    return tooltip
                 }
             }
         }
@@ -1634,60 +1652,56 @@ final class MachineUI: UIPanel_Base {
         return nil
     }
 
-    private func showCraftFeedback(_ message: String) {
+    private func getCraftButtonTooltip(at position: Vector2) -> String? {
         guard let craftButton = craftButton,
-              let rootView = rootView else { return }
+              let recipe = selectedRecipe,
+              let entity = currentEntity,
+              let gameLoop = gameLoop else { return nil }
 
-        // Create temporary feedback label
-        let feedbackLabel = UILabel()
-        feedbackLabel.text = message
-        feedbackLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
-        feedbackLabel.textColor = .white
-        feedbackLabel.backgroundColor = UIColor(red: 0.8, green: 0.3, blue: 0.3, alpha: 0.9)
-        feedbackLabel.textAlignment = .center
-        feedbackLabel.layer.cornerRadius = 6
-        feedbackLabel.layer.masksToBounds = true
-        feedbackLabel.numberOfLines = 0
-        feedbackLabel.translatesAutoresizingMaskIntoConstraints = true
-
-        // Size the label to fit the text
-        feedbackLabel.sizeToFit()
-        let padding: CGFloat = 8
-        let labelWidth = min(max(feedbackLabel.frame.width + padding * 2, 200), rootView.bounds.width - 40)
-        let labelHeight = feedbackLabel.frame.height + padding * 2
-
-        // Position above the craft button
         let buttonFrame = craftButton.frame
-        let labelX = buttonFrame.midX - labelWidth / 2
-        let labelY = buttonFrame.minY - labelHeight - 8
+        let buttonBounds = CGRect(
+            x: rootView!.frame.minX + buttonFrame.minX,
+            y: rootView!.frame.minY + buttonFrame.minY,
+            width: buttonFrame.width,
+            height: buttonFrame.height
+        )
 
-        feedbackLabel.frame = CGRect(x: labelX, y: labelY, width: labelWidth, height: labelHeight)
+        guard buttonBounds.contains(CGPoint(x: CGFloat(position.x), y: CGFloat(position.y))) else { return nil }
 
-        rootView.addSubview(feedbackLabel)
+        // Check if output slots are full
+        var hasOutputSpace = false
+        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+            let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
+            let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
 
-        // Animate in
-        feedbackLabel.alpha = 0
-        UIView.animate(withDuration: 0.2, animations: {
-            feedbackLabel.alpha = 1
-        }) { _ in
-            // Auto-remove after 2 seconds
-            UIView.animate(withDuration: 0.3, delay: 2.0, options: [], animations: {
-                feedbackLabel.alpha = 0
-            }) { _ in
-                feedbackLabel.removeFromSuperview()
+            // Check if any output slot is empty or can accept more of the output items
+            for output in recipe.outputs {
+                for slotIndex in outputStartIndex...outputEndIndex {
+                    if let existingStack = machineInventory.slots[slotIndex] {
+                        // Slot has an item - check if it's the same item and not full
+                        if existingStack.itemId == output.itemId &&
+                           existingStack.count < existingStack.maxStack {
+                            hasOutputSpace = true
+                            break
+                        }
+                    } else {
+                        // Empty slot available
+                        hasOutputSpace = true
+                        break
+                    }
+                }
+                if hasOutputSpace { break }
             }
         }
 
-        // Also briefly flash the button color
-        let originalColor = craftButton.backgroundColor
-        UIView.animate(withDuration: 0.1, animations: {
-            craftButton.backgroundColor = UIColor.red.withAlphaComponent(0.5)
-        }) { _ in
-            UIView.animate(withDuration: 0.2, delay: 0.3, options: [], animations: {
-                craftButton.backgroundColor = originalColor
-            })
+        if !hasOutputSpace {
+            return "All output slots filled. Tap on an output slot to clear it."
+        } else {
+            return "Craft \(recipe.name)"
         }
     }
+
 
     override func close() {
         // Clear recipe selection and details
