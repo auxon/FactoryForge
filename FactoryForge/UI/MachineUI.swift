@@ -1113,7 +1113,7 @@ final class MachineUI: UIPanel_Base {
 
     private var selectedRecipe: Recipe?
     private var craftButton: UIKit.UIButton?
-    private var recipeLabels: [UILabel] = []
+    private var recipeLabels: [UIView] = [] // Now contains both labels and image views
 
     @objc private func recipeButtonTapped(_ sender: Any) {
         guard let button = sender as? UIKit.UIButton else { return }
@@ -1179,32 +1179,33 @@ final class MachineUI: UIPanel_Base {
         // Clear previous recipe details
         clearRecipeDetails()
 
-        // Show recipe requirements similar to CraftingMenu
+        // Show recipe requirements with icons similar to CraftingMenu
         guard let rootView = rootView else { return }
 
-        // Recipe name tooltip would be shown via getTooltip, but we'll add labels for requirements
         let detailsY = rootView.bounds.height - 80
+        let iconSize: CGFloat = 30
+        let iconSpacing: CGFloat = 40
 
         // Show input requirements
         var currentX: CGFloat = 20
         for input in recipe.inputs {
-            // Create item icon (simplified - just show text for now)
-            let itemLabel = UILabel()
-            itemLabel.text = "\(input.itemId) x\(input.count)"
-            itemLabel.font = UIFont.systemFont(ofSize: 12)
-            itemLabel.textColor = .white
-            itemLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-            itemLabel.textAlignment = .center
-            itemLabel.layer.cornerRadius = 4
-            itemLabel.layer.masksToBounds = true
-            itemLabel.sizeToFit()
+            // Create item icon
+            if let image = loadRecipeImage(for: input.itemId) {
+                let iconView = UIImageView(image: image)
+                iconView.frame = CGRect(x: currentX, y: detailsY, width: iconSize, height: iconSize)
+                iconView.contentMode = .scaleAspectFit
+                rootView.addSubview(iconView)
+                recipeLabels.append(iconView) // Reuse recipeLabels array for all views
 
-            let labelWidth = max(itemLabel.frame.width + 8, 60)
-            itemLabel.frame = CGRect(x: currentX, y: detailsY, width: labelWidth, height: 24)
-            rootView.addSubview(itemLabel)
-            recipeLabels.append(itemLabel)
+                // Create count label if count > 1
+                if input.count > 1 {
+                    let countLabel = createCountLabel(text: "\(input.count)", for: iconView)
+                    rootView.addSubview(countLabel)
+                    recipeLabels.append(countLabel)
+                }
+            }
 
-            currentX += labelWidth + 8
+            currentX += iconSpacing
         }
 
         // Arrow
@@ -1213,7 +1214,8 @@ final class MachineUI: UIPanel_Base {
         arrowLabel.font = UIFont.systemFont(ofSize: 16, weight: .bold)
         arrowLabel.textColor = .white
         arrowLabel.sizeToFit()
-        arrowLabel.frame = CGRect(x: currentX, y: detailsY, width: arrowLabel.frame.width, height: 24)
+        arrowLabel.frame = CGRect(x: currentX, y: detailsY, width: arrowLabel.frame.width, height: iconSize)
+        arrowLabel.textAlignment = .center
         rootView.addSubview(arrowLabel)
         recipeLabels.append(arrowLabel)
 
@@ -1221,28 +1223,57 @@ final class MachineUI: UIPanel_Base {
 
         // Show output
         for output in recipe.outputs {
-            let outputLabel = UILabel()
-            outputLabel.text = "\(output.itemId) x\(output.count)"
-            outputLabel.font = UIFont.systemFont(ofSize: 12)
-            outputLabel.textColor = .yellow
-            outputLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-            outputLabel.textAlignment = .center
-            outputLabel.layer.cornerRadius = 4
-            outputLabel.layer.masksToBounds = true
-            outputLabel.sizeToFit()
+            // Create item icon
+            if let image = loadRecipeImage(for: output.itemId) {
+                let iconView = UIImageView(image: image)
+                iconView.frame = CGRect(x: currentX, y: detailsY, width: iconSize, height: iconSize)
+                iconView.contentMode = .scaleAspectFit
+                rootView.addSubview(iconView)
+                recipeLabels.append(iconView)
 
-            let labelWidth = max(outputLabel.frame.width + 8, 60)
-            outputLabel.frame = CGRect(x: currentX, y: detailsY, width: labelWidth, height: 24)
-            rootView.addSubview(outputLabel)
-            recipeLabels.append(outputLabel)
+                // Create count label if count > 1
+                if output.count > 1 {
+                    let countLabel = createCountLabel(text: "\(output.count)", for: iconView)
+                    rootView.addSubview(countLabel)
+                    recipeLabels.append(countLabel)
+                }
+            }
 
-            currentX += labelWidth + 8
+            currentX += iconSpacing
         }
     }
 
+    private func createCountLabel(text: String, for iconView: UIImageView) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.font = UIFont.systemFont(ofSize: 8, weight: .bold)
+        label.textColor = .white
+        label.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 1.0)
+        label.textAlignment = .center
+        label.layer.cornerRadius = 2
+        label.layer.masksToBounds = true
+        label.translatesAutoresizingMaskIntoConstraints = true
+
+        label.sizeToFit()
+        let padding: CGFloat = 2
+        let labelWidth = max(label.frame.width + padding * 2, 16)
+        let labelHeight = max(label.frame.height + padding, 12)
+
+        // Position in bottom-right corner of icon
+        let iconFrame = iconView.frame
+        label.frame = CGRect(
+            x: iconFrame.maxX - labelWidth,
+            y: iconFrame.maxY - labelHeight,
+            width: labelWidth,
+            height: labelHeight
+        )
+
+        return label
+    }
+
     private func clearRecipeDetails() {
-        for label in recipeLabels {
-            label.removeFromSuperview()
+        for view in recipeLabels {
+            view.removeFromSuperview()
         }
         recipeLabels.removeAll()
     }
@@ -1277,21 +1308,55 @@ final class MachineUI: UIPanel_Base {
     private func updateCraftButtonState() {
         guard let craftButton = craftButton,
               let recipe = selectedRecipe,
-              let gameLoop = gameLoop else { return }
+              let gameLoop = gameLoop,
+              let entity = currentEntity else { return }
 
         // Check if player has all required items
-        var canCraft = true
+        var canCraftFromInventory = true
         for input in recipe.inputs {
             if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
-                canCraft = false
+                canCraftFromInventory = false
                 break
             }
         }
 
+        // Check if machine has available output slots
+        var hasOutputSpace = false
+        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+            let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
+            let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
+
+            // Check if any output slot is empty or can accept more of the output items
+            for output in recipe.outputs {
+                for slotIndex in outputStartIndex...outputEndIndex {
+                    if let existingStack = machineInventory.slots[slotIndex] {
+                        // Slot has an item - check if it's the same item and not full
+                        if existingStack.itemId == output.itemId &&
+                           existingStack.count < existingStack.maxStack {
+                            hasOutputSpace = true
+                            break
+                        }
+                    } else {
+                        // Empty slot available
+                        hasOutputSpace = true
+                        break
+                    }
+                }
+                if hasOutputSpace { break }
+            }
+        }
+
+        let canCraft = canCraftFromInventory && hasOutputSpace
+
         craftButton.isEnabled = canCraft
-        craftButton.backgroundColor = canCraft ?
-            UIColor.blue.withAlphaComponent(0.7) :
-            UIColor.gray.withAlphaComponent(0.5)
+        if !canCraftFromInventory {
+            craftButton.backgroundColor = UIColor.gray.withAlphaComponent(0.5)
+        } else if !hasOutputSpace {
+            craftButton.backgroundColor = UIColor.orange.withAlphaComponent(0.7) // Orange to indicate output slots full
+        } else {
+            craftButton.backgroundColor = UIColor.blue.withAlphaComponent(0.7)
+        }
     }
 
     @objc private func craftButtonTapped() {
@@ -1299,20 +1364,56 @@ final class MachineUI: UIPanel_Base {
               let entity = currentEntity,
               let gameLoop = gameLoop else { return }
 
-        // Perform the crafting logic (transfer items and start production)
-        var playerInventory = gameLoop.player.inventory
-        var canCraft = true
-
-        // Double-check we can craft
+        // Check if player has all required items
+        var canCraftFromInventory = true
         for input in recipe.inputs {
-            if !playerInventory.has(itemId: input.itemId, count: input.count) {
-                canCraft = false
+            if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                canCraftFromInventory = false
                 break
             }
         }
 
-        if canCraft {
-            // Transfer items from player inventory to machine input slots
+        // Check if machine has available output slots
+        var hasOutputSpace = false
+        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+            let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
+            let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
+
+            // Check if any output slot is empty or can accept more of the output items
+            for output in recipe.outputs {
+                for slotIndex in outputStartIndex...outputEndIndex {
+                    if let existingStack = machineInventory.slots[slotIndex] {
+                        // Slot has an item - check if it's the same item and not full
+                        if existingStack.itemId == output.itemId &&
+                           existingStack.count < existingStack.maxStack {
+                            hasOutputSpace = true
+                            break
+                        }
+                    } else {
+                        // Empty slot available
+                        hasOutputSpace = true
+                        break
+                    }
+                }
+                if hasOutputSpace { break }
+            }
+        }
+
+        // If no output space, show feedback and don't craft
+        if !hasOutputSpace {
+            showCraftFeedback("All output slots filled. Tap on an output slot to clear it.")
+            return
+        }
+
+        // If can't craft from inventory, don't proceed (though this shouldn't happen due to button state)
+        if !canCraftFromInventory {
+            return
+        }
+
+        // Perform the crafting logic (transfer items and start production)
+        var playerInventory = gameLoop.player.inventory
+        // Transfer items from player inventory to machine input slots
             guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
                   let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else {
                 return
@@ -1355,7 +1456,6 @@ final class MachineUI: UIPanel_Base {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.updateMachine(entity)
             }
-        }
     }
 
     override func open() {
@@ -1468,6 +1568,53 @@ final class MachineUI: UIPanel_Base {
             screenPos.y - Float(rootView.frame.minY) * scale
         )
 
+        // Check craft button first
+        if let craftButton = craftButton,
+           let recipe = selectedRecipe,
+           let entity = currentEntity,
+           let gameLoop = gameLoop {
+
+            let buttonRect = Rect(
+                center: Vector2(Float(craftButton.center.x), Float(craftButton.center.y)),
+                size: Vector2(Float(craftButton.frame.width), Float(craftButton.frame.height))
+            )
+
+            if buttonRect.contains(viewPos) {
+                // Check if output slots are full
+                var hasOutputSpace = false
+                if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+                   let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+                    let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
+                    let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
+
+                    // Check if any output slot is empty or can accept more of the output items
+                    for output in recipe.outputs {
+                        for slotIndex in outputStartIndex...outputEndIndex {
+                            if let existingStack = machineInventory.slots[slotIndex] {
+                                // Slot has an item - check if it's the same item and not full
+                                if existingStack.itemId == output.itemId &&
+                                   existingStack.count < existingStack.maxStack {
+                                    hasOutputSpace = true
+                                    break
+                                }
+                            } else {
+                                // Empty slot available
+                                hasOutputSpace = true
+                                break
+                            }
+                        }
+                        if hasOutputSpace { break }
+                    }
+                }
+
+                if !hasOutputSpace {
+                    return "All output slots filled. Tap on an output slot to clear it."
+                } else {
+                    return "Craft \(recipe.name)"
+                }
+            }
+        }
+
         // Check recipe buttons
         for (index, button) in recipeUIButtons.enumerated() {
             let buttonRect = Rect(
@@ -1485,6 +1632,61 @@ final class MachineUI: UIPanel_Base {
         }
 
         return nil
+    }
+
+    private func showCraftFeedback(_ message: String) {
+        guard let craftButton = craftButton,
+              let rootView = rootView else { return }
+
+        // Create temporary feedback label
+        let feedbackLabel = UILabel()
+        feedbackLabel.text = message
+        feedbackLabel.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+        feedbackLabel.textColor = .white
+        feedbackLabel.backgroundColor = UIColor(red: 0.8, green: 0.3, blue: 0.3, alpha: 0.9)
+        feedbackLabel.textAlignment = .center
+        feedbackLabel.layer.cornerRadius = 6
+        feedbackLabel.layer.masksToBounds = true
+        feedbackLabel.numberOfLines = 0
+        feedbackLabel.translatesAutoresizingMaskIntoConstraints = true
+
+        // Size the label to fit the text
+        feedbackLabel.sizeToFit()
+        let padding: CGFloat = 8
+        let labelWidth = min(max(feedbackLabel.frame.width + padding * 2, 200), rootView.bounds.width - 40)
+        let labelHeight = feedbackLabel.frame.height + padding * 2
+
+        // Position above the craft button
+        let buttonFrame = craftButton.frame
+        let labelX = buttonFrame.midX - labelWidth / 2
+        let labelY = buttonFrame.minY - labelHeight - 8
+
+        feedbackLabel.frame = CGRect(x: labelX, y: labelY, width: labelWidth, height: labelHeight)
+
+        rootView.addSubview(feedbackLabel)
+
+        // Animate in
+        feedbackLabel.alpha = 0
+        UIView.animate(withDuration: 0.2, animations: {
+            feedbackLabel.alpha = 1
+        }) { _ in
+            // Auto-remove after 2 seconds
+            UIView.animate(withDuration: 0.3, delay: 2.0, options: [], animations: {
+                feedbackLabel.alpha = 0
+            }) { _ in
+                feedbackLabel.removeFromSuperview()
+            }
+        }
+
+        // Also briefly flash the button color
+        let originalColor = craftButton.backgroundColor
+        UIView.animate(withDuration: 0.1, animations: {
+            craftButton.backgroundColor = UIColor.red.withAlphaComponent(0.5)
+        }) { _ in
+            UIView.animate(withDuration: 0.2, delay: 0.3, options: [], animations: {
+                craftButton.backgroundColor = originalColor
+            })
+        }
     }
 
     override func close() {
@@ -1844,6 +2046,11 @@ final class MachineUI: UIPanel_Base {
         // Update machine components
         for component in machineComponents {
             component.updateUI(for: entity, in: self)
+        }
+
+        // Update craft button state if one is shown
+        if selectedRecipe != nil {
+            updateCraftButtonState()
         }
 
         // Reposition fluid labels
