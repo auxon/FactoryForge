@@ -1111,10 +1111,13 @@ final class MachineUI: UIPanel_Base {
         return nil
     }
 
+    private var selectedRecipe: Recipe?
+    private var craftButton: UIKit.UIButton?
+    private var recipeLabels: [UILabel] = []
+
     @objc private func recipeButtonTapped(_ sender: Any) {
         guard let button = sender as? UIKit.UIButton else { return }
-        guard let entity = currentEntity,
-              let gameLoop = gameLoop else { return }
+        guard let gameLoop = gameLoop else { return }
 
         let availableRecipes = gameLoop.recipeRegistry.enabled
         let recipeIndex = Int(button.tag)
@@ -1122,66 +1125,235 @@ final class MachineUI: UIPanel_Base {
         if recipeIndex >= 0 && recipeIndex < availableRecipes.count {
             let recipe = availableRecipes[recipeIndex]
 
-            // Check if player has all required items and transfer them automatically
-            var playerInventory = gameLoop.player.inventory
-            var canCraft = true
+            // Just select the recipe - don't craft yet
+            selectedRecipe = recipe
 
-            // Check each input item
-            for input in recipe.inputs {
-                if !playerInventory.has(itemId: input.itemId, count: input.count) {
-                    canCraft = false
-                    break
-                }
-            }
+            // Update recipe buttons appearance
+            updateRecipeButtonStates()
 
-            if canCraft {
-                // Automatically transfer items from player inventory to machine input slots
-                guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-                      let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else {
-                    return
-                }
+            // Show recipe details
+            showRecipeDetails(recipe)
 
-                // Transfer each input item to the appropriate machine input slot
-                for (index, input) in recipe.inputs.enumerated() {
-                    let machineSlotIndex = buildingDef.fuelSlots + index
-                    if machineSlotIndex < machineInventory.slots.count {
-                        // Remove from player
-                        let _ = playerInventory.remove(itemId: input.itemId, count: input.count)
+            // Show craft button
+            showCraftButton()
+        }
+    }
 
-                        // Add to machine input slot
-                        machineInventory.slots[machineSlotIndex] = ItemStack(
-                            itemId: input.itemId,
-                            count: input.count,
-                            maxStack: input.count // Use the required count as max
-                        )
+    private func updateRecipeButtonStates() {
+        guard let gameLoop = gameLoop else { return }
+
+        // Update all recipe button appearances based on selection and craftability
+        for (index, button) in recipeUIButtons.enumerated() {
+            let availableRecipes = gameLoop.recipeRegistry.enabled
+            if index < availableRecipes.count {
+                let recipe = availableRecipes[index]
+
+                var config = button.configuration ?? .plain()
+
+                if selectedRecipe?.id == recipe.id {
+                    // Selected recipe - highlight it
+                    config.baseBackgroundColor = UIColor.blue.withAlphaComponent(0.3)
+                } else {
+                    // Check if player can craft this recipe
+                    var canCraft = true
+                    for input in recipe.inputs {
+                        if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                            canCraft = false
+                            break
+                        }
+                    }
+
+                    if canCraft {
+                        config.baseBackgroundColor = UIColor.green.withAlphaComponent(0.2)
+                    } else {
+                        config.baseBackgroundColor = UIColor.red.withAlphaComponent(0.2)
                     }
                 }
 
-                // Update the machine inventory
-                gameLoop.world.add(machineInventory, to: entity)
-
-                // Reset button appearance
-                var config = button.configuration ?? .plain()
-                config.baseBackgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 0.8) // Normal color
                 button.configuration = config
+            }
+        }
+    }
 
-                // Set the recipe on the machine
-                onSelectRecipeForMachine?(entity, recipe)
+    private func showRecipeDetails(_ recipe: Recipe) {
+        // Clear previous recipe details
+        clearRecipeDetails()
 
-                // Update the UI
-                updateMachine(entity)
+        // Show recipe requirements similar to CraftingMenu
+        guard let rootView = rootView else { return }
 
-                // Also update after a short delay to catch production completion
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.updateMachine(entity)
+        // Recipe name tooltip would be shown via getTooltip, but we'll add labels for requirements
+        let detailsY = rootView.bounds.height - 80
+
+        // Show input requirements
+        var currentX: CGFloat = 20
+        for input in recipe.inputs {
+            // Create item icon (simplified - just show text for now)
+            let itemLabel = UILabel()
+            itemLabel.text = "\(input.itemId) x\(input.count)"
+            itemLabel.font = UIFont.systemFont(ofSize: 12)
+            itemLabel.textColor = .white
+            itemLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            itemLabel.textAlignment = .center
+            itemLabel.layer.cornerRadius = 4
+            itemLabel.layer.masksToBounds = true
+            itemLabel.sizeToFit()
+
+            let labelWidth = max(itemLabel.frame.width + 8, 60)
+            itemLabel.frame = CGRect(x: currentX, y: detailsY, width: labelWidth, height: 24)
+            rootView.addSubview(itemLabel)
+            recipeLabels.append(itemLabel)
+
+            currentX += labelWidth + 8
+        }
+
+        // Arrow
+        let arrowLabel = UILabel()
+        arrowLabel.text = "→"
+        arrowLabel.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+        arrowLabel.textColor = .white
+        arrowLabel.sizeToFit()
+        arrowLabel.frame = CGRect(x: currentX, y: detailsY, width: arrowLabel.frame.width, height: 24)
+        rootView.addSubview(arrowLabel)
+        recipeLabels.append(arrowLabel)
+
+        currentX += arrowLabel.frame.width + 8
+
+        // Show output
+        for output in recipe.outputs {
+            let outputLabel = UILabel()
+            outputLabel.text = "\(output.itemId) x\(output.count)"
+            outputLabel.font = UIFont.systemFont(ofSize: 12)
+            outputLabel.textColor = .yellow
+            outputLabel.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+            outputLabel.textAlignment = .center
+            outputLabel.layer.cornerRadius = 4
+            outputLabel.layer.masksToBounds = true
+            outputLabel.sizeToFit()
+
+            let labelWidth = max(outputLabel.frame.width + 8, 60)
+            outputLabel.frame = CGRect(x: currentX, y: detailsY, width: labelWidth, height: 24)
+            rootView.addSubview(outputLabel)
+            recipeLabels.append(outputLabel)
+
+            currentX += labelWidth + 8
+        }
+    }
+
+    private func clearRecipeDetails() {
+        for label in recipeLabels {
+            label.removeFromSuperview()
+        }
+        recipeLabels.removeAll()
+    }
+
+    private func showCraftButton() {
+        guard let rootView = rootView else { return }
+
+        // Remove existing craft button
+        craftButton?.removeFromSuperview()
+
+        // Create craft button in bottom right
+        let buttonWidth: CGFloat = 80
+        let buttonHeight: CGFloat = 30
+        let buttonX = rootView.bounds.width - buttonWidth - 20
+        let buttonY = rootView.bounds.height - buttonHeight - 20
+
+        let button = UIKit.UIButton(type: .system)
+        button.frame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
+        button.setTitle("Craft", for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = UIColor.blue.withAlphaComponent(0.7)
+        button.layer.cornerRadius = 6
+        button.addTarget(self, action: #selector(craftButtonTapped), for: .touchUpInside)
+
+        // Enable/disable based on whether selected recipe can be crafted
+        updateCraftButtonState()
+
+        rootView.addSubview(button)
+        craftButton = button
+    }
+
+    private func updateCraftButtonState() {
+        guard let craftButton = craftButton,
+              let recipe = selectedRecipe,
+              let gameLoop = gameLoop else { return }
+
+        // Check if player has all required items
+        var canCraft = true
+        for input in recipe.inputs {
+            if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                canCraft = false
+                break
+            }
+        }
+
+        craftButton.isEnabled = canCraft
+        craftButton.backgroundColor = canCraft ?
+            UIColor.blue.withAlphaComponent(0.7) :
+            UIColor.gray.withAlphaComponent(0.5)
+    }
+
+    @objc private func craftButtonTapped() {
+        guard let recipe = selectedRecipe,
+              let entity = currentEntity,
+              let gameLoop = gameLoop else { return }
+
+        // Perform the crafting logic (transfer items and start production)
+        var playerInventory = gameLoop.player.inventory
+        var canCraft = true
+
+        // Double-check we can craft
+        for input in recipe.inputs {
+            if !playerInventory.has(itemId: input.itemId, count: input.count) {
+                canCraft = false
+                break
+            }
+        }
+
+        if canCraft {
+            // Transfer items from player inventory to machine input slots
+            guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+                  let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else {
+                return
+            }
+
+            // Transfer each input item to the appropriate machine input slot
+            for (index, input) in recipe.inputs.enumerated() {
+                let machineSlotIndex = buildingDef.fuelSlots + index
+                if machineSlotIndex < machineInventory.slots.count {
+                    // Remove from player
+                    let _ = playerInventory.remove(itemId: input.itemId, count: input.count)
+
+                    // Add to machine input slot
+                    machineInventory.slots[machineSlotIndex] = ItemStack(
+                        itemId: input.itemId,
+                        count: input.count,
+                        maxStack: input.count // Use the required count as max
+                    )
                 }
-            } else {
-                // Cannot craft - show missing items in red on the recipe button
-                var config = button.configuration ?? .plain()
-                config.baseBackgroundColor = UIColor.red.withAlphaComponent(0.3)
-                button.configuration = config
+            }
 
-                // Could also show missing item textures, but for now just indicate with red background
+            // Update inventories
+            gameLoop.world.add(machineInventory, to: entity)
+            gameLoop.player.inventory = playerInventory
+
+            // Set the recipe on the machine
+            onSelectRecipeForMachine?(entity, recipe)
+
+            // Update the UI
+            updateMachine(entity)
+
+            // Clear selection and hide craft button
+            selectedRecipe = nil
+            craftButton?.removeFromSuperview()
+            craftButton = nil
+            clearRecipeDetails()
+            updateRecipeButtonStates()
+
+            // Also update after a short delay to catch production completion
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.updateMachine(entity)
             }
         }
     }
@@ -1215,6 +1387,10 @@ final class MachineUI: UIPanel_Base {
             setupRecipeScrollView()
         }
         setupRecipeButtons()
+
+        // Clear any previous recipe selection and update button states
+        selectedRecipe = nil
+        updateRecipeButtonStates()
 
         // Set up UIKit slot buttons (ensure they're created when opening)
         if currentEntity != nil {
@@ -1282,7 +1458,42 @@ final class MachineUI: UIPanel_Base {
         return scrollViews
     }
 
+    func getTooltip(at screenPos: Vector2) -> String? {
+        guard isOpen, let rootView = rootView else { return nil }
+
+        // Convert screen position to view coordinates
+        let scale = Float(UIScreen.main.scale)
+        let viewPos = Vector2(
+            screenPos.x - Float(rootView.frame.minX) * scale,
+            screenPos.y - Float(rootView.frame.minY) * scale
+        )
+
+        // Check recipe buttons
+        for (index, button) in recipeUIButtons.enumerated() {
+            let buttonRect = Rect(
+                center: Vector2(Float(button.center.x), Float(button.center.y)),
+                size: Vector2(Float(button.frame.width), Float(button.frame.height))
+            )
+
+            if buttonRect.contains(viewPos) {
+                let availableRecipes = gameLoop?.recipeRegistry.enabled ?? []
+                if index < availableRecipes.count {
+                    let recipe = availableRecipes[index]
+                    return recipe.name
+                }
+            }
+        }
+
+        return nil
+    }
+
     override func close() {
+        // Clear recipe selection and details
+        selectedRecipe = nil
+        craftButton?.removeFromSuperview()
+        craftButton = nil
+        clearRecipeDetails()
+
         // Remove global labels from the view (count labels are panel-local)
         var allLabels: [UILabel] = []
         allLabels += researchProgressLabels

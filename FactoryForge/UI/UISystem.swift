@@ -795,7 +795,7 @@ final class UISystem {
             case .research:
                 return researchUI.getTooltip(at: screenPos)
             case .machine:
-                return nil // MachineUI doesn't need tooltips yet
+                return machineUI.getTooltip(at: screenPos)
             case .entitySelection:
                 return nil // EntitySelectionDialog doesn't need tooltips
             case .inserterConnection:
