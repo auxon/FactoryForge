@@ -686,8 +686,8 @@ final class InventoryUI: UIPanel_Base {
         let screenScale = UIScreen.main.scale
         let scrollViewWidth = screenBounds.width * 0.9
 
-        // Convert from pixel space to points
-        let scrollViewHeightPt: CGFloat = (220 * CGFloat(UIScale)) / screenScale
+        // Convert from pixel space to points - show ~8 rows total
+        let scrollViewHeightPt: CGFloat = (360 * CGFloat(UIScale)) / screenScale
         let topSafe = UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0
         let topMarginPt: CGFloat = topSafe + (12 * CGFloat(UIScale)) / screenScale
 
