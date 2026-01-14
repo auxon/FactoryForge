@@ -1083,6 +1083,7 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func loadRecipeImage(for textureId: String) -> UIImage? {
+        print("MachineUI: loadRecipeImage called for '\(textureId)'")
         // Map texture IDs to actual filenames (some have different names)
         var filename = textureId
 
@@ -1099,11 +1100,14 @@ final class MachineUI: UIPanel_Base {
             filename = textureId.replacingOccurrences(of: "-", with: "_")
         }
 
+        print("MachineUI: Looking for image file '\(filename).png'")
         // Try to load from bundle
         if let imagePath = Bundle.main.path(forResource: filename, ofType: "png") {
+            print("MachineUI: Found image at \(imagePath)")
             return UIImage(contentsOfFile: imagePath)
         }
 
+        print("MachineUI: Image not found")
         return nil
     }
 
@@ -1218,6 +1222,8 @@ final class MachineUI: UIPanel_Base {
             setupSlotButtons()
             layoutProgressBar()
             relayoutCountLabels()
+            // Update the UI with current machine state
+            updateMachine(currentEntity!)
         }
 
         // Add root view to hierarchy (AFTER content is added to it)
@@ -1460,8 +1466,13 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func updateCountLabels(_ entity: Entity) {
+        print("MachineUI: updateCountLabels called")
         guard let gameLoop = gameLoop,
-              let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else { return }
+              let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else {
+            print("MachineUI: updateCountLabels - no inventory")
+            return
+        }
+        print("MachineUI: updateCountLabels - found inventory with \(inventory.slots.count) slots")
 
         // Try to get building component by checking specific types
         let buildingEntity: BuildingComponent?
@@ -1528,10 +1539,13 @@ final class MachineUI: UIPanel_Base {
 
         // Update input slot labels and button images
         for i in 0..<inputCountLabels.count {
+            print("MachineUI: Updating input slot \(i), inventoryIndex \(inventoryIndex)")
             if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
+                print("MachineUI: Input slot \(i) has item: \(item.itemId) x\(item.count)")
                 // Update button image
                 if i < inputSlotButtons.count {
                     if let image = loadRecipeImage(for: item.itemId) {
+                        print("MachineUI: Loading image for \(item.itemId)")
                         // Scale image to 80% of button size like InventoryUI does for icons
                         let buttonSizePoints: CGFloat = 32
                         let scaledSize = CGSize(width: buttonSizePoints * 0.8, height: buttonSizePoints * 0.8)
@@ -1541,7 +1555,9 @@ final class MachineUI: UIPanel_Base {
                         UIGraphicsEndImageContext()
 
                         inputSlotButtons[i].setImage(scaledImage, for: .normal)
+                        print("MachineUI: Set image for input slot \(i)")
                     } else {
+                        print("MachineUI: No image found for \(item.itemId)")
                         inputSlotButtons[i].setImage(nil, for: .normal)
                     }
                 }
@@ -1550,11 +1566,12 @@ final class MachineUI: UIPanel_Base {
                 if item.count > 1 {
                     inputCountLabels[i].text = "\(item.count)"
                     inputCountLabels[i].isHidden = false
-            } else {
+                } else {
                     inputCountLabels[i].text = ""
-                inputCountLabels[i].isHidden = true
+                    inputCountLabels[i].isHidden = true
                 }
             } else {
+                print("MachineUI: Input slot \(i) is empty")
                 // Clear button image
                 if i < inputSlotButtons.count {
                     inputSlotButtons[i].setImage(nil, for: .normal)
@@ -1608,6 +1625,7 @@ final class MachineUI: UIPanel_Base {
     }
 
     func updateMachine(_ entity: Entity) {
+        print("MachineUI: updateMachine called")
         setupSlotsForMachine(entity)
         updateCountLabels(entity)
         relayoutCountLabels()

@@ -918,6 +918,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
                     print("GameViewController: Machine input completed, reopening machine UI")
                     // Reopen machine UI after inventory input is completed
                     self.uiSystem?.openPanel(.machine)
+                    print("GameViewController: Called openPanel(.machine)")
                 }
                 self.uiSystem?.openPanel(.inventory)
             } else {

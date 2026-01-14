@@ -10,6 +10,9 @@ final class CraftingSystem: System {
     private let itemRegistry: ItemRegistry
     private let buildingRegistry: BuildingRegistry
 
+    // Callback for when crafting completes (to update UI)
+    var onCraftingCompleted: ((Entity) -> Void)?
+
     init(world: World, recipeRegistry: RecipeRegistry, itemRegistry: ItemRegistry, buildingRegistry: BuildingRegistry) {
         self.world = world
         self.recipeRegistry = recipeRegistry
@@ -48,6 +51,8 @@ final class CraftingSystem: System {
                     completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: assembler, entity: entity, world: world)
                     assembler.craftingProgress = 0
                     world.add(inventory, to: entity)
+                    // Notify UI that crafting completed
+                    onCraftingCompleted?(entity)
                 }
             } else {
                 // Try to start crafting
@@ -113,6 +118,8 @@ final class CraftingSystem: System {
                     furnace.smeltingProgress = 0
                     furnace.recipe = nil  // Reset to auto-select next
                     world.add(inventory, to: entity)
+                    // Notify UI that crafting completed
+                    onCraftingCompleted?(entity)
                 }
             } else {
                 // Try to start a new recipe

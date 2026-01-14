@@ -133,6 +133,16 @@ final class GameLoop {
         // Initialize UI
         uiSystem = UISystem(gameLoop: self, renderer: renderer)
 
+        // Set up callback for when crafting completes to update MachineUI
+        craftingSystem.onCraftingCompleted = { [weak self] entity in
+            // Update the MachineUI when crafting completes
+            if let uiSystem = self?.uiSystem,
+               let machineUI = uiSystem.getMachineUI() as? MachineUI,
+               machineUI.currentEntity == entity {
+                machineUI.updateMachine(entity)
+            }
+        }
+
         // Load registries from JSON
         loadGameData()
         
