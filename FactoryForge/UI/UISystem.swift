@@ -1204,14 +1204,11 @@ class UIPanel_Base {
     func update(deltaTime: Float) {}
     
     func render(renderer: MetalRenderer) {
-        guard isOpen else {
-            print("UIPanel_Base: not open, skipping render")
-            return
-        }
+        guard isOpen else { return }
 
-        // TEMP: Don't clip the panel to test if clipping is the issue
-        // renderer.pushClip(frame)
-        // defer { renderer.popClip() }
+        // Clip to panel bounds to prevent drawing outside the panel area
+        renderer.pushClip(frame)
+        defer { renderer.popClip() }
 
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
 
@@ -1223,7 +1220,6 @@ class UIPanel_Base {
             layer: .ui
         ))
 
-        print("UIPanel_Base: sprite queued")
     }
 
     

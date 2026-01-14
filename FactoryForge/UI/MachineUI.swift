@@ -753,10 +753,17 @@ final class MachineUI: UIPanel_Base {
     private var outputCountLabels: [UILabel] = []
     private var fuelCountLabels: [UILabel] = []
 
-    // Legacy recipe properties (kept for compatibility)
-    private var recipeButtons: [RecipeButton] = []
-    private var recipeScrollView: UIScrollView?
+    // UIKit panel view for background and border
+    private var panelView: UIView?
+
+    // UIKit scroll view for recipe buttons
+    private var recipeScrollView: ClearScrollView?
+
+    // UIKit recipe buttons
     private var recipeUIButtons: [UIKitButton] = []
+
+    // Legacy Metal recipe buttons (kept for compatibility)
+    private var recipeButtons: [RecipeButton] = []
 
 
     // Research progress labels for labs
@@ -779,9 +786,9 @@ final class MachineUI: UIPanel_Base {
     var onScroll: ((Vector2, Vector2) -> Void)?
     var onClosePanel: (() -> Void)?
 
-    // Callbacks for managing UIKit scroll view
-    var onAddScrollView: ((UIScrollView) -> Void)?
-    var onRemoveScrollView: ((UIScrollView) -> Void)?
+    // Callbacks for managing UIKit views (panels, scroll views)
+    var onAddScrollView: ((UIView) -> Void)?
+    var onRemoveScrollView: ((UIView) -> Void)?
 
     // Helper to check if current machine is a lab
     private var isLab: Bool {
@@ -997,8 +1004,224 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
+    private func setupUIKitPanel() {
+        // Create UIKit panel view for background and border
+        // Convert from Metal pixel coordinates to UIKit point coordinates
+        let screenScale = UIScreen.main.scale
+        let panelFrame = CGRect(
+            x: CGFloat(frame.minX) / screenScale,
+            y: CGFloat(frame.minY) / screenScale,
+            width: CGFloat(frame.size.x) / screenScale,
+            height: CGFloat(frame.size.y) / screenScale
+        )
+
+        panelView = UIView(frame: panelFrame)
+        panelView?.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.95) // Dark semi-transparent background
+        panelView?.layer.borderColor = UIColor(red: 0.3, green: 0.3, blue: 0.3, alpha: 1.0).cgColor
+        panelView?.layer.borderWidth = 2.0
+        panelView?.layer.cornerRadius = 8.0
+        panelView?.clipsToBounds = true
+    }
+
+    private func setupRecipeScrollView() {
+        // Create scroll view for recipe buttons
+        let screenScale = UIScreen.main.scale
+        let scrollViewHeight: CGFloat = (150 * CGFloat(UIScale)) / screenScale
+        let scrollViewWidth: CGFloat = (CGFloat(frame.size.x) * 0.9) / screenScale
+        let scrollViewX = CGFloat((screenSize.x - Float(scrollViewWidth * screenScale))) / 2 / screenScale
+
+        // Break down complex expression into simpler parts
+        let centerY = CGFloat((screenSize.y - frame.size.y)) / 2 / screenScale
+        let frameHeight = CGFloat(frame.size.y) / screenScale
+        let margin = (20 * CGFloat(UIScale)) / screenScale
+        let scrollViewY = centerY + frameHeight - scrollViewHeight - margin
+
+        recipeScrollView = ClearScrollView(frame: CGRect(
+            x: scrollViewX,
+            y: scrollViewY,
+            width: scrollViewWidth,
+            height: scrollViewHeight
+        ))
+
+        guard let scrollView = recipeScrollView else { return }
+
+        // Configure scroll view
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.isScrollEnabled = true
+        scrollView.alwaysBounceVertical = true
+        scrollView.delaysContentTouches = false
+
+        // Content size will be set when buttons are added
+        scrollView.contentSize = CGSize(width: scrollViewWidth, height: scrollViewHeight)
+    }
+
+    private func setupRecipeButtons() {
+        guard let _ = currentEntity,
+              let gameLoop = gameLoop,
+              let scrollView = recipeScrollView else { return }
+
+        // Get available recipes
+        let availableRecipes = gameLoop.recipeRegistry.enabled
+        if availableRecipes.isEmpty { return }
+
+        let buttonsPerRow = 5
+        let screenScale = UIScreen.main.scale
+        let buttonSize: CGFloat = (32 * CGFloat(UIScale)) / screenScale
+        let buttonSpacing: CGFloat = (8 * CGFloat(UIScale)) / screenScale
+
+        // Calculate content size
+        let rows = (availableRecipes.count + buttonsPerRow - 1) / buttonsPerRow
+        let contentWidth = scrollView.frame.width
+        let contentHeight = CGFloat(rows) * (buttonSize + buttonSpacing) + buttonSpacing
+        scrollView.contentSize = CGSize(width: contentWidth, height: contentHeight)
+
+        // Clear existing buttons
+        for button in recipeUIButtons {
+            button.removeFromSuperview()
+        }
+        recipeUIButtons.removeAll()
+
+        // Create buttons
+        for (index, recipe) in availableRecipes.enumerated() {
+            let row = index / buttonsPerRow
+            let col = index % buttonsPerRow
+
+            let buttonX = buttonSpacing + CGFloat(col) * (buttonSize + buttonSpacing)
+            let buttonY = buttonSpacing + CGFloat(row) * (buttonSize + buttonSpacing)
+
+            let buttonFrame = CGRect(
+                x: buttonX,
+                y: buttonY,
+                width: buttonSize,
+                height: buttonSize
+            )
+            let button = UIKit.UIButton(frame: buttonFrame)
+
+            // Button appearance is now handled by UIButtonConfiguration below
+
+            // Configure button appearance using UIButtonConfiguration
+            var config = UIKit.UIButton.Configuration.plain()
+            config.background.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 0.8)
+            config.background.strokeColor = UIColor.white
+            config.background.strokeWidth = 1.0
+            config.background.cornerRadius = 4.0
+            config.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 2)
+
+            // Add recipe texture (if available)
+            if !recipe.textureId.isEmpty {
+                if let image = loadRecipeImage(for: recipe.textureId) {
+                    // Scale image to 80% of button size like InventoryUI does for icons
+                    let scaledSize = CGSize(width: buttonSize * 0.8, height: buttonSize * 0.8)
+                    UIGraphicsBeginImageContextWithOptions(scaledSize, false, 0.0)
+                    image.draw(in: CGRect(origin: .zero, size: scaledSize))
+                    let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
+                    UIGraphicsEndImageContext()
+
+                    config.image = scaledImage
+                    config.imagePlacement = .all
+                    // Remove content insets since we're scaling the image directly
+                } else {
+                    // Fallback to text if image loading fails
+                    config.title = "R"
+                    config.baseForegroundColor = UIColor.white
+                }
+            } else {
+                // No texture available
+                config.title = "?"
+                config.baseForegroundColor = UIColor.white
+            }
+
+            button.configuration = config
+
+            // Add tap handler
+            button.tag = index
+            button.addTarget(self, action: #selector(recipeButtonTapped(_:)), for: UIControl.Event.touchUpInside)
+
+            scrollView.addSubview(button)
+            recipeUIButtons.append(button)
+        }
+    }
+
+    private func loadRecipeImage(for textureId: String) -> UIImage? {
+        // Map texture IDs to actual filenames (some have different names)
+        var filename = textureId
+
+        // Handle special mappings
+        switch textureId {
+        case "transport_belt":
+            filename = "belt"
+        case "fast_transport_belt":
+            filename = "belt"  // Use same image
+        case "express_transport_belt":
+            filename = "belt"  // Use same image
+        case "iron-plate":
+            filename = "iron_plate"
+        case "copper-plate":
+            filename = "copper_plate"
+        case "steel-plate":
+            filename = "steel_plate"
+        default:
+            // Replace underscores with nothing for some cases
+            filename = textureId.replacingOccurrences(of: "_", with: "")
+        }
+
+        // Try to load from bundle
+        if let imagePath = Bundle.main.path(forResource: filename, ofType: "png") {
+            return UIImage(contentsOfFile: imagePath)
+        }
+
+        // Try with underscore replacement
+        let underscoreFilename = filename.replacingOccurrences(of: "-", with: "_")
+        if let imagePath = Bundle.main.path(forResource: underscoreFilename, ofType: "png") {
+            return UIImage(contentsOfFile: imagePath)
+        }
+
+        // Try original name with underscores
+        if let imagePath = Bundle.main.path(forResource: textureId.replacingOccurrences(of: "-", with: "_"), ofType: "png") {
+            return UIImage(contentsOfFile: imagePath)
+        }
+
+        return nil
+    }
+
+    @objc private func recipeButtonTapped(_ sender: Any) {
+        guard let button = sender as? UIKit.UIButton else { return }
+        guard let entity = currentEntity,
+              let gameLoop = gameLoop else { return }
+
+        let availableRecipes = gameLoop.recipeRegistry.enabled
+        let recipeIndex = Int(button.tag)
+
+        if recipeIndex >= 0 && recipeIndex < availableRecipes.count {
+            let recipe = availableRecipes[recipeIndex]
+            onSelectRecipeForMachine?(entity, recipe)
+        }
+    }
+
     override func open() {
         super.open()
+
+        // Set up UIKit components
+        if panelView == nil {
+            setupUIKitPanel()
+        }
+        if recipeScrollView == nil {
+            setupRecipeScrollView()
+        }
+        setupRecipeButtons()
+
+        // Add panel view to hierarchy
+        if let panelView = panelView {
+            // Add panel view above Metal view
+            onAddScrollView?(panelView)
+        }
+
+        // Add recipe scroll view to hierarchy
+        if let recipeScrollView = recipeScrollView {
+            onAddScrollView?(recipeScrollView)
+        }
+
         // Add appropriate labels to the view
         var allLabels = inputCountLabels + outputCountLabels + fuelCountLabels
         if isLab {
@@ -1073,6 +1296,14 @@ final class MachineUI: UIPanel_Base {
 
         // Remove rocket launch button
         launchButton = nil
+
+        // Remove UIKit components
+        if let panelView = panelView {
+            onRemoveScrollView?(panelView)
+        }
+        if let recipeScrollView = recipeScrollView {
+            onRemoveScrollView?(recipeScrollView)
+        }
 
         // Remove scroll views from components
         for component in machineComponents {
@@ -1335,57 +1566,11 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
-    /// Render custom tiled background for MachineUI to avoid texture stretching
-    private func renderCustomBackground(renderer: MetalRenderer) {
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-
-        // Create inset frame for background (leave room for border)
-        let insetAmount: Float = 2 * UIScale
-        let backgroundFrame = Rect(
-            origin: Vector2(frame.minX + insetAmount, frame.minY + insetAmount),
-            size: Vector2(frame.size.x - insetAmount * 2, frame.size.y - insetAmount * 2)
-        )
-
-        // Tile the background with solid_white texture
-        let tileSize: Float = 64 * UIScale  // 64 pixel tiles
-        let tilesX = Int(ceil(backgroundFrame.size.x / tileSize))
-        let tilesY = Int(ceil(backgroundFrame.size.y / tileSize))
-
-        for y in 0..<tilesY {
-            for x in 0..<tilesX {
-                let tileX = backgroundFrame.minX + Float(x) * tileSize + tileSize/2
-                let tileY = backgroundFrame.minY + Float(y) * tileSize + tileSize/2
-
-                // Calculate tile size (edge tiles might be smaller)
-                let tileWidth = min(tileSize, backgroundFrame.maxX - (backgroundFrame.minX + Float(x) * tileSize))
-                let tileHeight = min(tileSize, backgroundFrame.maxY - (backgroundFrame.minY + Float(y) * tileSize))
-
-                renderer.queueSprite(SpriteInstance(
-                    position: Vector2(tileX, tileY),
-                    size: Vector2(tileWidth, tileHeight),
-                    textureRect: solidRect,
-                    color: backgroundColor,
-                    layer: .ui
-                ))
-            }
-        }
-    }
 
     override func render(renderer: MetalRenderer) {
         guard isOpen else { return }
 
-        // Render panel border first (so it appears behind the background)
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-        renderer.queueSprite(SpriteInstance(
-            position: frame.center,
-            size: frame.size,
-            textureRect: solidRect,
-            color: Color(r: 0.3, g: 0.3, b: 0.3, a: 1.0), // Border color
-            layer: .ui
-        ))
-
-        // Custom background rendering for MachineUI (avoids texture stretching issues)
-        renderCustomBackground(renderer: renderer)
+        // Panel background is now handled by UIKit panelView
 
         // Render fuel slots
         for i in 0..<fuelSlots.count {

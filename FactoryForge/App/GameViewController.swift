@@ -426,7 +426,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     }
 
     private func installInventoryScrollCallbacks() {
-        uiSystem?.getInventoryUI().onAddScrollView = { [weak self] sv in
+        uiSystem?.getInventoryUI().onAddScrollView = { [weak self] (sv: ClearScrollView) in
             guard let self else { return }
 
             sv.removeFromSuperview()
@@ -464,7 +464,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
             }
         }
 
-        uiSystem?.getInventoryUI().onRemoveScrollView = { sv in
+        uiSystem?.getInventoryUI().onRemoveScrollView = { (sv: ClearScrollView) in
             sv.removeFromSuperview()
         }
     }
@@ -982,19 +982,19 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         uiSystem?.getMachineUI().onSelectRecipeForMachine = { [weak self] (entity: Entity, recipe: Recipe) -> Void in
             self?.gameLoop?.setMachineRecipe(entity, recipe)
         }
-        uiSystem?.getMachineUI().onAddScrollView = { [weak self] (scrollView: UIScrollView) -> Void in
+        uiSystem?.getMachineUI().onAddScrollView = { [weak self] (view: UIView) in
             guard let self = self else { return }
             // Remove if already added to avoid duplicates
-            scrollView.removeFromSuperview()
-            self.view.addSubview(scrollView)
-            // Ensure scroll view is above the Metal view
+            view.removeFromSuperview()
+            self.view.addSubview(view)
+            // Ensure view is above the Metal view
             if let metalView = self.metalView {
-                self.view.insertSubview(scrollView, aboveSubview: metalView)
+                self.view.insertSubview(view, aboveSubview: metalView)
             }
-            self.view.bringSubviewToFront(scrollView)
+            self.view.bringSubviewToFront(view)
         }
-        uiSystem?.getMachineUI().onRemoveScrollView = { (scrollView: UIScrollView) -> Void in
-            scrollView.removeFromSuperview()
+        uiSystem?.getMachineUI().onRemoveScrollView = { (view: UIView) in
+            view.removeFromSuperview()
         }
 
 
