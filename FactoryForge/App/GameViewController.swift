@@ -479,34 +479,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Set up inventory UI scrollview callbacks
         installInventoryScrollCallbacks()
 
-        // Set up machine UI label callbacks
-        uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-            guard let self = self else { return }
-            print("GameViewController: Adding \(labels.count) machine labels")
-            labels.forEach {
-                let originalFrame = $0.frame
-                print("GameViewController: Adding label '\($0.text ?? "nil")' at \(originalFrame)")
-                self.view.addSubview($0)
-                // Ensure labels are above the Metal view
-                if let metalView = self.metalView {
-                    self.view.insertSubview($0, aboveSubview: metalView)
-                    // Set frame again after inserting (in case it was reset)
-                    $0.frame = originalFrame
-                }
-                // Bring labels to front so they're above the metal view
-                self.view.bringSubviewToFront($0)
-            }
-            // Ensure tooltips stay on top after adding machine UI labels
-            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
-                self.view.bringSubviewToFront(tooltipLabel)
-            }
-            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
-                self.view.bringSubviewToFront(tooltipIconView)
-            }
-        }
-        uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
-            labels.forEach { $0.removeFromSuperview() }
-        }
+        // MachineUI now uses a single rootView instead of separate label callbacks
 
         // Set up research UI callbacks
         setupResearchUICallbacks()
@@ -754,32 +727,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
 
         // Inventory UI callbacks already set up before setGameLoop
 
-        // Machine UI callbacks
-        uiSystem?.getMachineUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-            guard let self = self else { return }
-            labels.forEach {
-                let originalFrame = $0.frame
-                self.view.addSubview($0)
-                // Ensure labels are above the Metal view
-                if let metalView = self.metalView {
-                    self.view.insertSubview($0, aboveSubview: metalView)
-                    // Set frame again after inserting (in case it was reset)
-                    $0.frame = originalFrame
-                }
-                // Bring labels to front so they're above the metal view
-                self.view.bringSubviewToFront($0)
-            }
-            // Ensure tooltips stay on top after adding machine UI labels
-            if let tooltipLabel = self.tooltipLabel, !tooltipLabel.isHidden {
-                self.view.bringSubviewToFront(tooltipLabel)
-            }
-            if let tooltipIconView = self.tooltipIconView, !tooltipIconView.isHidden {
-                self.view.bringSubviewToFront(tooltipIconView)
-            }
-        }
-        uiSystem?.getMachineUI().onRemoveLabels = { (labels: [UILabel]) -> Void in
-            labels.forEach { $0.removeFromSuperview() }
-        }
+        // MachineUI now uses a single rootView instead of separate callbacks
 
         // Re-set up research UI label callbacks (UI system was recreated)
         uiSystem?.getResearchUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
@@ -954,31 +902,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Inventory UI scrollview callbacks (reapply after setGameLoop may have recreated UI)
         installInventoryScrollCallbacks()
 
-        // MachineUI callbacks
-        print("GameViewController: Setting MachineUI callback")
-        if let machineUI = uiSystem?.getMachineUI() {
-            print("GameViewController: Got MachineUI instance, setting callback")
-            machineUI.onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
-                guard let self = self else { return }
-                print("GameViewController: Adding \(labels.count) machine labels")
-                labels.forEach {
-                    print("GameViewController: Adding label '\($0.text ?? "nil")' with frame \($0.frame)")
-                    print("GameViewController: Screen bounds: \(UIScreen.main.bounds)")
-                    self.view.addSubview($0)
-                    // Ensure labels are above the Metal view
-                    if let metalView = self.metalView {
-                        self.view.insertSubview($0, aboveSubview: metalView)
-                        print("GameViewController: Label positioned at \($0.frame)")
-                    }
-                    self.view.bringSubviewToFront($0)
-                }
-            }
-            machineUI.onRemoveLabels = { (labels: [UILabel]) -> Void in
-                labels.forEach { $0.removeFromSuperview() }
-            }
-        } else {
-            print("GameViewController: Failed to get MachineUI instance for callback setup")
-        }
+        // MachineUI now uses a single rootView - no additional callbacks needed
         uiSystem?.getMachineUI().onSelectRecipeForMachine = { [weak self] (entity: Entity, recipe: Recipe) -> Void in
             self?.gameLoop?.setMachineRecipe(entity, recipe)
         }
@@ -998,18 +922,17 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
                 machineUI.updateMachine(currentEntity)
             }
         }
-        uiSystem?.getMachineUI().onAddScrollView = { [weak self] (view: UIView) in
+        uiSystem?.getMachineUI().onAddRootView = { [weak self] (view: UIView) in
             guard let self = self else { return }
             // Remove if already added to avoid duplicates
             view.removeFromSuperview()
-            self.view.addSubview(view)
-            // Ensure view is above the Metal view
-            if let metalView = self.metalView {
-                self.view.insertSubview(view, aboveSubview: metalView)
-            }
+            self.view.insertSubview(view, aboveSubview: self.metalView)
             self.view.bringSubviewToFront(view)
+            // Bring tooltips above the panel
+            self.view.bringSubviewToFront(self.tooltipLabel)
+            self.view.bringSubviewToFront(self.tooltipIconView)
         }
-        uiSystem?.getMachineUI().onRemoveScrollView = { (view: UIView) in
+        uiSystem?.getMachineUI().onRemoveRootView = { (view: UIView) in
             view.removeFromSuperview()
         }
 

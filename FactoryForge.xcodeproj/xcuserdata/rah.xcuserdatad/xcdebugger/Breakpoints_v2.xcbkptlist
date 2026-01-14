@@ -7,62 +7,32 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "38A70E9B-7A1C-403C-B890-729FEE457CC3"
+            uuid = "47C91D0F-470C-461D-9D7E-C66962360ACB"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "FactoryForge/UI/MachineUI.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1272"
-            endingLineNumber = "1272"
-            landmarkName = "loadRecipeImage(for:)"
-            landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "38A70E9B-7A1C-403C-B890-729FEE457CC3 - 4df4c940cd3f138a"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "FactoryForge.MachineUI.loadRecipeImage(for: Swift.String) -&gt; Swift.Optional&lt;__C.UIImage&gt;"
-                  moduleName = "FactoryForge.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/rah/FactoryForge/FactoryForge/UI/MachineUI.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "1272"
-                  endingLineNumber = "1272">
-               </Location>
-               <Location
-                  uuid = "38A70E9B-7A1C-403C-B890-729FEE457CC3 - 4df4c940cd3f138a"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "FactoryForge.MachineUI.loadRecipeImage(for: Swift.String) -&gt; Swift.Optional&lt;__C.UIImage&gt;"
-                  moduleName = "FactoryForge.debug.dylib"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/rah/FactoryForge/FactoryForge/UI/MachineUI.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "1272"
-                  endingLineNumber = "1272">
-               </Location>
-            </Locations>
+            startingLineNumber = "852"
+            endingLineNumber = "852"
+            landmarkName = "layout(_:for:)"
+            landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "CC91DB9D-EE3C-4EBA-9B9B-D4FFA84217A2"
-            shouldBeEnabled = "Yes"
+            uuid = "8CE00E8C-0708-4701-B1C6-F882F9525548"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "FactoryForge/UI/MachineUI.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1276"
-            endingLineNumber = "1276"
-            landmarkName = "loadRecipeImage(for:)"
+            startingLineNumber = "908"
+            endingLineNumber = "908"
+            landmarkName = "setupSlotButtons()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

@@ -1510,7 +1510,7 @@ final class InputManager: NSObject {
     private func screenPosition(from recognizer: UIGestureRecognizer) -> Vector2 {
         guard let view = view else { return .zero }
         let point = recognizer.location(in: view)
-        let scale = Float(UIScreen.main.scale)
+        let scale = Float(view.contentScaleFactor)
         // UI uses top-left origin (Y increases downward), same as UIKit
         return Vector2(Float(point.x) * scale, Float(point.y) * scale)
     }
@@ -1917,6 +1917,42 @@ extension InputManager: UIGestureRecognizerDelegate {
                         if scrollView.frame.contains(touchLocation) {
                             return false
                         }
+                    }
+                }
+            }
+        }
+
+        return true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                          shouldReceive touch: UITouch) -> Bool {
+        // Don't handle touches that start on UIKit controls
+        if touch.view is UIControl { return false }
+
+        // Don't handle touches on scroll views
+        var superview = touch.view?.superview
+        while superview != nil {
+            if superview is UIScrollView { return false }
+            superview = superview?.superview
+        }
+
+        // Check if touch is within any open UI panel
+        if let gameLoop = gameLoop, let uiSystem = gameLoop.uiSystem, uiSystem.isAnyPanelOpen {
+            let touchLocation = touch.location(in: view)
+
+            // Check inventory scroll view
+            if let inventoryUI = uiSystem.getInventoryUI() as? InventoryUI,
+               let scrollView = inventoryUI.publicScrollView,
+               scrollView.frame.contains(touchLocation) {
+                return false
+            }
+
+            // Check machine UI scroll views
+            if let machineUI = uiSystem.getMachineUI() as? MachineUI {
+                for scrollView in machineUI.getAllScrollViews() {
+                    if scrollView.frame.contains(touchLocation) {
+                        return false
                     }
                 }
             }
