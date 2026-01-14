@@ -557,11 +557,6 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
 
     override func setupUI(for entity: Entity, in ui: MachineUI) {
         self.ui = ui
-        refreshRecipeButtons(for: entity, in: ui)
-    }
-
-    override func updateUI(for entity: Entity, in ui: MachineUI) {
-        refreshRecipeButtons(for: entity, in: ui)
     }
 
     override func getLabels() -> [UILabel] {
@@ -605,122 +600,9 @@ class AssemblyMachineUIComponent: BaseMachineUIComponent {
     }
 
     override func render(in renderer: MetalRenderer) {
-        // Render scroll area background and border (outside scissor so they're always visible)
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-        let backgroundSize = scrollArea.size * 0.98  // Slightly smaller than border
-        renderer.queueSprite(SpriteInstance(
-            position: scrollArea.center,
-            size: backgroundSize,
-            textureRect: solidRect,
-            color: Color(r: 0.1, g: 0.1, b: 0.1, a: 0.9),
-            layer: .ui
-        ))
-
-        // Render scroll area border
-        renderer.queueSprite(SpriteInstance(
-            position: scrollArea.center,
-            size: scrollArea.size,
-            textureRect: solidRect,
-            color: Color(r: 0.3, g: 0.3, b: 0.3, a: 1.0),
-            layer: .ui
-        ))
-
-        // GPU clip to scroll area for content
-        renderer.pushClip(scrollArea)
-        defer { renderer.popClip() }
-
-        // Recipe buttons are now handled by UIKit - no Metal rendering needed
-
-        // Render scroll indicator (also clipped to scroll area)
-        if maxScrollOffset > 0 {
-            renderScrollIndicator(renderer: renderer)
-        }
+        // All rendering is now handled by UIKit - no Metal rendering needed
     }
 
-    private func renderScrollIndicator(renderer: MetalRenderer) {
-        let indicatorWidth: Float = 4 * UIScale
-        let indicatorHeight = scrollArea.size.y * (scrollArea.size.y / (scrollArea.size.y + maxScrollOffset))
-        let indicatorX = scrollArea.maxX - indicatorWidth/2 - 2 * UIScale
-        let indicatorY = scrollArea.minY + indicatorHeight/2 + scrollOffset * (scrollArea.size.y - indicatorHeight) / maxScrollOffset
-
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-        renderer.queueSprite(SpriteInstance(
-            position: Vector2(indicatorX, indicatorY),
-            size: Vector2(indicatorWidth, indicatorHeight),
-            textureRect: solidRect,
-            color: Color(r: 0.6, g: 0.6, b: 0.6, a: 1.0),
-            layer: .ui
-        ))
-    }
-
-
-    private func refreshRecipeButtons(for entity: Entity, in ui: MachineUI) {
-        guard let gameLoop = ui.gameLoop else { return }
-
-        // Clear existing buttons (disabled - using UIKit now)
-        // recipeButtons.removeAll()
-
-        // Get available recipes for this machine
-        guard gameLoop.world.has(AssemblerComponent.self, for: entity) else { return }
-
-        // For now, get all enabled recipes (TODO: filter by building type)
-        self.availableRecipes = gameLoop.recipeRegistry.enabled
-
-        // Set up scroll area (dimensions in pixels, same proportions as original)
-        let scrollAreaWidth: Float = 300 * UIScale  // Already in pixels
-        let scrollAreaHeight: Float = 140 * UIScale // Already in pixels
-        let scrollAreaX = ui.frame.center.x - scrollAreaWidth/2
-        // Position below progress bar: progress bar bottom + margin (in pixels)
-        let scrollAreaY = ui.frame.center.y - 10 * UIScale
-
-        scrollArea = Rect(
-            center: Vector2(scrollAreaX + scrollAreaWidth/2, scrollAreaY + scrollAreaHeight/2),
-            size: Vector2(scrollAreaWidth, scrollAreaHeight)
-        )
-
-        // Position buttons in a grid within the content area
-        let buttonSize: Float = 32 * UIScale  // Button size in pixels
-        let buttonSpacing: Float = 8 * UIScale // Button spacing in pixels
-        let buttonsPerRow = 4
-
-        // Calculate content dimensions
-        let totalRows = (availableRecipes.count + buttonsPerRow - 1) / buttonsPerRow
-        let contentHeight = Float(totalRows) * (buttonSize + buttonSpacing) + 8 * UIScale
-        let contentWidth = scrollAreaWidth  // Content width matches scroll area width
-
-
-        // Start position (buttons start at the top-left of the content area)
-        let contentStartX = scrollAreaX  // Content starts at scroll area left
-        let contentStartY = scrollAreaY  // Content starts at scroll area top
-
-        // Center the button grid horizontally within the content
-        let startX = contentStartX + (contentWidth - (Float(buttonsPerRow) * buttonSize + Float(buttonsPerRow - 1) * buttonSpacing)) / 2
-        let startY = contentStartY + 4 * UIScale  // Small top margin in pixels
-
-        for (index, recipe) in availableRecipes.enumerated() {
-            let row = index / buttonsPerRow
-            let col = index % buttonsPerRow
-
-            let buttonX = startX + Float(col) * (buttonSize + buttonSpacing)
-            let buttonY = startY + Float(row) * (buttonSize + buttonSpacing)
-
-            let buttonFrame = Rect(
-                center: Vector2(buttonX + buttonSize/2, buttonY + buttonSize/2),
-                size: Vector2(buttonSize, buttonSize)
-            )
-
-            // Recipe buttons are now handled by UIKit in MachineUI - no Metal buttons needed
-            // let button = MachineRecipeButton(frame: buttonFrame, recipe: recipe)
-            // button.onTap = { [weak self] in
-            //     self?.recipeSelectionCallback?(entity, recipe)
-            // }
-            // recipeButtons.append(button)
-        }
-
-        // Calculate max scroll offset
-        maxScrollOffset = max(0, contentHeight - scrollAreaHeight)
-        scrollOffset = min(scrollOffset, maxScrollOffset)  // Clamp to valid range
-    }
 }
 
 /// UI for interacting with machines (assemblers, furnaces, etc.)
@@ -732,7 +614,12 @@ final class MachineUI: UIPanel_Base {
     // UI components for different machine types
     private var machineComponents: [MachineUIComponent] = []
 
-    // Common UI elements
+    // Common UI elements - now UIKit buttons
+    private var inputSlotButtons: [UIKit.UIButton] = []
+    private var outputSlotButtons: [UIKit.UIButton] = []
+    private var fuelSlotButtons: [UIKit.UIButton] = []
+
+    // Legacy Metal slots (keeping for now during transition)
     private var inputSlots: [InventorySlot] = []
     private var outputSlots: [InventorySlot] = []
     private var fuelSlots: [InventorySlot] = []
@@ -740,14 +627,30 @@ final class MachineUI: UIPanel_Base {
     private var outputCountLabels: [UILabel] = []
     private var fuelCountLabels: [UILabel] = []
 
-    // UIKit panel view for background and border
+
+    // UIKit panel container view
     private var panelView: UIView?
+
+    // UIKit progress bar
+    private var progressBarBackground: UIView?
+    private var progressBarFill: UIView?
 
     // UIKit scroll view for recipe buttons
     private var recipeScrollView: ClearScrollView?
 
     // UIKit recipe buttons
     private var recipeUIButtons: [UIKitButton] = []
+
+    /// Convert Metal frame to UIKit points for panel container
+    private func panelFrameInPoints() -> CGRect {
+        let screenScale = UIScreen.main.scale
+        return CGRect(
+            x: CGFloat(frame.minX) / screenScale,
+            y: CGFloat(frame.minY) / screenScale,
+            width: CGFloat(frame.size.x) / screenScale,
+            height: CGFloat(frame.size.y) / screenScale
+        )
+    }
 
     // Legacy Metal recipe buttons (kept for compatibility)
     private var recipeButtons: [RecipeButton] = []
@@ -760,7 +663,7 @@ final class MachineUI: UIPanel_Base {
     private var powerLabel: UILabel?
 
     // Rocket launch button for rocket silos
-    private var launchButton: UIButton?
+    private var launchButton: UIKit.UIButton?
 
     // Callbacks for managing UIKit labels
     var onAddLabels: (([UILabel]) -> Void)?
@@ -871,17 +774,39 @@ final class MachineUI: UIPanel_Base {
         let fuelCount = buildingDef.fuelSlots
 
 
-        // Create fuel slots (left side, top)
+        // Create fuel slots (left side, top) - UIKit buttons
         for i in 0..<fuelCount {
-            let x = frame.center.x - 200 * UIScale - slotSize/2
-            let y = frame.center.y - 120 * UIScale + Float(i) * (slotSize + slotSpacing)
+            // Convert Metal pixel coordinates to UIKit points relative to panel
+            let screenScale = UIScreen.main.scale
+            let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
 
-            let slotFrame = Rect(center: Vector2(x, y), size: Vector2(slotSize, slotSize))
-            // Use lighter gray for fuel slots
-            let fuelSlotColor = Color(r: 0.35, g: 0.35, b: 0.35, a: 1)
-            let slot = InventorySlot(frame: slotFrame, index: i, backgroundColor: fuelSlotColor)
-            fuelSlots.append(slot)
-        
+            // Position relative to panel center
+            let relativeX = -200 * UIScale  // Left side
+            let relativeY = -120 * UIScale + Float(i) * (slotSize + slotSpacing)  // Top area
+
+            // Convert to points and panel-relative coordinates
+            let buttonX = panelBounds.midX + CGFloat(relativeX) / screenScale
+            let buttonY = panelBounds.midY + CGFloat(relativeY) / screenScale
+            let buttonSizePoints = CGFloat(slotSize) / screenScale
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+
+            // Configure button appearance
+            var config = UIKit.UIButton.Configuration.plain()
+            config.background.backgroundColor = UIColor(red: 0.35, green: 0.35, blue: 0.35, alpha: 1.0) // Lighter gray for fuel
+            config.background.strokeColor = UIColor.white
+            config.background.strokeWidth = 1.0
+            config.background.cornerRadius = 4.0
+            button.configuration = config
+
+            fuelSlotButtons.append(button)
+
+            // Add tap handler
+            button.tag = i
+            button.addTarget(self, action: #selector(fuelSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+
+            // Add to panel view
+            panelView?.addSubview(button)
 
             // Count label
             let label = UILabel()
@@ -889,18 +814,44 @@ final class MachineUI: UIPanel_Base {
             label.font = UIFont.systemFont(ofSize: 12)
             label.textColor = .white
             label.textAlignment = .center
-            label.frame = CGRect(x: CGFloat(x - slotSize/2 - 25), y: CGFloat(y + slotSize/2 + 2), width: 20, height: 12)
+            label.frame = CGRect(x: buttonX - 25, y: buttonY + buttonSizePoints + 2, width: 20, height: 12)
             fuelCountLabels.append(label)
+            panelView?.addSubview(label)
         }
 
-        // Create input slots (left side, below fuel)
+        // Create input slots (left side, below fuel) - UIKit buttons
         for i in 0..<inputCount {
-            let x = frame.center.x - 200 * UIScale - slotSize/2
-            let y = frame.center.y - 80 * UIScale + Float(i) * (slotSize + slotSpacing)
+            // Convert Metal pixel coordinates to UIKit points relative to panel
+            let screenScale = UIScreen.main.scale
+            let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
 
-            let slotFrame = Rect(center: Vector2(x, y), size: Vector2(slotSize, slotSize))
-            let slot = InventorySlot(frame: slotFrame, index: i)
-            inputSlots.append(slot)
+            // Position relative to panel center
+            let relativeX = -200 * UIScale  // Left side
+            let relativeY = -80 * UIScale + Float(i) * (slotSize + slotSpacing)  // Below fuel area
+
+            // Convert to points and panel-relative coordinates
+            let buttonX = panelBounds.midX + CGFloat(relativeX) / screenScale
+            let buttonY = panelBounds.midY + CGFloat(relativeY) / screenScale
+            let buttonSizePoints = CGFloat(slotSize) / screenScale
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+
+            // Configure button appearance
+            var config = UIKit.UIButton.Configuration.plain()
+            config.background.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 1.0) // Standard slot color
+            config.background.strokeColor = UIColor.white
+            config.background.strokeWidth = 1.0
+            config.background.cornerRadius = 4.0
+            button.configuration = config
+
+            inputSlotButtons.append(button)
+
+            // Add tap handler
+            button.tag = i
+            button.addTarget(self, action: #selector(inputSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+
+            // Add to panel view
+            panelView?.addSubview(button)
 
             // Count label
             let label = UILabel()
@@ -908,18 +859,44 @@ final class MachineUI: UIPanel_Base {
             label.font = UIFont.systemFont(ofSize: 12)
             label.textColor = .white
             label.textAlignment = .center
-            label.frame = CGRect(x: CGFloat(x - slotSize/2 - 25), y: CGFloat(y + slotSize/2 + 2), width: 20, height: 12)
+            label.frame = CGRect(x: buttonX - 25, y: buttonY + buttonSizePoints + 2, width: 20, height: 12)
             inputCountLabels.append(label)
+            panelView?.addSubview(label)
         }
 
-        // Create output slots (right side)
+        // Create output slots (right side) - UIKit buttons
         for i in 0..<outputCount {
-            let x = frame.center.x + 200 * UIScale + slotSize/2
-            let y = frame.center.y - 80 * UIScale + Float(i) * (slotSize + slotSpacing)
+            // Convert Metal pixel coordinates to UIKit points relative to panel
+            let screenScale = UIScreen.main.scale
+            let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
 
-            let slotFrame = Rect(center: Vector2(x, y), size: Vector2(slotSize, slotSize))
-            let slot = InventorySlot(frame: slotFrame, index: i)
-            outputSlots.append(slot)
+            // Position relative to panel center
+            let relativeX = 200 * UIScale  // Right side
+            let relativeY = -80 * UIScale + Float(i) * (slotSize + slotSpacing)  // Same Y as inputs
+
+            // Convert to points and panel-relative coordinates
+            let buttonX = panelBounds.midX + CGFloat(relativeX) / screenScale
+            let buttonY = panelBounds.midY + CGFloat(relativeY) / screenScale
+            let buttonSizePoints = CGFloat(slotSize) / screenScale
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+
+            // Configure button appearance
+            var config = UIKit.UIButton.Configuration.plain()
+            config.background.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 1.0) // Standard slot color
+            config.background.strokeColor = UIColor.white
+            config.background.strokeWidth = 1.0
+            config.background.cornerRadius = 4.0
+            button.configuration = config
+
+            outputSlotButtons.append(button)
+
+            // Add tap handler
+            button.tag = i
+            button.addTarget(self, action: #selector(outputSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+
+            // Add to panel view
+            panelView?.addSubview(button)
 
             // Count label
             let label = UILabel()
@@ -927,8 +904,9 @@ final class MachineUI: UIPanel_Base {
             label.font = UIFont.systemFont(ofSize: 12)
             label.textColor = .white
             label.textAlignment = .center
-            label.frame = CGRect(x: CGFloat(x - slotSize/2 - 25), y: CGFloat(y + slotSize/2 + 2), width: 20, height: 12)
+            label.frame = CGRect(x: buttonX - 25, y: buttonY + buttonSizePoints + 2, width: 20, height: 12)
             outputCountLabels.append(label)
+            panelView?.addSubview(label)
         }
 
         // Fluid indicators now set up by FluidMachineUIComponent
@@ -991,37 +969,17 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
-    private func setupUIKitPanel() {
-        // Create UIKit panel view for background and border
-        // Convert from Metal pixel coordinates to UIKit point coordinates
-        let screenScale = UIScreen.main.scale
-        let panelFrame = CGRect(
-            x: CGFloat(frame.minX) / screenScale,
-            y: CGFloat(frame.minY) / screenScale,
-            width: CGFloat(frame.size.x) / screenScale,
-            height: CGFloat(frame.size.y) / screenScale
-        )
-
-        panelView = UIView(frame: panelFrame)
-        panelView?.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.95) // Dark semi-transparent background
-        panelView?.layer.borderColor = UIColor(red: 0.3, green: 0.3, blue: 0.3, alpha: 1.0).cgColor
-        panelView?.layer.borderWidth = 2.0
-        panelView?.layer.cornerRadius = 8.0
-        panelView?.clipsToBounds = true
-    }
 
     private func setupRecipeScrollView() {
-        // Create scroll view for recipe buttons
-        let screenScale = UIScreen.main.scale
-        let scrollViewHeight: CGFloat = (150 * CGFloat(UIScale)) / screenScale
-        let scrollViewWidth: CGFloat = (CGFloat(frame.size.x) * 0.9) / screenScale
-        let scrollViewX = CGFloat((screenSize.x - Float(scrollViewWidth * screenScale))) / 2 / screenScale
+        // Create scroll view for recipe buttons (in points, relative to panel)
+        let panelBounds = panelView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
 
-        // Break down complex expression into simpler parts
-        let centerY = CGFloat((screenSize.y - frame.size.y)) / 2 / screenScale
-        let frameHeight = CGFloat(frame.size.y) / screenScale
-        let margin = (20 * CGFloat(UIScale)) / screenScale
-        let scrollViewY = centerY + frameHeight - scrollViewHeight - margin
+        // Position scroll view at bottom of panel with margins
+        let margin: CGFloat = 20
+        let scrollViewHeight: CGFloat = 150
+        let scrollViewWidth: CGFloat = panelBounds.width - margin * 2
+        let scrollViewX: CGFloat = margin
+        let scrollViewY: CGFloat = panelBounds.height - scrollViewHeight - margin
 
         recipeScrollView = ClearScrollView(frame: CGRect(
             x: scrollViewX,
@@ -1039,6 +997,11 @@ final class MachineUI: UIPanel_Base {
         scrollView.alwaysBounceVertical = true
         scrollView.delaysContentTouches = false
 
+        // Add background color to prevent see-through appearance
+        scrollView.backgroundColor = UIColor(red: 0.08, green: 0.08, blue: 0.1, alpha: 0.6)
+        scrollView.layer.cornerRadius = 8
+        scrollView.clipsToBounds = true
+
         // Content size will be set when buttons are added
         scrollView.contentSize = CGSize(width: scrollViewWidth, height: scrollViewHeight)
     }
@@ -1053,9 +1016,8 @@ final class MachineUI: UIPanel_Base {
         if availableRecipes.isEmpty { return }
 
         let buttonsPerRow = 5
-        let screenScale = UIScreen.main.scale
-        let buttonSize: CGFloat = (32 * CGFloat(UIScale)) / screenScale
-        let buttonSpacing: CGFloat = (8 * CGFloat(UIScale)) / screenScale
+        let buttonSize: CGFloat = 32  // Points
+        let buttonSpacing: CGFloat = 8  // Points
 
         // Calculate content size
         let rows = (availableRecipes.count + buttonsPerRow - 1) / buttonsPerRow
@@ -1074,7 +1036,14 @@ final class MachineUI: UIPanel_Base {
             let row = index / buttonsPerRow
             let col = index % buttonsPerRow
 
-            let buttonX = buttonSpacing + CGFloat(col) * (buttonSize + buttonSpacing)
+            // Calculate items in this row (for centering partial rows)
+            let itemsInRow = min(buttonsPerRow, availableRecipes.count - row * buttonsPerRow)
+            let thisRowWidth = CGFloat(itemsInRow) * buttonSize + CGFloat(max(0, itemsInRow - 1)) * buttonSpacing
+
+            // Center the row within the scroll view
+            let rowInset = max(buttonSpacing, (scrollView.bounds.width - thisRowWidth) * 0.5)
+
+            let buttonX = rowInset + CGFloat(col) * (buttonSize + buttonSpacing)
             let buttonY = buttonSpacing + CGFloat(row) * (buttonSize + buttonSpacing)
 
             let buttonFrame = CGRect(
@@ -1189,24 +1158,48 @@ final class MachineUI: UIPanel_Base {
     override func open() {
         super.open()
 
-        // Set up UIKit components
+        // Create UIKit panel container view
         if panelView == nil {
-            setupUIKitPanel()
+            panelView = UIView(frame: panelFrameInPoints())
+        panelView!.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.95)
+        panelView!.layer.cornerRadius = 12
+        panelView!.layer.borderWidth = 1
+        panelView!.layer.borderColor = UIColor(white: 1, alpha: 0.15).cgColor
+
+        // Create progress bar views
+        let panelBounds = panelView!.bounds
+        let barWidth: CGFloat = 300
+        let barHeight: CGFloat = 20
+        let barX = panelBounds.midX - barWidth/2
+        let barY = panelBounds.midY - 60
+
+        // Background
+        progressBarBackground = UIView(frame: CGRect(x: barX, y: barY, width: barWidth, height: barHeight))
+        progressBarBackground!.backgroundColor = UIColor.gray
+        progressBarBackground!.layer.cornerRadius = 4
+        panelView!.addSubview(progressBarBackground!)
+
+        // Fill
+        progressBarFill = UIView(frame: CGRect(x: barX, y: barY, width: 0, height: barHeight))
+        progressBarFill!.backgroundColor = UIColor.blue
+        progressBarFill!.layer.cornerRadius = 4
+        panelView!.addSubview(progressBarFill!)
         }
+
+        // Add panel view to hierarchy
+        if let panelView = panelView {
+            onAddScrollView?(panelView)
+        }
+
+        // Set up UIKit components
         if recipeScrollView == nil {
             setupRecipeScrollView()
         }
         setupRecipeButtons()
 
-        // Add panel view to hierarchy
-        if let panelView = panelView {
-            // Add panel view above Metal view
-            onAddScrollView?(panelView)
-        }
-
-        // Add recipe scroll view to hierarchy
-        if let recipeScrollView = recipeScrollView {
-            onAddScrollView?(recipeScrollView)
+        // Add scroll view inside panel view
+        if let recipeScrollView = recipeScrollView, let panelView = panelView {
+            panelView.addSubview(recipeScrollView)
         }
 
         // Add appropriate labels to the view
@@ -1529,27 +1522,38 @@ final class MachineUI: UIPanel_Base {
     override func update(deltaTime: Float) {
         guard isOpen else { return }
 
+        // Update progress bar
+        updateProgressBar()
 
         // Update button states based on craftability and crafting status
         guard let player = gameLoop?.player,
               let gameLoop = gameLoop else { return }
 
+        let recipes = gameLoop.recipeRegistry.enabled
+
         for uiButton in recipeUIButtons {
-            let recipeIdHash = uiButton.tag
-            let allRecipes = gameLoop.recipeRegistry.all
+            let idx = uiButton.tag
+            guard idx >= 0 && idx < recipes.count else { continue }
 
-            if let recipe = allRecipes.first(where: { $0.id.hashValue == recipeIdHash }) {
-                let canCraft = recipe.canCraft(with: player.inventory)
-                let isCrafting = player.isCrafting(recipe: recipe)
+            let recipe = recipes[idx]
+            let canCraft = recipe.canCraft(with: player.inventory)
+            let isCrafting = player.isCrafting(recipe: recipe)
 
-                if isCrafting {
-                    uiButton.backgroundColor = UIKit.UIColor(red: 0.3, green: 0.4, blue: 0.6, alpha: 1.0) // Blue for crafting
-                } else if canCraft {
-                    uiButton.backgroundColor = UIKit.UIColor(red: 0.4, green: 0.7, blue: 0.4, alpha: 1.0) // Green for can craft
-                } else {
-                    uiButton.backgroundColor = UIKit.UIColor(red: 0.25, green: 0.2, blue: 0.2, alpha: 1.0) // Red for cannot craft
-                }
+            // Update button configuration instead of direct backgroundColor
+            var cfg = uiButton.configuration ?? .plain()
+
+            // Choose color
+            let bg: UIColor
+            if isCrafting {
+                bg = UIColor(red: 0.3, green: 0.4, blue: 0.6, alpha: 1.0) // Blue for crafting
+            } else if canCraft {
+                bg = UIColor(red: 0.4, green: 0.7, blue: 0.4, alpha: 1.0) // Green for can craft
+            } else {
+                bg = UIColor(red: 0.25, green: 0.2, blue: 0.2, alpha: 1.0) // Red for cannot craft
             }
+
+            cfg.background.backgroundColor = bg
+            uiButton.configuration = cfg
         }
     }
 
@@ -1559,32 +1563,13 @@ final class MachineUI: UIPanel_Base {
 
         // Panel background is now handled by UIKit panelView
 
-        // Render fuel slots
-        for i in 0..<fuelSlots.count {
-            fuelSlots[i].render(renderer: renderer)
-        }
-
-        // Render input slots
-        for i in 0..<inputSlots.count {
-            inputSlots[i].render(renderer: renderer)
-        }
-
-        // Render output slots
-        for i in 0..<outputSlots.count {
-            outputSlots[i].render(renderer: renderer)
-        }
+        // Slots and progress bar are now handled by UIKit - no Metal rendering needed
 
         // Count labels are updated in updateMachine() which is called from update(deltaTime:)
 
         // Recipe buttons are now handled by UIKit - no Metal rendering needed
 
-        // Render progress bar
-        renderProgressBar(renderer: renderer)
-
-        // Render rocket launch button
-        if let button = launchButton {
-            button.render(renderer: renderer)
-        }
+        // Rocket launch button is UIKit - no Metal rendering needed
 
         // Render machine components
         for component in machineComponents {
@@ -1600,26 +1585,86 @@ final class MachineUI: UIPanel_Base {
         // Remove existing button if any
         launchButton = nil
 
-        // Create launch button
-        let buttonWidth: Float = 200
-        let buttonHeight: Float = 50
-        let buttonX = frame.center.x - buttonWidth/2
-        let buttonY = frame.center.y + frame.size.y/2 - buttonHeight - 20
+        // Create UIKit launch button
+        let screenScale = UIScreen.main.scale
+        let buttonWidth: CGFloat = 200 / screenScale
+        let buttonHeight: CGFloat = 50 / screenScale
+        let centerX = CGFloat(frame.center.x)
+        let centerY = CGFloat(frame.center.y)
+        let sizeY = CGFloat(frame.size.y)
+        let buttonX = (centerX - 100) / screenScale  // 200/2 = 100
+        let buttonY = (centerY + sizeY/2 - 50 - 20) / screenScale  // 50 is buttonHeight, 20 is margin
 
-        let buttonFrame = Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonWidth, buttonHeight))
-        let button = UIButton(frame: buttonFrame, textureId: "solid_white")
-        button.label = "🚀 LAUNCH ROCKET"
-        button.onTap = { [weak self] in
-            self?.launchRocketPressed()
-        }
+        let buttonFrame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
+        let button = UIKit.UIButton(frame: buttonFrame)
+
+        // Configure button appearance
+        var config = UIKit.UIButton.Configuration.filled()
+        config.title = "🚀 LAUNCH ROCKET"
+        config.baseBackgroundColor = UIColor(red: 0.3, green: 0.6, blue: 0.3, alpha: 1.0) // Green
+        config.baseForegroundColor = UIColor.white
+        button.configuration = config
+
+        // Add tap handler
+        button.addTarget(self, action: #selector(launchRocketPressed), for: UIControl.Event.touchUpInside)
 
         // Check if rocket can be launched
         updateLaunchButtonState(button, for: entity)
 
         launchButton = button
+
+        // Add to panel view
+        if let panelView = panelView {
+            panelView.addSubview(button)
+        }
     }
 
-    private func launchRocketPressed() {
+    private func getBuildingDefinition(for entity: Entity, gameLoop: GameLoop) -> BuildingDefinition? {
+        let buildingComponent: BuildingComponent?
+        if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
+            buildingComponent = miner
+        } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+            buildingComponent = furnace
+        } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            buildingComponent = assembler
+        } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
+            buildingComponent = generator
+        } else if let lab = gameLoop.world.get(LabComponent.self, for: entity) {
+            buildingComponent = lab
+        } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
+            buildingComponent = rocketSilo
+        } else {
+            return nil
+        }
+
+        guard let component = buildingComponent else { return nil }
+        return gameLoop.buildingRegistry.get(component.buildingId)
+    }
+
+    @objc private func fuelSlotTapped(_ sender: UIKit.UIButton) {
+        guard let entity = currentEntity, let gameLoop = gameLoop else { return }
+        handleSlotTap(entity: entity, slotIndex: sender.tag, gameLoop: gameLoop)
+    }
+
+    @objc private func inputSlotTapped(_ sender: UIKit.UIButton) {
+        guard let entity = currentEntity, let gameLoop = gameLoop else { return }
+
+        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { return }
+
+        let slotIndex = buildingDef.fuelSlots + sender.tag
+        handleSlotTap(entity: entity, slotIndex: slotIndex, gameLoop: gameLoop)
+    }
+
+    @objc private func outputSlotTapped(_ sender: UIKit.UIButton) {
+        guard let entity = currentEntity, let gameLoop = gameLoop else { return }
+
+        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { return }
+
+        let slotIndex = buildingDef.fuelSlots + buildingDef.inputSlots + sender.tag
+        handleSlotTap(entity: entity, slotIndex: slotIndex, gameLoop: gameLoop)
+    }
+
+    @objc private func launchRocketPressed() {
         guard let entity = currentEntity else { return }
         onLaunchRocket?(entity)
         // Update button state after launch attempt
@@ -1628,7 +1673,7 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
-    private func updateLaunchButtonState(_ button: UIButton, for entity: Entity) {
+    private func updateLaunchButtonState(_ button: UIKit.UIButton, for entity: Entity) {
         guard let gameLoop = gameLoop else { return }
 
         // Check if rocket silo has components for launch
@@ -1637,11 +1682,17 @@ final class MachineUI: UIPanel_Base {
 
             let canLaunch = !silo.isLaunching && silo.rocketAssembled
 
+            var config = button.configuration ?? .filled()
+            config.title = canLaunch ? "🚀 LAUNCH ROCKET" : (silo.isLaunching ? "⏳ LAUNCHING..." : "⚠️ ASSEMBLE ROCKET")
+            config.baseBackgroundColor = canLaunch ? UIColor(red: 0.3, green: 0.6, blue: 0.3, alpha: 1.0) : UIColor.gray
+            button.configuration = config
             button.isEnabled = canLaunch
-            button.label = canLaunch ? "🚀 LAUNCH ROCKET" : (silo.isLaunching ? "⏳ LAUNCHING..." : "⚠️ ASSEMBLE ROCKET")
         } else {
+            var config = button.configuration ?? .filled()
+            config.title = "❌ ERROR"
+            config.baseBackgroundColor = UIColor.red
+            button.configuration = config
             button.isEnabled = false
-            button.label = "❌ ERROR"
         }
     }
 
@@ -1793,10 +1844,7 @@ final class MachineUI: UIPanel_Base {
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
 
-        // Check rocket launch button first
-        if let button = launchButton, button.handleTap(at: position) {
-            return true
-        }
+        // Rocket launch button is UIKit - taps handled by UIKit
 
         // Recipe buttons are now UIKit buttons - taps handled by UIKit
 
@@ -1948,7 +1996,7 @@ final class MachineUI: UIPanel_Base {
         return false
     }
 
-    private func renderProgressBar(renderer: MetalRenderer) {
+    private func updateProgressBar() {
         guard let entity = currentEntity, let gameLoop = gameLoop else { return }
 
         // Get progress from the appropriate component
@@ -1975,73 +2023,34 @@ final class MachineUI: UIPanel_Base {
             return
         }
 
-        // Position the progress/power bar above the slots
-        let barWidth: Float = 300 * UIScale
-        let barHeight: Float = 20 * UIScale
-        let barX = frame.center.x - barWidth/2
-        let barY = frame.center.y - 60 * UIScale
+        // Update UIKit progress bar
+        progressBarBackground?.isHidden = false
+        progressBarFill?.isHidden = false
 
-        let barRect = Rect(center: Vector2(frame.center.x, barY), size: Vector2(barWidth, barHeight))
+        guard let backgroundFrame = progressBarBackground?.frame else { return }
 
-        // Background (gray)
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-        renderer.queueSprite(SpriteInstance(
-            position: barRect.center,
-            size: barRect.size,
-            textureRect: solidRect,
-            color: Color(r: 0.3, g: 0.3, b: 0.3, a: 1.0),
-            layer: .ui
-        ))
+        // Update fill width and color
+        var fillWidth: CGFloat
+        var fillColor: UIColor
 
-        // Progress/Power fill
         if isGenerator {
-            // Power availability bar (blue with white border)
-            let powerWidth = barWidth * powerAvailability
-
-            // White border showing full capacity (always full width)
-            let borderThickness: Float = 1.5 * UIScale
-            let borderRect = Rect(
-                center: barRect.center,
-                size: Vector2(barWidth + borderThickness, barHeight + borderThickness)
-            )
-            renderer.queueSprite(SpriteInstance(
-                position: borderRect.center,
-                size: borderRect.size,
-                textureRect: solidRect,
-                color: Color(r: 1.0, g: 1.0, b: 1.0, a: 1.0), // White border
-                layer: .ui
-            ))
-
-            // Blue fill showing available power
-            if powerWidth > 0 {
-                let powerRect = Rect(
-                    center: Vector2(barX + powerWidth/2, barY),
-                    size: Vector2(powerWidth, barHeight)
-                )
-                renderer.queueSprite(SpriteInstance(
-                    position: powerRect.center,
-                    size: powerRect.size,
-                    textureRect: solidRect,
-                    color: Color(r: 0.2, g: 0.4, b: 0.9, a: 1.0), // Blue for power availability
-                    layer: .ui
-                ))
-            }
+            // Power availability bar (blue)
+            fillWidth = backgroundFrame.width * CGFloat(powerAvailability)
+            fillColor = UIColor.blue
         } else {
-            // Progress fill (green) for other machines
-            if progress > 0 {
-                let progressWidth = barWidth * progress
-                let progressRect = Rect(
-                    center: Vector2(barX + progressWidth/2, barY),
-                    size: Vector2(progressWidth, barHeight)
-                )
-                renderer.queueSprite(SpriteInstance(
-                    position: progressRect.center,
-                    size: progressRect.size,
-                    textureRect: solidRect,
-                    color: Color(r: 0.2, g: 0.8, b: 0.2, a: 1.0),
-                    layer: .ui
-                ))
-            }
+            // Progress bar (green)
+            fillWidth = backgroundFrame.width * CGFloat(progress)
+            fillColor = UIColor.green
         }
+
+        progressBarFill?.frame = CGRect(
+            x: backgroundFrame.origin.x,
+            y: backgroundFrame.origin.y,
+            width: fillWidth,
+            height: backgroundFrame.height
+        )
+        progressBarFill?.backgroundColor = fillColor
+
+        // UIKit progress bar updated above
     }
 }
