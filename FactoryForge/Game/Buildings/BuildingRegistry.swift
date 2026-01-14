@@ -589,7 +589,7 @@ final class BuildingRegistry {
         )
         pumpjack.powerConsumption = 90  // kW
         pumpjack.extractionRate = 1.0   // 1 crude oil per second at full power
-        pumpjack.inventorySlots = 1     // Output slot for crude oil
+        pumpjack.inventorySlots = 1     // fuelSlots + inputSlots + outputSlots = 0 + 0 + 1
         pumpjack.inputSlots = 0
         pumpjack.outputSlots = 1
         pumpjack.fuelSlots = 0
@@ -626,9 +626,9 @@ final class BuildingRegistry {
                    ItemStack(itemId: "stone-brick", count: 10)]
         )
         oilRefinery.powerConsumption = 420  // kW
-        oilRefinery.inventorySlots = 6      // Input + outputs for various fluids
+        oilRefinery.inventorySlots = 6      // fuelSlots + inputSlots + outputSlots = 0 + 2 + 2
         oilRefinery.inputSlots = 2
-        oilRefinery.outputSlots = 2
+        oilRefinery.outputSlots = 4
         oilRefinery.fuelSlots = 0
         register(oilRefinery)
 
@@ -645,7 +645,7 @@ final class BuildingRegistry {
                    ItemStack(itemId: "pipe", count: 5)]
         )
         chemicalPlant.powerConsumption = 210  // kW
-        chemicalPlant.inventorySlots = 6      // Multiple inputs and outputs
+        chemicalPlant.inventorySlots = 5      // fuelSlots + inputSlots + outputSlots = 0 + 3 + 2
         chemicalPlant.inputSlots = 3
         chemicalPlant.outputSlots = 2
         chemicalPlant.fuelSlots = 0
@@ -680,7 +680,7 @@ final class BuildingRegistry {
             cost: [ItemStack(itemId: "centrifuge", count: 1)]
         )
         centrifuge.powerConsumption = 350  // kW
-        centrifuge.inventorySlots = 4      // Input slots for uranium ore, output slots for U-235 and U-238
+        centrifuge.inventorySlots = 4      // fuelSlots + inputSlots + outputSlots = 0 + 2 + 2
         centrifuge.inputSlots = 2
         centrifuge.outputSlots = 2
         centrifuge.fuelSlots = 0
@@ -700,7 +700,7 @@ final class BuildingRegistry {
                    ItemStack(itemId: "processing-unit", count: 200)]
         )
         rocketSilo.powerConsumption = 1000  // kW - high power for rocket launches
-        rocketSilo.inventorySlots = 10      // Large inventory for rocket parts and fuel
+        rocketSilo.inventorySlots = 5      // fuelSlots + inputSlots + outputSlots = 1 + 4 + 0
         rocketSilo.inputSlots = 4
         rocketSilo.outputSlots = 0
         rocketSilo.fuelSlots = 1  // Rocket fuel

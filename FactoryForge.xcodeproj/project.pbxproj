@@ -26,7 +26,6 @@
 		0D18B57B2F0EECE4006B70A5 /* buy.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B57A2F0EECE4006B70A5 /* buy.png */; };
 		0D18B5842F0EEF92006B70A5 /* IAPManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5822F0EEF92006B70A5 /* IAPManager.swift */; };
 		0D18B5862F0EF07B006B70A5 /* StoreViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D18B5852F0EF07B006B70A5 /* StoreViewController.swift */; };
-		0D18B5892F0EFE56006B70A5 /* StoreKitTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D18B5882F0EFE56006B70A5 /* StoreKitTest.framework */; };
 		0D18B58A2F0EFE56006B70A5 /* StoreKitTest.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0D18B5882F0EFE56006B70A5 /* StoreKitTest.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0D3A371A2F044AC200941686 /* recycle.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A37192F044AC200941686 /* recycle.png */; };
 		0D3A371C2F047F7700941686 /* move.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D3A371B2F047F7700941686 /* move.png */; };
@@ -682,7 +681,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0D18B5892F0EFE56006B70A5 /* StoreKitTest.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

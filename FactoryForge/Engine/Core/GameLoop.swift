@@ -953,7 +953,9 @@ final class GameLoop {
                 powerConsumption: buildingDef.powerConsumption
             ), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
-            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
 
         case .waterPump:
             world.add(FluidProducerComponent(
@@ -967,21 +969,27 @@ final class GameLoop {
         case .oilRefinery:
             world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "oil-processing"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
-            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
             // Oil refinery needs fluid tanks for crude oil input and multiple fluid outputs (petroleum gas, light/heavy oil)
             world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 2500), to: entity)  // 2500L capacity for various fluids (higher capacity for refinery)
 
         case .chemicalPlant:
             world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "chemistry"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
-            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
             // Chemical plants need fluid tanks for various fluid inputs/outputs
             world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 1500), to: entity)  // 1500L capacity for various fluids (higher capacity for chemistry)
 
         case .rocketSilo:
             world.add(RocketSiloComponent(buildingId: buildingDef.id), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
-            world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
 
         case .centrifuge:
             world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "centrifuging"), to: entity)
