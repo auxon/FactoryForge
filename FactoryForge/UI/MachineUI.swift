@@ -610,6 +610,9 @@ final class MachineUI: UIPanel_Base {
     // UIKit recipe buttons
     private var recipeUIButtons: [UIKitButton] = []
 
+    // Filtered recipes for current machine (to ensure consistent indexing)
+    private var filteredRecipes: [Recipe] = []
+
     /// Convert Metal frame to UIKit points for panel container
     private func panelFrameInPoints() -> CGRect {
         let screenScale = UIScreen.main.scale
@@ -698,11 +701,12 @@ final class MachineUI: UIPanel_Base {
 
         // Determine machine type and create appropriate components
         if let gameLoop = gameLoop {
-            // Check for fluid-based machines
+            // Check for fluid-based machines (including tanks)
             let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entity)
             let hasFluidConsumer = gameLoop.world.has(FluidConsumerComponent.self, for: entity)
-            if hasFluidProducer || hasFluidConsumer {
-                print("MachineUI: Creating FluidMachineUIComponent (producer: \(hasFluidProducer), consumer: \(hasFluidConsumer))")
+            let hasFluidTank = gameLoop.world.has(FluidTankComponent.self, for: entity)
+            if hasFluidProducer || hasFluidConsumer || hasFluidTank {
+                print("MachineUI: Creating FluidMachineUIComponent (producer: \(hasFluidProducer), consumer: \(hasFluidConsumer), tank: \(hasFluidTank))")
                 machineComponents.append(FluidMachineUIComponent())
             }
 
@@ -979,9 +983,6 @@ final class MachineUI: UIPanel_Base {
             // Add to root view
             rootView.addSubview(button)
 
-            // Add to root view
-            rootView.addSubview(button)
-
             // Count label positioned relative to button
             let label = attachCountLabel(to: button)
             outputCountLabels.append(label)
@@ -990,13 +991,34 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func setupRecipeButtons() {
-        guard let _ = currentEntity,
+        guard let entity = currentEntity,
               let gameLoop = gameLoop,
               let scrollView = recipeScrollView else { return }
 
-        // Get available recipes
-        let availableRecipes = gameLoop.recipeRegistry.enabled
+        // Get available recipes, filtered by machine capabilities
+        var availableRecipes = gameLoop.recipeRegistry.enabled
+
+        // Filter recipes based on machine type
+        if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            // For assemblers, only show recipes that match their crafting category
+            availableRecipes = availableRecipes.filter { recipe in
+                // Check if recipe category matches assembler category
+                let categoryMatches = recipe.category.rawValue == assembler.craftingCategory
+
+                // Allow fluid recipes only if the machine has fluid handling capabilities
+                let hasFluidCapabilities = gameLoop.world.has(FluidTankComponent.self, for: entity)
+                let fluidCheckPasses = hasFluidCapabilities || (recipe.fluidInputs.isEmpty && recipe.fluidOutputs.isEmpty)
+
+                return categoryMatches && fluidCheckPasses
+            }
+        }
+        // For oil refineries and chemical plants (which have AssemblerComponent + FluidTankComponent),
+        // they can show fluid recipes because they have fluid handling capabilities
+
         if availableRecipes.isEmpty { return }
+
+        // Store filtered recipes for consistent indexing
+        filteredRecipes = availableRecipes
 
         let buttonsPerRow = 5
         let buttonSize: CGFloat = 32  // Points
@@ -1091,16 +1113,8 @@ final class MachineUI: UIPanel_Base {
         switch textureId {
         case "transport_belt":
             filename = "belt"
-        case "fast_transport_belt":
-            filename = "belt"  // Use same image
-        case "express_transport_belt":
-            filename = "belt"  // Use same image
-        case "oil_refinery":
-            filename = "oil_refinery"  // Use the actual asset name
-        case "chemical_plant":
-            filename = "chemical_plant"  // Use the actual asset name
         default:
-            // Replace underscores with nothing for some cases
+            // Convert dashes to underscores for asset names
             filename = textureId.replacingOccurrences(of: "-", with: "_")
         }
 
@@ -1123,11 +1137,10 @@ final class MachineUI: UIPanel_Base {
         guard let button = sender as? UIKit.UIButton else { return }
         guard let gameLoop = gameLoop else { return }
 
-        let availableRecipes = gameLoop.recipeRegistry.enabled
         let recipeIndex = Int(button.tag)
 
-        if recipeIndex >= 0 && recipeIndex < availableRecipes.count {
-            let recipe = availableRecipes[recipeIndex]
+        if recipeIndex >= 0 && recipeIndex < filteredRecipes.count {
+            let recipe = filteredRecipes[recipeIndex]
 
             // Just select the recipe - don't craft yet
             selectedRecipe = recipe
@@ -1154,12 +1167,16 @@ final class MachineUI: UIPanel_Base {
         // Check if player can craft this recipe
         var canCraft = true
         if let gameLoop = gameLoop {
+            // Check item inputs
             for input in recipe.inputs {
                 if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
                     canCraft = false
                     break
                 }
             }
+
+            // For fluid recipes, we assume fluids are available (could check fluid tanks if needed)
+            // Fluid availability checking would require checking connected fluid tanks
         }
 
         if !canCraft {
@@ -1175,9 +1192,8 @@ final class MachineUI: UIPanel_Base {
 
         // Update all recipe button appearances based on selection and craftability
         for (index, button) in recipeUIButtons.enumerated() {
-            let availableRecipes = gameLoop.recipeRegistry.enabled
-            if index < availableRecipes.count {
-                let recipe = availableRecipes[index]
+            if index < filteredRecipes.count {
+                let recipe = filteredRecipes[index]
 
                 var config = button.configuration ?? .plain()
 
@@ -1278,53 +1294,47 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func addFluidIcon(_ fluidType: FluidType, amount: Float, atX x: CGFloat, y: CGFloat, iconSize: CGFloat, to rootView: UIView) {
-        // Create fluid representation (colored rectangle with text)
-        let fluidView = UIView()
-        fluidView.frame = CGRect(x: x, y: y, width: iconSize, height: iconSize)
-        fluidView.layer.cornerRadius = 4
-        fluidView.layer.borderWidth = 1
-        fluidView.layer.borderColor = UIColor.white.cgColor
+        // Convert fluid type to asset name (replace dashes with underscores)
+        let assetName = fluidType.rawValue.replacingOccurrences(of: "-", with: "_")
 
-        // Set background color based on fluid type
-        fluidView.backgroundColor = colorForFluidType(fluidType)
+        // Create fluid icon using existing image loading
+        if let image = loadRecipeImage(for: assetName) {
+            let iconView = UIImageView(image: image)
+            iconView.frame = CGRect(x: x, y: y, width: iconSize, height: iconSize)
+            iconView.contentMode = .scaleAspectFit
+            rootView.addSubview(iconView)
+            recipeLabels.append(iconView)
 
-        rootView.addSubview(fluidView)
-        recipeLabels.append(fluidView)
+            // Add amount label if amount > 10
+            if amount > 10 {
+                let amountText = amount >= 100 ? "\(Int(amount/100))00" : "\(Int(amount))"
+                let countLabel = createCountLabel(text: amountText, for: iconView)
+                rootView.addSubview(countLabel)
+                recipeLabels.append(countLabel)
+            }
+        } else {
+            // Fallback: colored rectangle with text if icon not found
+            let fluidView = UIView()
+            fluidView.frame = CGRect(x: x, y: y, width: iconSize, height: iconSize)
+            fluidView.layer.cornerRadius = 4
+            fluidView.layer.borderWidth = 1
+            fluidView.layer.borderColor = UIColor.white.cgColor
+            fluidView.backgroundColor = colorForFluidType(fluidType)
 
-        // Add fluid name text
-        let fluidLabel = UILabel()
-        fluidLabel.text = displayNameForFluidType(fluidType)
-        fluidLabel.font = UIFont.systemFont(ofSize: 6, weight: .bold)
-        fluidLabel.textColor = .white
-        fluidLabel.textAlignment = .center
-        fluidLabel.numberOfLines = 2
-        fluidLabel.adjustsFontSizeToFitWidth = true
-        fluidLabel.minimumScaleFactor = 0.5
-        fluidLabel.frame = CGRect(x: 0, y: 0, width: iconSize, height: iconSize)
-        fluidView.addSubview(fluidLabel)
+            rootView.addSubview(fluidView)
+            recipeLabels.append(fluidView)
 
-        // Add amount label if amount > 10
-        if amount > 10 {
-            let amountText = amount >= 100 ? "\(Int(amount/100))00" : "\(Int(amount))"
-            let amountLabel = UILabel()
-            amountLabel.text = amountText
-            amountLabel.font = UIFont.systemFont(ofSize: 6, weight: .bold)
-            amountLabel.textColor = .yellow
-            amountLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
-            amountLabel.textAlignment = .center
-            amountLabel.layer.cornerRadius = 2
-            amountLabel.layer.masksToBounds = true
-            amountLabel.sizeToFit()
-
-            let padding: CGFloat = 2
-            amountLabel.frame.size.width = max(amountLabel.frame.width + padding * 2, 12)
-            amountLabel.frame.size.height = max(amountLabel.frame.height + padding, 8)
-
-            // Position in bottom-right corner
-            amountLabel.frame.origin.x = iconSize - amountLabel.frame.width
-            amountLabel.frame.origin.y = iconSize - amountLabel.frame.height
-
-            fluidView.addSubview(amountLabel)
+            // Add fluid name text
+            let fluidLabel = UILabel()
+            fluidLabel.text = displayNameForFluidType(fluidType)
+            fluidLabel.font = UIFont.systemFont(ofSize: 6, weight: .bold)
+            fluidLabel.textColor = .white
+            fluidLabel.textAlignment = .center
+            fluidLabel.numberOfLines = 2
+            fluidLabel.adjustsFontSizeToFitWidth = true
+            fluidLabel.minimumScaleFactor = 0.5
+            fluidLabel.frame = CGRect(x: 0, y: 0, width: iconSize, height: iconSize)
+            fluidView.addSubview(fluidLabel)
         }
     }
 
@@ -1449,8 +1459,13 @@ final class MachineUI: UIPanel_Base {
 
         // Check if machine has available output slots
         var hasOutputSpace = false
-        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+
+        // For fluid-only recipes (no item outputs), assume output space is always available
+        // since fluids go into fluid tanks, not item slots
+        if recipe.outputs.isEmpty && !recipe.fluidOutputs.isEmpty {
+            hasOutputSpace = true
+        } else if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+                  let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
             let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
             let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
 
@@ -1502,8 +1517,13 @@ final class MachineUI: UIPanel_Base {
 
         // Check if machine has available output slots
         var hasOutputSpace = false
-        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+
+        // For fluid-only recipes (no item outputs), assume output space is always available
+        // since fluids go into fluid tanks, not item slots
+        if recipe.outputs.isEmpty && !recipe.fluidOutputs.isEmpty {
+            hasOutputSpace = true
+        } else if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+                  let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
             let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
             let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
 
@@ -1715,9 +1735,8 @@ final class MachineUI: UIPanel_Base {
         // Check recipe buttons in content coordinates
         for (index, button) in recipeUIButtons.enumerated() {
             if button.frame.contains(contentPos) {
-                let availableRecipes = gameLoop?.recipeRegistry.enabled ?? []
-                if index < availableRecipes.count {
-                    let recipe = availableRecipes[index]
+                if index < filteredRecipes.count {
+                    let recipe = filteredRecipes[index]
 
                     // Show recipe name and crafting time
                     var tooltip = recipe.name
@@ -1770,8 +1789,13 @@ final class MachineUI: UIPanel_Base {
 
         // Check if output slots are full
         var hasOutputSpace = false
-        if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+
+        // For fluid-only recipes (no item outputs), assume output space is always available
+        // since fluids go into fluid tanks, not item slots
+        if recipe.outputs.isEmpty && !recipe.fluidOutputs.isEmpty {
+            hasOutputSpace = true
+        } else if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+                  let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
             let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
             let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
 
@@ -1798,7 +1822,8 @@ final class MachineUI: UIPanel_Base {
         if !hasOutputSpace {
             return "All output slots filled. Tap on an output slot to clear it."
         } else {
-            return "Craft \(recipe.name)"
+            let timeString = String(format: "%.1f", recipe.craftTime)
+            return "Craft \(recipe.name) (\(timeString)s)"
         }
     }
 
@@ -2187,13 +2212,11 @@ final class MachineUI: UIPanel_Base {
         guard let player = gameLoop?.player,
               let gameLoop = gameLoop else { return }
 
-        let recipes = gameLoop.recipeRegistry.enabled
-
         for uiButton in recipeUIButtons {
             let idx = uiButton.tag
-            guard idx >= 0 && idx < recipes.count else { continue }
+            guard idx >= 0 && idx < filteredRecipes.count else { continue }
 
-            let recipe = recipes[idx]
+            let recipe = filteredRecipes[idx]
             let canCraft = recipe.canCraft(with: player.inventory)
             let isCrafting = player.isCrafting(recipe: recipe)
 

@@ -142,7 +142,7 @@ final class BuildingRegistry {
         assembler1.craftingCategory = "crafting"
         assembler1.powerConsumption = 75
         assembler1.inputSlots = 4
-        assembler1.outputSlots = 1
+        assembler1.outputSlots = 4
         assembler1.fuelSlots = 0
         register(assembler1)
         
@@ -164,7 +164,7 @@ final class BuildingRegistry {
         assembler2.craftingCategory = "advanced-crafting"
         assembler2.powerConsumption = 150
         assembler2.inputSlots = 4
-        assembler2.outputSlots = 1
+        assembler2.outputSlots = 4
         assembler2.fuelSlots = 0
         register(assembler2)
         
@@ -184,7 +184,7 @@ final class BuildingRegistry {
         assembler3.craftingCategory = "advanced-crafting"
         assembler3.powerConsumption = 375
         assembler3.inputSlots = 4
-        assembler3.outputSlots = 1
+        assembler3.outputSlots = 4
         assembler3.fuelSlots = 0
         register(assembler3)
         
