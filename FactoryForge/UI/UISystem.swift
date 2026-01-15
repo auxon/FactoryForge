@@ -1236,10 +1236,6 @@ class UIPanel_Base {
     func render(renderer: MetalRenderer) {
         guard isOpen else { return }
 
-        // Clip to panel bounds to prevent drawing outside the panel area
-        renderer.pushClip(frame)
-        defer { renderer.popClip() }
-
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
 
         renderer.queueSprite(SpriteInstance(
@@ -1760,6 +1756,5 @@ class InserterConnectionDialog {
         }
     }
 }
-
 
 
