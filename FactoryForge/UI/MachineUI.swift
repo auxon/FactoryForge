@@ -369,7 +369,7 @@ final class MachineUI: UIPanel_Base {
         let L = MachineUILayout(bounds: rootView.bounds)
 
         // Position scroll view at bottom of panel
-        let scrollViewHeight: CGFloat = 150
+        let scrollViewHeight: CGFloat = 130
         let scrollViewWidth: CGFloat = L.recipeRegionWidth
         let scrollViewX: CGFloat = L.recipeRegionX
         let scrollViewY: CGFloat = L.bottomBandY
@@ -434,13 +434,7 @@ final class MachineUI: UIPanel_Base {
     private func layoutAll() {
         layoutProgressBar()
         relayoutCountLabels()
-        // Layout chemical plant tanks if present
-        if let entity = currentEntity, let gameLoop = gameLoop,
-           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
-           buildingDef.type == .chemicalPlant {
-            // Re-layout tanks if needed
-            updateChemicalPlantTanks(entity)
-        }
+        // Note: Tank updates are handled in updateMachine() for real-time updates
     }
 
     private func layoutProgressBar() {
@@ -839,14 +833,14 @@ final class MachineUI: UIPanel_Base {
         let tankWidth: CGFloat = 60
         let cap = fluidTankComponent.maxCapacity
 
-        // Update input tanks (first 2 tanks)
-        for i in 0..<min(fluidTankComponent.tanks.count, 2) {
+        // Update all tanks by their index in the component
+        for i in 0..<fluidTankComponent.tanks.count {
             if i < chemFillViews.count && i < chemTankLabels.count {
                 let tank = fluidTankComponent.tanks[i]
                 let fillLevel = cap > 0 ? tank.amount / cap : 0
                 let fillHeight = tankHeight * CGFloat(fillLevel)
 
-                // Update fill view height and position
+                // Update fill view height and position (local coords within tank view)
                 chemFillViews[i].frame = CGRect(x: 0, y: tankHeight - fillHeight, width: tankWidth, height: fillHeight)
 
                 // Update fill color
@@ -858,32 +852,6 @@ final class MachineUI: UIPanel_Base {
                     chemTankLabels[i].text = "Empty: 0/\(Int(cap))"
                 } else {
                     chemTankLabels[i].text = "\(tank.type.rawValue): \(Int(tank.amount))/\(Int(cap))"
-                }
-            }
-        }
-
-        // Update output tanks (tanks 2+)
-        for i in 2..<fluidTankComponent.tanks.count {
-            let tankIndex = i - 2
-            if tankIndex < chemFillViews.count - 2 && tankIndex < chemTankLabels.count - 2 {
-                let tank = fluidTankComponent.tanks[i]
-                let fillLevel = cap > 0 ? tank.amount / cap : 0
-                let fillHeight = tankHeight * CGFloat(fillLevel)
-
-                // Update fill view (account for input tanks in array)
-                let fillViewIndex = i
-                chemFillViews[fillViewIndex].frame = CGRect(x: 0, y: tankHeight - fillHeight, width: tankWidth, height: fillHeight)
-
-                // Update fill color
-                let fluidColor = getFluidColor(for: tank.type)
-                chemFillViews[fillViewIndex].backgroundColor = fluidColor.withAlphaComponent(0.8)
-
-                // Update label (account for input tanks in array)
-                let labelIndex = i
-                if tank.amount <= 0.0001 {
-                    chemTankLabels[labelIndex].text = "Empty: 0/\(Int(cap))"
-                } else {
-                    chemTankLabels[labelIndex].text = "\(tank.type.rawValue): \(Int(tank.amount))/\(Int(cap))"
                 }
             }
         }
@@ -1190,12 +1158,16 @@ final class MachineUI: UIPanel_Base {
         guard let rootView = rootView else { return }
         let L = MachineUILayout(bounds: rootView.bounds)
 
-        let detailsY = L.bottomBandY + 20  // Position below recipe scroll view
+        let detailsY = L.midBandY + 10  // Position between progress bar and recipe scrollview
         let iconSize: CGFloat = 30
         let iconSpacing: CGFloat = 40
 
-        // Show input requirements (items and fluids) within recipe region bounds
-        var currentX: CGFloat = L.recipeRegionX
+        // Show input requirements (items and fluids) centered in recipe region
+        let totalInputs = recipe.inputs.count + recipe.fluidInputs.count + recipe.outputs.count + recipe.fluidOutputs.count
+        let estimatedTotalWidth = CGFloat(totalInputs) * iconSpacing - iconSpacing + iconSize // Total width of all icons + spacing
+        let startOffset = max(0, (L.recipeRegionWidth - estimatedTotalWidth) / 2) // Center within recipe region
+
+        var currentX: CGFloat = L.recipeRegionX + startOffset
         let maxX = L.recipeRegionX + L.recipeRegionWidth
 
         // Item inputs
@@ -1387,11 +1359,14 @@ final class MachineUI: UIPanel_Base {
         // Remove existing craft button
         craftButton?.removeFromSuperview()
 
-        // Create craft button in bottom right
+        // Create craft button below recipe ingredients
         let buttonWidth: CGFloat = 80
         let buttonHeight: CGFloat = 30
-        let buttonX = rootView.bounds.width - buttonWidth - 20
-        let buttonY = rootView.bounds.height - buttonHeight - 20
+
+        // Position below recipe ingredients, centered in recipe region
+        let L = MachineUILayout(bounds: rootView.bounds)
+        let buttonX = L.recipeRegionX + (L.recipeRegionWidth - buttonWidth) / 2
+        let buttonY = L.midBandY + 40  // Below recipe ingredients
 
         let button = UIKit.UIButton(type: .system)
         button.frame = CGRect(x: buttonX, y: buttonY, width: buttonWidth, height: buttonHeight)
