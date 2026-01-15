@@ -369,7 +369,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
     override func getLabels() -> [UILabel] {
         let labels = fluidInputLabels + producerLabels + tankLabels
-        print("FluidMachineUIComponent: Returning \(labels.count) labels (\(fluidInputLabels.count) input, \(producerLabels.count) producer, \(tankLabels.count) tank)")
+        
         return labels
     }
 
@@ -829,6 +829,7 @@ final class MachineUI: UIPanel_Base {
     }
 
     func setEntity(_ entity: Entity) {
+        print("MachineUI: setEntity called with entity \(entity.id)")
         currentEntity = entity
 
         // Clear existing components
@@ -1744,6 +1745,11 @@ final class MachineUI: UIPanel_Base {
     }
 
     override func open() {
+        // Guard against double-opening
+        if isOpen {
+            print("MachineUI: Attempted to open already open panel")
+            return
+        }
         super.open()
 
         // Create single root view for all MachineUI content
@@ -1769,20 +1775,33 @@ final class MachineUI: UIPanel_Base {
 
         // Root view now exists; allow components to attach UIKit subviews
         if let entity = currentEntity {
+            print("MachineUI: Setting up UI components for entity \(entity.id)")
             for component in machineComponents {
                 component.setupUI(for: entity, in: self)
             }
+        } else {
+            print("MachineUI: No currentEntity set - cannot setup UI components")
         }
 
         // Set up UIKit components
-        if recipeScrollView == nil {
-            setupRecipeScrollView()
-        }
-        setupRecipeButtons()
+        // Only setup recipe UI if this machine has AssemblerComponent (can select recipes)
+        if let entity = currentEntity, let gameLoop = gameLoop,
+           gameLoop.world.has(AssemblerComponent.self, for: entity) {
+            if recipeScrollView == nil {
+                setupRecipeScrollView()
+            }
+            setupRecipeButtons()
 
-        // Clear any previous recipe selection and update button states
-        selectedRecipe = nil
-        updateRecipeButtonStates()
+            // Clear any previous recipe selection and update button states
+            selectedRecipe = nil
+            updateRecipeButtonStates()
+        } else {
+            // No recipes for this machine - hide recipe UI
+            recipeScrollView?.removeFromSuperview()
+            recipeScrollView = nil
+            recipeUIButtons.forEach { $0.removeFromSuperview() }
+            recipeUIButtons.removeAll()
+        }
 
         // Set up UIKit slot buttons (ensure they're created when opening)
         if currentEntity != nil {
@@ -1796,7 +1815,12 @@ final class MachineUI: UIPanel_Base {
 
         // Add root view to hierarchy (AFTER content is added to it)
         if let rootView = rootView {
+            print("MachineUI: Adding rootView to hierarchy")
             onAddRootView?(rootView)
+            print("MachineUI: Opened panel with rootView at \(rootView.frame), superview = \(String(describing: rootView.superview))")
+        } else {
+            print("MachineUI: Failed to create rootView - closing panel")
+            close()
         }
 
         // Add scroll view inside panel view
@@ -1974,13 +1998,45 @@ final class MachineUI: UIPanel_Base {
 
 
     override func close() {
+        // Call super.close() FIRST to flip isOpen and unregister from input stack
+        super.close()
+
         // Clear recipe selection and details
         selectedRecipe = nil
         craftButton?.removeFromSuperview()
         craftButton = nil
         clearRecipeDetails()
 
-        // Remove global labels from the view (count labels are panel-local)
+        // Tear down scroll view FIRST (it has gesture recognizers)
+        recipeScrollView?.removeFromSuperview()
+        recipeScrollView = nil
+
+        // Remove recipe buttons (they're in the scroll view)
+        recipeUIButtons.forEach { $0.removeFromSuperview() }
+        recipeUIButtons.removeAll()
+
+        // Remove any rocket button
+        launchButton?.removeFromSuperview()
+        launchButton = nil
+
+        // Clear UIKit slot UI
+        clearSlotUI()
+
+        // Remove progress bar views
+        progressBarFill?.removeFromSuperview()
+        progressBarFill = nil
+        progressBarBackground?.removeFromSuperview()
+        progressBarBackground = nil
+
+        // Remove root view from hierarchy *directly*
+        if let rv = rootView {
+            rv.isUserInteractionEnabled = false
+            rv.removeFromSuperview()
+            onRemoveRootView?(rv) // optional; OK if it also does bookkeeping
+        }
+        rootView = nil
+
+        // Clear global labels (they persist across panels)
         var allLabels: [UILabel] = []
         allLabels += researchProgressLabels
         // Add labels from components
@@ -1990,34 +2046,14 @@ final class MachineUI: UIPanel_Base {
         if let powerLabel = powerLabel {
             allLabels.append(powerLabel)
         }
-        // Labels are removed when rootView is removed
-
         // Clear label text to ensure they're properly reset
         for label in allLabels {
             label.text = ""
             label.isHidden = true
         }
 
-        // Fluid labels cleared by component cleanup
-
-        // Remove rocket launch button
-        launchButton = nil
-
-        // Clear UIKit slot UI
-        clearSlotUI()
-
-        // Remove root view from hierarchy
-        if let rootView = rootView {
-            onRemoveRootView?(rootView)
-        }
-
-        // Clear references
-        rootView = nil
-        recipeScrollView = nil
-
-        // Component scroll views are removed when rootView is removed
-
-        super.close()
+        // Debug: confirm removal
+        print("MachineUI close: rootView super = \(String(describing: rootView?.superview)), isOpen = \(isOpen)")
     }
 
 
@@ -2708,7 +2744,7 @@ final class MachineUI: UIPanel_Base {
 
         // Outside panel -> close and consume the tap
         if !frame.contains(position) {
-            close()
+            onClosePanel?()  // Notify UISystem to close panel and clear activePanel
             return true  // Consume to prevent other interactions
         }
 

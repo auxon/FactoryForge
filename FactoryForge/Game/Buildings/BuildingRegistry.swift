@@ -626,9 +626,9 @@ final class BuildingRegistry {
                    ItemStack(itemId: "stone-brick", count: 10)]
         )
         oilRefinery.powerConsumption = 420  // kW
-        oilRefinery.inventorySlots = 6      // fuelSlots + inputSlots + outputSlots = 0 + 2 + 2
-        oilRefinery.inputSlots = 2
-        oilRefinery.outputSlots = 4
+        oilRefinery.inventorySlots = 0      // Purely fluid-based - no item slots needed
+        oilRefinery.inputSlots = 0          // No item inputs (fluids come from tanks)
+        oilRefinery.outputSlots = 0         // No item outputs (fluids go to tanks)
         oilRefinery.fuelSlots = 0
         register(oilRefinery)
 

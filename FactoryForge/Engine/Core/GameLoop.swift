@@ -969,10 +969,8 @@ final class GameLoop {
         case .oilRefinery:
             world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "oil-processing"), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
-            // Calculate inventory size based on building definition slots
-            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
-            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
-            // Oil refinery needs fluid tanks for crude oil input and multiple fluid outputs (petroleum gas, light/heavy oil)
+            // Oil refinery is purely fluid-based - no item inventory needed
+            // All inputs/outputs are fluids that flow through fluid tanks
             world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 2500), to: entity)  // 2500L capacity for various fluids (higher capacity for refinery)
 
         case .chemicalPlant:

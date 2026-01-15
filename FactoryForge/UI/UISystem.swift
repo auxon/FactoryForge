@@ -562,9 +562,11 @@ final class UISystem {
     }
     
     func openPanel(_ panel: UIPanel) {
+        print("UISystem: openPanel(\(panel)) called, current activePanel = \(String(describing: activePanel))")
         closeAllPanels()
         activePanel = panel
         isAnyPanelOpen = true
+        print("UISystem: Set activePanel to \(panel)")
 
         switch panel {
         case .loadingMenu:
@@ -584,7 +586,9 @@ final class UISystem {
         case .research:
             researchUI.open()
         case .machine:
+            print("UISystem: Calling machineUI.open()")
             machineUI.open()
+            print("UISystem: machineUI.open() completed")
             case .entitySelection:
                 entitySelectionDialog?.open()
             case .inserterConnection:
@@ -625,8 +629,11 @@ final class UISystem {
     }
     
     func openMachineUI(for entity: Entity) {
+        print("UISystem: openMachineUI called for entity \(entity.id)")
         machineUI.setEntity(entity)
+        print("UISystem: setEntity completed, calling openPanel(.machine)")
         openPanel(.machine)
+        print("UISystem: openPanel completed, machineUI.isOpen = \(machineUI.isOpen)")
     }
 
     func openChestInventory(for entity: Entity) {
@@ -704,7 +711,9 @@ final class UISystem {
                 case .research:
                     tapHandled = researchUI.handleTap(at: screenPos)
                 case .machine:
-                    tapHandled = machineUI.handleTap(at: screenPos)
+                    if machineUI.isOpen {
+                        tapHandled = machineUI.handleTap(at: screenPos)
+                    }
                 case .entitySelection:
                     tapHandled = entitySelectionDialog?.handleTap(at: screenPos) ?? false
                 case .inserterConnection:
