@@ -25,8 +25,9 @@ final class FluidIndicator {
     func render(renderer: MetalRenderer) {
         let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
 
-        // Container border (behind everything) - only for tanks, white for visibility
+        // Container border (behind everything)
         if !isInput && !isProducer {
+            // Tank border - white for visibility
             let borderThickness: Float = 1.5
             renderer.queueSprite(SpriteInstance(
                 position: frame.center,
@@ -35,12 +36,32 @@ final class FluidIndicator {
                 color: Color(r: 1.0, g: 1.0, b: 1.0, a: 1.0), // White border for visibility
                 layer: .ui
             ))
+        } else if isProducer && fluidType != nil {
+            // Producer status badge - thinner border, more subtle
+            let borderThickness: Float = 1.0
+            let borderColor = fluidType.map { getFluidColor($0) } ?? Color(r: 0.7, g: 0.7, b: 0.7, a: 1.0)
+            let alpha: Float = hasConnection ? 0.8 : 0.3
+            renderer.queueSprite(SpriteInstance(
+                position: frame.center,
+                size: frame.size + Vector2(borderThickness * 2, borderThickness * 2),
+                textureRect: solidRect,
+                color: borderColor.withAlpha(alpha),
+                layer: .ui
+            ))
         }
 
-        // Background circle - brighter for tanks to make them more visible
-        let bgColor = (!isInput && !isProducer) ?
-            Color(r: 0.4, g: 0.4, b: 0.4, a: 0.8) : // Brighter background for tanks
-            (hasConnection ? Color(r: 0.35, g: 0.35, b: 0.35, a: 0.85) : Color(r: 0.25, g: 0.25, b: 0.25, a: 0.6))
+        // Background circle - status badge styling for producers
+        let bgColor: Color
+        if isProducer {
+            // Producers: subtle background, more like a badge
+            bgColor = hasConnection ? Color(r: 0.2, g: 0.2, b: 0.2, a: 0.7) : Color(r: 0.15, g: 0.15, b: 0.15, a: 0.4)
+        } else if !isInput && !isProducer {
+            // Tanks: brighter background for visibility
+            bgColor = Color(r: 0.4, g: 0.4, b: 0.4, a: 0.8)
+        } else {
+            // Inputs: standard styling
+            bgColor = hasConnection ? Color(r: 0.35, g: 0.35, b: 0.35, a: 0.85) : Color(r: 0.25, g: 0.25, b: 0.25, a: 0.6)
+        }
         renderer.queueSprite(SpriteInstance(
             position: frame.center,
             size: frame.size,

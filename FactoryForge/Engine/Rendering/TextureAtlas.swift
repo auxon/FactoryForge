@@ -8,6 +8,7 @@ final class TextureAtlas {
     private var textures: [String: MTLTexture] = [:]
     private var textureRects: [String: Rect] = [:]
     private var textureSizes: [String: (width: Int, height: Int)] = [:]
+    private var originalImages: [String: UIImage] = [:] // Store original UIImages for extraction
     
     // Main atlas texture
     private(set) var atlasTexture: MTLTexture?
@@ -720,6 +721,9 @@ final class TextureAtlas {
             print("  ✓ Successfully packed \(name) into atlas at (\(atlasX),\(atlasY))")
         }
 
+        // Store the original image for later extraction
+        originalImages[name] = image
+
         return true
     }
     
@@ -926,6 +930,12 @@ final class TextureAtlas {
 
     func getTextureSize(for name: String) -> (width: Int, height: Int)? {
         return textureSizes[name]
+    }
+
+    /// Extract a UIImage from the texture atlas for a given texture name
+    func getUIImage(for name: String) -> UIImage? {
+        // Return the stored original image if available
+        return originalImages[name]
     }
     
     // MARK: - Procedural Texture Generators

@@ -24,6 +24,7 @@ struct MachineUILayout {
     // Bands
     let topBandY: CGFloat
     let midBandY: CGFloat
+    let boilerLaneY: CGFloat  // Centered position for boiler water/steam indicators
     let bottomBandY: CGFloat
 
     init(bounds: CGRect) {
@@ -36,6 +37,7 @@ struct MachineUILayout {
 
         topBandY = H * 0.10
         midBandY = H * 0.28
+        boilerLaneY = H * 0.42  // More centered for boiler indicators
         bottomBandY = H * 0.58
     }
 
@@ -1215,7 +1217,15 @@ final class MachineUI: UIPanel_Base {
     }
 
     func loadRecipeImage(for textureId: String) -> UIImage? {
-        print("MachineUI: loadRecipeImage called for '\(textureId)'")
+        // Try to get image from texture atlas first
+        if let textureAtlas = gameLoop?.renderer?.textureAtlas {
+            // Convert texture ID to texture name (replace dashes with underscores)
+            let textureName = textureId.replacingOccurrences(of: "-", with: "_")
+            if let image = textureAtlas.getUIImage(for: textureName) {
+                return image
+            }
+        }
+
         // Map texture IDs to actual filenames (some have different names)
         var filename = textureId
 
@@ -1228,14 +1238,13 @@ final class MachineUI: UIPanel_Base {
             filename = textureId.replacingOccurrences(of: "-", with: "_")
         }
 
-        print("MachineUI: Looking for image file '\(filename).png'")
-        // Try to load from bundle
+        // Try to load from bundle as fallback
         if let imagePath = Bundle.main.path(forResource: filename, ofType: "png") {
             print("MachineUI: Found image at \(imagePath)")
             return UIImage(contentsOfFile: imagePath)
         }
 
-        print("MachineUI: Image not found")
+        print("MachineUI: Image not found in texture atlas or bundle")
         return nil
     }
 
@@ -2522,6 +2531,10 @@ final class MachineUI: UIPanel_Base {
             buildingEntity = lab
         } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
             buildingEntity = rocketSilo
+        } else if let fluidProducer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            buildingEntity = fluidProducer
+        } else if let fluidConsumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            buildingEntity = fluidConsumer
         } else {
             return
         }
@@ -2579,7 +2592,6 @@ final class MachineUI: UIPanel_Base {
                 // Update button image
                 if i < inputSlotButtons.count {
                     if let image = loadRecipeImage(for: item.itemId) {
-                        print("MachineUI: Loading image for \(item.itemId)")
                         // Scale image to 80% of button size like InventoryUI does for icons
                         let buttonSizePoints: CGFloat = 32
                         let scaledSize = CGSize(width: buttonSizePoints * 0.8, height: buttonSizePoints * 0.8)
@@ -3067,10 +3079,12 @@ final class MachineUI: UIPanel_Base {
         label.layer.borderColor = UIColor.cyan.cgColor
         label.layer.borderWidth = 0.5 // Thinner border
         label.layer.cornerRadius = 3.0 // Smaller radius
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.75
         label.isHidden = false
 
-        // Set initial frame (slightly smaller now that visuals are clearer)
-        label.frame = CGRect(x: 0, y: 0, width: 90, height: 20)
+        // Set initial frame with wider width to accommodate longer text
+        label.frame = CGRect(x: 0, y: 0, width: 130, height: 20)
 
         return label
     }
@@ -3159,6 +3173,10 @@ final class MachineUI: UIPanel_Base {
                           buildingDef.type == .oilRefinery {
                     // Special status for oil refineries
                     statusText = getRefineryStatus(entity: entity, gameLoop: gameLoop, assembler: assembler)
+                } else if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
+                          buildingDef.id == "boiler" {
+                    // Special status for boilers
+                    statusText = getBoilerStatus(entity: entity, gameLoop: gameLoop)
                 } else {
                     statusText = "Ready to Craft"
                 }
@@ -3238,6 +3256,66 @@ final class MachineUI: UIPanel_Base {
             return "Stalled • " + statusParts.joined(separator: " • ")
         } else {
             return "Ready • " + statusParts.joined(separator: " • ")
+        }
+    }
+
+    private func getBoilerStatus(entity: Entity, gameLoop: GameLoop) -> String {
+        // Check if boiler is currently running (producing steam)
+        let isRunning = (gameLoop.world.get(FluidProducerComponent.self, for: entity)?.currentProduction ?? 0) > 0.001
+
+        // Check fuel availability
+        var hasFuel = false
+        if let inventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+            let fuelSlotStart = buildingDef.inputSlots + buildingDef.outputSlots
+            hasFuel = (fuelSlotStart..<inventory.slots.count).contains(where: {
+                inventory.slots[$0]?.count ?? 0 > 0
+            })
+        }
+
+        // Check water availability
+        var hasWaterConnection = false
+        var hasWaterBuffer = false
+        if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            hasWaterConnection = !consumer.connections.isEmpty
+            if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+                hasWaterBuffer = tank.tanks.first(where: { $0.type == .water })?.amount ?? 0 >= 0.001
+            }
+        }
+
+        // Check steam output capacity
+        var hasSteamSpace = false
+        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            hasSteamSpace = tank.tanks.first(where: { $0.type == .steam })?.availableSpace ?? 0 >= 0.001
+        }
+
+        // Determine status based on conditions
+        if isRunning {
+            // Running - check for any warnings
+            var warnings: [String] = []
+            if !hasFuel {
+                warnings.append("Low Fuel")
+            }
+            if !hasWaterConnection && !hasWaterBuffer {
+                warnings.append("No Water Source")
+            }
+            if !hasSteamSpace {
+                warnings.append("Steam Backed Up")
+            }
+            return "Running" + (warnings.isEmpty ? "" : " • " + warnings.joined(separator: " • "))
+        } else {
+            // Not running - find the blocking issue
+            if !hasFuel {
+                return "Stalled • No Fuel"
+            }
+            if !hasWaterConnection && !hasWaterBuffer {
+                return "Stalled • No Water"
+            }
+            if !hasSteamSpace {
+                return "Stalled • Steam Output Blocked"
+            }
+            // All conditions met but not running - should not happen, but fallback
+            return "Ready"
         }
     }
 }
