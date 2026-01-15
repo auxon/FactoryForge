@@ -321,6 +321,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     private var producerLabels: [UILabel] = []
     private var tankLabels: [UILabel] = []
     private var fluidTankViews: [UIView] = []
+    private var fluidTankImages: [UIImageView] = [] // Images for fluid textures
 
     override func setupUI(for entity: Entity, in ui: MachineUI) {
         clearFluidUI()
@@ -337,6 +338,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             view.removeFromSuperview()
         }
         fluidTankViews.removeAll()
+        fluidTankImages.removeAll()
     }
 
     private func clearFluidUI() {
@@ -579,12 +581,41 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
             // Show at least one tank indicator, even if empty
             let tankCount = max(tank.tanks.count, 1)
-            print("FluidMachineUIComponent: Will show \(min(tankCount, 4)) tank indicators")
+            let maxVisibleTanks = 8 // Allow up to 8 tanks for complex fluid processing buildings
+            print("FluidMachineUIComponent: Found \(tank.tanks.count) tanks, will show \(min(tankCount, maxVisibleTanks)) tank indicators")
+            for i in 0..<tank.tanks.count {
+                let tank = tank.tanks[i]
+                print("FluidMachineUIComponent: Tank \(i): \(tank.amount)L of \(tank.type)")
+            }
 
-            for index in 0..<min(tankCount, 4) { // Limit to 4 visible tanks
-                let tankY = progressBarBottom + Float(index) * (tankSpacing + labelSpacing)
+            // Get building definition to determine input vs output tank positioning
+            let buildingDef = ui.getBuildingDefinition(for: ui.currentEntity!, gameLoop: ui.gameLoop!)
+            let inputTankCount = buildingDef?.fluidInputTanks ?? 0
+
+            for index in 0..<min(tankCount, maxVisibleTanks) { // Allow more tanks for fluid processing
+                // Determine X position based on whether this is an input or output tank
+                let isInputTank = index < inputTankCount
+                let tankX: Float
+
+                if isInputTank {
+                    // Input tanks go near the left edge of the panel with padding
+                    if let rootView = ui.rootView {
+                        let leftPadding: Float = 30 * UIScale // Padding from left edge
+                        let leftXUIKitPoints = leftPadding
+                        let scale = Float(UIScreen.main.scale)
+                        let panelOriginPts = ui.panelFrameInPoints().origin
+                        tankX = (leftXUIKitPoints + Float(panelOriginPts.x)) * scale
+                    } else {
+                        tankX = tankBaseX - 200 * UIScale // Fallback position
+                    }
+                } else {
+                    // Output tanks stay on the right side
+                    tankX = tankBaseX // Original right position
+                }
+
+                let tankY = progressBarBottom + Float(index % 4) * (tankSpacing + labelSpacing) // Wrap every 4 tanks
                 let tankSize: Float = indicatorSize
-                let tankFrame = Rect(center: Vector2(tankBaseX, tankY), size: Vector2(tankSize, tankSize))
+                let tankFrame = Rect(center: Vector2(tankX, tankY), size: Vector2(tankSize, tankSize))
 
                 // Convert Metal pixel coordinates to UIKit points relative to rootView
                 let scale = UIScreen.main.scale
@@ -600,8 +631,8 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                     height: CGFloat(tankFrame.size.y) / scale
                 ))
 
-                // Style the tank indicator (white border, red background for debugging)
-                tankView.backgroundColor = UIColor.red  // Debug: bright red to make it visible
+                // Style the tank indicator (white border, gray background for empty tanks)
+                tankView.backgroundColor = UIColor.gray.withAlphaComponent(0.7)  // Gray for empty tanks
                 tankView.layer.borderColor = UIColor.white.cgColor
                 tankView.layer.borderWidth = 1.5
                 tankView.layer.cornerRadius = 4.0
@@ -619,6 +650,14 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                     print("FluidMachineUIComponent: Added tank view \(index) at UIKit frame: \(tankView.frame), rootView bounds: \(rootView.bounds), panelOriginPts: \(panelOriginPts)")
                 }
 
+                // Create image view for fluid texture
+                let fluidImageView = UIImageView(frame: tankView.bounds)
+                fluidImageView.contentMode = .scaleAspectFill
+                fluidImageView.clipsToBounds = true
+                fluidImageView.isHidden = true // Hidden by default (empty tank)
+                tankView.addSubview(fluidImageView)
+                fluidTankImages.append(fluidImageView)
+
                 // Add label for tank
                 let tankLabel = ui.createFluidLabel()
                 tankLabels.append(tankLabel)
@@ -632,6 +671,27 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             }
         } else {
             print("FluidMachineUIComponent: No FluidTankComponent found for entity \(entity.id)")
+        }
+    }
+
+    private func getFluidColor(for fluidType: FluidType) -> UIColor {
+        switch fluidType {
+        case .water:
+            return UIColor.blue.withAlphaComponent(0.7)
+        case .steam:
+            return UIColor.white.withAlphaComponent(0.7)
+        case .crudeOil:
+            return UIColor.black.withAlphaComponent(0.7)
+        case .heavyOil:
+            return UIColor.red.withAlphaComponent(0.7)
+        case .lightOil:
+            return UIColor.yellow.withAlphaComponent(0.7)
+        case .petroleumGas:
+            return UIColor.green.withAlphaComponent(0.7)
+        case .sulfuricAcid:
+            return UIColor.orange.withAlphaComponent(0.7)
+        case .lubricant:
+            return UIColor.purple.withAlphaComponent(0.7)
         }
     }
 
@@ -720,13 +780,43 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
         // Update fluid tanks (UIKit views)
         if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
-            for i in 0..<min(tankLabels.count, max(tank.tanks.count, 1)) {
-                if tank.tanks.indices.contains(i) {
+            let maxVisibleTanks = 8
+            for i in 0..<min(tankLabels.count, max(tank.tanks.count, 1), maxVisibleTanks) {
+                if tank.tanks.indices.contains(i) && i < fluidTankViews.count && i < fluidTankImages.count {
                     let stack = tank.tanks[i]
-                    let fluidName = stack.type.rawValue.replacingOccurrences(of: "-", with: " ").capitalized
-                    tankLabels[i].text = String(format: "%@: %.0f/%.0f L", fluidName, stack.amount, stack.maxAmount)
-                } else {
+                    let tankView = fluidTankViews[i]
+                    let fluidImageView = fluidTankImages[i]
+
+                    if stack.amount > 0 {
+                        // Tank has fluid - show texture
+                        let fluidName = stack.type.rawValue.replacingOccurrences(of: "-", with: " ").capitalized
+                        tankLabels[i].text = String(format: "%@: %.0f/%.0f L", fluidName, stack.amount, stack.maxAmount)
+
+                        // Load fluid texture
+                        let textureName = stack.type.rawValue.replacingOccurrences(of: "-", with: "_")
+                        if let fluidImage = ui.loadRecipeImage(for: textureName) {
+                            fluidImageView.image = fluidImage
+                            fluidImageView.isHidden = false
+                            tankView.backgroundColor = UIColor.clear // Hide gray background when showing texture
+                        } else {
+                            // Fallback to colored background if texture not found
+                            fluidImageView.isHidden = true
+                            tankView.backgroundColor = getFluidColor(for: stack.type)
+                        }
+                    } else {
+                        // Tank is empty - show gray background
+                        tankLabels[i].text = String(format: "Empty: 0/%.0f L", stack.maxAmount)
+                        fluidImageView.isHidden = true
+                        tankView.backgroundColor = UIColor.gray.withAlphaComponent(0.7)
+                    }
+                } else if i < tankLabels.count {
                     tankLabels[i].text = String(format: "Empty: 0/%.0f L", tank.maxCapacity)
+                    if i < fluidTankViews.count {
+                        fluidTankViews[i].backgroundColor = UIColor.gray.withAlphaComponent(0.7)
+                    }
+                    if i < fluidTankImages.count {
+                        fluidTankImages[i].isHidden = true
+                    }
                 }
             }
         }
@@ -1810,6 +1900,16 @@ final class MachineUI: UIPanel_Base {
 
                 return categoryMatches && fluidCheckPasses
             }
+        } else if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity),
+                  let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+            // For fluid-based machines (like oil refineries), filter by building crafting category
+            availableRecipes = availableRecipes.filter { recipe in
+                // Check if recipe category matches building category
+                let categoryMatches = recipe.category.rawValue == buildingDef.craftingCategory
+
+                // Since this is a fluid machine, allow fluid recipes
+                return categoryMatches
+            }
         }
         // For oil refineries and chemical plants (which have AssemblerComponent + FluidTankComponent),
         // they can show fluid recipes because they have fluid handling capabilities
@@ -1903,7 +2003,7 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
-    private func loadRecipeImage(for textureId: String) -> UIImage? {
+    func loadRecipeImage(for textureId: String) -> UIImage? {
         print("MachineUI: loadRecipeImage called for '\(textureId)'")
         // Map texture IDs to actual filenames (some have different names)
         var filename = textureId
@@ -2298,8 +2398,12 @@ final class MachineUI: UIPanel_Base {
               let gameLoop = gameLoop,
               let entity = currentEntity else { return }
 
-        // Check if player has all required items
+        // Check crafting requirements based on recipe type
         var canCraftFromInventory = true
+        var canCraftFromFluids = true
+        var hasOutputSpace = true
+
+        // Check item inputs from player inventory
         for input in recipe.inputs {
             if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
                 canCraftFromInventory = false
@@ -2307,45 +2411,88 @@ final class MachineUI: UIPanel_Base {
             }
         }
 
-        // Check if machine has available output slots
-        var hasOutputSpace = false
-
-        // For fluid-only recipes (no item outputs), assume output space is always available
-        // since fluids go into fluid tanks, not item slots
-        if recipe.outputs.isEmpty && !recipe.fluidOutputs.isEmpty {
-            hasOutputSpace = true
-        } else if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
-                  let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
-            let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
-            let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
-
-            // Check if any output slot is empty or can accept more of the output items
-            for output in recipe.outputs {
-                for slotIndex in outputStartIndex...outputEndIndex {
-                    if let existingStack = machineInventory.slots[slotIndex] {
-                        // Slot has an item - check if it's the same item and not full
-                        if existingStack.itemId == output.itemId &&
-                           existingStack.count < existingStack.maxStack {
-                            hasOutputSpace = true
+        // Check fluid inputs from machine's fluid tanks
+        if !recipe.fluidInputs.isEmpty {
+            if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+                for fluidInput in recipe.fluidInputs {
+                    var foundFluid = false
+                    for tank in fluidTank.tanks {
+                        if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
+                            foundFluid = true
                             break
                         }
-                    } else {
-                        // Empty slot available
-                        hasOutputSpace = true
+                    }
+                    if !foundFluid {
+                        canCraftFromFluids = false
                         break
                     }
                 }
-                if hasOutputSpace { break }
+            } else {
+                canCraftFromFluids = false
             }
         }
 
-        let canCraft = canCraftFromInventory && hasOutputSpace
+        // Check output space
+        if !recipe.outputs.isEmpty {
+            // Check item output space
+            if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+               let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+                let outputStartIndex = buildingDef.fuelSlots + buildingDef.inputSlots
+                let outputEndIndex = outputStartIndex + buildingDef.outputSlots - 1
+
+                hasOutputSpace = false
+                // Check if any output slot is empty or can accept more of the output items
+                for output in recipe.outputs {
+                    for slotIndex in outputStartIndex...outputEndIndex {
+                        if let existingStack = machineInventory.slots[slotIndex] {
+                            // Slot has an item - check if it's the same item and not full
+                            if existingStack.itemId == output.itemId &&
+                               existingStack.count < existingStack.maxStack {
+                                hasOutputSpace = true
+                                break
+                            }
+                        } else {
+                            // Empty slot available
+                            hasOutputSpace = true
+                            break
+                        }
+                    }
+                    if hasOutputSpace { break }
+                }
+            }
+        } else if !recipe.fluidOutputs.isEmpty {
+            // Check fluid output space
+            if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+                for fluidOutput in recipe.fluidOutputs {
+                    var hasSpace = false
+                    for i in 0..<fluidTank.tanks.count {
+                        let tank = fluidTank.tanks[i]
+                        // Check if this tank can accept this fluid type and has space
+                        // Tanks can only accept: same fluid type (to add more), or be empty (to accept any type)
+                        let canAcceptFluid = (tank.amount == 0) || (tank.type == fluidOutput.type)
+
+                        if canAcceptFluid && tank.availableSpace >= fluidOutput.amount {
+                            hasSpace = true
+                            break
+                        }
+                    }
+                    if !hasSpace {
+                        hasOutputSpace = false
+                        break
+                    }
+                }
+            } else {
+                hasOutputSpace = false
+            }
+        }
+
+        let canCraft = canCraftFromInventory && canCraftFromFluids && hasOutputSpace
 
         craftButton.isEnabled = canCraft
-        if !canCraftFromInventory {
+        if !canCraftFromInventory || !canCraftFromFluids {
             craftButton.backgroundColor = UIColor.gray.withAlphaComponent(0.5)
         } else if !hasOutputSpace {
-            craftButton.backgroundColor = UIColor.orange.withAlphaComponent(0.7) // Orange to indicate output slots full
+            craftButton.backgroundColor = UIColor.orange.withAlphaComponent(0.7) // Orange to indicate no output space
         } else {
             craftButton.backgroundColor = UIColor.blue.withAlphaComponent(0.7)
         }
@@ -2444,18 +2591,8 @@ final class MachineUI: UIPanel_Base {
                     for i in 0..<fluidTank.tanks.count {
                         let tank = fluidTank.tanks[i]
                         // Check if this tank can accept this fluid type and has space
-                        // For oil refineries, allow tanks to accept recipe-related fluids
-                        var canAcceptFluid = false
-                        if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
-                           buildingDef.type == .oilRefinery {
-                            // Oil refinery tanks can accept: crude oil, water/steam (inputs), and petroleum gas/light oil/heavy oil (outputs)
-                            let allowedTypes: [FluidType] = [.crudeOil, .water, .steam, .petroleumGas, .lightOil, .heavyOil]
-                            canAcceptFluid = allowedTypes.contains(fluidOutput.type) &&
-                                           (tank.amount == 0 || tank.type == fluidOutput.type || allowedTypes.contains(tank.type))
-                        } else {
-                            // Regular tanks: only accept same type or empty tanks
-                            canAcceptFluid = (tank.type == fluidOutput.type || tank.amount == 0)
-                        }
+                        // Tanks can only accept: same fluid type (to add more), or be empty (to accept any type)
+                        let canAcceptFluid = (tank.amount == 0) || (tank.type == fluidOutput.type)
 
                         if canAcceptFluid && tank.availableSpace >= fluidOutput.amount {
                             hasSpace = true
@@ -2530,7 +2667,80 @@ final class MachineUI: UIPanel_Base {
             }
         }
 
-        gameLoop.player.inventory = playerInventory
+        // For fluid-based recipes, just set the recipe and let the CraftingSystem handle timed processing
+        if recipe.fluidInputs.isEmpty && recipe.fluidOutputs.isEmpty {
+            // Item-based recipe - do the old instant logic
+            var playerInventory = gameLoop.player.inventory
+
+            // Transfer item inputs from player inventory to machine input slots
+            if !recipe.inputs.isEmpty {
+                guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity),
+                      let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else {
+                    return
+                }
+
+                // Transfer each input item to the appropriate machine input slot
+                for (index, input) in recipe.inputs.enumerated() {
+                    let machineSlotIndex = buildingDef.fuelSlots + index
+                    if machineSlotIndex < machineInventory.slots.count {
+                        // Remove from player
+                        let _ = playerInventory.remove(itemId: input.itemId, count: input.count)
+
+                        // Add to machine input slot
+                        machineInventory.slots[machineSlotIndex] = ItemStack(
+                            itemId: input.itemId,
+                            count: input.count,
+                            maxStack: input.count // Use the required count as max
+                        )
+                    }
+                }
+
+                // Update machine inventory
+                gameLoop.world.add(machineInventory, to: entity)
+            }
+
+            // Add fluid outputs to machine tanks (for item recipes that also have fluid outputs)
+            if !recipe.fluidOutputs.isEmpty {
+                if var fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+                    for fluidOutput in recipe.fluidOutputs {
+                        // Find a suitable tank for this fluid output
+                        var added = false
+                        for i in 0..<fluidTank.tanks.count {
+                            let tank = fluidTank.tanks[i]
+                            // Check if this tank can accept this fluid type
+                            var canAcceptFluid = false
+                            if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
+                               buildingDef.type == .oilRefinery {
+                                // Oil refinery tanks can accept: crude oil, water/steam (inputs), and petroleum gas/light oil/heavy oil (outputs)
+                                let allowedTypes: [FluidType] = [.crudeOil, .water, .steam, .petroleumGas, .lightOil, .heavyOil]
+                                canAcceptFluid = allowedTypes.contains(fluidOutput.type) &&
+                                               (tank.amount == 0 || tank.type == fluidOutput.type || allowedTypes.contains(tank.type))
+                            } else {
+                                // Regular tanks: only accept same type or empty tanks
+                                canAcceptFluid = (tank.type == fluidOutput.type || tank.amount == 0)
+                            }
+
+                            if canAcceptFluid && tank.availableSpace >= fluidOutput.amount {
+                                // Add fluid to this tank
+                                if tank.amount == 0 {
+                                    // Tank is empty (regardless of previous type), set the new type and add fluid
+                                    fluidTank.tanks[i] = FluidStack(type: fluidOutput.type, amount: fluidOutput.amount, temperature: fluidOutput.temperature, maxAmount: tank.maxAmount)
+                                } else {
+                                    // Tank has fluid, add to existing amount
+                                    fluidTank.tanks[i].amount += fluidOutput.amount
+                                }
+                                added = true
+                                break
+                            }
+                        }
+                        // Note: If no tank can accept the fluid, it should have been caught in the space check above
+                        // So we assume it gets added somewhere
+                    }
+                    gameLoop.world.add(fluidTank, to: entity)
+                }
+            }
+
+            gameLoop.player.inventory = playerInventory
 
             // Set the recipe on the machine
             onSelectRecipeForMachine?(entity, recipe)
@@ -2549,6 +2759,23 @@ final class MachineUI: UIPanel_Base {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.updateMachine(entity)
             }
+        } else {
+            // Fluid-based recipe - just set the recipe and let CraftingSystem handle timed processing
+            onSelectRecipeForMachine?(entity, recipe)
+
+            // Play craft sound
+            AudioManager.shared.playClickSound()
+
+            // Update the UI
+            updateMachine(entity)
+
+            // Clear selection and hide craft button
+            selectedRecipe = nil
+            craftButton?.removeFromSuperview()
+            craftButton = nil
+            clearRecipeDetails()
+            updateRecipeButtonStates()
+        }
     }
 
     override func open() {

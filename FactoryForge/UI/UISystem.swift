@@ -239,6 +239,20 @@ final class UISystem {
             }
         }
 
+        // Machine UI callback for selecting recipes on machines
+        machineUI.onSelectRecipeForMachine = { [weak self] entity, recipe in
+            guard let self = self, let gameLoop = self.gameLoop else { return }
+
+            // Set the recipe on the machine's AssemblerComponent
+            if var assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+                assembler.recipe = recipe
+                assembler.craftingProgress = 0.0  // Reset progress
+                gameLoop.world.add(assembler, to: entity)
+
+                print("UISystem: Set recipe \(recipe.id) on machine \(entity.id)")
+            }
+        }
+
         // Machine UI callback for closing when tapped outside
         machineUI.onClosePanel = { [weak self] in
             self?.closeAllPanels()
@@ -628,6 +642,13 @@ final class UISystem {
         isAnyPanelOpen = false
     }
     
+    func updateMachineUI(for entity: Entity) {
+        // If the machine UI is currently open for this entity, update it
+        if activePanel == .machine && machineUI.currentEntity?.id == entity.id {
+            machineUI.updateMachine(entity)
+        }
+    }
+
     func openMachineUI(for entity: Entity) {
         print("UISystem: openMachineUI called for entity \(entity.id)")
         machineUI.setEntity(entity)

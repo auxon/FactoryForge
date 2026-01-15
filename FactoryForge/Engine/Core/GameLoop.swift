@@ -133,13 +133,11 @@ final class GameLoop {
         // Initialize UI
         uiSystem = UISystem(gameLoop: self, renderer: renderer)
 
-        // Set up callback for when crafting completes to update MachineUI
+        // Set up crafting completion callback to notify UI
         craftingSystem.onCraftingCompleted = { [weak self] entity in
-            // Update the MachineUI when crafting completes
-            if let uiSystem = self?.uiSystem,
-               let machineUI = uiSystem.getMachineUI() as? MachineUI,
-               machineUI.currentEntity == entity {
-                machineUI.updateMachine(entity)
+            // Notify UI system to update the machine UI
+            DispatchQueue.main.async {
+                self?.uiSystem?.updateMachineUI(for: entity)
             }
         }
 
@@ -435,6 +433,10 @@ final class GameLoop {
         guard let buildingDef = buildingRegistry.get(buildingId) else {
             return false
         }
+
+        if buildingId == "oil-refinery" {
+            print("GameLoop: Placing oil refinery - fluidInputTanks: \(buildingDef.fluidInputTanks), fluidOutputTanks: \(buildingDef.fluidOutputTanks)")
+        }
         guard canPlaceBuilding(buildingDef, at: position) else { return false }
 
         // Check if player has required items
@@ -585,6 +587,66 @@ final class GameLoop {
     }
 
     private func canPlaceBuilding(_ building: BuildingDefinition, at position: IntVector2, ignoringEntity: Entity? = nil) -> Bool {
+        // Special case for oil refineries: allow placement on infrastructure (pipes, belts, poles, inserters)
+        if building.type == .oilRefinery {
+            print("GameLoop: Checking oil refinery placement at \(position), size \(building.width)x\(building.height)")
+            var hasInfrastructure = false
+            var infrastructureCount = 0
+            for dy in 0..<building.height {
+                for dx in 0..<building.width {
+                    let checkPos = position + IntVector2(Int(dx), Int(dy))
+                    print("GameLoop: Checking position \(checkPos)")
+                    if world.hasEntityAt(position: checkPos) {
+                        print("GameLoop: Entity found at \(checkPos)")
+                        if let entity = world.getEntityAt(position: checkPos) {
+                            print("GameLoop: Entity \(entity.id) at \(checkPos)")
+                            // Skip ignored entity
+                            if let ignoringEntity = ignoringEntity, entity == ignoringEntity {
+                                print("GameLoop: Ignoring entity \(entity.id)")
+                                continue
+                            }
+                            // Check for infrastructure components that allow building overlap
+                            if world.has(PipeComponent.self, for: entity) ||
+                               world.has(BeltComponent.self, for: entity) ||
+                               world.has(PowerPoleComponent.self, for: entity) ||
+                               world.has(InserterComponent.self, for: entity) {
+                                print("GameLoop: Found infrastructure at \(checkPos)!")
+                                hasInfrastructure = true
+                                infrastructureCount += 1
+                            } else {
+                                print("GameLoop: Entity at \(checkPos) is not infrastructure")
+                                // Check what type of entity it is
+                                if world.has(TreeComponent.self, for: entity) {
+                                    print("GameLoop: Found tree at \(checkPos)")
+                                } else if world.has(AssemblerComponent.self, for: entity) {
+                                    print("GameLoop: Found assembler at \(checkPos)")
+                                } else if world.has(FurnaceComponent.self, for: entity) {
+                                    print("GameLoop: Found furnace at \(checkPos)")
+                                } else if world.has(MinerComponent.self, for: entity) {
+                                    print("GameLoop: Found miner at \(checkPos)")
+                                } else if world.has(ChestComponent.self, for: entity) {
+                                    print("GameLoop: Found chest at \(checkPos)")
+                                } else {
+                                    print("GameLoop: Found other entity at \(checkPos)")
+                                }
+                                // If there's any non-infrastructure entity, we can't place here
+                                return false
+                            }
+                        }
+                    } else {
+                        print("GameLoop: No entity at \(checkPos)")
+                    }
+                }
+            }
+            print("GameLoop: Oil refinery placement - found \(infrastructureCount) infrastructure pieces, hasInfrastructure: \(hasInfrastructure)")
+            if hasInfrastructure {
+                print("GameLoop: Allowing oil refinery placement due to infrastructure")
+                return true  // Allow placement if infrastructure is found anywhere
+            }
+            print("GameLoop: No infrastructure found, falling through to normal validation")
+            // Fall through to normal validation if no infrastructure found
+        }
+
         // Special case for mining drills: allow placement near trees
         if building.type == .miner {
             // Check for trees in an expanded area around the mining drill
@@ -639,7 +701,8 @@ final class GameLoop {
                 let isBuildableForThisBuilding = tile.isBuildable ||
                     (building.type == .waterPump && tile.type == .water) ||
                     (building.type == .pumpjack && tile.resource?.type == .oil) ||
-                    (building.type == .pipe)  // Pipes can be placed on any buildable tile
+                    (building.type == .pipe) ||  // Pipes can be placed on any tile
+                    (building.type == .oilRefinery)  // Oil refineries can be placed on pipes
                 guard isBuildableForThisBuilding else {
                     return false
                 }
@@ -971,7 +1034,15 @@ final class GameLoop {
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             // Oil refinery is purely fluid-based - no item inventory needed
             // All inputs/outputs are fluids that flow through fluid tanks
-            world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 2500), to: entity)  // 2500L capacity for various fluids (higher capacity for refinery)
+            let totalTanks = buildingDef.fluidInputTanks + buildingDef.fluidOutputTanks
+            print("GameLoop: Oil refinery - fluidInputTanks: \(buildingDef.fluidInputTanks), fluidOutputTanks: \(buildingDef.fluidOutputTanks), total: \(totalTanks)")
+            let refineryTanks = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 2500)
+            // Initialize with the specified number of empty tanks
+            for i in 0..<totalTanks {
+                refineryTanks.tanks.append(FluidStack(type: .water, amount: 0, temperature: 20, maxAmount: 2500))
+                print("GameLoop: Created tank \(i) for oil refinery")
+            }
+            world.add(refineryTanks, to: entity)
 
         case .chemicalPlant:
             world.add(AssemblerComponent(buildingId: buildingDef.id, craftingSpeed: buildingDef.craftingSpeed, craftingCategory: "chemistry"), to: entity)
@@ -980,7 +1051,13 @@ final class GameLoop {
             let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
             world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
             // Chemical plants need fluid tanks for various fluid inputs/outputs
-            world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 1500), to: entity)  // 1500L capacity for various fluids (higher capacity for chemistry)
+            let totalTanks = buildingDef.fluidInputTanks + buildingDef.fluidOutputTanks
+            let chemicalTanks = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 1500)
+            // Initialize with the specified number of empty tanks
+            for _ in 0..<totalTanks {
+                chemicalTanks.tanks.append(FluidStack(type: .water, amount: 0, temperature: 20, maxAmount: 1500))
+            }
+            world.add(chemicalTanks, to: entity)
 
         case .rocketSilo:
             world.add(RocketSiloComponent(buildingId: buildingDef.id), to: entity)

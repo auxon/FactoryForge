@@ -42,7 +42,14 @@ final class CraftingSystem: System {
     private func updateAssemblers(deltaTime: Float) {
         world.forEach(AssemblerComponent.self) { [self] entity, assembler in
             guard let recipe = assembler.recipe else { return }
-            guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
+
+            // Check if this is an item-based machine (has inventory) or fluid-based machine (has fluid tanks)
+            let hasInventory = world.has(InventoryComponent.self, for: entity)
+            let hasFluidTanks = world.has(FluidTankComponent.self, for: entity)
+
+            if !hasInventory && !hasFluidTanks {
+                return // Machine has no storage capacity
+            }
             
             // Check power
             var speedMultiplier: Float = 1.0
@@ -56,22 +63,38 @@ final class CraftingSystem: System {
                 // Continue crafting
                 let craftTime = recipe.craftTime / (assembler.craftingSpeed * speedMultiplier)
                 assembler.craftingProgress += deltaTime / craftTime
-                
+
                 if assembler.craftingProgress >= 1.0 {
                     // Complete crafting
-                    completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: assembler, entity: entity, world: world)
+                    if hasInventory {
+                        var inventory = world.get(InventoryComponent.self, for: entity)!
+                        completeRecipe(recipe: recipe, inventory: &inventory, buildingComponent: assembler, entity: entity, world: world)
+                        world.add(inventory, to: entity)
+                    } else {
+                        // Fluid-based machine - handle fluid outputs
+                        completeFluidRecipe(recipe: recipe, buildingComponent: assembler, entity: entity, world: world)
+                    }
                     assembler.craftingProgress = 0
-                    world.add(inventory, to: entity)
                     // Queue entity for UI update (avoid concurrent access during iteration)
                     completedEntities.append(entity)
                 }
             } else {
                 // Try to start crafting
-                if canStartRecipe(recipe: recipe, inventory: inventory, entity: entity, world: world) {
-                    // Consume inputs (from input slots only for machines)
-                    consumeInputsFromInputSlots(recipe: recipe, inventory: &inventory, world: world, entity: entity)
-                    assembler.craftingProgress = 0.001  // Started
-                    world.add(inventory, to: entity)
+                if hasInventory {
+                    var inventory = world.get(InventoryComponent.self, for: entity)!
+                    if canStartRecipe(recipe: recipe, inventory: inventory, entity: entity, world: world) {
+                        // Consume inputs (from input slots only for machines)
+                        consumeInputsFromInputSlots(recipe: recipe, inventory: &inventory, world: world, entity: entity)
+                        assembler.craftingProgress = 0.001  // Started
+                        world.add(inventory, to: entity)
+                    }
+                } else {
+                    // Fluid-based machine
+                    if canStartFluidRecipe(recipe: recipe, entity: entity, world: world) {
+                        // Consume fluid inputs
+                        consumeFluidInputs(recipe: recipe, entity: entity, world: world)
+                        assembler.craftingProgress = 0.001  // Started
+                    }
                 }
             }
         }
@@ -193,6 +216,123 @@ final class CraftingSystem: System {
         }
 
         return true
+    }
+
+    private func canStartFluidRecipe(recipe: Recipe, entity: Entity, world: World) -> Bool {
+        // Check fluid inputs
+        if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
+            for fluidInput in recipe.fluidInputs {
+                var foundFluid = false
+                for tank in tankComponent.tanks {
+                    if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
+                        foundFluid = true
+                        break
+                    }
+                }
+                if !foundFluid {
+                    return false
+                }
+            }
+        } else {
+            return false // No fluid tanks
+        }
+
+        // Check fluid output space
+        if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
+            for fluidOutput in recipe.fluidOutputs {
+                var hasSpace = false
+                for i in 0..<tankComponent.tanks.count {
+                    let tank = tankComponent.tanks[i]
+                    // Check if this tank can accept this fluid type
+                    var canAcceptFluid = false
+                    if let buildingDef = buildingRegistry.get(tankComponent.buildingId),
+                       buildingDef.type == .oilRefinery {
+                        // Oil refinery tanks can accept: crude oil, water/steam (inputs), and petroleum gas/light oil/heavy oil (outputs)
+                        let allowedTypes: [FluidType] = [.crudeOil, .water, .steam, .petroleumGas, .lightOil, .heavyOil]
+                        canAcceptFluid = allowedTypes.contains(fluidOutput.type) &&
+                                       (tank.amount == 0 || tank.type == fluidOutput.type || allowedTypes.contains(tank.type))
+                    } else {
+                        // Regular tanks: only accept same type or empty tanks
+                        canAcceptFluid = (tank.type == fluidOutput.type || tank.amount == 0)
+                    }
+
+                    if canAcceptFluid && tank.availableSpace >= fluidOutput.amount {
+                        hasSpace = true
+                        break
+                    }
+                }
+                if !hasSpace {
+                    return false
+                }
+            }
+        }
+
+        return true
+    }
+
+    private func consumeFluidInputs(recipe: Recipe, entity: Entity, world: World) {
+        if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
+            print("CraftingSystem: Consuming fluids for recipe \(recipe.id)")
+            for fluidInput in recipe.fluidInputs {
+                print("CraftingSystem: Need to consume \(fluidInput.amount)L of \(fluidInput.type)")
+                // Find and consume fluid from tanks
+                var consumed = false
+                for i in 0..<tankComponent.tanks.count {
+                    let tank = tankComponent.tanks[i]
+                    print("CraftingSystem: Tank \(i): \(tank.amount)L of \(tank.type)")
+                    if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
+                        tankComponent.tanks[i].amount -= fluidInput.amount
+                        print("CraftingSystem: Consumed \(fluidInput.amount)L of \(fluidInput.type) from tank \(i), now has \(tankComponent.tanks[i].amount)L")
+                        consumed = true
+                        break
+                    }
+                }
+                if !consumed {
+                    print("CraftingSystem: WARNING - Could not consume \(fluidInput.amount)L of \(fluidInput.type)")
+                }
+            }
+            world.add(tankComponent, to: entity)
+        }
+    }
+
+    private func completeFluidRecipe(recipe: Recipe, buildingComponent: BuildingComponent, entity: Entity, world: World) {
+        // Add fluid outputs to tanks
+        if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
+            print("CraftingSystem: Adding fluid outputs for recipe \(recipe.id)")
+            for fluidOutput in recipe.fluidOutputs {
+                print("CraftingSystem: Need to add \(fluidOutput.amount)L of \(fluidOutput.type)")
+                // Find a suitable tank for this fluid output
+                var added = false
+                for i in 0..<tankComponent.tanks.count {
+                    let tank = tankComponent.tanks[i]
+                    print("CraftingSystem: Checking tank \(i): \(tank.amount)L of \(tank.type), space: \(tank.availableSpace)L")
+                    // Check if this tank can accept this fluid type
+                    // Tanks can only accept: same fluid type (to add more), or be empty (to accept any type)
+                    let canAcceptFluid = (tank.amount == 0) || (tank.type == fluidOutput.type)
+
+                    if canAcceptFluid && tank.availableSpace >= fluidOutput.amount {
+                        // Add fluid to this tank
+                        if tank.amount == 0 {
+                            // Tank is empty, set the type and add fluid
+                            tankComponent.tanks[i] = FluidStack(type: fluidOutput.type, amount: fluidOutput.amount, temperature: fluidOutput.temperature, maxAmount: tank.maxAmount)
+                            print("CraftingSystem: Added \(fluidOutput.amount)L of \(fluidOutput.type) to empty tank \(i)")
+                        } else {
+                            // Tank has fluid, add to existing amount
+                            tankComponent.tanks[i].amount += fluidOutput.amount
+                            print("CraftingSystem: Added \(fluidOutput.amount)L of \(fluidOutput.type) to tank \(i) with existing fluid")
+                        }
+                        added = true
+                        break
+                    } else {
+                        print("CraftingSystem: Tank \(i) cannot accept - canAccept: \(canAcceptFluid), space: \(tank.availableSpace)L >= \(fluidOutput.amount)L")
+                    }
+                }
+                if !added {
+                    print("CraftingSystem: WARNING - Could not add \(fluidOutput.amount)L of \(fluidOutput.type) to any tank")
+                }
+            }
+            world.add(tankComponent, to: entity)
+        }
     }
 
     private func consumeInputsFromInputSlots(recipe: Recipe, inventory: inout InventoryComponent, world: World, entity: Entity) {
