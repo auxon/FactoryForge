@@ -411,6 +411,8 @@ final class CraftingSystem: System {
 
         // First, try to fill existing stacks of the same item in output slots
         for i in startIndex...endIndex {
+            // Ensure we don't access beyond inventory bounds
+            guard i < inventory.slots.count else { continue }
             if var existingStack = inventory.slots[i], existingStack.itemId == output.itemId {
                 let space = existingStack.maxStack - existingStack.count
                 let toAdd = min(space, remaining)
@@ -424,6 +426,8 @@ final class CraftingSystem: System {
 
         // Then, use empty output slots
         for i in startIndex...endIndex {
+            // Ensure we don't access beyond inventory bounds
+            guard i < inventory.slots.count else { continue }
             if inventory.slots[i] == nil {
                 let toAdd = min(maxStack, remaining)
                 inventory.slots[i] = ItemStack(itemId: output.itemId, count: toAdd, maxStack: maxStack)

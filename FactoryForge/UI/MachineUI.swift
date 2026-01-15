@@ -4,1594 +4,8 @@ import UIKit
 // Use UIKit's UIButton explicitly to avoid conflict with custom UIButton
 typealias UIKitButton = UIKit.UIButton
 
-/// Visual indicator for fluid inputs/outputs in machine UI
-final class FluidIndicator {
-    let frame: Rect
-    let isInput: Bool
-    var isProducer: Bool = false  // True for production indicators, false for tanks
-    var fluidType: FluidType?
-    var amount: Float = 0
-    var maxAmount: Float = 0
-    var hasConnection: Bool = false
-
-    init(frame: Rect, isInput: Bool) {
-        self.frame = frame
-        self.isInput = isInput
-    }
-
-    func render(renderer: MetalRenderer) {
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-
-        // Container border (behind everything) - only for tanks, white for visibility
-        if !isInput && !isProducer {
-            let borderThickness: Float = 1.5
-            renderer.queueSprite(SpriteInstance(
-                position: frame.center,
-                size: frame.size + Vector2(borderThickness * 2, borderThickness * 2),
-                textureRect: solidRect,
-                color: Color(r: 1.0, g: 1.0, b: 1.0, a: 1.0), // White border for visibility
-                layer: .ui
-            ))
-        }
-
-        // Background circle - brighter for tanks to make them more visible
-        let bgColor = (!isInput && !isProducer) ?
-            Color(r: 0.4, g: 0.4, b: 0.4, a: 0.8) : // Brighter background for tanks
-            (hasConnection ? Color(r: 0.35, g: 0.35, b: 0.35, a: 0.85) : Color(r: 0.25, g: 0.25, b: 0.25, a: 0.6))
-        renderer.queueSprite(SpriteInstance(
-            position: frame.center,
-            size: frame.size,
-            textureRect: solidRect,
-            color: bgColor,
-            layer: .ui
-        ))
-
-        // Fluid fill indicator
-        if let fluidType = fluidType, maxAmount > 0 {
-            let fillLevel = amount / maxAmount
-            let fluidColor = getFluidColor(fluidType)
-
-            if isInput {
-                // Input: show connection status with colored ring
-                if hasConnection {
-                    let ringThickness: Float = 3
-                    let innerSize = frame.size - Vector2(ringThickness * 2, ringThickness * 2)
-                    renderer.queueSprite(SpriteInstance(
-                        position: frame.center,
-                        size: innerSize,
-                        textureRect: solidRect,
-                        color: fluidColor.withAlpha(0.7),
-                        layer: .ui
-                    ))
-                }
-            } else {
-                if isProducer {
-                    // Producer (steam): show activity with enhanced temporal instability for gas perception
-                    let activityLevel = min(fillLevel, 1.0) // Cap at 1.0
-
-                    // Enhanced temporal effects for gas-like appearance
-                    let time = Float(CACurrentMediaTime())
-                    let slowFlicker = sin(time * 2.0) * 0.08 + 0.92 // ±8% slow modulation
-                    let fastFlicker = sin(time * 8.0) * 0.05 + 0.95 // ±5% fast noise
-                    let combinedFlicker = slowFlicker * fastFlicker
-
-                    let baseAlpha = 0.4 + activityLevel * 0.4
-                    let pulseColor = Color(r: 0.85, g: 0.9, b: 0.95, a: baseAlpha * combinedFlicker)
-
-                    // Draw animated steam overlay with subtle vertical drift
-                    let driftOffset = sin(time * 1.5) * 0.5 // ±0.5 px vertical movement
-                    let driftPos = Vector2(frame.center.x, frame.center.y + driftOffset)
-
-                    renderer.queueSprite(SpriteInstance(
-                        position: driftPos,
-                        size: frame.size,
-                        textureRect: solidRect,
-                        color: pulseColor,
-                        layer: .ui
-                    ))
-
-                    // Add wispy steam layers with entropy
-                    if activityLevel > 0.1 {
-                        let steamLayers = 4 // More layers for richer effect
-                        for i in 0..<steamLayers {
-                            let layerOffset = Float(i) * 1.2
-                            let layerSize = frame.size - Vector2(layerOffset * 2, layerOffset * 2)
-                            let layerDrift = sin(time * (1.0 + Float(i) * 0.3)) * 0.8
-                            let layerPos = Vector2(frame.center.x, frame.center.y + layerDrift)
-
-                            let layerAlpha = 0.15 * activityLevel * (1.0 - Float(i) / Float(steamLayers)) * combinedFlicker
-                            let layerColor = Color(r: 0.75, g: 0.85, b: 0.95, a: layerAlpha)
-
-                            renderer.queueSprite(SpriteInstance(
-                                position: layerPos,
-                                size: layerSize,
-                                textureRect: solidRect,
-                                color: layerColor,
-                                layer: .ui
-                            ))
-                        }
-
-                        // Add diffuse particle cloud for gas phase
-                        let particleCount = 8
-                        for i in 0..<particleCount {
-                            let angle = Float(i) * (2 * Float.pi / Float(particleCount)) + time * 1.2
-                            let radius = frame.size.x * 0.25 + sin(time * 3.0 + Float(i)) * 3.0
-                            let particleX = frame.center.x + cos(angle) * radius
-                            let particleY = frame.center.y + sin(angle) * radius
-
-                            let particleSize: Float = 1.0 + sin(time * 4.0 + Float(i) * 0.5) * 0.5
-                            let particleAlpha = 0.3 * activityLevel * combinedFlicker * (0.5 + 0.5 * sin(time * 2.0 + Float(i)))
-                            let particleColor = Color(r: 0.9, g: 0.95, b: 1.0, a: particleAlpha)
-
-                            renderer.queueSprite(SpriteInstance(
-                                position: Vector2(particleX, particleY),
-                                size: Vector2(particleSize, particleSize),
-                                textureRect: solidRect,
-                                color: particleColor,
-                                layer: .ui
-                            ))
-                        }
-                    }
-                } else {
-                    // Tank: show fill level with nonlinear scaling for better low-volume perception
-                    // Use square root scaling to amplify small fill differences: r_visual = sqrt(r)
-                    let visualFillLevel = sqrt(fillLevel)
-                    let minFillHeight: Float = 3.0 // Slightly larger minimum for visibility
-                    let rawFillHeight = frame.size.y * visualFillLevel
-                    let fillHeight = max(rawFillHeight, fillLevel > 0 ? minFillHeight : 0)
-                    let fillSize = Vector2(frame.size.x, fillHeight)
-                    let fillPos = Vector2(frame.center.x, frame.maxY - fillHeight/2)
-
-                    // Enhanced gradient: empty (very dark) → full (bright fluid + luminance boost)
-                    let emptyColor = Color(r: 0.08, g: 0.08, b: 0.08, a: 0.9) // Much darker empty
-                    let fullColor = Color(
-                        r: min(fluidColor.r * 1.2, 1.0), // Boosted brightness
-                        g: min(fluidColor.g * 1.2, 1.0),
-                        b: min(fluidColor.b * 1.2, 1.0),
-                        a: 0.95
-                    )
-                    let fillColor = Color(
-                        r: emptyColor.r + (fullColor.r - emptyColor.r) * visualFillLevel,
-                        g: emptyColor.g + (fullColor.g - emptyColor.g) * visualFillLevel,
-                        b: emptyColor.b + (fullColor.b - emptyColor.b) * visualFillLevel,
-                        a: emptyColor.a + (fullColor.a - emptyColor.a) * visualFillLevel
-                    )
-
-                    // Add container depth with enhanced micro-contrast
-                    let wellInset: Float = 2.0
-                    let wellSize = frame.size - Vector2(wellInset * 2, wellInset * 2)
-                    renderer.queueSprite(SpriteInstance(
-                        position: frame.center,
-                        size: wellSize,
-                        textureRect: solidRect,
-                        color: Color(r: 0.14, g: 0.14, b: 0.14, a: 0.9), // Enhanced well contrast
-                        layer: .ui
-                    ))
-
-                    // Add inner bevel for material definition
-                    let bevelInset: Float = 1.0
-                    let bevelSize = wellSize - Vector2(bevelInset * 2, bevelInset * 2)
-                    renderer.queueSprite(SpriteInstance(
-                        position: frame.center,
-                        size: bevelSize,
-                        textureRect: solidRect,
-                        color: Color(r: 0.2, g: 0.2, b: 0.2, a: 0.7), // Lighter inner bevel
-                        layer: .ui
-                    ))
-
-                    // Draw fill on top with enhanced visibility
-                    renderer.queueSprite(SpriteInstance(
-                        position: fillPos,
-                        size: fillSize,
-                        textureRect: solidRect,
-                        color: fillColor,
-                        layer: .ui
-                    ))
-
-                    // Add liquid-like highlights for water with better visibility
-                    if fluidType == .water && visualFillLevel > 0.15 {
-                        let highlightWidth: Float = fillSize.x * 0.7
-                        let highlightHeight: Float = 4.0
-                        let highlightPos = Vector2(fillPos.x, fillPos.y - fillHeight/2 + highlightHeight/2 + 3)
-
-                        renderer.queueSprite(SpriteInstance(
-                            position: highlightPos,
-                            size: Vector2(highlightWidth, highlightHeight),
-                            textureRect: solidRect,
-                            color: Color(r: 0.9, g: 0.95, b: 1.0, a: 0.4), // More visible highlight
-                            layer: .ui
-                        ))
-                    }
-                }
-            }
-        }
-
-        // Connection indicator dot
-        if hasConnection {
-            let dotSize: Float = 6
-            let dotOffset: Float = frame.size.x * 0.35
-            let dotPos = isInput ?
-                Vector2(frame.center.x - dotOffset, frame.center.y) : // Left side for inputs
-                Vector2(frame.center.x + dotOffset, frame.center.y)   // Right side for outputs
-
-            renderer.queueSprite(SpriteInstance(
-                position: dotPos,
-                size: Vector2(dotSize, dotSize),
-                textureRect: solidRect,
-                color: Color(r: 0.9, g: 0.9, b: 0.2, a: 1.0), // Yellow dot
-                layer: .ui
-            ))
-
-            // Add directional flow hint for producers (steam flowing to tanks)
-            if isProducer && hasConnection {
-                let arrowSize: Float = 4
-                let arrowOffset: Float = frame.size.x * 0.45
-                let arrowPos = Vector2(frame.center.x + arrowOffset, frame.center.y)
-
-                // Simple arrow pointing right (toward tanks)
-                renderer.queueSprite(SpriteInstance(
-                    position: arrowPos,
-                    size: Vector2(arrowSize, arrowSize),
-                    textureRect: solidRect,
-                    color: Color(r: 0.7, g: 0.9, b: 1.0, a: 0.6), // Light blue arrow
-                    layer: .ui
-                ))
-
-                // Add subtle connecting glow line to suggest flow continuity
-                let glowLength: Float = 30
-                let glowWidth: Float = 2
-                let glowPos = Vector2(frame.center.x + frame.size.x/2 + glowLength/2, frame.center.y)
-
-                renderer.queueSprite(SpriteInstance(
-                    position: glowPos,
-                    size: Vector2(glowLength, glowWidth),
-                    textureRect: solidRect,
-                    color: Color(r: 0.6, g: 0.8, b: 0.9, a: 0.4), // Subtle connecting glow
-                    layer: .ui
-                ))
-            }
-        }
-    }
-
-    private func getFluidColor(_ fluidType: FluidType) -> Color {
-        switch fluidType {
-        case .water:
-            return Color(r: 0.2, g: 0.4, b: 0.9, a: 1.0)  // Blue
-        case .steam:
-            return Color(r: 0.8, g: 0.8, b: 0.9, a: 0.7)  // Light blue-gray
-        case .crudeOil:
-            return Color(r: 0.3, g: 0.2, b: 0.1, a: 1.0)  // Dark brown
-        case .heavyOil:
-            return Color(r: 0.4, g: 0.3, b: 0.2, a: 1.0)  // Brown
-        case .lightOil:
-            return Color(r: 0.5, g: 0.4, b: 0.2, a: 1.0)  // Light brown
-        case .petroleumGas:
-            return Color(r: 0.9, g: 0.8, b: 0.2, a: 0.6)  // Yellow gas
-        case .sulfuricAcid:
-            return Color(r: 0.9, g: 0.9, b: 0.1, a: 1.0)  // Yellow
-        case .lubricant:
-            return Color(r: 0.6, g: 0.5, b: 0.3, a: 1.0)  // Tan
-        }
-    }
-}
-
-/// Protocol for machine UI components
-protocol MachineUIComponent {
-    func setupUI(for entity: Entity, in ui: MachineUI)
-    func updateUI(for entity: Entity, in ui: MachineUI)
-    func getLabels() -> [UILabel]
-    func getScrollViews() -> [UIScrollView]
-    func render(in renderer: MetalRenderer)
-}
-
 /// Callback type for recipe selection
 typealias RecipeSelectionCallback = (Entity, Recipe) -> Void
-
-/// Base implementation for common machine UI functionality
-class BaseMachineUIComponent: MachineUIComponent {
-    func setupUI(for entity: Entity, in ui: MachineUI) {
-        // Common setup - override in subclasses
-    }
-
-    func updateUI(for entity: Entity, in ui: MachineUI) {
-        // Common updates - override in subclasses
-    }
-
-    func getLabels() -> [UILabel] {
-        return []
-    }
-
-    func getScrollViews() -> [UIScrollView] {
-        return []
-    }
-
-    func render(in renderer: MetalRenderer) {
-        // Common rendering - override in subclasses
-    }
-}
-
-/// Component for fluid-based machines (boilers, steam engines)
-class FluidMachineUIComponent: BaseMachineUIComponent {
-    private var currentEntity: Entity?
-    private weak var gameLoop: GameLoop?
-    private weak var ui: MachineUI?
-    private var fluidInputIndicators: [FluidIndicator] = []
-    private var fluidOutputIndicators: [FluidIndicator] = []
-    private var fluidInputLabels: [UILabel] = []
-    private var producerLabels: [UILabel] = []
-    private var tankLabels: [UILabel] = []
-    private var fluidTankViews: [UIView] = []
-    private var fluidTankImages: [UIImageView] = [] // Images for fluid textures
-
-    override func setupUI(for entity: Entity, in ui: MachineUI) {
-        clearFluidUI()
-        currentEntity = entity
-        gameLoop = ui.gameLoop
-        self.ui = ui
-        let buildingDef = ui.getBuildingDefinition(for: entity, gameLoop: ui.gameLoop!)
-        setupFluidIndicators(for: entity, in: ui, buildingDef: buildingDef)
-        positionLabels(in: ui)
-    }
-
-    private func clearTankViews() {
-        for view in fluidTankViews {
-            view.removeFromSuperview()
-        }
-        fluidTankViews.removeAll()
-        fluidTankImages.removeAll()
-    }
-
-    private func clearFluidUI() {
-        for l in fluidInputLabels { l.removeFromSuperview() }
-        for l in producerLabels { l.removeFromSuperview() }
-        for l in tankLabels { l.removeFromSuperview() }
-
-        fluidInputLabels.removeAll()
-        producerLabels.removeAll()
-        tankLabels.removeAll()
-
-        fluidInputIndicators.removeAll()
-        fluidOutputIndicators.removeAll()
-
-        clearTankViews()
-    }
-
-    override func updateUI(for entity: Entity, in ui: MachineUI) {
-        currentEntity = entity
-        gameLoop = ui.gameLoop
-        self.ui = ui
-        // Check if tank count has changed and re-setup UI if needed
-        if let tank = ui.gameLoop?.world.get(FluidTankComponent.self, for: entity) {
-            let currentTankCount = tank.tanks.count
-            let displayedTankCount = fluidTankViews.count
-
-            // If tank count changed, re-setup the fluid indicators
-            if currentTankCount != displayedTankCount {
-                print("FluidMachineUIComponent: Tank count changed from \(displayedTankCount) to \(currentTankCount), re-setting up UI")
-                clearFluidUI()
-                let buildingDef = ui.getBuildingDefinition(for: entity, gameLoop: ui.gameLoop!)
-                setupFluidIndicators(for: entity, in: ui, buildingDef: buildingDef)
-                positionLabels(in: ui)
-            } else {
-                updateFluidIndicators(for: entity, in: ui)
-            }
-        } else {
-            updateFluidIndicators(for: entity, in: ui)
-        }
-    }
-
-    override func getLabels() -> [UILabel] {
-        let labels = fluidInputLabels + producerLabels + tankLabels
-        
-        return labels
-    }
-
-    override func render(in renderer: MetalRenderer) {
-        // Render fluid input indicators
-        for indicator in fluidInputIndicators {
-            indicator.render(renderer: renderer)
-        }
-
-        // Render fluid output indicators
-        for indicator in fluidOutputIndicators {
-            indicator.render(renderer: renderer)
-        }
-    }
-
-    func positionLabels(in ui: MachineUI) {
-        let scale = UIScreen.main.scale
-        let panelOriginPts = ui.panelFrameInPoints().origin
-
-        // Position fluid input labels to the right of indicators, stacked vertically
-        for (index, label) in fluidInputLabels.enumerated() {
-            guard index < fluidInputIndicators.count else { continue }
-            let indicator = fluidInputIndicators[index]
-
-            // Position label to the right of the indicator, aligned with indicator Y
-            let labelWidth: Float = 90
-            let labelHeight: Float = 20
-            let labelSpacing: Float = 4
-
-            let labelX = indicator.frame.maxX + labelSpacing
-            let labelY = indicator.frame.minY
-
-            // Convert to UIView coordinates relative to rootView
-            let uiX = CGFloat(labelX) / scale - panelOriginPts.x
-            let uiY = CGFloat(labelY) / scale - panelOriginPts.y
-
-            label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
-        }
-
-        // Producer labels to the right of indicators, stacked vertically
-        for (i, label) in producerLabels.enumerated() {
-            guard i < fluidOutputIndicators.count else { continue }
-            let ind = fluidOutputIndicators[i]
-
-            let labelWidth: Float = 90
-            let labelHeight: Float = 20
-            let labelSpacing: Float = 4
-
-            let labelXpx = ind.frame.maxX + labelSpacing
-            let labelYpx = ind.frame.minY
-
-            label.frame = CGRect(
-                x: CGFloat(labelXpx)/scale - panelOriginPts.x,
-                y: CGFloat(labelYpx)/scale - panelOriginPts.y,
-                width: CGFloat(labelWidth),
-                height: CGFloat(labelHeight)
-            )
-        }
-
-        // Tank labels to the right of tank views, stacked vertically
-        for (i, label) in tankLabels.enumerated() {
-            guard i < fluidTankViews.count else { continue }
-            let tankFrame = fluidTankViews[i].frame
-
-            let labelWidth: CGFloat = 90
-            let labelHeight: CGFloat = 20
-            let labelSpacing: CGFloat = 4
-
-            label.frame = CGRect(
-                x: tankFrame.maxX + labelSpacing,
-                y: tankFrame.minY,
-                width: labelWidth,
-                height: labelHeight
-            )
-        }
-    }
-
-    private func setupFluidIndicators(for entity: Entity, in ui: MachineUI, buildingDef: BuildingDefinition?) {
-        guard let gameLoop = ui.gameLoop else { return }
-
-        print("FluidMachineUIComponent: setupFluidIndicators called for entity \(entity.id)")
-
-        let indicatorSize: Float = 40 * UIScale  // Match fuel slot size
-
-        // Position fluid indicators centered vertically in the panel
-        let fluidY = ui.frame.center.y
-
-        var fluidIndex = 0
-
-        // Check for fluid consumers (water input) - place first
-        if gameLoop.world.get(FluidConsumerComponent.self, for: entity) != nil {
-            let spacing: Float = 100 * UIScale  // Increased spacing between indicators
-            let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing
-
-            let inputFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
-            let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
-            fluidInputIndicators.append(inputIndicator)
-
-            let inputLabel = ui.createFluidLabel()
-            fluidInputLabels.append(inputLabel)
-
-            // Add label to rootView
-            if let rootView = ui.rootView {
-                rootView.addSubview(inputLabel)
-            }
-
-            fluidIndex += 1
-        }
-
-        // Check for fluid producers (steam output) - place next
-        if gameLoop.world.get(FluidProducerComponent.self, for: entity) != nil {
-            let spacing: Float = 100 * UIScale  // Increased spacing between indicators
-            let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing
-
-            let outputFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
-            let outputIndicator = FluidIndicator(frame: outputFrame, isInput: false)
-            outputIndicator.isProducer = true
-            fluidOutputIndicators.append(outputIndicator)
-
-            let outputLabel = ui.createFluidLabel()
-            producerLabels.append(outputLabel)
-
-            // Add label to rootView
-            if let rootView = ui.rootView {
-                rootView.addSubview(outputLabel)
-            }
-
-            fluidIndex += 1
-        }
-
-        // Check for fluid tanks (used by oil refineries, chemical plants, etc.)
-        // Fluid tanks can serve as both inputs and outputs depending on the recipe
-        // For oil refineries, skip the generic fluid input indicator since we use UIKit tank views
-        if gameLoop.world.get(FluidTankComponent.self, for: entity) != nil {
-            let isOilRefinery = buildingDef?.type == .oilRefinery
-
-            if !isOilRefinery {
-                let spacing: Float = 100 * UIScale  // Increased spacing between indicators
-                let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing
-
-                // Create input indicator for fluid tanks (can accept fluids)
-                let inputFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
-                let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
-                fluidInputIndicators.append(inputIndicator)
-
-                let inputLabel = ui.createFluidLabel()
-                fluidInputLabels.append(inputLabel)
-
-                // Add label to rootView
-                if let rootView = ui.rootView {
-                    rootView.addSubview(inputLabel)
-                }
-
-                fluidIndex += 1
-            }
-        }
-
-        // Check for fluid tanks - create UIKit views for fluid tank indicators
-        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
-            print("FluidMachineUIComponent: Found FluidTankComponent with \(tank.tanks.count) tanks, maxCapacity: \(tank.maxCapacity)")
-
-            // Position tanks just below the progress bar in a fixed right column
-            let tankSpacing: Float = 50 * UIScale  // Reduced spacing for better fit
-
-            // Calculate fixed right-side X position in UIKit points, then convert to Metal pixels
-            let tankXUIKitPoints: Float
-            if let rootView = ui.rootView {
-                tankXUIKitPoints = Float(rootView.bounds.width) * 0.75  // 75% from left for right column
-            } else {
-                tankXUIKitPoints = Float(ui.frame.center.x) + 150 * UIScale  // Fallback
-            }
-
-            // Convert UIKit points to Metal pixels
-            let scale = Float(UIScreen.main.scale)
-            let panelOriginPts = ui.panelFrameInPoints().origin
-            let tankBaseX = (tankXUIKitPoints + Float(panelOriginPts.x)) * scale
-            let labelSpacing: Float = 20 * UIScale
-
-            // Calculate starting Y position based on progress bar position
-            let progressBarBottom: Float
-            if let rootView = ui.rootView {
-                let b = rootView.bounds
-                let scale = Float(UIScreen.main.scale)
-                let panelOriginPts = ui.panelFrameInPoints().origin
-
-                // Progress bar position in UIKit points
-                let barYUIPoints = Float(b.height) * 0.18
-                let barHeight: Float = 20
-
-                // Convert to Metal coordinates: (UIKit points + panel origin) * scale
-                let barYMetal = (barYUIPoints + Float(panelOriginPts.y)) * scale
-                progressBarBottom = barYMetal + (barHeight * 4) + 16 * scale // Add padding below progress bar
-            } else {
-                progressBarBottom = Float(ui.frame.center.y) // Fallback
-            }
-
-            // Show at least one tank indicator, even if empty
-            let tankCount = max(tank.tanks.count, 1)
-            let maxVisibleTanks = 8 // Allow up to 8 tanks for complex fluid processing buildings
-            print("FluidMachineUIComponent: Found \(tank.tanks.count) tanks, will show \(min(tankCount, maxVisibleTanks)) tank indicators")
-            for i in 0..<tank.tanks.count {
-                let tank = tank.tanks[i]
-                print("FluidMachineUIComponent: Tank \(i): \(tank.amount)L of \(tank.type)")
-            }
-
-            // Get building definition to determine input vs output tank positioning
-            let buildingDef = ui.getBuildingDefinition(for: ui.currentEntity!, gameLoop: ui.gameLoop!)
-            let inputTankCount = buildingDef?.fluidInputTanks ?? 0
-
-            for index in 0..<min(tankCount, maxVisibleTanks) { // Allow more tanks for fluid processing
-                // Determine X position based on whether this is an input or output tank
-                let isInputTank = index < inputTankCount
-                let tankX: Float
-
-                if isInputTank {
-                    // Input tanks go near the left edge of the panel with padding
-                    if let rootView = ui.rootView {
-                        let leftPadding: Float = 30 * UIScale // Padding from left edge
-                        let leftXUIKitPoints = leftPadding
-                        let scale = Float(UIScreen.main.scale)
-                        let panelOriginPts = ui.panelFrameInPoints().origin
-                        tankX = (leftXUIKitPoints + Float(panelOriginPts.x)) * scale
-                    } else {
-                        tankX = tankBaseX - 200 * UIScale // Fallback position
-                    }
-                } else {
-                    // Output tanks stay on the right side
-                    tankX = tankBaseX // Original right position
-                }
-
-                let tankY = progressBarBottom + Float(index % 4) * (tankSpacing + labelSpacing) // Wrap every 4 tanks
-                let tankSize: Float = indicatorSize
-                let tankFrame = Rect(center: Vector2(tankX, tankY), size: Vector2(tankSize, tankSize))
-
-                // Convert Metal pixel coordinates to UIKit points relative to rootView
-                let scale = UIScreen.main.scale
-                let panelOriginPts = ui.panelFrameInPoints().origin
-
-                let xPtsScreen = CGFloat(tankFrame.minX) / scale
-                let yPtsScreen = CGFloat(tankFrame.minY) / scale
-
-                let tankView = UIView(frame: CGRect(
-                    x: xPtsScreen - panelOriginPts.x,
-                    y: yPtsScreen - panelOriginPts.y,
-                    width: CGFloat(tankFrame.size.x) / scale,
-                    height: CGFloat(tankFrame.size.y) / scale
-                ))
-
-                // Style the tank indicator (white border, gray background for empty tanks)
-                tankView.backgroundColor = UIColor.gray.withAlphaComponent(0.7)  // Gray for empty tanks
-                tankView.layer.borderColor = UIColor.white.cgColor
-                tankView.layer.borderWidth = 1.5
-                tankView.layer.cornerRadius = 4.0
-
-                // Add tap gesture to allow emptying tanks
-                let tapGesture = UITapGestureRecognizer(target: self, action: #selector(tankViewTapped(_:)))
-                tankView.addGestureRecognizer(tapGesture)
-                tankView.isUserInteractionEnabled = true
-                tankView.tag = index // Store tank index
-
-                // Add to the UI panel
-                if let rootView = ui.rootView {
-                    rootView.addSubview(tankView)
-                    fluidTankViews.append(tankView)
-                    print("FluidMachineUIComponent: Added tank view \(index) at UIKit frame: \(tankView.frame), rootView bounds: \(rootView.bounds), panelOriginPts: \(panelOriginPts)")
-                }
-
-                // Create image view for fluid texture
-                let fluidImageView = UIImageView(frame: tankView.bounds)
-                fluidImageView.contentMode = .scaleAspectFill
-                fluidImageView.clipsToBounds = true
-                fluidImageView.isHidden = true // Hidden by default (empty tank)
-                tankView.addSubview(fluidImageView)
-                fluidTankImages.append(fluidImageView)
-
-                // Add label for tank
-                let tankLabel = ui.createFluidLabel()
-                tankLabels.append(tankLabel)
-
-                // Add label to rootView
-                if let rootView = ui.rootView {
-                    rootView.addSubview(tankLabel)
-                }
-
-                print("FluidMachineUIComponent: Created UIKit tank indicator \(index)")
-            }
-        } else {
-            print("FluidMachineUIComponent: No FluidTankComponent found for entity \(entity.id)")
-        }
-    }
-
-    private func getFluidColor(for fluidType: FluidType) -> UIColor {
-        switch fluidType {
-        case .water:
-            return UIColor.blue.withAlphaComponent(0.7)
-        case .steam:
-            return UIColor.white.withAlphaComponent(0.7)
-        case .crudeOil:
-            return UIColor.black.withAlphaComponent(0.7)
-        case .heavyOil:
-            return UIColor.red.withAlphaComponent(0.7)
-        case .lightOil:
-            return UIColor.yellow.withAlphaComponent(0.7)
-        case .petroleumGas:
-            return UIColor.green.withAlphaComponent(0.7)
-        case .sulfuricAcid:
-            return UIColor.orange.withAlphaComponent(0.7)
-        case .lubricant:
-            return UIColor.purple.withAlphaComponent(0.7)
-        }
-    }
-
-    @objc private func tankViewTapped(_ sender: UITapGestureRecognizer) {
-        guard let tankView = sender.view,
-              let entity = currentEntity,
-              let gameLoop = gameLoop,
-              let ui = ui else { return }
-
-        let tankIndex = tankView.tag
-
-        if var fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity),
-           tankIndex < fluidTank.tanks.count {
-
-            let tank = fluidTank.tanks[tankIndex]
-            if tank.amount > 0 {
-                // Empty the tank by replacing it with an empty tank of the same type
-                fluidTank.tanks[tankIndex] = FluidStack(type: tank.type, amount: 0, temperature: tank.temperature, maxAmount: tank.maxAmount)
-                gameLoop.world.add(fluidTank, to: entity)
-
-                // Update the UI immediately
-                ui.updateMachine(entity)
-
-                // Play sound and show tooltip
-                AudioManager.shared.playClickSound()
-                gameLoop.inputManager?.onTooltip?("Tank emptied")
-            }
-        }
-    }
-
-    private func updateFluidIndicators(for entity: Entity, in ui: MachineUI) {
-        guard let gameLoop = ui.gameLoop else { return }
-
-        // Update fluid producers
-        if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity),
-           fluidOutputIndicators.count > 0 && producerLabels.count > 0 {
-            fluidOutputIndicators[0].fluidType = producer.outputType
-            fluidOutputIndicators[0].amount = producer.currentProduction * 60.0
-            fluidOutputIndicators[0].maxAmount = producer.productionRate * 60.0
-            fluidOutputIndicators[0].hasConnection = !producer.connections.isEmpty
-
-            let flowRateText = String(format: "%.1f L/s", producer.productionRate)
-            let fluidName = producer.outputType == .steam ? "Steam" : producer.outputType.rawValue
-            producerLabels[0].text = "\(fluidName): \(flowRateText)"
-        }
-
-        // Update fluid consumers
-        if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity),
-           fluidInputIndicators.count > 0 && fluidInputLabels.count > 0 {
-            fluidInputIndicators[0].fluidType = consumer.inputType
-            fluidInputIndicators[0].amount = consumer.currentConsumption * 60.0
-            fluidInputIndicators[0].maxAmount = consumer.consumptionRate * 60.0
-            fluidInputIndicators[0].hasConnection = !consumer.connections.isEmpty
-
-            let flowRateText = String(format: "%.1f L/s", consumer.consumptionRate)
-            let fluidName = consumer.inputType == .water ? "Water" : consumer.inputType!.rawValue
-            fluidInputLabels[0].text = "\(fluidName): \(flowRateText)"
-        }
-
-        // Update fluid tank inputs (for oil refineries, chemical plants, etc.)
-        // Show the current tank contents as input indicators
-        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity),
-           fluidInputIndicators.count > 0 && fluidInputLabels.count > 0 {
-            // For fluid tanks, show the current tank contents
-            if tank.tanks.isEmpty {
-                // No fluids in tanks
-                fluidInputIndicators[0].fluidType = nil
-                fluidInputIndicators[0].amount = 0
-                fluidInputIndicators[0].maxAmount = tank.maxCapacity
-                fluidInputIndicators[0].hasConnection = !tank.connections.isEmpty
-                fluidInputLabels[0].text = "Empty"
-            } else {
-                // Show the first tank's contents (or aggregate if multiple tanks)
-                let totalAmount = tank.tanks.reduce(0) { $0 + $1.amount }
-                let firstTank = tank.tanks[0]
-                fluidInputIndicators[0].fluidType = firstTank.type
-                fluidInputIndicators[0].amount = totalAmount
-                fluidInputIndicators[0].maxAmount = tank.maxCapacity
-                fluidInputIndicators[0].hasConnection = !tank.connections.isEmpty
-
-                let fluidName = firstTank.type.rawValue
-                let amountText = String(format: "%.0f L", totalAmount)
-                fluidInputLabels[0].text = "\(fluidName): \(amountText)"
-            }
-        }
-
-        // Update fluid tanks (UIKit views)
-        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
-            let maxVisibleTanks = 8
-            for i in 0..<min(tankLabels.count, max(tank.tanks.count, 1), maxVisibleTanks) {
-                if tank.tanks.indices.contains(i) && i < fluidTankViews.count && i < fluidTankImages.count {
-                    let stack = tank.tanks[i]
-                    let tankView = fluidTankViews[i]
-                    let fluidImageView = fluidTankImages[i]
-
-                    if stack.amount > 0 {
-                        // Tank has fluid - show texture
-                        let fluidName = stack.type.rawValue.replacingOccurrences(of: "-", with: " ").capitalized
-                        tankLabels[i].text = String(format: "%@: %.0f/%.0f L", fluidName, stack.amount, stack.maxAmount)
-
-                        // Load fluid texture
-                        let textureName = stack.type.rawValue.replacingOccurrences(of: "-", with: "_")
-                        if let fluidImage = ui.loadRecipeImage(for: textureName) {
-                            fluidImageView.image = fluidImage
-                            fluidImageView.isHidden = false
-                            tankView.backgroundColor = UIColor.clear // Hide gray background when showing texture
-                        } else {
-                            // Fallback to colored background if texture not found
-                            fluidImageView.isHidden = true
-                            tankView.backgroundColor = getFluidColor(for: stack.type)
-                        }
-                    } else {
-                        // Tank is empty - show gray background
-                        tankLabels[i].text = String(format: "Empty: 0/%.0f L", stack.maxAmount)
-                        fluidImageView.isHidden = true
-                        tankView.backgroundColor = UIColor.gray.withAlphaComponent(0.7)
-                    }
-                } else if i < tankLabels.count {
-                    tankLabels[i].text = String(format: "Empty: 0/%.0f L", tank.maxCapacity)
-                    if i < fluidTankViews.count {
-                        fluidTankViews[i].backgroundColor = UIColor.gray.withAlphaComponent(0.7)
-                    }
-                    if i < fluidTankImages.count {
-                        fluidTankImages[i].isHidden = true
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// Component for managing pipe connections and networks
-class PipeConnectionUIComponent: BaseMachineUIComponent {
-    private var connectionButtons: [Direction: UIKit.UIButton] = [:]
-    private var networkLabel: UILabel?
-    private var networkIdLabel: UILabel?
-    private var changeNetworkButton: UIKit.UIButton?
-    private var mergeNetworkButton: UIKit.UIButton?
-    private var availableNetworksLabel: UILabel?
-    private var mergeButtons: [Int: UIKit.UIButton] = [:]
-
-    // Store current pipe state
-    private var currentNetworkId: Int?
-    private var connectedDirections: Set<Direction> = []
-
-    // Merge UI state
-    private var showingMergeOptions: Bool = false
-
-    // Tank selection UI state
-    private var showingTankSelection: Bool = false
-    private var adjacentBuildingsWithTanks: [(entity: Entity, direction: Direction, tanks: [FluidStack])] = []
-    private var tankSelectionLabels: [UILabel] = []
-    private var tankSelectionButtons: [Int: UIKit.UIButton] = [:] // Tank index -> Button
-
-    // Reference to parent UI
-    private weak var parentUI: MachineUI?
-
-    override func setupUI(for entity: Entity, in ui: MachineUI) {
-        guard let gameLoop = ui.gameLoop,
-              let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else {
-            return
-        }
-
-        print("PipeConnectionUIComponent: Setting up UI for pipe entity \(entity.id)")
-
-        // Store parent UI reference
-        parentUI = ui
-
-        // Store current state
-        currentNetworkId = pipe.networkId
-        connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
-
-        // Find adjacent buildings with fluid tanks
-        adjacentBuildingsWithTanks = findAdjacentBuildingsWithTanks(for: entity, in: gameLoop.world)
-
-        // Create network info section
-        setupNetworkInfo(in: ui)
-
-        // Create directional connection buttons
-        setupConnectionButtons(in: ui)
-
-        // Create tank selection section if adjacent buildings found
-        if !adjacentBuildingsWithTanks.isEmpty {
-            setupTankSelectionSection(in: ui)
-        }
-
-        // Position all elements
-        positionLabels(in: ui)
-    }
-
-    func positionLabels(in ui: MachineUI) {
-        let panelRect = ui.panelFrameInPoints()
-
-        // Start positioning from top-left of panel
-        var currentY: CGFloat = 20 // Start 20 points from top
-
-        // Position network info section
-        if let networkLabel = networkLabel {
-            networkLabel.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 20)
-            currentY += 25
-        }
-
-        if let networkIdLabel = networkIdLabel {
-            networkIdLabel.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 20)
-            currentY += 25
-        }
-
-        // Tank selection button (if adjacent buildings exist)
-        if !adjacentBuildingsWithTanks.isEmpty {
-            if let changeNetworkButton = changeNetworkButton {
-                changeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
-                currentY += 40
-            }
-        } else {
-            // Original change network button for network management
-            if let changeNetworkButton = changeNetworkButton {
-                changeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
-                currentY += 40
-            }
-        }
-
-        if let mergeNetworkButton = mergeNetworkButton {
-            mergeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
-            currentY += 45
-        }
-
-        // Add available networks section if showing merge options
-        if showingMergeOptions {
-            if let availableNetworksLabel = availableNetworksLabel {
-                availableNetworksLabel.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 20)
-                currentY += 25
-            }
-
-            // Position merge target buttons
-            for (networkId, button) in mergeButtons.sorted(by: { $0.key < $1.key }) {
-                button.frame = CGRect(x: 30, y: currentY, width: panelRect.width - 60, height: 25)
-                currentY += 30
-            }
-            currentY += 10 // Extra spacing after merge options
-        } else if showingTankSelection {
-            // Position tank selection options
-            for (index, buildingInfo) in adjacentBuildingsWithTanks.enumerated() {
-                // Building label
-                if index < tankSelectionLabels.count {
-                    let label = tankSelectionLabels[index]
-                    label.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 20)
-                    currentY += 25
-                }
-
-                // Tank buttons for this building
-                let (_, _, tanks) = buildingInfo
-                for tankIndex in 0..<tanks.count {
-                    if let button = tankSelectionButtons[tankIndex] {
-                        button.frame = CGRect(x: 30, y: currentY, width: panelRect.width - 60, height: 25)
-                        currentY += 30
-                    }
-                }
-                currentY += 10 // Spacing between buildings
-            }
-            currentY += 10 // Extra spacing after tank options
-        } else {
-            // Add some spacing before connection buttons when not showing merge or tank options
-            currentY += 20
-        }
-
-        // Position connection buttons vertically
-        let buttonWidth: CGFloat = panelRect.width - 40
-        let buttonHeight: CGFloat = 35
-        let buttonSpacing: CGFloat = 10
-
-        // North
-        if let northButton = connectionButtons[.north] {
-            northButton.frame = CGRect(x: 20, y: currentY, width: buttonWidth, height: buttonHeight)
-            currentY += buttonHeight + buttonSpacing
-        }
-
-        // East
-        if let eastButton = connectionButtons[.east] {
-            eastButton.frame = CGRect(x: 20, y: currentY, width: buttonWidth, height: buttonHeight)
-            currentY += buttonHeight + buttonSpacing
-        }
-
-        // South
-        if let southButton = connectionButtons[.south] {
-            southButton.frame = CGRect(x: 20, y: currentY, width: buttonWidth, height: buttonHeight)
-            currentY += buttonHeight + buttonSpacing
-        }
-
-        // West
-        if let westButton = connectionButtons[.west] {
-            westButton.frame = CGRect(x: 20, y: currentY, width: buttonWidth, height: buttonHeight)
-        }
-    }
-
-    override func updateUI(for entity: Entity, in ui: MachineUI) {
-        guard let gameLoop = ui.gameLoop,
-              let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else {
-            return
-        }
-
-        // Update network info
-        currentNetworkId = pipe.networkId
-        networkIdLabel?.text = "Network: \(pipe.networkId ?? 0)"
-
-        // Update connection states
-        connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
-        updateConnectionButtons()
-
-        // Update tank selection buttons if showing
-        if showingTankSelection {
-            updateTankSelectionButtons()
-        }
-    }
-
-    override func getLabels() -> [UILabel] {
-        var labels = [UILabel]()
-        if let networkLabel = networkLabel { labels.append(networkLabel) }
-        if let networkIdLabel = networkIdLabel { labels.append(networkIdLabel) }
-        if let availableNetworksLabel = availableNetworksLabel { labels.append(availableNetworksLabel) }
-        labels.append(contentsOf: tankSelectionLabels)
-        return labels
-    }
-
-    private func setupNetworkInfo(in ui: MachineUI) {
-        guard let rootView = ui.rootView else { return }
-
-        // Network info label
-        let networkInfoLabel = UILabel()
-        networkInfoLabel.text = "Fluid Network"
-        networkInfoLabel.font = UIFont.systemFont(ofSize: 12, weight: .bold)
-        networkInfoLabel.textColor = .white
-        networkInfoLabel.textAlignment = .center
-        networkInfoLabel.frame = CGRect(x: 0, y: 0, width: 120, height: 20)
-        networkInfoLabel.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.3, alpha: 0.8)
-        networkInfoLabel.layer.borderColor = UIColor.cyan.cgColor
-        networkInfoLabel.layer.borderWidth = 1.0
-        networkInfoLabel.layer.cornerRadius = 4.0
-        rootView.addSubview(networkInfoLabel)
-        networkLabel = networkInfoLabel
-
-        // Network ID label
-        let idLabel = UILabel()
-        idLabel.text = "Network: \(currentNetworkId ?? 0)"
-        idLabel.font = UIFont.systemFont(ofSize: 10, weight: .medium)
-        idLabel.textColor = .cyan
-        idLabel.textAlignment = .center
-        idLabel.frame = CGRect(x: 0, y: 0, width: 120, height: 20)
-        idLabel.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
-        idLabel.layer.borderColor = UIColor.cyan.cgColor
-        idLabel.layer.borderWidth = 0.5
-        idLabel.layer.cornerRadius = 3.0
-        rootView.addSubview(idLabel)
-        networkIdLabel = idLabel
-
-        // Change network button
-        let changeButton = UIKit.UIButton(type: .system)
-        changeButton.setTitle("Split Network", for: .normal)
-        changeButton.setTitleColor(.white, for: .normal)
-        changeButton.backgroundColor = UIColor(red: 0.3, green: 0.3, blue: 0.5, alpha: 0.8)
-        changeButton.layer.borderColor = UIColor.blue.cgColor
-        changeButton.layer.borderWidth = 1.0
-        changeButton.layer.cornerRadius = 4.0
-        changeButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
-        changeButton.addTarget(self, action: #selector(changeNetworkTapped(_:)), for: .touchUpInside)
-        rootView.addSubview(changeButton)
-        changeNetworkButton = changeButton
-
-        // Merge network button
-        let mergeButton = UIKit.UIButton(type: .system)
-        mergeButton.setTitle("Merge Networks", for: .normal)
-        mergeButton.setTitleColor(.white, for: .normal)
-        mergeButton.backgroundColor = UIColor(red: 0.3, green: 0.5, blue: 0.3, alpha: 0.8)
-        mergeButton.layer.borderColor = UIColor.green.cgColor
-        mergeButton.layer.borderWidth = 1.0
-        mergeButton.layer.cornerRadius = 4.0
-        mergeButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
-        mergeButton.addTarget(self, action: #selector(mergeNetworkTapped(_:)), for: .touchUpInside)
-        rootView.addSubview(mergeButton)
-        mergeNetworkButton = mergeButton
-    }
-
-    private func setupConnectionButtons(in ui: MachineUI) {
-        guard let rootView = ui.rootView else { return }
-
-        let directions: [Direction] = [.north, .east, .south, .west]
-        let directionNames = ["North", "East", "South", "West"]
-
-        for (index, direction) in directions.enumerated() {
-            let button = UIKit.UIButton(type: .system)
-            let isConnected = connectedDirections.contains(direction)
-
-            button.setTitle("\(directionNames[index]): \(isConnected ? "✓" : "✗")", for: .normal)
-            button.setTitleColor(isConnected ? .green : .red, for: .normal)
-            button.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 0.8)
-            button.layer.borderColor = UIColor.white.cgColor
-            button.layer.borderWidth = 1.0
-            button.layer.cornerRadius = 4.0
-            button.frame = CGRect(x: 0, y: 0, width: 100, height: 30)
-
-            // Store direction in button tag for callback
-            button.tag = Int(direction.rawValue)
-            button.addTarget(self, action: #selector(connectionButtonTapped(_:)), for: .touchUpInside)
-
-            rootView.addSubview(button)
-            connectionButtons[direction] = button
-        }
-    }
-
-    private func setupTankSelectionSection(in ui: MachineUI) {
-        guard let rootView = ui.rootView else { return }
-
-        // Tank selection toggle button
-        let tankSelectionButton = UIKit.UIButton(type: .system)
-        tankSelectionButton.setTitle("Tank Connections", for: .normal)
-        tankSelectionButton.setTitleColor(.white, for: .normal)
-        tankSelectionButton.backgroundColor = UIColor(red: 0.2, green: 0.5, blue: 0.2, alpha: 0.8)
-        tankSelectionButton.layer.borderColor = UIColor.green.cgColor
-        tankSelectionButton.layer.borderWidth = 1.0
-        tankSelectionButton.layer.cornerRadius = 4.0
-        tankSelectionButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
-        tankSelectionButton.addTarget(self, action: #selector(tankSelectionTapped(_:)), for: .touchUpInside)
-        rootView.addSubview(tankSelectionButton)
-        changeNetworkButton = tankSelectionButton // Reuse this variable for now
-    }
-
-    @objc private func tankSelectionTapped(_ sender: UIKit.UIButton) {
-        showingTankSelection = !showingTankSelection
-
-        if showingTankSelection {
-            showTankSelectionOptions()
-        } else {
-            hideTankSelectionOptions()
-        }
-
-        // Reposition all elements
-        if let ui = parentUI {
-            positionLabels(in: ui)
-        }
-    }
-
-    private func showTankSelectionOptions() {
-        guard let ui = parentUI,
-              let rootView = ui.rootView,
-              let entity = ui.currentEntity,
-              let gameLoop = ui.gameLoop else {
-            return
-        }
-
-        // Clear existing tank selection UI
-        hideTankSelectionOptions()
-
-        // Create tank selection options for each adjacent building
-        for (index, buildingInfo) in adjacentBuildingsWithTanks.enumerated() {
-            let (buildingEntity, direction, tanks) = buildingInfo
-
-            // Building header label
-            let buildingLabel = UILabel()
-            buildingLabel.text = "\(direction.rawValue): Building"
-            buildingLabel.font = UIFont.systemFont(ofSize: 12, weight: .bold)
-            buildingLabel.textColor = .cyan
-            buildingLabel.textAlignment = .center
-            buildingLabel.frame = CGRect(x: 20, y: 0, width: ui.panelFrameInPoints().width - 40, height: 20)
-            rootView.addSubview(buildingLabel)
-            tankSelectionLabels.append(buildingLabel)
-
-            // Tank selection buttons
-            for (tankIndex, tank) in tanks.enumerated() {
-                let button = UIKit.UIButton(type: .system)
-
-                // Determine if this tank is currently connected
-                let isConnected = isTankConnected(entity: entity, buildingEntity: buildingEntity, tankIndex: tankIndex, world: gameLoop.world)
-                let fluidName = tank.type.rawValue
-                let amountText = String(format: "%.0f/%.0fL", tank.amount, tank.maxAmount)
-
-                button.setTitle("Tank \(tankIndex + 1): \(fluidName) (\(amountText)) \(isConnected ? "✓" : "")", for: .normal)
-                button.setTitleColor(isConnected ? .green : .white, for: .normal)
-                button.backgroundColor = UIColor(red: 0.3, green: 0.3, blue: 0.4, alpha: 0.8)
-                button.layer.borderColor = isConnected ? UIColor.green.cgColor : UIColor.gray.cgColor
-                button.layer.borderWidth = 1.0
-                button.layer.cornerRadius = 3.0
-                button.frame = CGRect(x: 30, y: 0, width: ui.panelFrameInPoints().width - 60, height: 25)
-
-                // Store building and tank info in button tag
-                // Use a compound tag: (buildingEntity.id * 1000) + tankIndex
-                button.tag = (Int(buildingEntity.id) * 1000) + tankIndex
-                button.addTarget(self, action: #selector(tankButtonTapped(_:)), for: .touchUpInside)
-
-                rootView.addSubview(button)
-                tankSelectionButtons[tankIndex] = button
-            }
-        }
-    }
-
-    private func hideTankSelectionOptions() {
-        for label in tankSelectionLabels {
-            label.removeFromSuperview()
-        }
-        tankSelectionLabels.removeAll()
-
-        for button in tankSelectionButtons.values {
-            button.removeFromSuperview()
-        }
-        tankSelectionButtons.removeAll()
-    }
-
-    private func isTankConnected(entity: Entity, buildingEntity: Entity, tankIndex: Int, world: World) -> Bool {
-        guard let pipe = world.get(PipeComponent.self, for: entity) else {
-            return false
-        }
-        return pipe.tankConnections[buildingEntity] == tankIndex
-    }
-
-    @objc private func tankButtonTapped(_ sender: UIKit.UIButton) {
-        guard let ui = parentUI,
-              let entity = ui.currentEntity,
-              let gameLoop = ui.gameLoop else {
-            return
-        }
-
-        // Decode building entity ID and tank index from button tag
-        let compoundTag = sender.tag
-        let buildingEntityId = compoundTag / 1000
-        let tankIndex = compoundTag % 1000
-
-        // Find the building entity
-        guard let buildingEntity = gameLoop.world.entities.first(where: { $0.id == buildingEntityId }) else {
-            return
-        }
-
-        toggleTankConnection(for: entity, buildingEntity: buildingEntity, tankIndex: tankIndex, in: gameLoop.world, fluidNetworkSystem: gameLoop.fluidNetworkSystem)
-
-        // Update UI
-        updateTankSelectionButtons()
-    }
-
-    private func toggleTankConnection(for pipeEntity: Entity, buildingEntity: Entity, tankIndex: Int, in world: World, fluidNetworkSystem: FluidNetworkSystem) {
-        guard let pipe = world.get(PipeComponent.self, for: pipeEntity),
-              let buildingTank = world.get(FluidTankComponent.self, for: buildingEntity) else {
-            return
-        }
-
-        let isCurrentlyConnected = pipe.tankConnections[buildingEntity] == tankIndex
-
-        if isCurrentlyConnected {
-            // Disconnect from this tank
-            pipe.tankConnections.removeValue(forKey: buildingEntity)
-
-            // Remove from building's connections if no other tanks are connected from this pipe
-            if !pipe.tankConnections.keys.contains(where: { $0 == buildingEntity }) {
-                buildingTank.connections.removeAll { $0 == pipeEntity }
-            }
-
-            print("PipeConnectionUIComponent: Disconnected pipe \(pipeEntity.id) from building \(buildingEntity.id) tank \(tankIndex)")
-        } else {
-            // Disconnect from any other tank on this building first
-            pipe.tankConnections.removeValue(forKey: buildingEntity)
-
-            // Connect to this specific tank
-            pipe.tankConnections[buildingEntity] = tankIndex
-
-            // Add to building's connections if not already connected
-            if !buildingTank.connections.contains(pipeEntity) {
-                buildingTank.connections.append(pipeEntity)
-            }
-
-            print("PipeConnectionUIComponent: Connected pipe \(pipeEntity.id) to building \(buildingEntity.id) tank \(tankIndex)")
-        }
-
-        // Update components in world
-        world.add(pipe, to: pipeEntity)
-        world.add(buildingTank, to: buildingEntity)
-
-        // Mark networks as dirty for recalculation
-        fluidNetworkSystem.markEntityDirty(pipeEntity)
-        fluidNetworkSystem.markEntityDirty(buildingEntity)
-    }
-
-    private func updateTankSelectionButtons() {
-        guard let ui = parentUI,
-              let entity = ui.currentEntity,
-              let gameLoop = ui.gameLoop else {
-            return
-        }
-
-        // Update all tank selection buttons
-        for (tankIndex, button) in tankSelectionButtons {
-            // Find which building this button belongs to
-            for buildingInfo in adjacentBuildingsWithTanks {
-                let (buildingEntity, _, tanks) = buildingInfo
-                if tankIndex < tanks.count {
-                    let tank = tanks[tankIndex]
-                    let isConnected = isTankConnected(entity: entity, buildingEntity: buildingEntity, tankIndex: tankIndex, world: gameLoop.world)
-                    let fluidName = tank.type.rawValue
-                    let amountText = String(format: "%.0f/%.0fL", tank.amount, tank.maxAmount)
-
-                    button.setTitle("Tank \(tankIndex + 1): \(fluidName) (\(amountText)) \(isConnected ? "✓" : "")", for: .normal)
-                    button.setTitleColor(isConnected ? .green : .white, for: .normal)
-                    button.layer.borderColor = isConnected ? UIColor.green.cgColor : UIColor.gray.cgColor
-                    break
-                }
-            }
-        }
-    }
-
-    private func updateConnectionButtons() {
-        let directions: [Direction] = [.north, .east, .south, .west]
-        let directionNames = ["North", "East", "South", "West"]
-
-        for direction in directions {
-            guard let button = connectionButtons[direction] else { continue }
-            let isConnected = connectedDirections.contains(direction)
-
-            button.setTitle("\(directionNames[direction.rawValue]): \(isConnected ? "✓" : "✗")", for: .normal)
-            button.setTitleColor(isConnected ? .green : .red, for: .normal)
-        }
-    }
-
-    private func getConnectedDirections(for entity: Entity, in world: World) -> Set<Direction> {
-        guard world.has(PipeComponent.self, for: entity) else {
-            return []
-        }
-
-        var connected: Set<Direction> = []
-
-        // Check each direction for connections
-        for direction in Direction.allCases {
-            let neighborPos = getNeighborPosition(for: entity, direction: direction, in: world)
-            if neighborPos != nil && hasConnection(to: neighborPos!, for: entity, in: world) {
-                connected.insert(direction)
-            }
-        }
-
-        return connected
-    }
-
-    private func getNeighborPosition(for entity: Entity, direction: Direction, in world: World) -> IntVector2? {
-        guard let position = world.get(PositionComponent.self, for: entity)?.tilePosition else {
-            return nil
-        }
-        return position + direction.intVector
-    }
-
-    private func hasConnection(to neighborPos: IntVector2, for entity: Entity, in world: World) -> Bool {
-        guard let pipe = world.get(PipeComponent.self, for: entity) else {
-            return false
-        }
-
-        // Check if there's a pipe at the neighbor position
-        let entitiesWithPosition = world.query(PositionComponent.self)
-        for otherEntity in entitiesWithPosition {
-            if let otherPos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
-               otherPos == neighborPos,
-               world.has(PipeComponent.self, for: otherEntity) {
-                // Check if these pipes are connected in the connections array
-                return pipe.connections.contains(otherEntity)
-            }
-        }
-
-        return false
-    }
-
-    @objc private func connectionButtonTapped(_ sender: UIKit.UIButton) {
-        guard let direction = Direction(rawValue: Int(sender.tag)),
-              let ui = parentUI,
-              let entity = ui.currentEntity,
-              let gameLoop = ui.gameLoop else {
-            return
-        }
-
-        print("PipeConnectionUIComponent: Connection button tapped for direction \(direction)")
-
-        // Toggle connection in that direction
-        toggleConnection(for: entity, direction: direction, in: gameLoop.world, fluidNetworkSystem: gameLoop.fluidNetworkSystem)
-
-        // Update UI immediately
-        connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
-        updateConnectionButtons()
-    }
-
-    @objc private func changeNetworkTapped(_ sender: UIKit.UIButton) {
-        guard let ui = parentUI,
-              let entity = ui.currentEntity,
-              let gameLoop = ui.gameLoop,
-              let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else {
-            return
-        }
-
-        print("PipeConnectionUIComponent: Change network button tapped")
-
-        // Create a new network for this pipe (split from current network)
-        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
-
-        // Get a new network ID
-        let newNetworkId = gameLoop.fluidNetworkSystem.getNextNetworkId()
-        pipe.networkId = newNetworkId
-
-        // Update UI
-        currentNetworkId = newNetworkId
-        networkIdLabel?.text = "Network: \(newNetworkId)"
-
-        print("PipeConnectionUIComponent: Split pipe \(entity.id) into new network \(newNetworkId)")
-    }
-
-    @objc private func mergeNetworkTapped(_ sender: UIKit.UIButton) {
-        showingMergeOptions = !showingMergeOptions
-
-        if showingMergeOptions {
-            showAvailableNetworks()
-        } else {
-            hideAvailableNetworks()
-        }
-
-        // Reposition all elements
-        if let ui = parentUI {
-            positionLabels(in: ui)
-        }
-    }
-
-    private func showAvailableNetworks() {
-        guard let ui = parentUI,
-              let rootView = ui.rootView,
-              let entity = ui.currentEntity,
-              let gameLoop = ui.gameLoop else {
-            return
-        }
-
-        // Clear existing merge buttons
-        for button in mergeButtons.values {
-            button.removeFromSuperview()
-        }
-        mergeButtons.removeAll()
-
-        // Clear existing label
-        availableNetworksLabel?.removeFromSuperview()
-        availableNetworksLabel = nil
-
-        // Create available networks label
-        let label = UILabel()
-        label.text = "Available Networks:"
-        label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
-        label.textColor = .cyan
-        label.textAlignment = .center
-        label.frame = CGRect(x: 20, y: 0, width: ui.panelFrameInPoints().width - 40, height: 20)
-        rootView.addSubview(label)
-        availableNetworksLabel = label
-
-        // Get all network IDs except current one
-        let allNetworkIds = gameLoop.fluidNetworkSystem.getAllNetworkIds()
-        let currentNetworkId = gameLoop.world.get(PipeComponent.self, for: entity)?.networkId ?? 0
-        let availableNetworks = allNetworkIds.filter { $0 != currentNetworkId }
-
-        // Create buttons for each available network
-        for networkId in availableNetworks {
-            let button = UIKit.UIButton(type: .system)
-            button.setTitle("Merge with Network \(networkId)", for: .normal)
-            button.setTitleColor(.white, for: .normal)
-            button.backgroundColor = UIColor(red: 0.4, green: 0.4, blue: 0.6, alpha: 0.8)
-            button.layer.borderColor = UIColor.blue.cgColor
-            button.layer.borderWidth = 1.0
-            button.layer.cornerRadius = 3.0
-            button.frame = CGRect(x: 30, y: 0, width: ui.panelFrameInPoints().width - 60, height: 25)
-            button.tag = networkId
-            button.addTarget(self, action: #selector(mergeWithNetworkTapped(_:)), for: .touchUpInside)
-            rootView.addSubview(button)
-            mergeButtons[networkId] = button
-        }
-    }
-
-    private func hideAvailableNetworks() {
-        availableNetworksLabel?.removeFromSuperview()
-        availableNetworksLabel = nil
-
-        for button in mergeButtons.values {
-            button.removeFromSuperview()
-        }
-        mergeButtons.removeAll()
-    }
-
-    @objc private func mergeWithNetworkTapped(_ sender: UIKit.UIButton) {
-        guard let ui = parentUI,
-              let entity = ui.currentEntity,
-              let gameLoop = ui.gameLoop else {
-            return
-        }
-
-        let targetNetworkId = sender.tag
-        print("PipeConnectionUIComponent: Merging with network \(targetNetworkId)")
-
-        // Find an entity in the target network to merge with
-        if let targetEntity = findEntityInNetwork(targetNetworkId, gameLoop: gameLoop) {
-            gameLoop.fluidNetworkSystem.mergeNetworksContainingEntities(entity, targetEntity)
-
-            // Update UI
-            if let pipe = gameLoop.world.get(PipeComponent.self, for: entity) {
-                currentNetworkId = pipe.networkId
-                networkIdLabel?.text = "Network: \(pipe.networkId ?? 0)"
-            }
-
-            // Hide merge options
-            showingMergeOptions = false
-            hideAvailableNetworks()
-
-            // Reposition elements
-            positionLabels(in: ui)
-
-            print("PipeConnectionUIComponent: Successfully merged networks")
-        }
-    }
-
-    private func findEntityInNetwork(_ networkId: Int, gameLoop: GameLoop) -> Entity? {
-        // Find any entity in the specified network
-        for entity in gameLoop.world.entities {
-            if let pipe = gameLoop.world.get(PipeComponent.self, for: entity),
-               pipe.networkId == networkId {
-                return entity
-            }
-            if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity),
-               producer.networkId == networkId {
-                return entity
-            }
-            if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity),
-               consumer.networkId == networkId {
-                return entity
-            }
-        }
-        return nil
-    }
-
-    private func findAdjacentBuildingsWithTanks(for entity: Entity, in world: World) -> [(entity: Entity, direction: Direction, tanks: [FluidStack])] {
-        var buildings: [(entity: Entity, direction: Direction, tanks: [FluidStack])] = []
-
-        // Check each direction for buildings with fluid tanks
-        for direction in Direction.allCases {
-            let neighborPos = getNeighborPosition(for: entity, direction: direction, in: world)
-            if let neighborPos = neighborPos {
-                // Find entities at this position
-                let entitiesWithPosition = world.query(PositionComponent.self)
-                for otherEntity in entitiesWithPosition {
-                    if let otherPos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
-                       otherPos == neighborPos,
-                       let tankComponent = world.get(FluidTankComponent.self, for: otherEntity),
-                       !tankComponent.tanks.isEmpty {
-                        // Found a building with fluid tanks
-                        buildings.append((entity: otherEntity, direction: direction, tanks: tankComponent.tanks))
-                        break // Only one building per direction
-                    }
-                }
-            }
-        }
-
-        return buildings
-    }
-
-    private func toggleConnection(for entity: Entity, direction: Direction, in world: World, fluidNetworkSystem: FluidNetworkSystem) {
-        guard let neighborPos = getNeighborPosition(for: entity, direction: direction, in: world) else {
-            return
-        }
-
-        // Find the neighbor entity
-        var neighborEntity: Entity?
-        let entitiesWithPosition = world.query(PositionComponent.self)
-        for otherEntity in entitiesWithPosition {
-            if let otherPos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
-               otherPos == neighborPos,
-               world.has(PipeComponent.self, for: otherEntity) {
-                neighborEntity = otherEntity
-                break
-            }
-        }
-
-        guard let neighbor = neighborEntity,
-              let pipe = world.get(PipeComponent.self, for: entity),
-              let neighborPipe = world.get(PipeComponent.self, for: neighbor) else {
-            return
-        }
-
-        if pipe.connections.contains(neighbor) {
-            // Disconnect - mark direction as manually disconnected
-            pipe.connections.removeAll { $0 == neighbor }
-            neighborPipe.connections.removeAll { $0 == entity }
-            pipe.manuallyDisconnectedDirections.insert(direction)
-            world.add(pipe, to: entity)
-            world.add(neighborPipe, to: neighbor)
-            print("PipeConnectionUIComponent: Disconnected pipe \(entity.id) from \(neighbor.id) (direction: \(direction))")
-        } else {
-            // Connect - remove from manually disconnected directions
-            pipe.connections.append(neighbor)
-            neighborPipe.connections.append(entity)
-            pipe.manuallyDisconnectedDirections.remove(direction)
-            world.add(pipe, to: entity)
-            world.add(neighborPipe, to: neighbor)
-            print("PipeConnectionUIComponent: Connected pipe \(entity.id) to \(neighbor.id) (direction: \(direction))")
-        }
-
-        // Mark networks as dirty for recalculation
-        fluidNetworkSystem.markEntityDirty(entity)
-        fluidNetworkSystem.markEntityDirty(neighbor)
-    }
-
-}
 
 /// Metal-rendered recipe button for machine UI
 class MachineRecipeButton: UIElement {
@@ -1654,43 +68,6 @@ class MachineRecipeButton: UIElement {
     }
 }
 
-/// Component for assembly machines (furnaces, assemblers)
-class AssemblyMachineUIComponent: BaseMachineUIComponent {
-    private(set) var recipeButtons: [MachineRecipeButton] = []
-    private var availableRecipes: [Recipe] = []
-    private var recipeSelectionCallback: RecipeSelectionCallback?
-    private weak var ui: MachineUI?
-
-    // Scrolling support
-    private(set) var scrollOffset: Float = 0
-    private var maxScrollOffset: Float = 0
-    private var scrollArea: Rect = Rect(center: Vector2.zero, size: Vector2.zero)
-    private var lastDragPosition: Vector2?
-
-    convenience init(recipeSelectionCallback: @escaping RecipeSelectionCallback) {
-        self.init()
-        self.recipeSelectionCallback = recipeSelectionCallback
-    }
-
-    override func setupUI(for entity: Entity, in ui: MachineUI) {
-        self.ui = ui
-    }
-
-    override func getLabels() -> [UILabel] {
-        return []
-    }
-
-    override func getScrollViews() -> [UIScrollView] {
-        return []
-    }
-
-
-    override func render(in renderer: MetalRenderer) {
-        // All rendering is now handled by UIKit - no Metal rendering needed
-    }
-
-}
-
 /// UI for interacting with machines (assemblers, furnaces, etc.)
 final class MachineUI: UIPanel_Base {
     private(set) var screenSize: Vector2
@@ -1713,6 +90,27 @@ final class MachineUI: UIPanel_Base {
     private var outputCountLabels: [UILabel] = []
     private var fuelCountLabels: [UILabel] = []
 
+    // Fluid color utility method
+    func getFluidColor(for fluidType: FluidType) -> UIColor {
+        switch fluidType {
+        case .water:
+            return UIColor.blue.withAlphaComponent(0.7)
+        case .steam:
+            return UIColor.white.withAlphaComponent(0.7)
+        case .crudeOil:
+            return UIColor.black.withAlphaComponent(0.7)
+        case .heavyOil:
+            return UIColor.red.withAlphaComponent(0.7)
+        case .lightOil:
+            return UIColor.yellow.withAlphaComponent(0.7)
+        case .petroleumGas:
+            return UIColor.green.withAlphaComponent(0.7)
+        case .sulfuricAcid:
+            return UIColor.orange.withAlphaComponent(0.7)
+        case .lubricant:
+            return UIColor.purple.withAlphaComponent(0.7)
+        }
+    }
 
     // UIKit panel container view
     // rootView is now the single container for all MachineUI UIKit content
@@ -1720,6 +118,7 @@ final class MachineUI: UIPanel_Base {
     // UIKit progress bar
     private var progressBarBackground: UIView?
     private var progressBarFill: UIView?
+    private var progressStatusLabel: UILabel?
 
     // UIKit scroll view for recipe buttons
     private var recipeScrollView: ClearScrollView?
@@ -1844,14 +243,23 @@ final class MachineUI: UIPanel_Base {
 
         // Determine machine type and create appropriate components
         if let gameLoop = gameLoop {
-            // Check for fluid-based machines (including tanks)
+            // Check for fluid-based machines (including tanks), but skip for chemical plants (handled in slot setup)
             let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entity)
             let hasFluidConsumer = gameLoop.world.has(FluidConsumerComponent.self, for: entity)
             let hasFluidTank = gameLoop.world.has(FluidTankComponent.self, for: entity)
-            print("MachineUI: Checking entity \(entity.id) - producer: \(hasFluidProducer), consumer: \(hasFluidConsumer), tank: \(hasFluidTank)")
-            if hasFluidProducer || hasFluidConsumer || hasFluidTank {
+
+            // Check if this is a chemical plant - if so, don't create FluidMachineUIComponent
+            var isChemicalPlant = false
+            if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+                isChemicalPlant = buildingDef.type == .chemicalPlant
+            }
+
+            print("MachineUI: Checking entity \(entity.id) - producer: \(hasFluidProducer), consumer: \(hasFluidConsumer), tank: \(hasFluidTank), chemicalPlant: \(isChemicalPlant)")
+            if (hasFluidProducer || hasFluidConsumer || hasFluidTank) && !isChemicalPlant {
                 print("MachineUI: Creating FluidMachineUIComponent (producer: \(hasFluidProducer), consumer: \(hasFluidConsumer), tank: \(hasFluidTank))")
                 machineComponents.append(FluidMachineUIComponent())
+            } else if isChemicalPlant {
+                print("MachineUI: Skipping FluidMachineUIComponent for chemical plant - tanks handled in slot setup")
             } else {
                 print("MachineUI: NOT creating FluidMachineUIComponent for entity \(entity.id)")
             }
@@ -1910,15 +318,31 @@ final class MachineUI: UIPanel_Base {
     }
 
 
-    private func setupRecipeScrollView() {
+    private func setupRecipeScrollView(for entity: Entity, gameLoop: GameLoop) {
         // Create scroll view for recipe buttons (in points, relative to root view)
-        let panelBounds = rootView?.bounds ?? CGRect(x: 0, y: 0, width: 600, height: 350)
+        guard let rootView = rootView else { return }
+        let panelBounds = rootView.bounds
 
         // Position scroll view at bottom of panel with margins
         let margin: CGFloat = 20
         let scrollViewHeight: CGFloat = 150
-        let scrollViewWidth: CGFloat = panelBounds.width - margin * 2
-        let scrollViewX: CGFloat = margin
+
+        // Adjust recipe area for chemical plants (leave space for tank column)
+        var scrollViewWidth: CGFloat
+        var scrollViewX: CGFloat
+
+        if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
+           buildingDef.type == .chemicalPlant {
+            // Chemical plant: center recipes in space before tank column
+            let tankColumnStart = panelBounds.width * 0.75
+            scrollViewWidth = tankColumnStart - margin * 2
+            scrollViewX = margin
+        } else {
+            // Standard layout
+            scrollViewWidth = panelBounds.width - margin * 2
+            scrollViewX = margin
+        }
+
         let scrollViewY: CGFloat = panelBounds.height - scrollViewHeight - margin
 
         recipeScrollView = ClearScrollView(frame: CGRect(
@@ -1936,6 +360,20 @@ final class MachineUI: UIPanel_Base {
         scrollView.isScrollEnabled = true
         scrollView.alwaysBounceVertical = true
         scrollView.delaysContentTouches = false
+
+        // Add subtle background/border for recipe panel
+        scrollView.backgroundColor = UIColor(white: 0.1, alpha: 0.3)
+        scrollView.layer.borderColor = UIColor.gray.cgColor
+        scrollView.layer.borderWidth = 1.0
+        scrollView.layer.cornerRadius = 4.0
+
+        // Add recipe section header
+        let headerLabel = UILabel(frame: CGRect(x: scrollViewX, y: scrollViewY - 18, width: scrollViewWidth, height: 16))
+        headerLabel.text = "Available Recipes"
+        headerLabel.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+        headerLabel.textColor = .lightGray
+        headerLabel.textAlignment = .center
+        rootView.addSubview(headerLabel)
 
         // Add background color to prevent see-through appearance
         scrollView.backgroundColor = UIColor(red: 0.08, green: 0.08, blue: 0.1, alpha: 0.6)
@@ -1990,6 +428,11 @@ final class MachineUI: UIPanel_Base {
 
         progressBarBackground.layer.cornerRadius = 4
         progressBarFill.layer.cornerRadius = 4
+
+        // Position status label below progress bar
+        if let statusLabel = progressStatusLabel {
+            statusLabel.frame = CGRect(x: barX, y: barY + barHeight + 4, width: barWidth, height: 14)
+        }
     }
 
     private func relayoutCountLabels() {
@@ -2035,27 +478,40 @@ final class MachineUI: UIPanel_Base {
     private func setupSlotButtons() {
         guard let entity = currentEntity,
               let gameLoop = gameLoop,
-              let rootView = rootView else { 
+              let rootView = rootView else {
             print("MachineUI: setupSlotButtons failed - missing entity, gameLoop, or rootView")
-            return 
+            return
         }
-
+        
         // Get building definition to know how many slots
-        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { 
+        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else {
             print("MachineUI: setupSlotButtons failed - could not get building definition for entity \(entity.id)")
-            return 
+            return
         }
-
+        
         print("MachineUI: setupSlotButtons - building \(buildingDef.id) has \(buildingDef.fuelSlots) fuel slots, \(buildingDef.inputSlots) input slots, \(buildingDef.outputSlots) output slots")
-
+        
         let inputCount = buildingDef.inputSlots
         let outputCount = buildingDef.outputSlots
         let fuelCount = buildingDef.fuelSlots
         let panelBounds = rootView.bounds
-
+        
         // Common constants for all slot types
-            let buttonSizePoints: CGFloat = 32  // Already in points
-            let spacingPoints: CGFloat = 8
+        let buttonSizePoints: CGFloat = 32  // Already in points
+        let spacingPoints: CGFloat = 8
+        
+        // Special layout for chemical plants
+        if buildingDef.type == .chemicalPlant {
+            setupChemicalPlantSlotButtons(buildingDef, panelBounds: panelBounds)
+            return
+        }
+
+        // Standard slot layout for all other buildings
+        setupStandardSlotButtons(buildingDef, inputCount: inputCount, outputCount: outputCount, fuelCount: fuelCount, panelBounds: panelBounds, buttonSizePoints: buttonSizePoints, spacingPoints: spacingPoints)
+    }
+
+    private func setupStandardSlotButtons(_ buildingDef: BuildingDefinition, inputCount: Int, outputCount: Int, fuelCount: Int, panelBounds: CGRect, buttonSizePoints: CGFloat, spacingPoints: CGFloat) {
+        guard let rootView = rootView else { return }
 
         // Create fuel slots (left side, top) - UIKit buttons
 
@@ -2119,10 +575,10 @@ final class MachineUI: UIPanel_Base {
             rootView.addSubview(label)
         }
 
-        // Create output slots (right side) - UIKit buttons
+        // Create output slots (right side, before tank column) - UIKit buttons
         for i in 0..<outputCount {
-            // Position relative to panel bounds - vertical column on right
-            let buttonX = panelBounds.width * 0.75  // 75% from left
+            // Position relative to panel bounds - column between machine and tanks
+            let buttonX = panelBounds.width * 0.65  // 65% from left (between machine and tanks)
             let buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)  // Same Y as inputs
 
             let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
@@ -2148,6 +604,196 @@ final class MachineUI: UIPanel_Base {
             outputCountLabels.append(label)
             rootView.addSubview(label)
         }
+    }
+
+    private func setupChemicalPlantSlotButtons(_ buildingDef: BuildingDefinition, panelBounds: CGRect) {
+        let buttonSizePoints: CGFloat = 32
+        let spacingPoints: CGFloat = 8
+
+        // Chemical plant layout:
+        // - 3 input slots on left (25% from left)
+        // - 2 output slots on right (55% from left, leaving space for fluid tanks)
+        // - Fluid tank column reserved on far right (75%+ from left)
+
+        // Create input slots (left side) - 3 slots for chemical plant
+        for i in 0..<buildingDef.inputSlots {
+            let buttonX = panelBounds.width * 0.25  // 25% from left
+            let buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+            button.backgroundColor = UIColor(red: 0.4, green: 0.4, blue: 0.5, alpha: 1.0)
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1.0
+            button.layer.cornerRadius = 4.0
+            button.translatesAutoresizingMaskIntoConstraints = true
+
+            inputSlotButtons.append(button)
+            button.tag = i
+            button.addTarget(self, action: #selector(inputSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+            rootView?.addSubview(button)
+
+            let label = attachCountLabel(to: button)
+            inputCountLabels.append(label)
+            rootView?.addSubview(label)
+        }
+
+        // Create output slots (right side, but not too far to leave space for fluid tanks) - 2 slots for chemical plant
+        for i in 0..<buildingDef.outputSlots {
+            let buttonX = panelBounds.width * 0.55  // 55% from left (leaves space for fluid tanks)
+            let buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+            button.backgroundColor = UIColor(red: 0.3, green: 0.5, blue: 0.3, alpha: 1.0)
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1.0
+            button.layer.cornerRadius = 4.0
+            button.translatesAutoresizingMaskIntoConstraints = true
+
+            outputSlotButtons.append(button)
+            button.tag = i
+            button.addTarget(self, action: #selector(outputSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+            rootView?.addSubview(button)
+
+            let label = attachCountLabel(to: button)
+            outputCountLabels.append(label)
+            rootView?.addSubview(label)
+        }
+
+        // Create fluid tank indicators (fixed column on right)
+        setupChemicalPlantFluidTanks(panelBounds)
+    }
+
+    private func setupChemicalPlantFluidTanks(_ panelBounds: CGRect) {
+        guard let entity = currentEntity,
+              let gameLoop = gameLoop,
+              let fluidTankComponent = gameLoop.world.get(FluidTankComponent.self, for: entity) else {
+            return
+        }
+
+        let tankWidth: CGFloat = 60
+        let tankHeight: CGFloat = 40
+        let tankSpacing: CGFloat = 8
+        let tankStartX = panelBounds.width * 0.75  // 75% from left
+        let tankStartY = panelBounds.height * 0.325
+
+        // Input Tanks Header
+        let inputHeaderLabel = UILabel(frame: CGRect(x: tankStartX, y: tankStartY - 20, width: tankWidth, height: 15))
+        inputHeaderLabel.text = "INPUT"
+        inputHeaderLabel.font = UIFont.systemFont(ofSize: 8, weight: .bold)
+        inputHeaderLabel.textColor = .cyan
+        inputHeaderLabel.textAlignment = .center
+        rootView?.addSubview(inputHeaderLabel)
+
+        // Input tanks (top section)
+        for i in 0..<min(fluidTankComponent.tanks.count, 2) {  // First 2 tanks as inputs
+            let tankY = tankStartY + CGFloat(i) * (tankHeight + tankSpacing)
+
+            // Tank background
+            let tankView = UIView(frame: CGRect(x: tankStartX, y: tankY, width: tankWidth, height: tankHeight))
+            tankView.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.3, alpha: 0.8)
+            tankView.layer.borderColor = UIColor.cyan.cgColor
+            tankView.layer.borderWidth = 1.0
+            tankView.layer.cornerRadius = 3.0
+            rootView?.addSubview(tankView)
+
+            // Fluid fill indicator
+            if i < fluidTankComponent.tanks.count {
+                let tank = fluidTankComponent.tanks[i]
+                let fillLevel = fluidTankComponent.maxCapacity > 0 ? tank.amount / fluidTankComponent.maxCapacity : 0
+                let fillHeight = tankHeight * CGFloat(fillLevel)
+
+                let fillView = UIView(frame: CGRect(x: tankStartX, y: tankY + tankHeight - fillHeight, width: tankWidth, height: fillHeight))
+                let fluidColor = getFluidColor(for: tank.type)
+                fillView.backgroundColor = fluidColor.withAlphaComponent(0.8)
+                rootView?.addSubview(fillView)
+            }
+
+            // Tank label - positioned clearly below tank
+            let labelY = tankY + tankHeight + 4  // 4px below tank for clear separation
+            let label = UILabel(frame: CGRect(x: tankStartX, y: labelY, width: tankWidth, height: 15))
+            if i < fluidTankComponent.tanks.count {
+                let tank = fluidTankComponent.tanks[i]
+                let fluidName = tank.amount > 0 ? tank.type.rawValue : "Empty"
+                let displayName = fluidName == "water" && tank.amount == 0 ? "Empty" : fluidName
+                label.text = "\(displayName): \(Int(tank.amount))/\(Int(fluidTankComponent.maxCapacity))"
+            } else {
+                label.text = "Empty: 0/\(Int(fluidTankComponent.maxCapacity))"
+            }
+            label.font = UIFont.systemFont(ofSize: 8, weight: .medium)
+            label.textColor = .cyan
+            label.textAlignment = .center
+            label.adjustsFontSizeToFitWidth = true
+            rootView?.addSubview(label)
+        }
+
+        // Output Tanks Header
+        let outputHeaderY = tankStartY + 2 * (tankHeight + tankSpacing) + 5
+        let outputHeaderLabel = UILabel(frame: CGRect(x: tankStartX, y: outputHeaderY, width: tankWidth, height: 15))
+        outputHeaderLabel.text = "OUTPUT"
+        outputHeaderLabel.font = UIFont.systemFont(ofSize: 8, weight: .bold)
+        outputHeaderLabel.textColor = .green
+        outputHeaderLabel.textAlignment = .center
+        rootView?.addSubview(outputHeaderLabel)
+
+        // Output tanks (bottom section)
+        let outputTankStartY = outputHeaderY + 15 + 5  // Space after header
+        for i in 2..<fluidTankComponent.tanks.count {  // Tanks 2+ as outputs
+            let tankIndex = i - 2  // Local index for output tanks
+            let tankY = outputTankStartY + CGFloat(tankIndex) * (tankHeight + tankSpacing)
+
+            // Tank background
+            let tankView = UIView(frame: CGRect(x: tankStartX, y: tankY, width: tankWidth, height: tankHeight))
+            tankView.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.3, alpha: 0.8)
+            tankView.layer.borderColor = UIColor.green.cgColor
+            tankView.layer.borderWidth = 1.0
+            tankView.layer.cornerRadius = 3.0
+            rootView?.addSubview(tankView)
+
+            // Fluid fill indicator
+            let tank = fluidTankComponent.tanks[i]
+            let fillLevel = fluidTankComponent.maxCapacity > 0 ? tank.amount / fluidTankComponent.maxCapacity : 0
+            let fillHeight = tankHeight * CGFloat(fillLevel)
+
+            let fillView = UIView(frame: CGRect(x: tankStartX, y: tankY + tankHeight - fillHeight, width: tankWidth, height: fillHeight))
+            let fluidColor = getFluidColor(for: tank.type)
+            fillView.backgroundColor = fluidColor.withAlphaComponent(0.8)
+            rootView?.addSubview(fillView)
+
+            // Tank label - positioned clearly below tank
+            let labelY = tankY + tankHeight + 4  // 4px below tank for clear separation
+            let label = UILabel(frame: CGRect(x: tankStartX, y: labelY, width: tankWidth, height: 15))
+            let fluidName = tank.amount > 0 ? tank.type.rawValue : "Empty"
+            let displayName = fluidName == "water" && tank.amount == 0 ? "Empty" : fluidName
+            label.text = "\(displayName): \(Int(tank.amount))/\(Int(fluidTankComponent.maxCapacity))"
+            label.font = UIFont.systemFont(ofSize: 8, weight: .medium)
+            label.textColor = .green
+            label.textAlignment = .center
+            label.adjustsFontSizeToFitWidth = true
+            rootView?.addSubview(label)
+        }
+    }
+
+    private func updateChemicalPlantTanks(_ entity: Entity) {
+        guard let gameLoop = gameLoop,
+              let fluidTankComponent = gameLoop.world.get(FluidTankComponent.self, for: entity),
+              let rootView = rootView else {
+            return
+        }
+
+        // Remove existing chemical plant tank views and labels
+        // We identify them by their specific positioning (75%+ from left, specific size ranges)
+        let tankSubviews = rootView.subviews.filter { subview in
+            let frame = subview.frame
+            // Tank views and labels are positioned at 75%+ from left and have specific dimensions
+            return frame.origin.x >= rootView.bounds.width * 0.75 &&
+                   ((frame.size.width >= 55 && frame.size.width <= 65) || // Tank width ~60
+                    (frame.size.height >= 12 && frame.size.height <= 18))   // Label height ~15
+        }
+
+        tankSubviews.forEach { $0.removeFromSuperview() }
+
+        // Recreate the tank display
+        setupChemicalPlantFluidTanks(rootView.bounds)
     }
 
     private func setupRecipeButtons() {
@@ -2975,7 +1621,6 @@ final class MachineUI: UIPanel_Base {
                 if var fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
                     for fluidOutput in recipe.fluidOutputs {
                         // Find a suitable tank for this fluid output
-                        var added = false
                         for i in 0..<fluidTank.tanks.count {
                             let tank = fluidTank.tanks[i]
                             // Check if this tank can accept this fluid type
@@ -3000,7 +1645,6 @@ final class MachineUI: UIPanel_Base {
                                     // Tank has fluid, add to existing amount
                                     fluidTank.tanks[i].amount += fluidOutput.amount
                                 }
-                                added = true
                                 break
                             }
                         }
@@ -3076,6 +1720,14 @@ final class MachineUI: UIPanel_Base {
             progressBarFill!.backgroundColor = UIColor.blue
             progressBarFill!.layer.cornerRadius = 4
             rootView!.addSubview(progressBarFill!)
+
+            // Status label below progress bar
+            progressStatusLabel = UILabel()
+            progressStatusLabel!.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+            progressStatusLabel!.textColor = .white
+            progressStatusLabel!.textAlignment = .center
+            progressStatusLabel!.text = "Ready"
+            rootView!.addSubview(progressStatusLabel!)
         }
 
         // Root view now exists; allow components to attach UIKit subviews
@@ -3093,7 +1745,7 @@ final class MachineUI: UIPanel_Base {
         if let entity = currentEntity, let gameLoop = gameLoop,
            gameLoop.world.has(AssemblerComponent.self, for: entity) {
             if recipeScrollView == nil {
-                setupRecipeScrollView()
+                setupRecipeScrollView(for: entity, gameLoop: gameLoop)
             }
             setupRecipeButtons()
 
@@ -3335,6 +1987,8 @@ final class MachineUI: UIPanel_Base {
         progressBarFill = nil
         progressBarBackground?.removeFromSuperview()
         progressBarBackground = nil
+        progressStatusLabel?.removeFromSuperview()
+        progressStatusLabel = nil
 
         // Remove root view from hierarchy *directly*
         if let rv = rootView {
@@ -3686,6 +2340,13 @@ final class MachineUI: UIPanel_Base {
         updateCountLabels(entity)
         relayoutCountLabels()
 
+        // Check if this is a chemical plant and update its custom tanks
+        if let gameLoop = gameLoop,
+           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
+           buildingDef.type == .chemicalPlant {
+            updateChemicalPlantTanks(entity)
+        }
+
         // Update machine components
         for component in machineComponents {
             component.updateUI(for: entity, in: self)
@@ -3804,7 +2465,7 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
-    fileprivate func getBuildingDefinition(for entity: Entity, gameLoop: GameLoop) -> BuildingDefinition? {
+    func getBuildingDefinition(for entity: Entity, gameLoop: GameLoop) -> BuildingDefinition? {
         let buildingComponent: BuildingComponent?
         if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
             buildingComponent = miner
@@ -4148,17 +2809,28 @@ final class MachineUI: UIPanel_Base {
         // Update fill width and color
         var fillWidth: CGFloat
         var fillColor: UIColor
+        var statusText: String
 
         if isGenerator {
             // Power availability bar (blue)
             let p = max(0, min(1, powerAvailability))
             fillWidth = backgroundFrame.width * CGFloat(p)
             fillColor = UIColor.blue
+            statusText = String(format: "Power: %.0f%%", p * 100)
         } else {
             // Progress bar (green)
             let p = max(0, min(1, progress))
             fillWidth = backgroundFrame.width * CGFloat(p)
             fillColor = UIColor.green
+
+            if progress > 0 {
+                statusText = String(format: "Crafting: %.0f%%", p * 100)
+            } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity),
+                      assembler.recipe != nil {
+                statusText = "Ready to Craft"
+            } else {
+                statusText = "No Recipe Selected"
+            }
         }
 
         progressBarFill?.frame = CGRect(
@@ -4168,6 +2840,7 @@ final class MachineUI: UIPanel_Base {
             height: backgroundFrame.height
         )
         progressBarFill?.backgroundColor = fillColor
+        progressStatusLabel?.text = statusText
 
         // UIKit progress bar updated above
     }

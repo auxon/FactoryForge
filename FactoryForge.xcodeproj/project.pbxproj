@@ -148,6 +148,11 @@
 		0D7D82FB2F173E1C001CA74A /* player_down.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7D82F72F173E1C001CA74A /* player_down.png */; };
 		0D7D82FC2F173E1C001CA74A /* player_up.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7D82FA2F173E1C001CA74A /* player_up.png */; };
 		0D7D83002F17459C001CA74A /* player_right.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D7D82FF2F17459C001CA74A /* player_right.png */; };
+		0D7D83122F195065001CA74A /* FluidMachineUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7D83112F195065001CA74A /* FluidMachineUIComponent.swift */; };
+		0D7D83142F1950A6001CA74A /* FluidIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7D83132F1950A6001CA74A /* FluidIndicator.swift */; };
+		0D7D83162F1950DB001CA74A /* MachineUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7D83152F1950DB001CA74A /* MachineUIComponent.swift */; };
+		0D7D83182F1951C8001CA74A /* PipeConnectionUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7D83172F1951C8001CA74A /* PipeConnectionUIComponent.swift */; };
+		0D7D831A2F1951FA001CA74A /* AssemblyMachineUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7D83192F1951FA001CA74A /* AssemblyMachineUIComponent.swift */; };
 		0D841AD62F0F2FE600F499B6 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D841AD52F0F2FE600F499B6 /* wall.png */; };
 		0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */; };
 		0DC1FB702F13217A0010585F /* low_density_structure.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FB6F2F13217A0010585F /* low_density_structure.png */; };
@@ -493,6 +498,11 @@
 		0D7D82F72F173E1C001CA74A /* player_down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player_down.png; sourceTree = "<group>"; };
 		0D7D82FA2F173E1C001CA74A /* player_up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player_up.png; sourceTree = "<group>"; };
 		0D7D82FF2F17459C001CA74A /* player_right.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = player_right.png; sourceTree = "<group>"; };
+		0D7D83112F195065001CA74A /* FluidMachineUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluidMachineUIComponent.swift; sourceTree = "<group>"; };
+		0D7D83132F1950A6001CA74A /* FluidIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluidIndicator.swift; sourceTree = "<group>"; };
+		0D7D83152F1950DB001CA74A /* MachineUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineUIComponent.swift; sourceTree = "<group>"; };
+		0D7D83172F1951C8001CA74A /* PipeConnectionUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipeConnectionUIComponent.swift; sourceTree = "<group>"; };
+		0D7D83192F1951FA001CA74A /* AssemblyMachineUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssemblyMachineUIComponent.swift; sourceTree = "<group>"; };
 		0D841AD52F0F2FE600F499B6 /* wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wall.png; sourceTree = "<group>"; };
 		0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FactoryForge Storekit Configuration.storekit"; sourceTree = "<group>"; };
 		0DC1FB6F2F13217A0010585F /* low_density_structure.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = low_density_structure.png; sourceTree = "<group>"; };
@@ -1351,6 +1361,11 @@
 		A0000200040 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				0D7D83192F1951FA001CA74A /* AssemblyMachineUIComponent.swift */,
+				0D7D83172F1951C8001CA74A /* PipeConnectionUIComponent.swift */,
+				0D7D83152F1950DB001CA74A /* MachineUIComponent.swift */,
+				0D7D83132F1950A6001CA74A /* FluidIndicator.swift */,
+				0D7D83112F195065001CA74A /* FluidMachineUIComponent.swift */,
 				0D18B5852F0EF07B006B70A5 /* StoreViewController.swift */,
 				0D18B5722F0DD8E2006B70A5 /* DocumentViewer.swift */,
 				0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */,
@@ -1723,6 +1738,7 @@
 			files = (
 				0DC1FB722F1431500010585F /* FluidData.swift in Sources */,
 				0D18B5842F0EEF92006B70A5 /* IAPManager.swift in Sources */,
+				0D7D831A2F1951FA001CA74A /* AssemblyMachineUIComponent.swift in Sources */,
 				A1000001001 /* AppDelegate.swift in Sources */,
 				A1000002001 /* GameViewController.swift in Sources */,
 				A1001001001 /* GameLoop.swift in Sources */,
@@ -1757,6 +1773,7 @@
 				A1007001001 /* Tile.swift in Sources */,
 				A1007002001 /* Chunk.swift in Sources */,
 				A1007003001 /* ChunkManager.swift in Sources */,
+				0D7D83122F195065001CA74A /* FluidMachineUIComponent.swift in Sources */,
 				A1007004001 /* WorldGenerator.swift in Sources */,
 				A1007005001 /* Biome.swift in Sources */,
 				A1008001001 /* Item.swift in Sources */,
@@ -1766,6 +1783,7 @@
 				A1010001001 /* Building.swift in Sources */,
 				0DE229932F0221A700BD619D /* SceneDelegate.swift in Sources */,
 				A1010002001 /* BuildingRegistry.swift in Sources */,
+				0D7D83182F1951C8001CA74A /* PipeConnectionUIComponent.swift in Sources */,
 				A1011001001 /* MiningSystem.swift in Sources */,
 				A1011002001 /* BeltSystem.swift in Sources */,
 				A1011003001 /* InserterSystem.swift in Sources */,
@@ -1783,6 +1801,7 @@
 				A1014001001 /* UISystem.swift in Sources */,
 				A1014002001 /* HUD.swift in Sources */,
 				A1014003001 /* InventoryUI.swift in Sources */,
+				0D7D83142F1950A6001CA74A /* FluidIndicator.swift in Sources */,
 				A1014004001 /* CraftingMenu.swift in Sources */,
 				A1014005001 /* BuildMenu.swift in Sources */,
 				A1014006001 /* ResearchUI.swift in Sources */,
@@ -1792,6 +1811,7 @@
 				A1014007001 /* MachineUI.swift in Sources */,
 				A1014008001 /* VirtualJoystick.swift in Sources */,
 				A1015001001 /* SaveSystem.swift in Sources */,
+				0D7D83162F1950DB001CA74A /* MachineUIComponent.swift in Sources */,
 				A1015002001 /* GameData.swift in Sources */,
 				0DC1FB742F1431A00010585F /* FluidNetworkSystem.swift in Sources */,
 			);
