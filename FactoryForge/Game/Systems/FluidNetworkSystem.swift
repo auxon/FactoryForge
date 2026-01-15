@@ -1825,6 +1825,40 @@ final class FluidNetworkSystem: System {
         return Array(networks.keys).sorted()
     }
 
+    /// Merges the network of the specified entity with another network
+    func mergeNetworksContainingEntities(_ entity1: Entity, _ entity2: Entity) {
+        guard let networkId1 = getEntityNetworkId(entity1),
+              let networkId2 = getEntityNetworkId(entity2),
+              networkId1 != networkId2 else {
+            return
+        }
+
+        // Determine which network to keep (use the smaller ID)
+        let (primaryId, secondaryId) = networkId1 < networkId2 ? (networkId1, networkId2) : (networkId2, networkId1)
+
+        guard var primaryNetwork = networks[primaryId],
+              let secondaryNetwork = networks[secondaryId] else {
+            return
+        }
+
+        // Merge the secondary network into the primary network
+        primaryNetwork.merge(with: secondaryNetwork, world: world)
+
+        // Remove the secondary network
+        networks.removeValue(forKey: secondaryId)
+
+        // Update all entities in the secondary network to use the primary network ID
+        for entity in secondaryNetwork.pipes + secondaryNetwork.producers + secondaryNetwork.consumers + secondaryNetwork.tanks {
+            setEntityNetworkId(entity, networkId: primaryId)
+        }
+
+        // Update the primary network
+        networks[primaryId] = primaryNetwork
+
+        // Mark the merged network as dirty
+        markNetworkDirty(primaryId)
+    }
+
     /// Converts an offset vector to a direction
     private func directionFromOffset(_ offset: IntVector2) -> Direction {
         if offset.x == 0 && offset.y == 1 { return .north }

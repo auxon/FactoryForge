@@ -625,10 +625,16 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
     private var networkLabel: UILabel?
     private var networkIdLabel: UILabel?
     private var changeNetworkButton: UIKit.UIButton?
+    private var mergeNetworkButton: UIKit.UIButton?
+    private var availableNetworksLabel: UILabel?
+    private var mergeButtons: [Int: UIKit.UIButton] = [:]
 
     // Store current pipe state
     private var currentNetworkId: Int?
     private var connectedDirections: Set<Direction> = []
+
+    // Merge UI state
+    private var showingMergeOptions: Bool = false
 
     // Reference to parent UI
     private weak var parentUI: MachineUI?
@@ -679,11 +685,31 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
         if let changeNetworkButton = changeNetworkButton {
             changeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
+            currentY += 40
+        }
+
+        if let mergeNetworkButton = mergeNetworkButton {
+            mergeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
             currentY += 45
         }
 
-        // Add some spacing before connection buttons
-        currentY += 20
+        // Add available networks section if showing merge options
+        if showingMergeOptions {
+            if let availableNetworksLabel = availableNetworksLabel {
+                availableNetworksLabel.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 20)
+                currentY += 25
+            }
+
+            // Position merge target buttons
+            for (networkId, button) in mergeButtons.sorted(by: { $0.key < $1.key }) {
+                button.frame = CGRect(x: 30, y: currentY, width: panelRect.width - 60, height: 25)
+                currentY += 30
+            }
+            currentY += 10 // Extra spacing after merge options
+        } else {
+            // Add some spacing before connection buttons when not showing merge options
+            currentY += 20
+        }
 
         // Position connection buttons vertically
         let buttonWidth: CGFloat = panelRect.width - 40
@@ -733,6 +759,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         var labels = [UILabel]()
         if let networkLabel = networkLabel { labels.append(networkLabel) }
         if let networkIdLabel = networkIdLabel { labels.append(networkIdLabel) }
+        if let availableNetworksLabel = availableNetworksLabel { labels.append(availableNetworksLabel) }
         return labels
     }
 
@@ -779,6 +806,19 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         changeButton.addTarget(self, action: #selector(changeNetworkTapped(_:)), for: .touchUpInside)
         rootView.addSubview(changeButton)
         changeNetworkButton = changeButton
+
+        // Merge network button
+        let mergeButton = UIKit.UIButton(type: .system)
+        mergeButton.setTitle("Merge Networks", for: .normal)
+        mergeButton.setTitleColor(.white, for: .normal)
+        mergeButton.backgroundColor = UIColor(red: 0.3, green: 0.5, blue: 0.3, alpha: 0.8)
+        mergeButton.layer.borderColor = UIColor.green.cgColor
+        mergeButton.layer.borderWidth = 1.0
+        mergeButton.layer.cornerRadius = 4.0
+        mergeButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
+        mergeButton.addTarget(self, action: #selector(mergeNetworkTapped(_:)), for: .touchUpInside)
+        rootView.addSubview(mergeButton)
+        mergeNetworkButton = mergeButton
     }
 
     private func setupConnectionButtons(in ui: MachineUI) {
@@ -905,6 +945,132 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         networkIdLabel?.text = "Network: \(newNetworkId)"
 
         print("PipeConnectionUIComponent: Split pipe \(entity.id) into new network \(newNetworkId)")
+    }
+
+    @objc private func mergeNetworkTapped(_ sender: UIKit.UIButton) {
+        showingMergeOptions = !showingMergeOptions
+
+        if showingMergeOptions {
+            showAvailableNetworks()
+        } else {
+            hideAvailableNetworks()
+        }
+
+        // Reposition all elements
+        if let ui = parentUI {
+            positionLabels(in: ui)
+        }
+    }
+
+    private func showAvailableNetworks() {
+        guard let ui = parentUI,
+              let rootView = ui.rootView,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop else {
+            return
+        }
+
+        // Clear existing merge buttons
+        for button in mergeButtons.values {
+            button.removeFromSuperview()
+        }
+        mergeButtons.removeAll()
+
+        // Clear existing label
+        availableNetworksLabel?.removeFromSuperview()
+        availableNetworksLabel = nil
+
+        // Create available networks label
+        let label = UILabel()
+        label.text = "Available Networks:"
+        label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+        label.textColor = .cyan
+        label.textAlignment = .center
+        label.frame = CGRect(x: 20, y: 0, width: ui.panelFrameInPoints().width - 40, height: 20)
+        rootView.addSubview(label)
+        availableNetworksLabel = label
+
+        // Get all network IDs except current one
+        let allNetworkIds = gameLoop.fluidNetworkSystem.getAllNetworkIds()
+        let currentNetworkId = gameLoop.world.get(PipeComponent.self, for: entity)?.networkId ?? 0
+        let availableNetworks = allNetworkIds.filter { $0 != currentNetworkId }
+
+        // Create buttons for each available network
+        for networkId in availableNetworks {
+            let button = UIKit.UIButton(type: .system)
+            button.setTitle("Merge with Network \(networkId)", for: .normal)
+            button.setTitleColor(.white, for: .normal)
+            button.backgroundColor = UIColor(red: 0.4, green: 0.4, blue: 0.6, alpha: 0.8)
+            button.layer.borderColor = UIColor.blue.cgColor
+            button.layer.borderWidth = 1.0
+            button.layer.cornerRadius = 3.0
+            button.frame = CGRect(x: 30, y: 0, width: ui.panelFrameInPoints().width - 60, height: 25)
+            button.tag = networkId
+            button.addTarget(self, action: #selector(mergeWithNetworkTapped(_:)), for: .touchUpInside)
+            rootView.addSubview(button)
+            mergeButtons[networkId] = button
+        }
+    }
+
+    private func hideAvailableNetworks() {
+        availableNetworksLabel?.removeFromSuperview()
+        availableNetworksLabel = nil
+
+        for button in mergeButtons.values {
+            button.removeFromSuperview()
+        }
+        mergeButtons.removeAll()
+    }
+
+    @objc private func mergeWithNetworkTapped(_ sender: UIKit.UIButton) {
+        guard let ui = parentUI,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop else {
+            return
+        }
+
+        let targetNetworkId = sender.tag
+        print("PipeConnectionUIComponent: Merging with network \(targetNetworkId)")
+
+        // Find an entity in the target network to merge with
+        let allNetworkIds = gameLoop.fluidNetworkSystem.getAllNetworkIds()
+        if let targetEntity = findEntityInNetwork(targetNetworkId, gameLoop: gameLoop) {
+            gameLoop.fluidNetworkSystem.mergeNetworksContainingEntities(entity, targetEntity)
+
+            // Update UI
+            if let pipe = gameLoop.world.get(PipeComponent.self, for: entity) {
+                currentNetworkId = pipe.networkId
+                networkIdLabel?.text = "Network: \(pipe.networkId ?? 0)"
+            }
+
+            // Hide merge options
+            showingMergeOptions = false
+            hideAvailableNetworks()
+
+            // Reposition elements
+            positionLabels(in: ui)
+
+            print("PipeConnectionUIComponent: Successfully merged networks")
+        }
+    }
+
+    private func findEntityInNetwork(_ networkId: Int, gameLoop: GameLoop) -> Entity? {
+        // Find any entity in the specified network
+        for entity in gameLoop.world.entities {
+            if let pipe = gameLoop.world.get(PipeComponent.self, for: entity),
+               pipe.networkId == networkId {
+                return entity
+            }
+            if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity),
+               producer.networkId == networkId {
+                return entity
+            }
+            if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity),
+               consumer.networkId == networkId {
+                return entity
+            }
+        }
+        return nil
     }
 
     private func toggleConnection(for entity: Entity, direction: Direction, in world: World, fluidNetworkSystem: FluidNetworkSystem) {
