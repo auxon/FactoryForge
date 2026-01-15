@@ -619,6 +619,342 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     }
 }
 
+/// Component for managing pipe connections and networks
+class PipeConnectionUIComponent: BaseMachineUIComponent {
+    private var connectionButtons: [Direction: UIKit.UIButton] = [:]
+    private var networkLabel: UILabel?
+    private var networkIdLabel: UILabel?
+    private var changeNetworkButton: UIKit.UIButton?
+
+    // Store current pipe state
+    private var currentNetworkId: Int?
+    private var connectedDirections: Set<Direction> = []
+
+    // Reference to parent UI
+    private weak var parentUI: MachineUI?
+
+    override func setupUI(for entity: Entity, in ui: MachineUI) {
+        guard let gameLoop = ui.gameLoop,
+              let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else {
+            return
+        }
+
+        print("PipeConnectionUIComponent: Setting up UI for pipe entity \(entity.id)")
+
+        // Store parent UI reference
+        parentUI = ui
+
+        // Store current state
+        currentNetworkId = pipe.networkId
+        connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
+
+        // Create network info section
+        setupNetworkInfo(in: ui)
+
+        // Create directional connection buttons
+        setupConnectionButtons(in: ui)
+
+        // Position all elements
+        positionLabels(in: ui)
+    }
+
+    func positionLabels(in ui: MachineUI) {
+        let scale = UIScreen.main.scale
+        let panelOriginPts = ui.panelFrameInPoints().origin
+        let panelRect = ui.panelFrameInPoints()
+
+        // Start positioning from top-left of panel
+        var currentY: CGFloat = 20 // Start 20 points from top
+
+        // Position network info section
+        if let networkLabel = networkLabel {
+            networkLabel.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 20)
+            currentY += 25
+        }
+
+        if let networkIdLabel = networkIdLabel {
+            networkIdLabel.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 20)
+            currentY += 25
+        }
+
+        if let changeNetworkButton = changeNetworkButton {
+            changeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
+            currentY += 45
+        }
+
+        // Add some spacing before connection buttons
+        currentY += 20
+
+        // Position connection buttons vertically
+        let buttonWidth: CGFloat = panelRect.width - 40
+        let buttonHeight: CGFloat = 35
+        let buttonSpacing: CGFloat = 10
+
+        // North
+        if let northButton = connectionButtons[.north] {
+            northButton.frame = CGRect(x: 20, y: currentY, width: buttonWidth, height: buttonHeight)
+            currentY += buttonHeight + buttonSpacing
+        }
+
+        // East
+        if let eastButton = connectionButtons[.east] {
+            eastButton.frame = CGRect(x: 20, y: currentY, width: buttonWidth, height: buttonHeight)
+            currentY += buttonHeight + buttonSpacing
+        }
+
+        // South
+        if let southButton = connectionButtons[.south] {
+            southButton.frame = CGRect(x: 20, y: currentY, width: buttonWidth, height: buttonHeight)
+            currentY += buttonHeight + buttonSpacing
+        }
+
+        // West
+        if let westButton = connectionButtons[.west] {
+            westButton.frame = CGRect(x: 20, y: currentY, width: buttonWidth, height: buttonHeight)
+        }
+    }
+
+    override func updateUI(for entity: Entity, in ui: MachineUI) {
+        guard let gameLoop = ui.gameLoop,
+              let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else {
+            return
+        }
+
+        // Update network info
+        currentNetworkId = pipe.networkId
+        networkIdLabel?.text = "Network: \(pipe.networkId ?? 0)"
+
+        // Update connection states
+        connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
+        updateConnectionButtons()
+    }
+
+    override func getLabels() -> [UILabel] {
+        var labels = [UILabel]()
+        if let networkLabel = networkLabel { labels.append(networkLabel) }
+        if let networkIdLabel = networkIdLabel { labels.append(networkIdLabel) }
+        return labels
+    }
+
+    private func setupNetworkInfo(in ui: MachineUI) {
+        guard let rootView = ui.rootView else { return }
+
+        // Network info label
+        let networkInfoLabel = UILabel()
+        networkInfoLabel.text = "Fluid Network"
+        networkInfoLabel.font = UIFont.systemFont(ofSize: 12, weight: .bold)
+        networkInfoLabel.textColor = .white
+        networkInfoLabel.textAlignment = .center
+        networkInfoLabel.frame = CGRect(x: 0, y: 0, width: 120, height: 20)
+        networkInfoLabel.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.3, alpha: 0.8)
+        networkInfoLabel.layer.borderColor = UIColor.cyan.cgColor
+        networkInfoLabel.layer.borderWidth = 1.0
+        networkInfoLabel.layer.cornerRadius = 4.0
+        rootView.addSubview(networkInfoLabel)
+        networkLabel = networkInfoLabel
+
+        // Network ID label
+        let idLabel = UILabel()
+        idLabel.text = "Network: \(currentNetworkId ?? 0)"
+        idLabel.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+        idLabel.textColor = .cyan
+        idLabel.textAlignment = .center
+        idLabel.frame = CGRect(x: 0, y: 0, width: 120, height: 20)
+        idLabel.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 0.8)
+        idLabel.layer.borderColor = UIColor.cyan.cgColor
+        idLabel.layer.borderWidth = 0.5
+        idLabel.layer.cornerRadius = 3.0
+        rootView.addSubview(idLabel)
+        networkIdLabel = idLabel
+
+        // Change network button
+        let changeButton = UIKit.UIButton(type: .system)
+        changeButton.setTitle("Split Network", for: .normal)
+        changeButton.setTitleColor(.white, for: .normal)
+        changeButton.backgroundColor = UIColor(red: 0.3, green: 0.3, blue: 0.5, alpha: 0.8)
+        changeButton.layer.borderColor = UIColor.blue.cgColor
+        changeButton.layer.borderWidth = 1.0
+        changeButton.layer.cornerRadius = 4.0
+        changeButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
+        changeButton.addTarget(self, action: #selector(changeNetworkTapped(_:)), for: .touchUpInside)
+        rootView.addSubview(changeButton)
+        changeNetworkButton = changeButton
+    }
+
+    private func setupConnectionButtons(in ui: MachineUI) {
+        guard let rootView = ui.rootView else { return }
+
+        let directions: [Direction] = [.north, .east, .south, .west]
+        let directionNames = ["North", "East", "South", "West"]
+
+        for (index, direction) in directions.enumerated() {
+            let button = UIKit.UIButton(type: .system)
+            let isConnected = connectedDirections.contains(direction)
+
+            button.setTitle("\(directionNames[index]): \(isConnected ? "✓" : "✗")", for: .normal)
+            button.setTitleColor(isConnected ? .green : .red, for: .normal)
+            button.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 0.8)
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1.0
+            button.layer.cornerRadius = 4.0
+            button.frame = CGRect(x: 0, y: 0, width: 100, height: 30)
+
+            // Store direction in button tag for callback
+            button.tag = Int(direction.rawValue)
+            button.addTarget(self, action: #selector(connectionButtonTapped(_:)), for: .touchUpInside)
+
+            rootView.addSubview(button)
+            connectionButtons[direction] = button
+        }
+    }
+
+    private func updateConnectionButtons() {
+        let directions: [Direction] = [.north, .east, .south, .west]
+        let directionNames = ["North", "East", "South", "West"]
+
+        for direction in directions {
+            guard let button = connectionButtons[direction] else { continue }
+            let isConnected = connectedDirections.contains(direction)
+
+            button.setTitle("\(directionNames[direction.rawValue]): \(isConnected ? "✓" : "✗")", for: .normal)
+            button.setTitleColor(isConnected ? .green : .red, for: .normal)
+        }
+    }
+
+    private func getConnectedDirections(for entity: Entity, in world: World) -> Set<Direction> {
+        guard let pipe = world.get(PipeComponent.self, for: entity) else {
+            return []
+        }
+
+        var connected: Set<Direction> = []
+
+        // Check each direction for connections
+        for direction in Direction.allCases {
+            let neighborPos = getNeighborPosition(for: entity, direction: direction, in: world)
+            if neighborPos != nil && hasConnection(to: neighborPos!, for: entity, in: world) {
+                connected.insert(direction)
+            }
+        }
+
+        return connected
+    }
+
+    private func getNeighborPosition(for entity: Entity, direction: Direction, in world: World) -> IntVector2? {
+        guard let position = world.get(PositionComponent.self, for: entity)?.tilePosition else {
+            return nil
+        }
+        return position + direction.intVector
+    }
+
+    private func hasConnection(to neighborPos: IntVector2, for entity: Entity, in world: World) -> Bool {
+        guard let pipe = world.get(PipeComponent.self, for: entity) else {
+            return false
+        }
+
+        // Check if there's a pipe at the neighbor position
+        let entitiesWithPosition = world.query(PositionComponent.self)
+        for otherEntity in entitiesWithPosition {
+            if let otherPos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
+               otherPos == neighborPos,
+               world.has(PipeComponent.self, for: otherEntity) {
+                // Check if these pipes are connected in the connections array
+                return pipe.connections.contains(otherEntity)
+            }
+        }
+
+        return false
+    }
+
+    @objc private func connectionButtonTapped(_ sender: UIKit.UIButton) {
+        guard let direction = Direction(rawValue: Int(sender.tag)),
+              let ui = parentUI,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop else {
+            return
+        }
+
+        print("PipeConnectionUIComponent: Connection button tapped for direction \(direction)")
+
+        // Toggle connection in that direction
+        toggleConnection(for: entity, direction: direction, in: gameLoop.world, fluidNetworkSystem: gameLoop.fluidNetworkSystem)
+
+        // Update UI immediately
+        connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
+        updateConnectionButtons()
+    }
+
+    @objc private func changeNetworkTapped(_ sender: UIKit.UIButton) {
+        guard let ui = parentUI,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop,
+              let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else {
+            return
+        }
+
+        print("PipeConnectionUIComponent: Change network button tapped")
+
+        // Create a new network for this pipe (split from current network)
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+
+        // Get a new network ID
+        let newNetworkId = gameLoop.fluidNetworkSystem.getNextNetworkId()
+        pipe.networkId = newNetworkId
+
+        // Update UI
+        currentNetworkId = newNetworkId
+        networkIdLabel?.text = "Network: \(newNetworkId)"
+
+        print("PipeConnectionUIComponent: Split pipe \(entity.id) into new network \(newNetworkId)")
+    }
+
+    private func toggleConnection(for entity: Entity, direction: Direction, in world: World, fluidNetworkSystem: FluidNetworkSystem) {
+        guard let neighborPos = getNeighborPosition(for: entity, direction: direction, in: world) else {
+            return
+        }
+
+        // Find the neighbor entity
+        var neighborEntity: Entity?
+        let entitiesWithPosition = world.query(PositionComponent.self)
+        for otherEntity in entitiesWithPosition {
+            if let otherPos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
+               otherPos == neighborPos,
+               world.has(PipeComponent.self, for: otherEntity) {
+                neighborEntity = otherEntity
+                break
+            }
+        }
+
+        guard let neighbor = neighborEntity,
+              let pipe = world.get(PipeComponent.self, for: entity),
+              let neighborPipe = world.get(PipeComponent.self, for: neighbor) else {
+            return
+        }
+
+        if pipe.connections.contains(neighbor) {
+            // Disconnect - mark direction as manually disconnected
+            pipe.connections.removeAll { $0 == neighbor }
+            neighborPipe.connections.removeAll { $0 == entity }
+            pipe.manuallyDisconnectedDirections.insert(direction)
+            world.add(pipe, to: entity)
+            world.add(neighborPipe, to: neighbor)
+            print("PipeConnectionUIComponent: Disconnected pipe \(entity.id) from \(neighbor.id) (direction: \(direction))")
+        } else {
+            // Connect - remove from manually disconnected directions
+            pipe.connections.append(neighbor)
+            neighborPipe.connections.append(entity)
+            pipe.manuallyDisconnectedDirections.remove(direction)
+            world.add(pipe, to: entity)
+            world.add(neighborPipe, to: neighbor)
+            print("PipeConnectionUIComponent: Connected pipe \(entity.id) to \(neighbor.id) (direction: \(direction))")
+        }
+
+        // Mark networks as dirty for recalculation
+        fluidNetworkSystem.markEntityDirty(entity)
+        fluidNetworkSystem.markEntityDirty(neighbor)
+    }
+
+}
+
 /// Metal-rendered recipe button for machine UI
 class MachineRecipeButton: UIElement {
     var frame: Rect
@@ -880,6 +1216,12 @@ final class MachineUI: UIPanel_Base {
                 machineComponents.append(FluidMachineUIComponent())
             } else {
                 print("MachineUI: NOT creating FluidMachineUIComponent for entity \(entity.id)")
+            }
+
+            // Check for pipes
+            if gameLoop.world.has(PipeComponent.self, for: entity) {
+                print("MachineUI: Creating PipeConnectionUIComponent for pipe entity \(entity.id)")
+                machineComponents.append(PipeConnectionUIComponent())
             }
 
             // Check for assembly machines
@@ -1893,6 +2235,9 @@ final class MachineUI: UIPanel_Base {
             if let fluidComponent = component as? FluidMachineUIComponent {
                 fluidComponent.positionLabels(in: self)
             }
+            if let pipeComponent = component as? PipeConnectionUIComponent {
+                // Pipe component positions its own elements in setupUI
+            }
         }
 
         // Add rocket launch button for rocket silos
@@ -2863,7 +3208,9 @@ final class MachineUI: UIPanel_Base {
                 powerAvailability = networkInfo.powerAvailability
             }
         } else {
-            // No progress or power info to show
+            // No progress or power info to show - hide progress bars
+            progressBarBackground?.isHidden = true
+            progressBarFill?.isHidden = true
             return
         }
 

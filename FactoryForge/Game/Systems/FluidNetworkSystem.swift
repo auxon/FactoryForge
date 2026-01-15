@@ -496,6 +496,17 @@ final class FluidNetworkSystem: System {
 
         // print("establishConnections: Checking \(adjacentPositionsList.count) adjacent positions for entity \(entity.id)")
         for adjacentPos in adjacentPositionsList {
+            // Calculate which direction this adjacent position represents
+            let directionOffset = adjacentPos - position
+            let direction = directionFromOffset(directionOffset)
+
+            // Check if this direction has been manually disconnected for pipes
+            if let pipe = world.get(PipeComponent.self, for: entity),
+               pipe.manuallyDisconnectedDirections.contains(direction) {
+                // print("establishConnections: Direction \(direction) manually disconnected for pipe \(entity.id), skipping connection")
+                continue
+            }
+
             // Find entities at this position - use fallback if spatial query fails
             var entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
 
@@ -1800,6 +1811,28 @@ final class FluidNetworkSystem: System {
     /// Gets the network for a given network ID
     func getNetwork(_ networkId: Int) -> FluidNetwork? {
         return networks[networkId]
+    }
+
+    /// Gets the next available network ID and increments the counter
+    func getNextNetworkId() -> Int {
+        let id = nextNetworkId
+        nextNetworkId += 1
+        return id
+    }
+
+    /// Gets all existing network IDs
+    func getAllNetworkIds() -> [Int] {
+        return Array(networks.keys).sorted()
+    }
+
+    /// Converts an offset vector to a direction
+    private func directionFromOffset(_ offset: IntVector2) -> Direction {
+        if offset.x == 0 && offset.y == 1 { return .north }
+        if offset.x == 1 && offset.y == 0 { return .east }
+        if offset.x == 0 && offset.y == -1 { return .south }
+        if offset.x == -1 && offset.y == 0 { return .west }
+        // This shouldn't happen for adjacent positions, but return north as default
+        return .north
     }
 
     /// Gets all networks

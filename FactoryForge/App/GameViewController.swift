@@ -1353,7 +1353,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
             if self.gameLoop!.world.has(ChestComponent.self, for: selectedEntity) {
                 self.uiSystem?.openChestInventory(for: selectedEntity)
             }
-            // Check if it's a machine with crafting capabilities, generator with slots, or miner with fuel
+            // Check if it's a machine with crafting capabilities, generator with slots, miner with fuel, or pipe
             else if self.gameLoop!.world.has(AssemblerComponent.self, for: selectedEntity) ||
                     self.gameLoop!.world.has(FurnaceComponent.self, for: selectedEntity) ||
                     self.gameLoop!.world.has(LabComponent.self, for: selectedEntity) ||
@@ -1361,8 +1361,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
                     self.gameLoop!.world.has(GeneratorComponent.self, for: selectedEntity) ||
                     self.gameLoop!.world.has(MinerComponent.self, for: selectedEntity) ||
                     self.gameLoop!.world.has(FluidProducerComponent.self, for: selectedEntity) ||
-                    self.gameLoop!.world.has(FluidConsumerComponent.self, for: selectedEntity) {
-                print("GameViewController: Opening machine UI for fluid entity")
+                    self.gameLoop!.world.has(FluidConsumerComponent.self, for: selectedEntity) ||
+                    self.gameLoop!.world.has(PipeComponent.self, for: selectedEntity) {
+                print("GameViewController: Opening machine UI for entity")
                 self.uiSystem?.openMachineUI(for: selectedEntity)
             }
             // Otherwise, don't open any UI for this entity

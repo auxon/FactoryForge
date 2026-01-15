@@ -16,7 +16,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "852"
             endingLineNumber = "852"
-            landmarkName = "setupSlots()"
+            landmarkName = "hasConnection(to:for:in:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -32,7 +32,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "908"
             endingLineNumber = "908"
-            landmarkName = "setEntity(_:)"
+            landmarkName = "changeNetworkTapped(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

@@ -746,6 +746,9 @@ class PipeComponent: BuildingComponent {
     var pressure: Float = 0  // System pressure
     var networkId: Int?  // Which fluid network this belongs to
 
+    // Manual connection control - directions that have been manually disconnected
+    var manuallyDisconnectedDirections: Set<Direction> = []
+
     init(buildingId: String, direction: Direction, maxCapacity: Float = 100) {
         self.direction = direction
         self.fluidType = nil
@@ -756,7 +759,7 @@ class PipeComponent: BuildingComponent {
 
     // MARK: - Codable conformance
     enum CodingKeys: String, CodingKey {
-        case buildingId, direction, fluidType, fluidAmount, maxCapacity, connections, flowRate, pressure, networkId
+        case buildingId, direction, fluidType, fluidAmount, maxCapacity, connections, flowRate, pressure, networkId, manuallyDisconnectedDirections
     }
 
     required init(from decoder: Decoder) throws {
@@ -771,6 +774,7 @@ class PipeComponent: BuildingComponent {
         flowRate = try container.decodeIfPresent(Float.self, forKey: .flowRate) ?? 0
         pressure = try container.decodeIfPresent(Float.self, forKey: .pressure) ?? 0
         networkId = try container.decodeIfPresent(Int.self, forKey: .networkId)
+        manuallyDisconnectedDirections = try container.decodeIfPresent(Set<Direction>.self, forKey: .manuallyDisconnectedDirections) ?? []
 
         try super.init(from: decoder)
     }
@@ -785,6 +789,7 @@ class PipeComponent: BuildingComponent {
         try container.encode(flowRate, forKey: .flowRate)
         try container.encode(pressure, forKey: .pressure)
         try container.encode(networkId, forKey: .networkId)
+        try container.encode(manuallyDisconnectedDirections, forKey: .manuallyDisconnectedDirections)
         try super.encode(to: encoder)
     }
 }
