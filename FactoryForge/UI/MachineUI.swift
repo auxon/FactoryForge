@@ -1115,6 +1115,11 @@ final class MachineUI: UIPanel_Base {
 
                 return categoryMatches && fluidCheckPasses
             }
+        } else if gameLoop.world.has(FurnaceComponent.self, for: entity),
+                  let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+            availableRecipes = availableRecipes.filter { recipe in
+                recipe.category.rawValue == buildingDef.craftingCategory
+            }
         } else if let _ = gameLoop.world.get(FluidTankComponent.self, for: entity),
                   let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
             // For fluid-based machines (like oil refineries), filter by building crafting category
@@ -1260,6 +1265,18 @@ final class MachineUI: UIPanel_Base {
 
         if recipeIndex >= 0 && recipeIndex < filteredRecipes.count {
             let recipe = filteredRecipes[recipeIndex]
+            if let entity = currentEntity,
+               let gameLoop = gameLoop,
+               gameLoop.world.has(FurnaceComponent.self, for: entity) {
+                selectedRecipe = recipe
+                onSelectRecipeForMachine?(entity, recipe)
+                updateMachine(entity)
+                updateRecipeButtonStates()
+                showRecipeDetails(recipe)
+                craftButton?.removeFromSuperview()
+                craftButton = nil
+                return
+            }
 
             // Just select the recipe - don't craft yet
             selectedRecipe = recipe
@@ -1289,11 +1306,22 @@ final class MachineUI: UIPanel_Base {
         var missingFluids: [String] = []
 
         if let gameLoop = gameLoop {
-            // Check item inputs
-            for input in recipe.inputs {
-                if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
-                    canCraft = false
-                    missingItems.append("\(input.itemId) (\(input.count))")
+            let isFurnace = currentEntity.map { gameLoop.world.has(FurnaceComponent.self, for: $0) } ?? false
+            if isFurnace, let entity = currentEntity,
+               let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
+                for input in recipe.inputs {
+                    if machineInventory.count(of: input.itemId) < input.count {
+                        canCraft = false
+                        missingItems.append("\(input.itemId) (\(input.count))")
+                    }
+                }
+            } else {
+                // Check item inputs from player inventory
+                for input in recipe.inputs {
+                    if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                        canCraft = false
+                        missingItems.append("\(input.itemId) (\(input.count))")
+                    }
                 }
             }
 
@@ -1324,7 +1352,11 @@ final class MachineUI: UIPanel_Base {
         }
 
         if !canCraft {
-            tooltip += " - Missing: "
+            let isFurnace = currentEntity.map { entity in
+                gameLoop?.world.has(FurnaceComponent.self, for: entity) ?? false
+            } ?? false
+            let missingLabel = isFurnace ? "Missing in furnace" : "Missing"
+            tooltip += " - \(missingLabel): "
             let missing = (missingItems + missingFluids).joined(separator: ", ")
             tooltip += missing
         }
@@ -1335,6 +1367,7 @@ final class MachineUI: UIPanel_Base {
 
     private func updateRecipeButtonStates() {
         guard let gameLoop = gameLoop else { return }
+        let isFurnace = currentEntity.map { gameLoop.world.has(FurnaceComponent.self, for: $0) } ?? false
 
         // Update all recipe button appearances based on selection and craftability
         for (index, button) in recipeUIButtons.enumerated() {
@@ -1349,34 +1382,35 @@ final class MachineUI: UIPanel_Base {
                 } else {
                     // Check if this recipe can be crafted
                     var canCraft = true
-
-                    // Check item inputs from player inventory
-                    for input in recipe.inputs {
-                        if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
-                            canCraft = false
-                            break
+                    if !isFurnace {
+                        // Check item inputs from player inventory
+                        for input in recipe.inputs {
+                            if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                                canCraft = false
+                                break
+                            }
                         }
-                    }
 
-                    // Check fluid inputs from machine's fluid tanks
-                    if canCraft && !recipe.fluidInputs.isEmpty {
-                        if let currentEntity = currentEntity,
-                           let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: currentEntity) {
-                            for fluidInput in recipe.fluidInputs {
-                                var foundFluid = false
-                                for tank in fluidTank.tanks {
-                                    if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
-                                        foundFluid = true
+                        // Check fluid inputs from machine's fluid tanks
+                        if canCraft && !recipe.fluidInputs.isEmpty {
+                            if let currentEntity = currentEntity,
+                               let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: currentEntity) {
+                                for fluidInput in recipe.fluidInputs {
+                                    var foundFluid = false
+                                    for tank in fluidTank.tanks {
+                                        if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
+                                            foundFluid = true
+                                            break
+                                        }
+                                    }
+                                    if !foundFluid {
+                                        canCraft = false
                                         break
                                     }
                                 }
-                                if !foundFluid {
-                                    canCraft = false
-                                    break
-                                }
+                            } else {
+                                canCraft = false
                             }
-                        } else {
-                            canCraft = false
                         }
                     }
 
@@ -1602,6 +1636,11 @@ final class MachineUI: UIPanel_Base {
 
         // Remove existing craft button
         craftButton?.removeFromSuperview()
+        craftButton = nil
+
+        if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+            return
+        }
 
         // Check if this is an oil refinery (continuous processor)
         let isOilRefinery = getBuildingDefinition(for: entity, gameLoop: gameLoop)?.type == .oilRefinery
@@ -1638,6 +1677,11 @@ final class MachineUI: UIPanel_Base {
               let recipe = selectedRecipe,
               let gameLoop = gameLoop,
               let entity = currentEntity else { return }
+        if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+            craftButton.isEnabled = true
+            craftButton.backgroundColor = UIColor.blue.withAlphaComponent(0.7)
+            return
+        }
 
         // Check crafting requirements based on recipe type
         var canCraftFromInventory = true
@@ -2062,9 +2106,11 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Set up UIKit components
-        // Only setup recipe UI if this machine has AssemblerComponent (can select recipes)
+        // Setup recipe UI for assemblers, furnaces, and fluid machines.
         if let entity = currentEntity, let gameLoop = gameLoop,
-           gameLoop.world.has(AssemblerComponent.self, for: entity) {
+           (gameLoop.world.has(AssemblerComponent.self, for: entity) ||
+            gameLoop.world.has(FurnaceComponent.self, for: entity) ||
+            gameLoop.world.has(FluidTankComponent.self, for: entity)) {
             if recipeScrollView == nil {
                 setupRecipeScrollView(for: entity, gameLoop: gameLoop)
             }
@@ -3175,9 +3221,10 @@ final class MachineUI: UIPanel_Base {
             fillWidth = backgroundFrame.width * CGFloat(p)
             fillColor = UIColor.green
             let isMiner = getBuildingDefinition(for: entity, gameLoop: gameLoop)?.type == .miner
+            let isFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
 
             if progress > 0 {
-                let label = isMiner ? "Mining" : "Crafting"
+                let label = isMiner ? "Mining" : (isFurnace ? "Smelting" : "Crafting")
                 statusText = String(format: "\(label): %.0f%%", p * 100)
             } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
                 if assembler.recipe == nil {
@@ -3189,6 +3236,8 @@ final class MachineUI: UIPanel_Base {
                 } else {
                     statusText = "Ready to Craft"
                 }
+            } else if isFurnace {
+                statusText = "Insert Ore"
             } else if isMiner {
                 statusText = "Ready to Mine"
             } else {
