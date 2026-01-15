@@ -321,7 +321,8 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
     override func setupUI(for entity: Entity, in ui: MachineUI) {
         clearFluidUI()
-        setupFluidIndicators(for: entity, in: ui)
+        let buildingDef = ui.getBuildingDefinition(for: entity, gameLoop: ui.gameLoop!)
+        setupFluidIndicators(for: entity, in: ui, buildingDef: buildingDef)
         positionLabels(in: ui)
     }
 
@@ -357,7 +358,8 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             if currentTankCount != displayedTankCount {
                 print("FluidMachineUIComponent: Tank count changed from \(displayedTankCount) to \(currentTankCount), re-setting up UI")
                 clearFluidUI()
-                setupFluidIndicators(for: entity, in: ui)
+                let buildingDef = ui.getBuildingDefinition(for: entity, gameLoop: ui.gameLoop!)
+                setupFluidIndicators(for: entity, in: ui, buildingDef: buildingDef)
                 positionLabels(in: ui)
             } else {
                 updateFluidIndicators(for: entity, in: ui)
@@ -389,17 +391,18 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         let scale = UIScreen.main.scale
         let panelOriginPts = ui.panelFrameInPoints().origin
 
-        // Position fluid input labels (still use Metal indicators)
+        // Position fluid input labels to the right of indicators, stacked vertically
         for (index, label) in fluidInputLabels.enumerated() {
             guard index < fluidInputIndicators.count else { continue }
             let indicator = fluidInputIndicators[index]
 
-            // Position label centered below the indicator
+            // Position label to the right of the indicator, aligned with indicator Y
             let labelWidth: Float = 90
             let labelHeight: Float = 20
+            let labelSpacing: Float = 4
 
-            let labelX = indicator.frame.center.x - labelWidth/2
-            let labelY = indicator.frame.center.y + indicator.frame.size.y/2 + 4
+            let labelX = indicator.frame.maxX + labelSpacing
+            let labelY = indicator.frame.minY
 
             // Convert to UIView coordinates relative to rootView
             let uiX = CGFloat(labelX) / scale - panelOriginPts.x
@@ -408,43 +411,45 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             label.frame = CGRect(x: uiX, y: uiY, width: CGFloat(labelWidth), height: CGFloat(labelHeight))
         }
 
-        // Producer labels (Metal-space -> rootView)
+        // Producer labels to the right of indicators, stacked vertically
         for (i, label) in producerLabels.enumerated() {
             guard i < fluidOutputIndicators.count else { continue }
             let ind = fluidOutputIndicators[i]
 
-            let labelWidth: CGFloat = 90
-            let labelHeight: CGFloat = 20
+            let labelWidth: Float = 90
+            let labelHeight: Float = 20
+            let labelSpacing: Float = 4
 
-            let labelXpx = ind.frame.center.x - Float(labelWidth)/2
-            let labelYpx = ind.frame.center.y + ind.frame.size.y/2 + 4
+            let labelXpx = ind.frame.maxX + labelSpacing
+            let labelYpx = ind.frame.minY
 
             label.frame = CGRect(
                 x: CGFloat(labelXpx)/scale - panelOriginPts.x,
                 y: CGFloat(labelYpx)/scale - panelOriginPts.y,
-                width: labelWidth,
-                height: labelHeight
+                width: CGFloat(labelWidth),
+                height: CGFloat(labelHeight)
             )
         }
 
-        // Tank labels (already rootView-local)
+        // Tank labels to the right of tank views, stacked vertically
         for (i, label) in tankLabels.enumerated() {
             guard i < fluidTankViews.count else { continue }
             let tankFrame = fluidTankViews[i].frame
 
             let labelWidth: CGFloat = 90
             let labelHeight: CGFloat = 20
+            let labelSpacing: CGFloat = 4
 
             label.frame = CGRect(
-                x: tankFrame.midX - labelWidth/2,
-                y: tankFrame.maxY + 4,
+                x: tankFrame.maxX + labelSpacing,
+                y: tankFrame.minY,
                 width: labelWidth,
                 height: labelHeight
             )
         }
     }
 
-    private func setupFluidIndicators(for entity: Entity, in ui: MachineUI) {
+    private func setupFluidIndicators(for entity: Entity, in ui: MachineUI, buildingDef: BuildingDefinition?) {
         guard let gameLoop = ui.gameLoop else { return }
 
         print("FluidMachineUIComponent: setupFluidIndicators called for entity \(entity.id)")
@@ -497,13 +502,52 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             fluidIndex += 1
         }
 
+        // Check for fluid tanks (used by oil refineries, chemical plants, etc.)
+        // Fluid tanks can serve as both inputs and outputs depending on the recipe
+        // For oil refineries, skip the generic fluid input indicator since we use UIKit tank views
+        if gameLoop.world.get(FluidTankComponent.self, for: entity) != nil {
+            let isOilRefinery = buildingDef?.type == .oilRefinery
+
+            if !isOilRefinery {
+                let spacing: Float = 100 * UIScale  // Increased spacing between indicators
+                let fluidX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * spacing
+
+                // Create input indicator for fluid tanks (can accept fluids)
+                let inputFrame = Rect(center: Vector2(fluidX, fluidY), size: Vector2(indicatorSize, indicatorSize))
+                let inputIndicator = FluidIndicator(frame: inputFrame, isInput: true)
+                fluidInputIndicators.append(inputIndicator)
+
+                let inputLabel = ui.createFluidLabel()
+                fluidInputLabels.append(inputLabel)
+
+                // Add label to rootView
+                if let rootView = ui.rootView {
+                    rootView.addSubview(inputLabel)
+                }
+
+                fluidIndex += 1
+            }
+        }
+
         // Check for fluid tanks - create UIKit views for fluid tank indicators
         if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
             print("FluidMachineUIComponent: Found FluidTankComponent with \(tank.tanks.count) tanks, maxCapacity: \(tank.maxCapacity)")
 
-            // Position tanks just below the progress bar
+            // Position tanks just below the progress bar in a fixed right column
             let tankSpacing: Float = 50 * UIScale  // Reduced spacing for better fit
-            let tankBaseX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * 120 * UIScale  // Align tanks with the steam indicator
+
+            // Calculate fixed right-side X position in UIKit points, then convert to Metal pixels
+            let tankXUIKitPoints: Float
+            if let rootView = ui.rootView {
+                tankXUIKitPoints = Float(rootView.bounds.width) * 0.75  // 75% from left for right column
+            } else {
+                tankXUIKitPoints = Float(ui.frame.center.x) + 150 * UIScale  // Fallback
+            }
+
+            // Convert UIKit points to Metal pixels
+            let scale = Float(UIScreen.main.scale)
+            let panelOriginPts = ui.panelFrameInPoints().origin
+            let tankBaseX = (tankXUIKitPoints + Float(panelOriginPts.x)) * scale
             let labelSpacing: Float = 20 * UIScale
 
             // Calculate starting Y position based on progress bar position
@@ -603,6 +647,33 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             let flowRateText = String(format: "%.1f L/s", consumer.consumptionRate)
             let fluidName = consumer.inputType == .water ? "Water" : consumer.inputType!.rawValue
             fluidInputLabels[0].text = "\(fluidName): \(flowRateText)"
+        }
+
+        // Update fluid tank inputs (for oil refineries, chemical plants, etc.)
+        // Show the current tank contents as input indicators
+        if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity),
+           fluidInputIndicators.count > 0 && fluidInputLabels.count > 0 {
+            // For fluid tanks, show the current tank contents
+            if tank.tanks.isEmpty {
+                // No fluids in tanks
+                fluidInputIndicators[0].fluidType = nil
+                fluidInputIndicators[0].amount = 0
+                fluidInputIndicators[0].maxAmount = tank.maxCapacity
+                fluidInputIndicators[0].hasConnection = !tank.connections.isEmpty
+                fluidInputLabels[0].text = "Empty"
+            } else {
+                // Show the first tank's contents (or aggregate if multiple tanks)
+                let totalAmount = tank.tanks.reduce(0) { $0 + $1.amount }
+                let firstTank = tank.tanks[0]
+                fluidInputIndicators[0].fluidType = firstTank.type
+                fluidInputIndicators[0].amount = totalAmount
+                fluidInputIndicators[0].maxAmount = tank.maxCapacity
+                fluidInputIndicators[0].hasConnection = !tank.connections.isEmpty
+
+                let fluidName = firstTank.type.rawValue
+                let amountText = String(format: "%.0f L", totalAmount)
+                fluidInputLabels[0].text = "\(fluidName): \(amountText)"
+            }
         }
 
         // Update fluid tanks (UIKit views)
@@ -3048,7 +3119,7 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
-    private func getBuildingDefinition(for entity: Entity, gameLoop: GameLoop) -> BuildingDefinition? {
+    fileprivate func getBuildingDefinition(for entity: Entity, gameLoop: GameLoop) -> BuildingDefinition? {
         let buildingComponent: BuildingComponent?
         if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
             buildingComponent = miner
@@ -3056,6 +3127,9 @@ final class MachineUI: UIPanel_Base {
         } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
             buildingComponent = furnace
             print("MachineUI: getBuildingDefinition found FurnaceComponent")
+        } else if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            buildingComponent = fluidTank
+            print("MachineUI: getBuildingDefinition found FluidTankComponent")
         } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
             buildingComponent = assembler
             print("MachineUI: getBuildingDefinition found AssemblerComponent")
