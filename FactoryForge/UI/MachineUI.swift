@@ -718,7 +718,7 @@ final class MachineUI: UIPanel_Base {
 
         let tankWidth: CGFloat = 60
         let tankHeight: CGFloat = 40
-        let tankSpacing: CGFloat = 8
+        let tankSpacing: CGFloat = 20
 
         // Clear existing tank UI
         chemTankViews.forEach { $0.removeFromSuperview() }
@@ -862,7 +862,7 @@ final class MachineUI: UIPanel_Base {
 
         let tankWidth: CGFloat = 60
         let tankHeight: CGFloat = 40
-        let tankSpacing: CGFloat = 8
+        let tankSpacing: CGFloat = 20
 
         // Clear existing refinery tank UI
         refineryTankViews.forEach { $0.removeFromSuperview() }
@@ -1598,7 +1598,7 @@ final class MachineUI: UIPanel_Base {
         let isOilRefinery = getBuildingDefinition(for: entity, gameLoop: gameLoop)?.type == .oilRefinery
 
         // Create craft button below recipe ingredients
-        let buttonWidth: CGFloat = isOilRefinery ? 70 : 80  // Smaller for refinery
+        let buttonWidth: CGFloat = 80
         let buttonHeight: CGFloat = 30
 
         // Position below recipe ingredients, centered in recipe region
