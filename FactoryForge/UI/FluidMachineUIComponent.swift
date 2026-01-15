@@ -355,6 +355,15 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                 connectivityLine.backgroundColor = UIColor.green // Will be updated based on connection
                 connectivityIndicators.append(connectivityLine)
                 rootView.addSubview(connectivityLine)
+
+                // Add direction arrow between water and steam
+                let directionArrow = UILabel()
+                directionArrow.text = "→"
+                directionArrow.font = UIFont.systemFont(ofSize: 16, weight: .regular)
+                directionArrow.textColor = UIColor.white.withAlphaComponent(0.6)
+                directionArrow.textAlignment = .center
+                connectivityIndicators.append(directionArrow)
+                rootView.addSubview(directionArrow)
             }
 
             fluidIndex += 1
@@ -545,52 +554,59 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         let barHeight: CGFloat = 8
         let gap: CGFloat = 6
         let labelGap: CGFloat = 2
+        let ind = fluidInputIndicators[0]
+        let waterCenterX = CGFloat(ind.frame.center.x) / scale - panelOriginPts.x
+        let waterCenterY = CGFloat(ind.frame.center.y) / scale - panelOriginPts.y
 
         // water
         do {
-            let ind = fluidInputIndicators[0]
-            let indicatorCenterX = CGFloat(ind.frame.center.x) / scale - panelOriginPts.x
-            let indicatorCenterY = CGFloat(ind.frame.center.y) / scale - panelOriginPts.y
+
 
             // Position connectivity dot on the left side
             let dotSize: CGFloat = 16
-            let dotX = indicatorCenterX - 30
-            let dotY = indicatorCenterY - dotSize/2
+            let dotX = waterCenterX - 30
+            let dotY = waterCenterY - dotSize/2
             connectivityIndicators[0].frame = CGRect(x: dotX, y: dotY, width: dotSize, height: dotSize)
 
             // Position buffer bar below the label
             let barY = fluidInputLabels[0].frame.maxY + gap
             let labelY = barY + barHeight + labelGap
 
-            bufferBars[0].frame = CGRect(x: indicatorCenterX - barWidth/2, y: barY, width: barWidth, height: barHeight)
-            bufferLabels[0].frame = CGRect(x: indicatorCenterX - barWidth/2, y: labelY, width: barWidth, height: 10)
+            bufferBars[0].frame = CGRect(x: waterCenterX - barWidth/2, y: barY, width: barWidth, height: barHeight)
+            bufferLabels[0].frame = CGRect(x: waterCenterX - barWidth/2, y: labelY, width: barWidth, height: 10)
         }
 
         // steam
         do {
             let ind = fluidOutputIndicators[0]
-            let indicatorCenterX = CGFloat(ind.frame.center.x) / scale - panelOriginPts.x
-            let indicatorCenterY = CGFloat(ind.frame.center.y) / scale - panelOriginPts.y
+            let steamCenterX = CGFloat(ind.frame.center.x) / scale - panelOriginPts.x
+            let steamCenterY = CGFloat(ind.frame.center.y) / scale - panelOriginPts.y
 
             // Position connectivity arrow on the right side
             let arrowSize: CGFloat = 12
-            let arrowX = indicatorCenterX + 30
-            let arrowY = indicatorCenterY - arrowSize/2
+            let arrowX = steamCenterX + 30
+            let arrowY = steamCenterY - arrowSize/2
             connectivityIndicators[1].frame = CGRect(x: arrowX, y: arrowY, width: arrowSize, height: arrowSize)
 
             // Position connectivity line extending right
             let lineWidth: CGFloat = 50
             let lineHeight: CGFloat = 6
             let lineX = arrowX + arrowSize + 5
-            let lineY = indicatorCenterY - lineHeight/2
+            let lineY = steamCenterY - lineHeight/2
             connectivityIndicators[2].frame = CGRect(x: lineX, y: lineY, width: lineWidth, height: lineHeight)
+
+            // Position direction arrow between water and steam
+            let directionArrowSize: CGFloat = 20
+            let directionArrowX = (waterCenterX + steamCenterX) * 0.5 - directionArrowSize * 0.5
+            let directionArrowY = waterCenterY - directionArrowSize * 0.5
+            connectivityIndicators[3].frame = CGRect(x: directionArrowX, y: directionArrowY, width: directionArrowSize, height: directionArrowSize)
 
             // Position buffer bar below the label
             let barY = producerLabels[0].frame.maxY + gap
             let labelY = barY + barHeight + labelGap
 
-            bufferBars[1].frame = CGRect(x: indicatorCenterX - barWidth/2, y: barY, width: barWidth, height: barHeight)
-            bufferLabels[1].frame = CGRect(x: indicatorCenterX - barWidth/2, y: labelY, width: barWidth, height: 10)
+            bufferBars[1].frame = CGRect(x: steamCenterX - barWidth/2, y: barY, width: barWidth, height: barHeight)
+            bufferLabels[1].frame = CGRect(x: steamCenterX - barWidth/2, y: labelY, width: barWidth, height: 10)
         }
     }
 
@@ -693,10 +709,11 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                 flowRateText = String(format: "%.1f/%.1f L/s", actualRate, targetRate)
             }
             // Update connectivity indicators
-            if connectivityIndicators.count >= 3 {
+            if connectivityIndicators.count >= 4 {
                 let hasConnection = producer.connections.count > 0
                 connectivityIndicators[1].backgroundColor = hasConnection ? UIColor.green : UIColor.red
                 connectivityIndicators[2].backgroundColor = hasConnection ? UIColor.green : UIColor.red
+                // Direction arrow is always visible (doesn't change color)
             }
 
             let fluidName = producer.outputType == .steam ? "Steam" : producer.outputType.rawValue
@@ -727,7 +744,16 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                 // Update label with current/max amounts
                 let currentAmount = Int(stack.amount.rounded())
                 let maxAmount = Int(stack.maxAmount.rounded())
-                bufferLabels[i].text = "\(currentAmount)/\(maxAmount)"
+
+                // Special case for water buffer when empty but flowing
+                if stack.type == .water && currentAmount == 0 && i == 0 {
+                    // Check if water consumer is actively consuming (indicating live flow)
+                    let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity)
+                    let isFlowing = consumer?.currentConsumption ?? 0 > 0.001
+                    bufferLabels[i].text = isFlowing ? "Live" : "0/\(maxAmount)"
+                } else {
+                    bufferLabels[i].text = "\(currentAmount)/\(maxAmount)"
+                }
             }
         }
 
@@ -737,7 +763,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         print("FluidMachineUIComponent: Consumer component exists: \(consumer != nil), boiler active: \(isBoilerActive)")
         if let consumer = consumer,
            fluidInputIndicators.count > 0 && fluidInputLabels.count > 0 {
-            print("FluidMachineUIComponent: Consumer - inputType: \(consumer.inputType), consumptionRate: \(consumer.consumptionRate), currentConsumption: \(consumer.currentConsumption), connections: \(consumer.connections.count), isBoilerActive: \(isBoilerActive)")
+            print("FluidMachineUIComponent: Consumer - inputType: \(String(describing: consumer.inputType)), consumptionRate: \(consumer.consumptionRate), currentConsumption: \(consumer.currentConsumption), connections: \(consumer.connections.count), isBoilerActive: \(isBoilerActive)")
             fluidInputIndicators[0].fluidType = consumer.inputType
             fluidInputIndicators[0].amount = consumer.currentConsumption
             fluidInputIndicators[0].maxAmount = consumer.consumptionRate

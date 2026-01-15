@@ -37,10 +37,10 @@ final class FluidIndicator {
                 layer: .ui
             ))
         } else if isProducer && fluidType != nil {
-            // Producer status badge - thinner border, more subtle
-            let borderThickness: Float = 1.0
+            // Producer status badge - very subtle border
+            let borderThickness: Float = 0.5
             let borderColor = fluidType.map { getFluidColor($0) } ?? Color(r: 0.7, g: 0.7, b: 0.7, a: 1.0)
-            let alpha: Float = hasConnection ? 0.8 : 0.3
+            let alpha: Float = hasConnection ? 0.6 : 0.2
             renderer.queueSprite(SpriteInstance(
                 position: frame.center,
                 size: frame.size + Vector2(borderThickness * 2, borderThickness * 2),
