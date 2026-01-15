@@ -513,6 +513,17 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         print("GameViewController: Setting up CraftingMenu callbacks in setupUISystem")
         let craftingMenu = uiSystem?.getCraftingMenu()
         print("GameViewController: Got CraftingMenu instance: \(craftingMenu != nil ? "exists" : "nil")")
+        craftingMenu?.onAddRootView = { [weak self] (view: UIView) in
+            guard let self = self else { return }
+            view.removeFromSuperview()
+            self.view.insertSubview(view, aboveSubview: self.metalView)
+            self.view.bringSubviewToFront(view)
+            self.view.bringSubviewToFront(self.tooltipLabel)
+            self.view.bringSubviewToFront(self.tooltipIconView)
+        }
+        craftingMenu?.onRemoveRootView = { (view: UIView) in
+            view.removeFromSuperview()
+        }
         craftingMenu?.onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             guard let self = self else {
                 return
@@ -774,6 +785,17 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
 
         // Re-set up crafting menu label callbacks (UI system was recreated)
         print("GameViewController: Setting up CraftingMenu callbacks in startNewGame")
+        uiSystem?.getCraftingMenu().onAddRootView = { [weak self] (view: UIView) in
+            guard let self = self else { return }
+            view.removeFromSuperview()
+            self.view.insertSubview(view, aboveSubview: self.metalView)
+            self.view.bringSubviewToFront(view)
+            self.view.bringSubviewToFront(self.tooltipLabel)
+            self.view.bringSubviewToFront(self.tooltipIconView)
+        }
+        uiSystem?.getCraftingMenu().onRemoveRootView = { (view: UIView) in
+            view.removeFromSuperview()
+        }
         uiSystem?.getCraftingMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             guard let self = self else {
                 return
@@ -974,6 +996,17 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
 
 
         // CraftingMenu callbacks
+        uiSystem?.getCraftingMenu().onAddRootView = { [weak self] (view: UIView) in
+            guard let self = self else { return }
+            view.removeFromSuperview()
+            self.view.insertSubview(view, aboveSubview: self.metalView)
+            self.view.bringSubviewToFront(view)
+            self.view.bringSubviewToFront(self.tooltipLabel)
+            self.view.bringSubviewToFront(self.tooltipIconView)
+        }
+        uiSystem?.getCraftingMenu().onRemoveRootView = { (view: UIView) in
+            view.removeFromSuperview()
+        }
         uiSystem?.getCraftingMenu().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             print("GameViewController: onAddLabels callback called with \(labels.count) labels")
             guard let self = self else {
@@ -1529,4 +1562,3 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         _ = ui.handleTap(at: pPx)
     }
 }
-

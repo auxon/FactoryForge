@@ -193,10 +193,6 @@ final class MachineUI: UIPanel_Base {
         )
     }
 
-    // Legacy Metal recipe buttons (kept for compatibility)
-    private var recipeButtons: [RecipeButton] = []
-
-
     // Research progress labels for labs
     private var researchProgressLabels: [UILabel] = []
 

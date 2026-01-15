@@ -4,15 +4,31 @@ import UIKit
 /// Crafting menu panel
 final class CraftingMenu: UIPanel_Base {
     private weak var gameLoop: GameLoop?
-    private var recipeButtons: [RecipeButton] = []
+    private var recipeScrollView: ClearScrollView?
+    private var recipeUIButtons: [UIKit.UIButton] = []
+    private var filteredRecipes: [Recipe] = []
     private var closeButton: CloseButton!
     private var selectedRecipe: Recipe?
     private var lastRenderedRecipe: Recipe?
     private var recipeLabels: [UILabel] = [] // Track labels for recipe details
 
-    // Callbacks for managing UIKit labels
+    // UIKit container for crafting menu content
+    private var rootView: UIView?
+
+    private var craftButton: UIKit.UIButton?
+    private var progressBarBackground: UIView?
+    private var progressBarFill: UIView?
+    private var progressStatusLabel: UILabel?
+
+    private var detailsIconYPoints: CGFloat = 0.0
+
+    // Callbacks for managing UIKit labels (legacy, still used for counts)
     var onAddLabels: (([UILabel]) -> Void)?
     var onRemoveLabels: (([UILabel]) -> Void)?
+
+    // Callbacks for managing UIKit root view
+    var onAddRootView: ((UIView) -> Void)?
+    var onRemoveRootView: ((UIView) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         // Use full screen size for background
@@ -43,89 +59,112 @@ final class CraftingMenu: UIPanel_Base {
         }
     }
 
+    /// Convert Metal frame to UIKit points for panel container
+    private func panelFrameInPoints() -> CGRect {
+        let screenScale = UIScreen.main.scale
+        return CGRect(
+            x: CGFloat(frame.minX) / screenScale,
+            y: CGFloat(frame.minY) / screenScale,
+            width: CGFloat(frame.size.x) / screenScale,
+            height: CGFloat(frame.size.y) / screenScale
+        )
+    }
+
     override func open() {
         super.open()
+        if rootView == nil {
+            rootView = UIView(frame: panelFrameInPoints())
+            rootView?.backgroundColor = .clear
+            rootView?.isUserInteractionEnabled = true
+        }
+
+        setupProgressBarIfNeeded()
+        setupRecipeScrollViewIfNeeded()
+        layoutUI()
         refreshRecipes()
-        setupLabels()
+        updateCraftButtonState()
+        updateProgressStatus()
+
+        if let rootView = rootView {
+            onAddRootView?(rootView)
+        }
     }
 
     override func close() {
         super.close()
         selectedRecipe = nil
         lastRenderedRecipe = nil
-        removeLabels()
+        clearRecipeLabels()
+
+        craftButton?.removeFromSuperview()
+        craftButton = nil
+
+        progressBarFill?.removeFromSuperview()
+        progressBarFill = nil
+        progressBarBackground?.removeFromSuperview()
+        progressBarBackground = nil
+        progressStatusLabel?.removeFromSuperview()
+        progressStatusLabel = nil
+
+        recipeUIButtons.forEach { $0.removeFromSuperview() }
+        recipeUIButtons.removeAll()
+        filteredRecipes.removeAll()
+
+        recipeScrollView?.removeFromSuperview()
+        recipeScrollView = nil
+
+        if let rv = rootView {
+            rv.isUserInteractionEnabled = false
+            rv.removeFromSuperview()
+            onRemoveRootView?(rv)
+        }
+        rootView = nil
     }
 
-    private func setupLabels() {
-        // Labels will be created when rendering recipe details
-    }
-
-    private func removeLabels() {
+    private func clearRecipeLabels() {
+        recipeLabels.forEach { $0.removeFromSuperview() }
         onRemoveLabels?(recipeLabels)
         recipeLabels.removeAll()
     }
     
     private func refreshRecipes() {
-        recipeButtons.removeAll()
-        
         guard let gameLoop = gameLoop else { return }
-        
-        let buttonSize: Float = 50 * UIScale
-        let buttonSpacing: Float = 5 * UIScale
-        let buttonsPerRow = 6
-        let totalWidth = Float(buttonsPerRow) * buttonSize + Float(buttonsPerRow - 1) * buttonSpacing
-        let startX = frame.center.x - totalWidth / 2 + buttonSize / 2
-        let startY = frame.center.y - 100 * UIScale
-        
-        let recipes = gameLoop.recipeRegistry.enabled.filter { recipe in
+
+        filteredRecipes = gameLoop.recipeRegistry.enabled.filter { recipe in
             gameLoop.isRecipeUnlocked(recipe.id)
         }
-        
-        for (index, recipe) in recipes.enumerated() {
-            let row = index / buttonsPerRow
-            let col = index % buttonsPerRow
-            
-            let buttonX = startX + Float(col) * (buttonSize + buttonSpacing) + buttonSize / 2
-            let buttonY = startY + Float(row) * (buttonSize + buttonSpacing) + buttonSize / 2
-            
-            let button = RecipeButton(
-                frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)),
-                recipe: recipe
-            )
-            button.onTap = { [weak self] in
-                self?.selectRecipe(recipe)
-            }
-            recipeButtons.append(button)
-        }
+
+        setupRecipeButtons()
+        updateRecipeButtonStates()
     }
     
     private func selectRecipe(_ recipe: Recipe) {
-        // Update selected recipe for display purposes
         selectedRecipe = recipe
+        updateRecipeButtonStates()
+        updateRecipeDetails(for: recipe)
+        updateCraftButtonState()
+        updateProgressStatus()
+        AudioManager.shared.playClickSound()
+    }
 
-        // Check if player can craft
-        guard let player = gameLoop?.player else { return }
+    @objc private func craftSelectedRecipe() {
+        guard let recipe = selectedRecipe, let player = gameLoop?.player else { return }
 
         if player.craft(recipe: recipe) {
             AudioManager.shared.playClickSound()
-            // Recipe successfully queued for crafting
-        } else {
-            // Could not craft (missing ingredients) - no sound feedback needed
         }
+
+        updateRecipeButtonStates()
+        updateCraftButtonState()
+        updateProgressStatus()
     }
     
     override func update(deltaTime: Float) {
         guard isOpen else { return }
 
-        // Update button states based on craftability and crafting status
-        guard let player = gameLoop?.player else { return }
-
-        for button in recipeButtons {
-            button.canCraft = button.recipe.canCraft(with: player.inventory)
-            button.isCrafting = player.isCrafting(recipe: button.recipe)
-            button.craftingProgress = player.getCraftingProgress(recipe: button.recipe) ?? 0.0
-            button.queuedCount = player.getQueuedCount(recipe: button.recipe)
-        }
+        updateRecipeButtonStates()
+        updateCraftButtonState()
+        updateProgressStatus()
     }
     
     override func render(renderer: MetalRenderer) {
@@ -135,38 +174,13 @@ final class CraftingMenu: UIPanel_Base {
 
         // Render close button
         closeButton.render(renderer: renderer)
-
-        for button in recipeButtons {
-            button.render(renderer: renderer)
-        }
         
         // Render selected recipe details
         if let recipe = selectedRecipe {
             // Always render the icons (every frame)
             renderRecipeIcons(recipe: recipe, renderer: renderer)
-            
-            // Only recreate labels if recipe changed
-            if recipe.id != lastRenderedRecipe?.id {
-                // Clear previous labels
-                if !recipeLabels.isEmpty {
-                    onRemoveLabels?(recipeLabels)
-                    recipeLabels.removeAll()
-                }
-                // Create new labels for this recipe
-                createRecipeLabels(recipe: recipe, renderer: renderer)
-                // Add the new labels to the view
-                if !recipeLabels.isEmpty {
-                    onAddLabels?(recipeLabels)
-                }
-                lastRenderedRecipe = recipe
-            }
-            // If recipe hasn't changed, labels already exist and persist
         } else if lastRenderedRecipe != nil {
-            // Recipe was deselected, clear the details
-            if !recipeLabels.isEmpty {
-                onRemoveLabels?(recipeLabels)
-                recipeLabels.removeAll()
-            }
+            clearRecipeLabels()
             lastRenderedRecipe = nil
         }
     }
@@ -174,10 +188,14 @@ final class CraftingMenu: UIPanel_Base {
     private func renderRecipeIcons(recipe: Recipe, renderer: MetalRenderer) {
         let iconSize: Float = 30 * UIScale
         let iconSpacing: Float = 40 * UIScale
-        let detailsY = frame.maxY - 100 * UIScale
+        let detailsY = Float(detailsIconYPoints) * UIScale
+
+        let totalItems = recipe.inputs.count + recipe.outputs.count + 1
+        let leftCenterX = leftColumnCenterXInPixels()
+        let startX = leftCenterX - Float(max(totalItems - 1, 0)) * iconSpacing * 0.5
 
         // Recipe inputs
-        var inputX = frame.minX + 50 * UIScale
+        var inputX = startX
         for input in recipe.inputs {
             let textureRect = renderer.textureAtlas.getTextureRect(for: input.itemId.replacingOccurrences(of: "-", with: "_"))
             renderer.queueSprite(SpriteInstance(
@@ -215,24 +233,28 @@ final class CraftingMenu: UIPanel_Base {
         }
     }
     
-    private func createRecipeLabels(recipe: Recipe, renderer: MetalRenderer) {
+    private func createRecipeLabels(recipe: Recipe) {
         // Create count labels for recipe inputs and outputs
         let iconSize: Float = 30 * UIScale
         let iconSpacing: Float = 40 * UIScale
-        let detailsY = frame.maxY - 100 * UIScale
+        let detailsY = Float(detailsIconYPoints) * UIScale
+
+        let totalItems = recipe.inputs.count + recipe.outputs.count + 1
+        let leftCenterX = leftColumnCenterXInPixels()
+        let startX = leftCenterX - Float(max(totalItems - 1, 0)) * iconSpacing * 0.5
 
         // Input count labels
-        var inputX = frame.minX + 50 * UIScale
+        var inputX = startX
         for input in recipe.inputs {
             if input.count > 1 {
                 let countLabel = createCountLabel(
                     text: "\(input.count)",
                     iconCenterX: inputX,
                     iconCenterY: detailsY,
-                    iconSize: iconSize,
-                    screenHeight: Float(frame.height)
+                    iconSize: iconSize
                 )
                 recipeLabels.append(countLabel)
+                rootView?.addSubview(countLabel)
             }
             inputX += iconSpacing
         }
@@ -247,16 +269,16 @@ final class CraftingMenu: UIPanel_Base {
                     text: "\(output.count)",
                     iconCenterX: outputX,
                     iconCenterY: detailsY,
-                    iconSize: iconSize,
-                    screenHeight: Float(frame.height)
+                    iconSize: iconSize
                 )
                 recipeLabels.append(countLabel)
+                rootView?.addSubview(countLabel)
             }
             outputX += iconSpacing
         }
     }
 
-    private func createCountLabel(text: String, iconCenterX: Float, iconCenterY: Float, iconSize: Float, screenHeight: Float) -> UILabel {
+    private func createCountLabel(text: String, iconCenterX: Float, iconCenterY: Float, iconSize: Float) -> UILabel {
         let label = UILabel()
         label.text = text
         label.font = UIFont.systemFont(ofSize: 8, weight: .bold)  // Match MachineUI font size
@@ -295,6 +317,266 @@ final class CraftingMenu: UIPanel_Base {
 
         return label
     }
+
+    private func setupProgressBarIfNeeded() {
+        guard let rootView = rootView else { return }
+
+        if progressBarBackground == nil {
+            let background = UIView()
+            background.backgroundColor = UIColor.gray
+            background.layer.cornerRadius = 4
+            rootView.addSubview(background)
+            progressBarBackground = background
+        }
+
+        if progressBarFill == nil {
+            let fill = UIView()
+            fill.backgroundColor = UIColor.blue
+            fill.layer.cornerRadius = 4
+            rootView.addSubview(fill)
+            progressBarFill = fill
+        }
+
+        if progressStatusLabel == nil {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+            label.textColor = .white
+            label.textAlignment = .center
+            label.text = "0% (idle)"
+            rootView.addSubview(label)
+            progressStatusLabel = label
+        }
+
+        if craftButton == nil {
+            let button = UIKit.UIButton(type: .system)
+            var config = UIKit.UIButton.Configuration.filled()
+            config.title = "Craft"
+            config.baseForegroundColor = .white
+            config.baseBackgroundColor = UIColor.systemBlue
+            config.cornerStyle = .medium
+            button.configuration = config
+            button.addTarget(self, action: #selector(craftSelectedRecipe), for: .touchUpInside)
+            rootView.addSubview(button)
+            craftButton = button
+        }
+    }
+
+    private func setupRecipeScrollViewIfNeeded() {
+        guard let rootView = rootView else { return }
+
+        if recipeScrollView == nil {
+            recipeScrollView = ClearScrollView(frame: .zero)
+        }
+
+        guard let scrollView = recipeScrollView else { return }
+
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.isScrollEnabled = true
+        scrollView.alwaysBounceVertical = true
+        scrollView.delaysContentTouches = false
+        scrollView.backgroundColor = UIColor(red: 0.08, green: 0.08, blue: 0.1, alpha: 0.6)
+        scrollView.layer.cornerRadius = 8
+        scrollView.clipsToBounds = true
+
+        if scrollView.superview == nil {
+            rootView.addSubview(scrollView)
+        }
+    }
+
+    private func layoutUI() {
+        guard let rootView = rootView else { return }
+
+        let bounds = rootView.bounds
+        let padding: CGFloat = 24
+        let leftWidth = max(220, bounds.width * 0.4)
+
+        let rightX = padding + leftWidth + padding
+        let scrollWidth = max(160, bounds.width - rightX - padding)
+        let scrollHeight = bounds.height - padding * 2
+        recipeScrollView?.frame = CGRect(x: rightX, y: padding, width: scrollWidth, height: scrollHeight)
+
+        let craftButtonHeight: CGFloat = 44
+        let craftButtonWidth = min(220, leftWidth - 20)
+        let craftButtonX = padding + (leftWidth - craftButtonWidth) * 0.5
+        let craftButtonY = bounds.height - padding - craftButtonHeight
+        craftButton?.frame = CGRect(x: craftButtonX, y: craftButtonY, width: craftButtonWidth, height: craftButtonHeight)
+
+        let progressBarHeight: CGFloat = 16
+        let progressBarWidth = min(280, leftWidth - 20)
+        let progressBarX = padding + (leftWidth - progressBarWidth) * 0.5
+        let progressBarY = craftButtonY - 50
+        progressBarBackground?.frame = CGRect(x: progressBarX, y: progressBarY, width: progressBarWidth, height: progressBarHeight)
+        progressBarFill?.frame = CGRect(x: progressBarX, y: progressBarY, width: 0, height: progressBarHeight)
+
+        progressStatusLabel?.frame = CGRect(x: progressBarX, y: progressBarY + progressBarHeight + 4, width: progressBarWidth, height: 14)
+
+        detailsIconYPoints = max(padding + 50, progressBarY - 45)
+    }
+
+    private func leftColumnCenterXInPixels() -> Float {
+        let bounds = rootView?.bounds ?? panelFrameInPoints()
+        let padding: CGFloat = 24
+        let leftWidth = max(220, bounds.width * 0.4)
+        let centerXPoints = padding + leftWidth * 0.5
+        return Float(centerXPoints) * UIScale
+    }
+
+    private func updateRecipeDetails(for recipe: Recipe) {
+        if recipe.id != lastRenderedRecipe?.id {
+            clearRecipeLabels()
+            createRecipeLabels(recipe: recipe)
+            lastRenderedRecipe = recipe
+        }
+    }
+
+    private func setupRecipeButtons() {
+        guard let scrollView = recipeScrollView else { return }
+
+        recipeUIButtons.forEach { $0.removeFromSuperview() }
+        recipeUIButtons.removeAll()
+
+        let buttonSize: CGFloat = 50
+        let buttonSpacing: CGFloat = 8
+        let columns = max(1, Int((scrollView.bounds.width + buttonSpacing) / (buttonSize + buttonSpacing)))
+        let rows = (filteredRecipes.count + columns - 1) / columns
+
+        let contentHeight = CGFloat(rows) * (buttonSize + buttonSpacing) + buttonSpacing
+        scrollView.contentSize = CGSize(width: scrollView.bounds.width, height: contentHeight)
+
+        for (index, recipe) in filteredRecipes.enumerated() {
+            let row = index / columns
+            let col = index % columns
+
+            let itemsInRow = min(columns, filteredRecipes.count - row * columns)
+            let rowWidth = CGFloat(itemsInRow) * buttonSize + CGFloat(max(0, itemsInRow - 1)) * buttonSpacing
+            let rowInset = max(buttonSpacing, (scrollView.bounds.width - rowWidth) * 0.5)
+
+            let buttonX = rowInset + CGFloat(col) * (buttonSize + buttonSpacing)
+            let buttonY = buttonSpacing + CGFloat(row) * (buttonSize + buttonSpacing)
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSize, height: buttonSize))
+            var config = UIKit.UIButton.Configuration.plain()
+            config.background.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 0.8)
+            config.background.strokeColor = UIColor.white
+            config.background.strokeWidth = 1.0
+            config.background.cornerRadius = 4.0
+            config.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 2)
+
+            if let image = loadRecipeImage(for: recipe.textureId) {
+                let scaledSize = CGSize(width: buttonSize * 0.8, height: buttonSize * 0.8)
+                UIGraphicsBeginImageContextWithOptions(scaledSize, false, 0.0)
+                image.draw(in: CGRect(origin: .zero, size: scaledSize))
+                let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
+                UIGraphicsEndImageContext()
+                config.image = scaledImage
+                config.imagePlacement = .all
+            } else {
+                config.title = "?"
+                config.baseForegroundColor = UIColor.white
+            }
+
+            button.configuration = config
+            button.tag = index
+            button.addTarget(self, action: #selector(recipeButtonTapped(_:)), for: .touchUpInside)
+
+            scrollView.addSubview(button)
+            recipeUIButtons.append(button)
+        }
+    }
+
+    @objc private func recipeButtonTapped(_ sender: UIKit.UIButton) {
+        let index = sender.tag
+        guard index >= 0 && index < filteredRecipes.count else { return }
+        selectRecipe(filteredRecipes[index])
+    }
+
+    private func updateRecipeButtonStates() {
+        guard let player = gameLoop?.player else { return }
+
+        for (index, button) in recipeUIButtons.enumerated() {
+            guard index < filteredRecipes.count else { continue }
+            let recipe = filteredRecipes[index]
+            let canCraft = recipe.canCraft(with: player.inventory)
+
+            var config = button.configuration ?? .plain()
+            if selectedRecipe?.id == recipe.id {
+                config.background.backgroundColor = UIColor.blue.withAlphaComponent(0.4)
+            } else if canCraft {
+                config.background.backgroundColor = UIColor(red: 0.3, green: 0.6, blue: 0.3, alpha: 0.8)
+            } else {
+                config.background.backgroundColor = UIColor(red: 0.25, green: 0.2, blue: 0.2, alpha: 0.7)
+            }
+            button.configuration = config
+        }
+    }
+
+    private func updateCraftButtonState() {
+        guard let button = craftButton else { return }
+
+        if let recipe = selectedRecipe, let player = gameLoop?.player {
+            let canCraft = recipe.canCraft(with: player.inventory)
+            button.isHidden = false
+            button.isEnabled = canCraft
+            button.alpha = canCraft ? 1.0 : 0.5
+        } else {
+            button.isHidden = true
+            button.isEnabled = false
+        }
+    }
+
+    private func updateProgressStatus() {
+        guard let recipe = selectedRecipe, let player = gameLoop?.player else {
+            progressStatusLabel?.text = "0% (idle)"
+            progressBarFill?.frame.size.width = 0
+            return
+        }
+
+        let isCrafting = player.isCrafting(recipe: recipe)
+        let progress = player.getCraftingProgress(recipe: recipe) ?? 0.0
+        let queuedCount = player.getQueuedCount(recipe: recipe)
+
+        let percent = Int(progress * 100)
+        if isCrafting {
+            var text = "Crafting (\(percent)%)"
+            if queuedCount > 0 {
+                text += " + \(queuedCount) queued"
+            }
+            progressStatusLabel?.text = text
+        } else if queuedCount > 0 {
+            progressStatusLabel?.text = "Crafting (0%) + \(queuedCount) queued"
+        } else {
+            progressStatusLabel?.text = "0% (idle)"
+        }
+
+        if let background = progressBarBackground {
+            let width = max(0, min(1, progress)) * Float(background.frame.width)
+            progressBarFill?.frame.size.width = CGFloat(width)
+        }
+    }
+
+    private func loadRecipeImage(for textureId: String) -> UIImage? {
+        if let textureAtlas = gameLoop?.renderer?.textureAtlas {
+            let textureName = textureId.replacingOccurrences(of: "-", with: "_")
+            if let image = textureAtlas.getUIImage(for: textureName) {
+                return image
+            }
+        }
+
+        var filename = textureId
+        switch textureId {
+        case "transport_belt":
+            filename = "belt"
+        default:
+            filename = textureId.replacingOccurrences(of: "-", with: "_")
+        }
+
+        if let imagePath = Bundle.main.path(forResource: filename, ofType: "png") {
+            return UIImage(contentsOfFile: imagePath)
+        }
+
+        return nil
+    }
     
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else {
@@ -307,12 +589,6 @@ final class CraftingMenu: UIPanel_Base {
             return true
         }
 
-        for button in recipeButtons {
-            if button.handleTap(at: position) {
-                return true
-            }
-        }
-
         // Consume ALL other taps when menu is open, even if they're outside our frame
         return true
     }
@@ -320,128 +596,6 @@ final class CraftingMenu: UIPanel_Base {
     func getTooltip(at position: Vector2) -> String? {
         guard isOpen else { return nil }
 
-        for button in recipeButtons {
-            if button.frame.contains(position) {
-                var tooltip = button.recipe.name
-
-                if button.isCrafting {
-                    if button.craftingProgress > 0 {
-                        let percent = Int(button.craftingProgress * 100)
-                        tooltip += " (Crafting: \(percent)%)"
-                    } else {
-                        tooltip += " (Queued)"
-                    }
-                }
-
-                if button.queuedCount > 0 {
-                    tooltip += " (\(button.queuedCount) queued)"
-                }
-
-                return tooltip
-            }
-        }
-
         return nil
-    }
-}
-
-class RecipeButton: UIElement {
-    var frame: Rect
-    let recipe: Recipe
-    var canCraft: Bool = false
-    var isCrafting: Bool = false
-    var craftingProgress: Float = 0.0
-    var queuedCount: Int = 0
-    var onTap: (() -> Void)?
-    
-    init(frame: Rect, recipe: Recipe) {
-        self.frame = frame
-        self.recipe = recipe
-    }
-    
-    func handleTap(at position: Vector2) -> Bool {
-        guard frame.contains(position) else { return false }
-        onTap?()
-        return true
-    }
-    
-    func render(renderer: MetalRenderer) {
-        let solidRect = renderer.textureAtlas.getTextureRect(for: "solid_white")
-
-        // Base background color
-        var bgColor: Color
-        if isCrafting {
-            // Crafting: brighter blue background
-            bgColor = Color(r: 0.3, g: 0.4, b: 0.6, a: 1)
-        } else if canCraft {
-            bgColor = Color(r: 0.4, g: 0.7, b: 0.4, a: 1) // Brighter, more saturated green
-        } else {
-            bgColor = Color(r: 0.25, g: 0.2, b: 0.2, a: 1)
-        }
-
-        renderer.queueSprite(SpriteInstance(
-            position: frame.center,
-            size: frame.size,
-            textureRect: solidRect,
-            color: bgColor,
-            layer: .ui
-        ))
-
-        // Recipe icon
-        let textureRect = renderer.textureAtlas.getTextureRect(for: recipe.textureId)
-        let iconColor = isCrafting ? Color(r: 1.2, g: 1.2, b: 1.2, a: 1) : // Brighter when crafting
-                       (canCraft ? .white : Color(r: 0.5, g: 0.5, b: 0.5, a: 1))
-        renderer.queueSprite(SpriteInstance(
-            position: frame.center,
-            size: frame.size * 0.8,
-            textureRect: textureRect,
-            color: iconColor,
-            layer: .ui
-        ))
-
-        // Crafting progress overlay (clock-like progress indicator)
-        if isCrafting && craftingProgress > 0 {
-            // Create a circular progress indicator using multiple small segments
-            let center = frame.center
-            let radius: Float = frame.size.x * 0.35
-            let segmentCount = 16
-            let segmentAngle = 2 * Float.pi / Float(segmentCount)
-            let progressSegments = Int(craftingProgress * Float(segmentCount))
-
-            for i in 0..<progressSegments {
-                let angle = Float(i) * segmentAngle - Float.pi / 2 // Start from top
-                let segmentCenter = center + Vector2(
-                    cos(angle) * radius * 0.8,
-                    sin(angle) * radius * 0.8
-                )
-                let segmentSize = Vector2(radius * 0.15, radius * 0.15)
-
-                renderer.queueSprite(SpriteInstance(
-                    position: segmentCenter,
-                    size: segmentSize,
-                    textureRect: solidRect,
-                    color: Color(r: 0.9, g: 0.8, b: 0.2, a: 0.8), // Golden progress segments
-                    layer: .ui
-                ))
-            }
-        }
-
-        // Queue count indicator (small number in corner if queued)
-        if queuedCount > 0 {
-            // Draw a small circle with number in bottom-right corner
-            let indicatorSize: Float = frame.size.x * 0.25
-            let indicatorPos = frame.center + Vector2(frame.size.x * 0.3, frame.size.y * 0.3)
-
-            renderer.queueSprite(SpriteInstance(
-                position: indicatorPos,
-                size: Vector2(indicatorSize, indicatorSize),
-                textureRect: solidRect,
-                color: Color(r: 0.8, g: 0.6, b: 0.2, a: 1), // Orange queue indicator
-                layer: .ui
-            ))
-
-            // Note: Number rendering would require additional text rendering system
-            // For now, just the indicator shows there are queued items
-        }
     }
 }
