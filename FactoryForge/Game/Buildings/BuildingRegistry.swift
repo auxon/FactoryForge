@@ -630,6 +630,7 @@ final class BuildingRegistry {
         oilRefinery.inputSlots = 0          // No item inputs (fluids come from tanks)
         oilRefinery.outputSlots = 0         // No item outputs (fluids go to tanks)
         oilRefinery.fuelSlots = 0
+        oilRefinery.craftingCategory = "oil-processing"
         register(oilRefinery)
 
         var chemicalPlant = BuildingDefinition(
