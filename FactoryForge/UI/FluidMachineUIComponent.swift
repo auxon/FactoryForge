@@ -22,6 +22,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     private var bufferBars: [UIView] = [] // Small buffer visualization bars for converters like boilers
     private var bufferFills: [UIView] = [] // Fill views for buffer bars (one per bar)
     private var bufferLabels: [UILabel] = [] // Tiny labels under buffer bars showing amounts
+    private var connectivityIndicators: [UIView] = [] // Connectivity status indicators (dots, arrows, lines)
     private var boilerBuffersSetup: Bool = false // Track if boiler buffers have been set up
 
     override func setupUI(for entity: Entity, in ui: MachineUI) {
@@ -55,6 +56,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         bufferBars.removeAll()
         bufferFills.removeAll()
         bufferLabels.removeAll()
+        connectivityIndicators.removeAll()
         boilerBuffersSetup = false
 
         fluidInputIndicators.removeAll()
@@ -219,12 +221,12 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         bufferFills.removeAll()
         bufferLabels.removeAll()
 
-        for _ in 0..<count {
+        for i in 0..<count {
             let bar = UIView()
             bar.backgroundColor = UIColor.gray.withAlphaComponent(0.25)
-            bar.layer.borderWidth = 1
-            bar.layer.borderColor = UIColor.white.withAlphaComponent(0.35).cgColor
-            bar.layer.cornerRadius = 2
+            bar.layer.borderWidth = 1.5
+            bar.layer.borderColor = UIColor.cyan.withAlphaComponent(0.6).cgColor // More visible border to indicate tappable
+            bar.layer.cornerRadius = 3
             bar.clipsToBounds = true
 
             let fill = UIView()
@@ -238,6 +240,12 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             label.textColor = UIColor.white.withAlphaComponent(0.7)
             label.textAlignment = .center
             label.text = "0/540"
+
+            // Add tap gesture to allow emptying buffers
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(bufferBarTapped(_:)))
+            bar.addGestureRecognizer(tapGesture)
+            bar.isUserInteractionEnabled = true
+            bar.tag = i // Store buffer index (0 = water, 1 = steam)
 
             rootView.addSubview(bar)
             rootView.addSubview(label)
@@ -260,7 +268,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         let tank = gameLoop.world.get(FluidTankComponent.self, for: entity)
         print("FluidMachineUIComponent: Components - consumer: \(consumer != nil), producer: \(producer != nil), tank: \(tank != nil)")
         if let consumer = consumer {
-            print("FluidMachineUIComponent: Consumer details - inputType: \(consumer.inputType), consumptionRate: \(consumer.consumptionRate)")
+            print("FluidMachineUIComponent: Consumer details - inputType: \(String(describing: consumer.inputType)), consumptionRate: \(consumer.consumptionRate)")
         }
         if let producer = producer {
             print("FluidMachineUIComponent: Producer details - outputType: \(producer.outputType), productionRate: \(producer.productionRate)")
@@ -303,6 +311,15 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             // Add label to rootView
             if let rootView = ui.rootView {
                 rootView.addSubview(inputLabel)
+
+                // Add connectivity indicator (green/red dot)
+                let connectivityDot = UIView()
+                connectivityDot.backgroundColor = UIColor.green // Will be updated based on connection
+                connectivityDot.layer.borderWidth = 2
+                connectivityDot.layer.borderColor = UIColor.black.cgColor
+                connectivityDot.layer.cornerRadius = 8
+                connectivityIndicators.append(connectivityDot)
+                rootView.addSubview(connectivityDot)
             }
 
             fluidIndex += 1
@@ -324,6 +341,20 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             // Add label to rootView
             if let rootView = ui.rootView {
                 rootView.addSubview(outputLabel)
+
+                // Add connectivity indicator (arrow)
+                let connectivityArrow = UIView()
+                connectivityArrow.backgroundColor = UIColor.green // Will be updated based on connection
+                connectivityArrow.layer.borderWidth = 2
+                connectivityArrow.layer.borderColor = UIColor.black.cgColor
+                connectivityIndicators.append(connectivityArrow)
+                rootView.addSubview(connectivityArrow)
+
+                // Add connectivity line
+                let connectivityLine = UIView()
+                connectivityLine.backgroundColor = UIColor.green // Will be updated based on connection
+                connectivityIndicators.append(connectivityLine)
+                rootView.addSubview(connectivityLine)
             }
 
             fluidIndex += 1
@@ -518,23 +549,48 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         // water
         do {
             let ind = fluidInputIndicators[0]
-            let x = CGFloat(ind.frame.minX) / scale - panelOriginPts.x
+            let indicatorCenterX = CGFloat(ind.frame.center.x) / scale - panelOriginPts.x
+            let indicatorCenterY = CGFloat(ind.frame.center.y) / scale - panelOriginPts.y
+
+            // Position connectivity dot on the left side
+            let dotSize: CGFloat = 16
+            let dotX = indicatorCenterX - 30
+            let dotY = indicatorCenterY - dotSize/2
+            connectivityIndicators[0].frame = CGRect(x: dotX, y: dotY, width: dotSize, height: dotSize)
+
+            // Position buffer bar below the label
             let barY = fluidInputLabels[0].frame.maxY + gap
             let labelY = barY + barHeight + labelGap
 
-            bufferBars[0].frame = CGRect(x: x, y: barY, width: barWidth, height: barHeight)
-            bufferLabels[0].frame = CGRect(x: x, y: labelY, width: barWidth, height: 10)
+            bufferBars[0].frame = CGRect(x: indicatorCenterX - barWidth/2, y: barY, width: barWidth, height: barHeight)
+            bufferLabels[0].frame = CGRect(x: indicatorCenterX - barWidth/2, y: labelY, width: barWidth, height: 10)
         }
 
         // steam
         do {
             let ind = fluidOutputIndicators[0]
-            let x = CGFloat(ind.frame.minX) / scale - panelOriginPts.x
+            let indicatorCenterX = CGFloat(ind.frame.center.x) / scale - panelOriginPts.x
+            let indicatorCenterY = CGFloat(ind.frame.center.y) / scale - panelOriginPts.y
+
+            // Position connectivity arrow on the right side
+            let arrowSize: CGFloat = 12
+            let arrowX = indicatorCenterX + 30
+            let arrowY = indicatorCenterY - arrowSize/2
+            connectivityIndicators[1].frame = CGRect(x: arrowX, y: arrowY, width: arrowSize, height: arrowSize)
+
+            // Position connectivity line extending right
+            let lineWidth: CGFloat = 50
+            let lineHeight: CGFloat = 6
+            let lineX = arrowX + arrowSize + 5
+            let lineY = indicatorCenterY - lineHeight/2
+            connectivityIndicators[2].frame = CGRect(x: lineX, y: lineY, width: lineWidth, height: lineHeight)
+
+            // Position buffer bar below the label
             let barY = producerLabels[0].frame.maxY + gap
             let labelY = barY + barHeight + labelGap
 
-            bufferBars[1].frame = CGRect(x: x, y: barY, width: barWidth, height: barHeight)
-            bufferLabels[1].frame = CGRect(x: x, y: labelY, width: barWidth, height: 10)
+            bufferBars[1].frame = CGRect(x: indicatorCenterX - barWidth/2, y: barY, width: barWidth, height: barHeight)
+            bufferLabels[1].frame = CGRect(x: indicatorCenterX - barWidth/2, y: labelY, width: barWidth, height: 10)
         }
     }
 
@@ -565,6 +621,43 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         }
     }
 
+    @objc private func bufferBarTapped(_ sender: UITapGestureRecognizer) {
+        guard let bufferBar = sender.view,
+              let entity = currentEntity,
+              let gameLoop = gameLoop,
+              let ui = ui else { return }
+
+        let bufferIndex = bufferBar.tag
+
+        if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity),
+           bufferIndex < fluidTank.tanks.count {
+
+            let tank = fluidTank.tanks[bufferIndex]
+            if tank.amount > 0 {
+                // Visual feedback - briefly highlight the bar
+                let originalColor = bufferBar.backgroundColor
+                bufferBar.backgroundColor = UIColor.white.withAlphaComponent(0.3)
+
+                // Reset color after a short delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    bufferBar.backgroundColor = originalColor
+                }
+
+                // Empty the buffer by setting amount to 0
+                fluidTank.tanks[bufferIndex] = FluidStack(type: tank.type, amount: 0, temperature: tank.temperature, maxAmount: tank.maxAmount)
+                gameLoop.world.add(fluidTank, to: entity)
+
+                // Update the UI immediately
+                ui.updateMachine(entity)
+
+                // Play sound and show tooltip
+                AudioManager.shared.playClickSound()
+                let fluidName = tank.type == .water ? "Water" : "Steam"
+                gameLoop.inputManager?.onTooltip?("\(fluidName) buffer emptied")
+            }
+        }
+    }
+
     private func updateFluidIndicators(for entity: Entity, in ui: MachineUI) {
         guard let gameLoop = ui.gameLoop else { 
             print("FluidMachineUIComponent: updateFluidIndicators - no gameLoop")
@@ -583,10 +676,10 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         print("FluidMachineUIComponent: Producer component exists: \(producer != nil)")
         if let producer = producer,
            fluidOutputIndicators.count > 0 && producerLabels.count > 0 {
-            print("FluidMachineUIComponent: Producer - outputType: \(producer.outputType), productionRate: \(producer.productionRate), currentProduction: \(producer.currentProduction), connections: \(producer.connections.count)")
+            print("FluidMachineUIComponent: Producer - outputType: \(producer.outputType), productionRate: \(producer.productionRate), currentProduction: \(producer.currentProduction), isActive: \(producer.isActive), connections: \(producer.connections.count)")
             fluidOutputIndicators[0].fluidType = producer.outputType
-            fluidOutputIndicators[0].amount = producer.currentProduction * 60.0
-            fluidOutputIndicators[0].maxAmount = producer.productionRate * 60.0
+            fluidOutputIndicators[0].amount = producer.currentProduction
+            fluidOutputIndicators[0].maxAmount = producer.productionRate
             fluidOutputIndicators[0].hasConnection = !producer.connections.isEmpty
 
             let actualRate = producer.currentProduction
@@ -599,6 +692,13 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                 // Rates differ - show actual/target
                 flowRateText = String(format: "%.1f/%.1f L/s", actualRate, targetRate)
             }
+            // Update connectivity indicators
+            if connectivityIndicators.count >= 3 {
+                let hasConnection = producer.connections.count > 0
+                connectivityIndicators[1].backgroundColor = hasConnection ? UIColor.green : UIColor.red
+                connectivityIndicators[2].backgroundColor = hasConnection ? UIColor.green : UIColor.red
+            }
+
             let fluidName = producer.outputType == .steam ? "Steam" : producer.outputType.rawValue
             producerLabels[0].text = "\(fluidName): \(flowRateText)"
             print("FluidMachineUIComponent: Updated producer label: \(producerLabels[0].text!), currentProduction: \(producer.currentProduction), productionRate: \(producer.productionRate)")
@@ -633,13 +733,14 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
         // Update fluid consumers
         let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity)
-        print("FluidMachineUIComponent: Consumer component exists: \(consumer != nil)")
+        let isBoilerActive = producer?.isActive ?? false
+        print("FluidMachineUIComponent: Consumer component exists: \(consumer != nil), boiler active: \(isBoilerActive)")
         if let consumer = consumer,
            fluidInputIndicators.count > 0 && fluidInputLabels.count > 0 {
-            print("FluidMachineUIComponent: Consumer - inputType: \(consumer.inputType), consumptionRate: \(consumer.consumptionRate), currentConsumption: \(consumer.currentConsumption), connections: \(consumer.connections.count)")
+            print("FluidMachineUIComponent: Consumer - inputType: \(consumer.inputType), consumptionRate: \(consumer.consumptionRate), currentConsumption: \(consumer.currentConsumption), connections: \(consumer.connections.count), isBoilerActive: \(isBoilerActive)")
             fluidInputIndicators[0].fluidType = consumer.inputType
-            fluidInputIndicators[0].amount = consumer.currentConsumption * 60.0
-            fluidInputIndicators[0].maxAmount = consumer.consumptionRate * 60.0
+            fluidInputIndicators[0].amount = consumer.currentConsumption
+            fluidInputIndicators[0].maxAmount = consumer.consumptionRate
             fluidInputIndicators[0].hasConnection = !consumer.connections.isEmpty
 
             let actualRate = consumer.currentConsumption
@@ -652,6 +753,11 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                 // Rates differ - show actual/target
                 flowRateText = String(format: "%.1f/%.1f L/s", actualRate, targetRate)
             }
+            // Update connectivity indicator color
+            if connectivityIndicators.count > 0 {
+                connectivityIndicators[0].backgroundColor = consumer.connections.count > 0 ? UIColor.green : UIColor.red
+            }
+
             let fluidName = consumer.inputType == .water ? "Water" : consumer.inputType!.rawValue
             fluidInputLabels[0].text = "\(fluidName): \(flowRateText)"
             print("FluidMachineUIComponent: Updated consumer label: \(fluidInputLabels[0].text!), currentConsumption: \(consumer.currentConsumption), consumptionRate: \(consumer.consumptionRate)")

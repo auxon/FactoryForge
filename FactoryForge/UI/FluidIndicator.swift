@@ -88,6 +88,8 @@ final class FluidIndicator {
                         layer: .ui
                     ))
                 }
+
+                // Connectivity indicators are now handled by UIKit views in FluidMachineUIComponent
             } else {
                 if isProducer {
                     // Producer (steam): show activity with enhanced temporal instability for gas perception
@@ -246,34 +248,7 @@ final class FluidIndicator {
                 layer: .ui
             ))
 
-            // Add directional flow hint for producers (steam flowing to tanks)
-            if isProducer && hasConnection {
-                let arrowSize: Float = 4
-                let arrowOffset: Float = frame.size.x * 0.45
-                let arrowPos = Vector2(frame.center.x + arrowOffset, frame.center.y)
-
-                // Simple arrow pointing right (toward tanks)
-                renderer.queueSprite(SpriteInstance(
-                    position: arrowPos,
-                    size: Vector2(arrowSize, arrowSize),
-                    textureRect: solidRect,
-                    color: Color(r: 0.7, g: 0.9, b: 1.0, a: 0.6), // Light blue arrow
-                    layer: .ui
-                ))
-
-                // Add subtle connecting glow line to suggest flow continuity
-                let glowLength: Float = 30
-                let glowWidth: Float = 2
-                let glowPos = Vector2(frame.center.x + frame.size.x/2 + glowLength/2, frame.center.y)
-
-                renderer.queueSprite(SpriteInstance(
-                    position: glowPos,
-                    size: Vector2(glowLength, glowWidth),
-                    textureRect: solidRect,
-                    color: Color(r: 0.6, g: 0.8, b: 0.9, a: 0.4), // Subtle connecting glow
-                    layer: .ui
-                ))
-            }
+                // Producer connectivity indicators are now handled by UIKit views in FluidMachineUIComponent
         }
     }
 

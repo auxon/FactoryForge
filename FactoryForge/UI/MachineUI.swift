@@ -3119,6 +3119,7 @@ final class MachineUI: UIPanel_Base {
         var progress: Float = 0
         var isGenerator = false
         var powerAvailability: Float = 1.0
+        var statusText: String = "Ready"
 
         if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
             progress = miner.progress
@@ -3138,6 +3139,18 @@ final class MachineUI: UIPanel_Base {
             // No progress or power info to show - hide progress bars
             progressBarBackground?.isHidden = true
             progressBarFill?.isHidden = true
+
+            // But still show status for boilers
+            if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
+                buildingDef.id == "boiler" {
+                print("MachineUI: Calling getBoilerStatus from updateProgressBar")
+                statusText = getBoilerStatus(entity: entity, gameLoop: gameLoop)
+            } else {
+                statusText = "Ready"
+            }
+
+            // Set the status label and return early
+            progressStatusLabel?.text = statusText
             return
         }
 
@@ -3150,7 +3163,6 @@ final class MachineUI: UIPanel_Base {
         // Update fill width and color
         var fillWidth: CGFloat
         var fillColor: UIColor
-        var statusText: String
 
         if isGenerator {
             // Power availability bar (blue)
@@ -3173,10 +3185,6 @@ final class MachineUI: UIPanel_Base {
                           buildingDef.type == .oilRefinery {
                     // Special status for oil refineries
                     statusText = getRefineryStatus(entity: entity, gameLoop: gameLoop, assembler: assembler)
-                } else if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
-                          buildingDef.id == "boiler" {
-                    // Special status for boilers
-                    statusText = getBoilerStatus(entity: entity, gameLoop: gameLoop)
                 } else {
                     statusText = "Ready to Craft"
                 }
@@ -3260,37 +3268,63 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func getBoilerStatus(entity: Entity, gameLoop: GameLoop) -> String {
+        print("MachineUI: getBoilerStatus called for entity \(entity.id)")
+
         // Check if boiler is currently running (producing steam)
-        let isRunning = (gameLoop.world.get(FluidProducerComponent.self, for: entity)?.currentProduction ?? 0) > 0.001
+        let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity)
+        let isRunning = producer?.isActive ?? false
+        print("MachineUI: Boiler producer exists: \(producer != nil), isActive: \(isRunning)")
 
         // Check fuel availability
         var hasFuel = false
+        var fuelSlotCount = 0
         if let inventory = gameLoop.world.get(InventoryComponent.self, for: entity),
            let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
             let fuelSlotStart = buildingDef.inputSlots + buildingDef.outputSlots
-            hasFuel = (fuelSlotStart..<inventory.slots.count).contains(where: {
-                inventory.slots[$0]?.count ?? 0 > 0
+            print("MachineUI: Checking fuel slots from \(fuelSlotStart) to \(inventory.slots.count)")
+            hasFuel = (fuelSlotStart..<inventory.slots.count).contains(where: { slotIndex in
+                let count = inventory.slots[slotIndex]?.count ?? 0
+                print("MachineUI: Fuel slot \(slotIndex): count = \(count)")
+                return count > 0
             })
+            fuelSlotCount = inventory.slots.count - fuelSlotStart
+        } else {
+            print("MachineUI: No inventory or building def found")
         }
+        print("MachineUI: Fuel check - slots: \(fuelSlotCount), hasFuel: \(hasFuel)")
 
         // Check water availability
         var hasWaterConnection = false
         var hasWaterBuffer = false
+        var waterAmount = 0.0
         if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
             hasWaterConnection = !consumer.connections.isEmpty
+            print("MachineUI: Consumer connections: \(consumer.connections.count)")
             if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
-                hasWaterBuffer = tank.tanks.first(where: { $0.type == .water })?.amount ?? 0 >= 0.001
+                waterAmount = Double(tank.tanks.first(where: { $0.type == .water })?.amount ?? 0)
+                hasWaterBuffer = waterAmount >= 0.001
+                print("MachineUI: Water tank amount: \(waterAmount)")
             }
+        } else {
+            print("MachineUI: No consumer component found")
         }
+        print("MachineUI: Water check - connection: \(hasWaterConnection), buffer: \(hasWaterBuffer)")
 
         // Check steam output capacity
         var hasSteamSpace = false
+        var steamAvailableSpace = 0.0
         if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
-            hasSteamSpace = tank.tanks.first(where: { $0.type == .steam })?.availableSpace ?? 0 >= 0.001
+            steamAvailableSpace = Double(tank.tanks.first(where: { $0.type == .steam })?.availableSpace ?? 0)
+            hasSteamSpace = steamAvailableSpace >= 0.001
+            print("MachineUI: Steam available space: \(steamAvailableSpace)")
+        } else {
+            print("MachineUI: No tank component found")
         }
+        print("MachineUI: Steam check - hasSpace: \(hasSteamSpace)")
 
         // Determine status based on conditions
         if isRunning {
+            print("MachineUI: Boiler is running")
             // Running - check for any warnings
             var warnings: [String] = []
             if !hasFuel {
@@ -3302,19 +3336,26 @@ final class MachineUI: UIPanel_Base {
             if !hasSteamSpace {
                 warnings.append("Steam Backed Up")
             }
-            return "Running" + (warnings.isEmpty ? "" : " • " + warnings.joined(separator: " • "))
+            let status = "Running" + (warnings.isEmpty ? "" : " • " + warnings.joined(separator: " • "))
+            print("MachineUI: Returning status: \(status)")
+            return status
         } else {
+            print("MachineUI: Boiler is not running, checking stall conditions")
             // Not running - find the blocking issue
             if !hasFuel {
+                print("MachineUI: Stalled due to no fuel")
                 return "Stalled • No Fuel"
             }
             if !hasWaterConnection && !hasWaterBuffer {
+                print("MachineUI: Stalled due to no water")
                 return "Stalled • No Water"
             }
             if !hasSteamSpace {
+                print("MachineUI: Stalled due to steam output blocked")
                 return "Stalled • Steam Output Blocked"
             }
             // All conditions met but not running - should not happen, but fallback
+            print("MachineUI: All conditions met but not running - returning Ready")
             return "Ready"
         }
     }
