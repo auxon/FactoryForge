@@ -16,7 +16,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "852"
             endingLineNumber = "852"
-            landmarkName = "setEntity(_:)"
+            landmarkName = "setupSlots()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -32,7 +32,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "908"
             endingLineNumber = "908"
-            landmarkName = "setupRecipeScrollView()"
+            landmarkName = "setEntity(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

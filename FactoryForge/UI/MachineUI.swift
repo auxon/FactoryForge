@@ -374,7 +374,15 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     }
 
     override func render(in renderer: MetalRenderer) {
-        // No Metal rendering needed - using UIKit views for fluid indicators
+        // Render fluid input indicators
+        for indicator in fluidInputIndicators {
+            indicator.render(renderer: renderer)
+        }
+
+        // Render fluid output indicators
+        for indicator in fluidOutputIndicators {
+            indicator.render(renderer: renderer)
+        }
     }
 
     func positionLabels(in ui: MachineUI) {
@@ -826,6 +834,31 @@ final class MachineUI: UIPanel_Base {
         // Only set up model data - UIKit UI is created separately in setupSlotButtons()
         // This method is called during init/setEntity and should not depend on rootView existing
         print("MachineUI: setupSlots() called - only setting up model data")
+
+        // Initialize slot arrays if we have current entity and building definition
+        if let entity = currentEntity, let gameLoop = gameLoop,
+           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+
+            // Clear existing slots
+            inputSlots.removeAll()
+            outputSlots.removeAll()
+            fuelSlots.removeAll()
+
+            // Create InventorySlot objects for each slot type
+            for i in 0..<buildingDef.inputSlots {
+                inputSlots.append(InventorySlot(frame: Rect(x: 0, y: 0, width: 32, height: 32), index: i))
+            }
+            for i in 0..<buildingDef.outputSlots {
+                outputSlots.append(InventorySlot(frame: Rect(x: 0, y: 0, width: 32, height: 32), index: i))
+            }
+            for i in 0..<buildingDef.fuelSlots {
+                fuelSlots.append(InventorySlot(frame: Rect(x: 0, y: 0, width: 32, height: 32), index: i))
+            }
+
+            print("MachineUI: Initialized \(inputSlots.count) input slots, \(outputSlots.count) output slots, \(fuelSlots.count) fuel slots")
+        } else {
+            print("MachineUI: setupSlots() - no currentEntity or buildingDef not found")
+        }
     }
 
     func setEntity(_ entity: Entity) {
@@ -1022,10 +1055,18 @@ final class MachineUI: UIPanel_Base {
     private func setupSlotButtons() {
         guard let entity = currentEntity,
               let gameLoop = gameLoop,
-              let rootView = rootView else { return }
+              let rootView = rootView else { 
+            print("MachineUI: setupSlotButtons failed - missing entity, gameLoop, or rootView")
+            return 
+        }
 
         // Get building definition to know how many slots
-        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { return }
+        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { 
+            print("MachineUI: setupSlotButtons failed - could not get building definition for entity \(entity.id)")
+            return 
+        }
+
+        print("MachineUI: setupSlotButtons - building \(buildingDef.id) has \(buildingDef.fuelSlots) fuel slots, \(buildingDef.inputSlots) input slots, \(buildingDef.outputSlots) output slots")
 
         let inputCount = buildingDef.inputSlots
         let outputCount = buildingDef.outputSlots
@@ -2060,6 +2101,8 @@ final class MachineUI: UIPanel_Base {
     private func setupSlotsForMachine(_ entity: Entity) {
         guard let gameLoop = gameLoop else { return }
 
+        print("MachineUI: setupSlotsForMachine called - fuelSlots.count=\(fuelSlots.count), fuelCountLabels.count=\(fuelCountLabels.count)")
+
         // Clear all slots
         for slot in inputSlots {
             slot.item = nil
@@ -2103,16 +2146,29 @@ final class MachineUI: UIPanel_Base {
 
         // Map fuel slots (first in inventory)
         for i in 0..<fuelSlots.count {
+            print("MachineUI: Processing fuel slot \(i) - fuelCountLabels.count=\(fuelCountLabels.count)")
             if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
                 fuelSlots[i].item = item
                 fuelSlots[i].isRequired = false
-                fuelCountLabels[i].text = "\(item.count)"
-                fuelCountLabels[i].isHidden = false
+                // Only update UI if labels exist
+                if i < fuelCountLabels.count {
+                    fuelCountLabels[i].text = "\(item.count)"
+                    fuelCountLabels[i].isHidden = false
+                    print("MachineUI: Updated fuel label \(i) with count \(item.count)")
+                } else {
+                    print("MachineUI: Fuel label \(i) not available (only \(fuelCountLabels.count) labels exist)")
+                }
             } else {
                 fuelSlots[i].item = nil
                 fuelSlots[i].isRequired = false
-                fuelCountLabels[i].text = "0"
-                fuelCountLabels[i].isHidden = true
+                // Only update UI if labels exist
+                if i < fuelCountLabels.count {
+                    fuelCountLabels[i].text = "0"
+                    fuelCountLabels[i].isHidden = true
+                    print("MachineUI: Cleared fuel label \(i)")
+                } else {
+                    print("MachineUI: Could not clear fuel label \(i) - label not available")
+                }
             }
             inventoryIndex += 1
         }
@@ -2485,22 +2541,44 @@ final class MachineUI: UIPanel_Base {
         let buildingComponent: BuildingComponent?
         if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
             buildingComponent = miner
+            print("MachineUI: getBuildingDefinition found MinerComponent")
         } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
             buildingComponent = furnace
+            print("MachineUI: getBuildingDefinition found FurnaceComponent")
         } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
             buildingComponent = assembler
+            print("MachineUI: getBuildingDefinition found AssemblerComponent")
         } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
             buildingComponent = generator
+            print("MachineUI: getBuildingDefinition found GeneratorComponent")
         } else if let lab = gameLoop.world.get(LabComponent.self, for: entity) {
             buildingComponent = lab
+            print("MachineUI: getBuildingDefinition found LabComponent")
         } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
             buildingComponent = rocketSilo
+            print("MachineUI: getBuildingDefinition found RocketSiloComponent")
+        } else if let fluidProducer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            buildingComponent = fluidProducer
+            print("MachineUI: getBuildingDefinition found FluidProducerComponent")
+        } else if let fluidConsumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            buildingComponent = fluidConsumer
+            print("MachineUI: getBuildingDefinition found FluidConsumerComponent")
         } else {
+            print("MachineUI: getBuildingDefinition found no building component for entity \(entity.id)")
             return nil
         }
 
-        guard let component = buildingComponent else { return nil }
-        return gameLoop.buildingRegistry.get(component.buildingId)
+        guard let component = buildingComponent else { 
+            print("MachineUI: buildingComponent was nil")
+            return nil 
+        }
+        let buildingDef = gameLoop.buildingRegistry.get(component.buildingId)
+        if buildingDef == nil {
+            print("MachineUI: buildingRegistry.get(\(component.buildingId)) returned nil")
+        } else {
+            print("MachineUI: found building definition \(component.buildingId)")
+        }
+        return buildingDef
     }
 
     @objc private func fuelSlotTapped(_ sender: UIKit.UIButton) {

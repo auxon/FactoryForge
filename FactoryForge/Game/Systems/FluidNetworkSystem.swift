@@ -899,9 +899,14 @@ final class FluidNetworkSystem: System {
             return
         }
 
-        // Step 1: Calculate production and consumption rates
-        let productionRates = calculateProductionRates(for: network, deltaTime: deltaTime)
+        // Step 1: Calculate consumption volumes first (needed for boiler tank filling)
         let consumptionVolumes = calculateConsumptionVolumes(for: network, deltaTime: deltaTime)
+
+        // Step 1.5: Handle fluid consumption from the network (fill consumer tanks like boilers)
+        consumeFluidFromNetwork(consumptionVolumes: consumptionVolumes, network: network)
+
+        // Step 2: Calculate production rates (now boilers have water in their tanks)
+        let productionRates = calculateProductionRates(for: network, deltaTime: deltaTime)
 
         let totalProduction = productionRates.values.reduce(0, +)
         let totalConsumption = consumptionVolumes.values.reduce(0, +)
@@ -910,9 +915,6 @@ final class FluidNetworkSystem: System {
 
         // Step 1.5: Inject produced fluid into the network
         injectProducedFluid(productionRates: productionRates, network: network)
-
-        // Step 1.6: Handle fluid consumption from the network
-        consumeFluidFromNetwork(consumptionVolumes: consumptionVolumes, network: network)
 
         // Early exit optimization: if net flow is negligible, skip detailed calculations
         if abs(netFlow) < 0.01 && network.pipes.count > 10 {
