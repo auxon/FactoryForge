@@ -272,17 +272,17 @@ final class CraftingSystem: System {
 
     private func consumeFluidInputs(recipe: Recipe, entity: Entity, world: World) {
         if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
-            print("CraftingSystem: Consuming fluids for recipe \(recipe.id)")
+            // print("CraftingSystem: Consuming fluids for recipe \(recipe.id)")
             for fluidInput in recipe.fluidInputs {
-                print("CraftingSystem: Need to consume \(fluidInput.amount)L of \(fluidInput.type)")
+                // print("CraftingSystem: Need to consume \(fluidInput.amount)L of \(fluidInput.type)")
                 // Find and consume fluid from tanks
                 var consumed = false
                 for i in 0..<tankComponent.tanks.count {
                     let tank = tankComponent.tanks[i]
-                    print("CraftingSystem: Tank \(i): \(tank.amount)L of \(tank.type)")
+                    // print("CraftingSystem: Tank \(i): \(tank.amount)L of \(tank.type)")
                     if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
                         tankComponent.tanks[i].amount -= fluidInput.amount
-                        print("CraftingSystem: Consumed \(fluidInput.amount)L of \(fluidInput.type) from tank \(i), now has \(tankComponent.tanks[i].amount)L")
+                        // print("CraftingSystem: Consumed \(fluidInput.amount)L of \(fluidInput.type) from tank \(i), now has \(tankComponent.tanks[i].amount)L")
                         consumed = true
                         break
                     }
@@ -298,14 +298,14 @@ final class CraftingSystem: System {
     private func completeFluidRecipe(recipe: Recipe, buildingComponent: BuildingComponent, entity: Entity, world: World) {
         // Add fluid outputs to tanks
         if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
-            print("CraftingSystem: Adding fluid outputs for recipe \(recipe.id)")
+            // print("CraftingSystem: Adding fluid outputs for recipe \(recipe.id)")
             for fluidOutput in recipe.fluidOutputs {
-                print("CraftingSystem: Need to add \(fluidOutput.amount)L of \(fluidOutput.type)")
+                // print("CraftingSystem: Need to add \(fluidOutput.amount)L of \(fluidOutput.type)")
                 // Find a suitable tank for this fluid output
                 var added = false
                 for i in 0..<tankComponent.tanks.count {
                     let tank = tankComponent.tanks[i]
-                    print("CraftingSystem: Checking tank \(i): \(tank.amount)L of \(tank.type), space: \(tank.availableSpace)L")
+                    // print("CraftingSystem: Checking tank \(i): \(tank.amount)L of \(tank.type), space: \(tank.availableSpace)L")
                     // Check if this tank can accept this fluid type
                     // Tanks can only accept: same fluid type (to add more), or be empty (to accept any type)
                     let canAcceptFluid = (tank.amount == 0) || (tank.type == fluidOutput.type)
@@ -315,16 +315,16 @@ final class CraftingSystem: System {
                         if tank.amount == 0 {
                             // Tank is empty, set the type and add fluid
                             tankComponent.tanks[i] = FluidStack(type: fluidOutput.type, amount: fluidOutput.amount, temperature: fluidOutput.temperature, maxAmount: tank.maxAmount)
-                            print("CraftingSystem: Added \(fluidOutput.amount)L of \(fluidOutput.type) to empty tank \(i)")
+                            // print("CraftingSystem: Added \(fluidOutput.amount)L of \(fluidOutput.type) to empty tank \(i)")
                         } else {
                             // Tank has fluid, add to existing amount
                             tankComponent.tanks[i].amount += fluidOutput.amount
-                            print("CraftingSystem: Added \(fluidOutput.amount)L of \(fluidOutput.type) to tank \(i) with existing fluid")
+                            // print("CraftingSystem: Added \(fluidOutput.amount)L of \(fluidOutput.type) to tank \(i) with existing fluid")
                         }
                         added = true
                         break
                     } else {
-                        print("CraftingSystem: Tank \(i) cannot accept - canAccept: \(canAcceptFluid), space: \(tank.availableSpace)L >= \(fluidOutput.amount)L")
+                        // print("CraftingSystem: Tank \(i) cannot accept - canAccept: \(canAcceptFluid), space: \(tank.availableSpace)L >= \(fluidOutput.amount)L")
                     }
                 }
                 if !added {

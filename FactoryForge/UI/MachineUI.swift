@@ -209,6 +209,9 @@ final class MachineUI: UIPanel_Base {
     // Single root view for all MachineUI UIKit content
     private(set) var rootView: UIView?
 
+    private var lastInventorySignature: Int?
+    private var lastInventoryEntity: Entity?
+
     var onOpenInventoryForMachine: ((Entity, Int) -> Void)?
     var onOpenResearchMenu: (() -> Void)?
     var onLaunchRocket: ((Entity) -> Void)?
@@ -259,7 +262,6 @@ final class MachineUI: UIPanel_Base {
     private func setupSlots() {
         // Only set up model data - UIKit UI is created separately in setupSlotButtons()
         // This method is called during init/setEntity and should not depend on rootView existing
-        print("MachineUI: setupSlots() called - only setting up model data")
 
         // Initialize slot arrays if we have current entity and building definition
         if let entity = currentEntity, let gameLoop = gameLoop,
@@ -281,15 +283,14 @@ final class MachineUI: UIPanel_Base {
                 fuelSlots.append(InventorySlot(frame: Rect(x: 0, y: 0, width: 32, height: 32), index: i))
             }
 
-            print("MachineUI: Initialized \(inputSlots.count) input slots, \(outputSlots.count) output slots, \(fuelSlots.count) fuel slots")
         } else {
-            print("MachineUI: setupSlots() - no currentEntity or buildingDef not found")
         }
     }
 
     func setEntity(_ entity: Entity) {
-        print("MachineUI: setEntity called with entity \(entity.id)")
         currentEntity = entity
+        lastInventoryEntity = nil
+        lastInventorySignature = nil
 
         // Clear existing components
         machineComponents.removeAll()
@@ -309,21 +310,15 @@ final class MachineUI: UIPanel_Base {
                 isOilRefinery = buildingDef.type == .oilRefinery
             }
 
-            print("MachineUI: Checking entity \(entity.id) - producer: \(hasFluidProducer), consumer: \(hasFluidConsumer), tank: \(hasFluidTank), chemicalPlant: \(isChemicalPlant), oilRefinery: \(isOilRefinery)")
             if (hasFluidProducer || hasFluidConsumer || hasFluidTank) && !(isChemicalPlant || isOilRefinery) {
-                print("MachineUI: Creating FluidMachineUIComponent (producer: \(hasFluidProducer), consumer: \(hasFluidConsumer), tank: \(hasFluidTank))")
                 machineComponents.append(FluidMachineUIComponent())
             } else if isChemicalPlant {
-                print("MachineUI: Skipping FluidMachineUIComponent for chemical plant - tanks handled in slot setup")
             } else if isOilRefinery {
-                print("MachineUI: Skipping FluidMachineUIComponent for oil refinery - tanks handled in dedicated UI")
             } else {
-                print("MachineUI: NOT creating FluidMachineUIComponent for entity \(entity.id)")
             }
 
             // Check for pipes
             if gameLoop.world.has(PipeComponent.self, for: entity) {
-                print("MachineUI: Creating PipeConnectionUIComponent for pipe entity \(entity.id)")
                 machineComponents.append(PipeConnectionUIComponent())
             }
 
@@ -336,7 +331,6 @@ final class MachineUI: UIPanel_Base {
             }
         }
 
-        print("MachineUI: Created \(machineComponents.count) components for entity \(entity.id)")
 
         // Setup common UI elements
         setupSlots()
@@ -344,7 +338,6 @@ final class MachineUI: UIPanel_Base {
 
         // Setup machine-specific UI components
         for (index, component) in machineComponents.enumerated() {
-            print("MachineUI: Setting up component \(index) (\(type(of: component)))")
             component.setupUI(for: entity, in: self)
         }
 
@@ -478,6 +471,12 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
+    func positionProgressStatusLabel(centerX: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat = 14) {
+        guard let statusLabel = progressStatusLabel else { return }
+        let labelWidth = max(width, 80)
+        statusLabel.frame = CGRect(x: centerX - labelWidth * 0.5, y: y, width: labelWidth, height: height)
+    }
+
     private func relayoutCountLabels() {
         func layout(_ labels: [UILabel], for buttons: [UIKit.UIButton]) {
             for (label, button) in zip(labels, buttons) {
@@ -522,17 +521,14 @@ final class MachineUI: UIPanel_Base {
         guard let entity = currentEntity,
               let gameLoop = gameLoop,
               let rootView = rootView else {
-            print("MachineUI: setupSlotButtons failed - missing entity, gameLoop, or rootView")
             return
         }
         
         // Get building definition to know how many slots
         guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else {
-            print("MachineUI: setupSlotButtons failed - could not get building definition for entity \(entity.id)")
             return
         }
         
-        print("MachineUI: setupSlotButtons - building \(buildingDef.id) has \(buildingDef.fuelSlots) fuel slots, \(buildingDef.inputSlots) input slots, \(buildingDef.outputSlots) output slots")
         
         let inputCount = buildingDef.inputSlots
         let outputCount = buildingDef.outputSlots
@@ -613,7 +609,6 @@ final class MachineUI: UIPanel_Base {
 
             // Add to root view
             rootView.addSubview(button)
-            print("MachineUI: Created input slot button \(i) at (\(buttonX), \(buttonY))")
 
             // Count label positioned relative to button
             let label = attachCountLabel(to: button)
@@ -623,9 +618,16 @@ final class MachineUI: UIPanel_Base {
 
         // Create output slots (right side, before tank column) - UIKit buttons
         for i in 0..<outputCount {
-            // Position relative to panel bounds - column between machine and tanks
-            let buttonX = panelBounds.width * 0.65  // 65% from left (between machine and tanks)
-            let buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)  // Same Y as inputs
+            let buttonX: CGFloat
+            let buttonY: CGFloat
+            if buildingDef.type == .miner && outputCount == 1 {
+                buttonX = (panelBounds.width - buttonSizePoints) * 0.5
+                buttonY = (panelBounds.height - buttonSizePoints) * 0.5
+            } else {
+                // Position relative to panel bounds - column between machine and tanks
+                buttonX = panelBounds.width * 0.65  // 65% from left (between machine and tanks)
+                buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)  // Same Y as inputs
+            }
 
             let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
 
@@ -1240,11 +1242,9 @@ final class MachineUI: UIPanel_Base {
 
         // Try to load from bundle as fallback
         if let imagePath = Bundle.main.path(forResource: filename, ofType: "png") {
-            print("MachineUI: Found image at \(imagePath)")
             return UIImage(contentsOfFile: imagePath)
         }
 
-        print("MachineUI: Image not found in texture atlas or bundle")
         return nil
     }
 
@@ -2020,7 +2020,6 @@ final class MachineUI: UIPanel_Base {
     override func open() {
         // Guard against double-opening
         if isOpen {
-            print("MachineUI: Attempted to open already open panel")
             return
         }
         super.open()
@@ -2056,12 +2055,10 @@ final class MachineUI: UIPanel_Base {
 
         // Root view now exists; allow components to attach UIKit subviews
         if let entity = currentEntity {
-            print("MachineUI: Setting up UI components for entity \(entity.id)")
             for component in machineComponents {
                 component.setupUI(for: entity, in: self)
             }
         } else {
-            print("MachineUI: No currentEntity set - cannot setup UI components")
         }
 
         // Set up UIKit components
@@ -2095,11 +2092,8 @@ final class MachineUI: UIPanel_Base {
 
         // Add root view to hierarchy (AFTER content is added to it)
         if let rootView = rootView {
-            print("MachineUI: Adding rootView to hierarchy")
             onAddRootView?(rootView)
-            print("MachineUI: Opened panel with rootView at \(rootView.frame), superview = \(String(describing: rootView.superview))")
         } else {
-            print("MachineUI: Failed to create rootView - closing panel")
             close()
         }
 
@@ -2120,11 +2114,9 @@ final class MachineUI: UIPanel_Base {
         // Add labels from machine components
         for component in machineComponents {
             let componentLabels = component.getLabels()
-            print("MachineUI: Component returned \(componentLabels.count) labels")
             allLabels += componentLabels
         }
 
-        print("MachineUI: Total component labels to add: \(allLabels.count)")
         // Labels are now handled by components within the rootView
 
         // Position fluid labels after adding to view
@@ -2348,14 +2340,12 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Debug: confirm removal
-        print("MachineUI close: rootView super = \(String(describing: rootView?.superview)), isOpen = \(isOpen)")
     }
 
 
     private func setupSlotsForMachine(_ entity: Entity) {
         guard let gameLoop = gameLoop else { return }
 
-        print("MachineUI: setupSlotsForMachine called - fuelSlots.count=\(fuelSlots.count), fuelCountLabels.count=\(fuelCountLabels.count)")
 
         // Clear all slots
         for slot in inputSlots {
@@ -2400,7 +2390,6 @@ final class MachineUI: UIPanel_Base {
 
         // Map fuel slots (first in inventory)
         for i in 0..<fuelSlots.count {
-            print("MachineUI: Processing fuel slot \(i) - fuelCountLabels.count=\(fuelCountLabels.count)")
             if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
                 fuelSlots[i].item = item
                 fuelSlots[i].isRequired = false
@@ -2408,9 +2397,7 @@ final class MachineUI: UIPanel_Base {
                 if i < fuelCountLabels.count {
                     fuelCountLabels[i].text = "\(item.count)"
                     fuelCountLabels[i].isHidden = false
-                    print("MachineUI: Updated fuel label \(i) with count \(item.count)")
                 } else {
-                    print("MachineUI: Fuel label \(i) not available (only \(fuelCountLabels.count) labels exist)")
                 }
             } else {
                 fuelSlots[i].item = nil
@@ -2419,9 +2406,7 @@ final class MachineUI: UIPanel_Base {
                 if i < fuelCountLabels.count {
                     fuelCountLabels[i].text = "0"
                     fuelCountLabels[i].isHidden = true
-                    print("MachineUI: Cleared fuel label \(i)")
                 } else {
-                    print("MachineUI: Could not clear fuel label \(i) - label not available")
                 }
             }
             inventoryIndex += 1
@@ -2509,13 +2494,10 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func updateCountLabels(_ entity: Entity) {
-        print("MachineUI: updateCountLabels called")
         guard let gameLoop = gameLoop,
               let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else {
-            print("MachineUI: updateCountLabels - no inventory")
             return
         }
-        print("MachineUI: updateCountLabels - found inventory with \(inventory.slots.count) slots")
 
         // Try to get building component by checking specific types
         let buildingEntity: BuildingComponent?
@@ -2586,9 +2568,7 @@ final class MachineUI: UIPanel_Base {
 
         // Update input slot labels and button images
         for i in 0..<inputCountLabels.count {
-            print("MachineUI: Updating input slot \(i), inventoryIndex \(inventoryIndex)")
             if inventoryIndex < totalSlots, let item = inventory.slots[inventoryIndex] {
-                print("MachineUI: Input slot \(i) has item: \(item.itemId) x\(item.count)")
                 // Update button image
                 if i < inputSlotButtons.count {
                     if let image = loadRecipeImage(for: item.itemId) {
@@ -2601,9 +2581,7 @@ final class MachineUI: UIPanel_Base {
                         UIGraphicsEndImageContext()
 
                         inputSlotButtons[i].setImage(scaledImage, for: .normal)
-                        print("MachineUI: Set image for input slot \(i)")
                     } else {
-                        print("MachineUI: No image found for \(item.itemId)")
                         inputSlotButtons[i].setImage(nil, for: .normal)
                     }
                 }
@@ -2617,7 +2595,6 @@ final class MachineUI: UIPanel_Base {
                     inputCountLabels[i].isHidden = true
                 }
             } else {
-                print("MachineUI: Input slot \(i) is empty")
                 // Clear button image
                 if i < inputSlotButtons.count {
                     inputSlotButtons[i].setImage(nil, for: .normal)
@@ -2670,8 +2647,22 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
+    private func inventorySignature(for inventory: InventoryComponent) -> Int {
+        var hasher = Hasher()
+        hasher.combine(inventory.slots.count)
+        for slot in inventory.slots {
+            if let slot = slot {
+                hasher.combine(slot.itemId)
+                hasher.combine(slot.count)
+                hasher.combine(slot.maxStack)
+            } else {
+                hasher.combine(0)
+            }
+        }
+        return hasher.finalize()
+    }
+
     func updateMachine(_ entity: Entity) {
-        print("MachineUI: updateMachine called")
         setupSlotsForMachine(entity)
         updateCountLabels(entity)
         relayoutCountLabels()
@@ -2711,6 +2702,26 @@ final class MachineUI: UIPanel_Base {
 
         // Update progress bar
         updateProgressBar()
+
+        if let entity = currentEntity,
+           let gameLoop = gameLoop,
+           let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
+            let signature = inventorySignature(for: inventory)
+            if lastInventoryEntity != entity || lastInventorySignature != signature {
+                lastInventoryEntity = entity
+                lastInventorySignature = signature
+                updateCountLabels(entity)
+            }
+        }
+
+        // Update fluid components for real-time buffer displays
+        if let entity = currentEntity {
+            for component in machineComponents {
+                if let fluidComponent = component as? FluidMachineUIComponent {
+                    fluidComponent.updateUI(for: entity, in: self)
+                }
+            }
+        }
 
         // Update button states based on craftability and crafting status
         guard let player = gameLoop?.player,
@@ -2808,81 +2819,60 @@ final class MachineUI: UIPanel_Base {
         let buildingComponent: BuildingComponent?
         if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
             buildingComponent = miner
-            print("MachineUI: getBuildingDefinition found MinerComponent")
         } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
             buildingComponent = furnace
-            print("MachineUI: getBuildingDefinition found FurnaceComponent")
         } else if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
             buildingComponent = fluidTank
-            print("MachineUI: getBuildingDefinition found FluidTankComponent")
         } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
             buildingComponent = assembler
-            print("MachineUI: getBuildingDefinition found AssemblerComponent")
         } else if let generator = gameLoop.world.get(GeneratorComponent.self, for: entity) {
             buildingComponent = generator
-            print("MachineUI: getBuildingDefinition found GeneratorComponent")
         } else if let lab = gameLoop.world.get(LabComponent.self, for: entity) {
             buildingComponent = lab
-            print("MachineUI: getBuildingDefinition found LabComponent")
         } else if let rocketSilo = gameLoop.world.get(RocketSiloComponent.self, for: entity) {
             buildingComponent = rocketSilo
-            print("MachineUI: getBuildingDefinition found RocketSiloComponent")
         } else if let fluidProducer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
             buildingComponent = fluidProducer
-            print("MachineUI: getBuildingDefinition found FluidProducerComponent")
         } else if let fluidConsumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
             buildingComponent = fluidConsumer
-            print("MachineUI: getBuildingDefinition found FluidConsumerComponent")
         } else {
-            print("MachineUI: getBuildingDefinition found no building component for entity \(entity.id)")
             return nil
         }
 
         guard let component = buildingComponent else { 
-            print("MachineUI: buildingComponent was nil")
             return nil 
         }
         let buildingDef = gameLoop.buildingRegistry.get(component.buildingId)
         if buildingDef == nil {
-            print("MachineUI: buildingRegistry.get(\(component.buildingId)) returned nil")
         } else {
-            print("MachineUI: found building definition \(component.buildingId)")
         }
         return buildingDef
     }
 
     @objc private func fuelSlotTapped(_ sender: UIKit.UIButton) {
-        print("MachineUI: fuelSlotTapped tag=\(sender.tag)")
         guard let entity = currentEntity, let gameLoop = gameLoop else { return }
 
         let slotIndex = sender.tag
 
         // Check if the slot has an item
-        print("MachineUI: Checking slot \(slotIndex)")
         if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
-            print("MachineUI: Found inventory with \(machineInventory.slots.count) slots")
             if slotIndex < machineInventory.slots.count {
                 if let item = machineInventory.slots[slotIndex] {
-                    print("MachineUI: Slot \(slotIndex) has item: \(item.itemId) x\(item.count)")
                     // Slot has an item - take it out
                     handleSlotTap(entity: entity, slotIndex: slotIndex, gameLoop: gameLoop)
                 } else {
-                    print("MachineUI: Slot \(slotIndex) is empty")
                     // Slot is empty - open inventory to add items
                     handleEmptySlotTap(entity: entity, slotIndex: slotIndex)
                 }
             } else {
-                print("MachineUI: Slot index \(slotIndex) >= inventory count \(machineInventory.slots.count)")
                 handleEmptySlotTap(entity: entity, slotIndex: slotIndex)
             }
         } else {
-            print("MachineUI: No inventory found for entity")
             handleEmptySlotTap(entity: entity, slotIndex: slotIndex)
         }
     }
 
     @objc private func inputSlotTapped(_ sender: UIKit.UIButton) {
-        print("MachineUI: inputSlotTapped tag=\(sender.tag)")
         guard let entity = currentEntity, let gameLoop = gameLoop else { return }
 
         guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { return }
@@ -2963,7 +2953,6 @@ final class MachineUI: UIPanel_Base {
             // Update the UI
             updateMachine(entity)
 
-            print("MachineUI: Returned \(itemStack.count) \(itemStack.itemId) to player inventory")
         } else {
             // Some items couldn't be moved - update the machine slot with remaining items
             let remainingStack = ItemStack(itemId: itemStack.itemId, count: remainingCount, maxStack: itemStack.maxStack)
@@ -2975,7 +2964,6 @@ final class MachineUI: UIPanel_Base {
 
             // Show feedback that only partial items were moved
             showInventoryFullTooltip()
-            print("MachineUI: Returned \(itemStack.count - remainingCount) \(itemStack.itemId) to player inventory, \(remainingCount) remaining in machine")
         }
     }
 
@@ -2985,10 +2973,8 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func handleEmptySlotTap(entity: Entity, slotIndex: Int) {
-        print("MachineUI: handleEmptySlotTap called for slot \(slotIndex)")
         // Open inventory UI in machine input mode for this slot
         onOpenInventoryForMachine?(entity, slotIndex)
-        print("MachineUI: onOpenInventoryForMachine callback called")
     }
 
 
@@ -3084,7 +3070,7 @@ final class MachineUI: UIPanel_Base {
         label.isHidden = false
 
         // Set initial frame with wider width to accommodate longer text
-        label.frame = CGRect(x: 0, y: 0, width: 130, height: 20)
+        label.frame = CGRect(x: 0, y: 0, width: 130, height: 18)
 
         return label
     }
@@ -3143,10 +3129,23 @@ final class MachineUI: UIPanel_Base {
             // But still show status for boilers
             if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
                 buildingDef.id == "boiler" {
-                print("MachineUI: Calling getBoilerStatus from updateProgressBar")
-                statusText = getBoilerStatus(entity: entity, gameLoop: gameLoop)
+                let info = getBoilerStatusInfo(entity: entity, gameLoop: gameLoop)
+                statusText = info.detail.isEmpty ? info.title : "\(info.title)\n\(info.detail)"
+                progressStatusLabel?.numberOfLines = 2
+                progressStatusLabel?.font = UIFont.systemFont(ofSize: 10, weight: .semibold)
+                switch info.state {
+                case .running:
+                    progressStatusLabel?.textColor = UIColor.systemGreen
+                case .ready:
+                    progressStatusLabel?.textColor = UIColor.white
+                case .stalled:
+                    progressStatusLabel?.textColor = UIColor.systemOrange
+                }
             } else {
                 statusText = "Ready"
+                progressStatusLabel?.numberOfLines = 1
+                progressStatusLabel?.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+                progressStatusLabel?.textColor = UIColor.white
             }
 
             // Set the status label and return early
@@ -3175,9 +3174,11 @@ final class MachineUI: UIPanel_Base {
             let p = max(0, min(1, progress))
             fillWidth = backgroundFrame.width * CGFloat(p)
             fillColor = UIColor.green
+            let isMiner = getBuildingDefinition(for: entity, gameLoop: gameLoop)?.type == .miner
 
             if progress > 0 {
-                statusText = String(format: "Crafting: %.0f%%", p * 100)
+                let label = isMiner ? "Mining" : "Crafting"
+                statusText = String(format: "\(label): %.0f%%", p * 100)
             } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
                 if assembler.recipe == nil {
                     statusText = "No Recipe Selected"
@@ -3188,6 +3189,8 @@ final class MachineUI: UIPanel_Base {
                 } else {
                     statusText = "Ready to Craft"
                 }
+            } else if isMiner {
+                statusText = "Ready to Mine"
             } else {
                 statusText = "No Recipe Selected"
             }
@@ -3200,6 +3203,9 @@ final class MachineUI: UIPanel_Base {
             height: backgroundFrame.height
         )
         progressBarFill?.backgroundColor = fillColor
+        progressStatusLabel?.numberOfLines = 1
+        progressStatusLabel?.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+        progressStatusLabel?.textColor = UIColor.white
         progressStatusLabel?.text = statusText
 
         // UIKit progress bar updated above
@@ -3267,7 +3273,13 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
-    private func getBoilerStatus(entity: Entity, gameLoop: GameLoop) -> String {
+    private enum BoilerStatusState {
+        case running
+        case ready
+        case stalled
+    }
+
+    private func getBoilerStatusInfo(entity: Entity, gameLoop: GameLoop) -> (title: String, detail: String, state: BoilerStatusState) {
         // Check if boiler is currently running (producing steam)
         let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity)
         let isRunning = producer?.isActive ?? false
@@ -3300,27 +3312,32 @@ final class MachineUI: UIPanel_Base {
             hasSteamSpace = steamAvailableSpace >= 0.001
         }
 
-        // Determine status - prioritize stall reasons when not running
+        let fuelText = hasFuel ? "Fuel OK" : "No Fuel"
+        let waterText = hasWaterSource ? "Water OK" : "No Water"
+        let steamText = hasSteamSpace ? "Out OK" : "Out Blocked"
+
         if isRunning {
-            // Running - check for warnings (steam backup is most common)
-            var warnings: [String] = []
-            if !hasSteamSpace {
-                warnings.append("Steam Backed Up")
-            }
-            return "Running" + (warnings.isEmpty ? "" : " • " + warnings.joined(separator: " • "))
-        } else {
-            // Not running - find the primary blocking issue
-            if !hasFuel {
-                return "Stalled • No Fuel"
-            }
-            if !hasWaterSource {
-                return "Stalled • No Water"
-            }
-            if !hasSteamSpace {
-                return "Stalled • Steam Output Blocked"
-            }
-            // All conditions met but not running
-            return "Ready"
+            let warnings = hasSteamSpace ? [] : [steamText]
+            let detail = warnings.isEmpty ? "\(fuelText) • \(waterText) • \(steamText)" : warnings.joined(separator: " • ")
+            return ("Running", detail, .running)
         }
+
+        if !hasFuel || !hasWaterSource || !hasSteamSpace {
+            var blockers: [String] = []
+            if !hasFuel { blockers.append(fuelText) }
+            if !hasWaterSource { blockers.append(waterText) }
+            if !hasSteamSpace { blockers.append(steamText) }
+            return ("Stalled", blockers.joined(separator: " • "), .stalled)
+        }
+
+        return ("Ready", "\(fuelText) • \(waterText) • \(steamText)", .ready)
+    }
+
+    private func getBoilerStatus(entity: Entity, gameLoop: GameLoop) -> String {
+        let info = getBoilerStatusInfo(entity: entity, gameLoop: gameLoop)
+        if info.detail.isEmpty {
+            return info.title
+        }
+        return "\(info.title) • \(info.detail)"
     }
 }

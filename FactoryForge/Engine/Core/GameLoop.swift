@@ -647,7 +647,7 @@ final class GameLoop {
             // Fall through to normal validation if no infrastructure found
         }
 
-        // Special case for mining drills: allow placement near trees
+        // Special case for mining drills: allow placement on/near trees for wood
         if building.type == .miner {
             // Check for trees in an expanded area around the mining drill
             // This accounts for visual trees that might not be exactly on tile positions
@@ -668,8 +668,7 @@ final class GameLoop {
                     }
                 }
             }
-            // No trees found in the expanded search area
-            return false
+            // No trees found; fall through to normal validation for ore tiles
         }
 
         // Special case for water pumps: must be placed on water tiles
@@ -1708,4 +1707,3 @@ final class GameLoop {
         }
     }
 }
-
