@@ -16,8 +16,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "852"
             endingLineNumber = "852"
-            landmarkName = "layout(_:for:)"
-            landmarkType = "9">
+            landmarkName = "setupRecipeScrollView()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -32,7 +32,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "908"
             endingLineNumber = "908"
-            landmarkName = "setupSlotButtons()"
+            landmarkName = "layoutProgressBar()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

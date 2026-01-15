@@ -348,7 +348,23 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     }
 
     override func updateUI(for entity: Entity, in ui: MachineUI) {
-        updateFluidIndicators(for: entity, in: ui)
+        // Check if tank count has changed and re-setup UI if needed
+        if let tank = ui.gameLoop?.world.get(FluidTankComponent.self, for: entity) {
+            let currentTankCount = tank.tanks.count
+            let displayedTankCount = fluidTankViews.count
+
+            // If tank count changed, re-setup the fluid indicators
+            if currentTankCount != displayedTankCount {
+                print("FluidMachineUIComponent: Tank count changed from \(displayedTankCount) to \(currentTankCount), re-setting up UI")
+                clearFluidUI()
+                setupFluidIndicators(for: entity, in: ui)
+                positionLabels(in: ui)
+            } else {
+                updateFluidIndicators(for: entity, in: ui)
+            }
+        } else {
+            updateFluidIndicators(for: entity, in: ui)
+        }
     }
 
     override func getLabels() -> [UILabel] {
@@ -477,15 +493,35 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
             print("FluidMachineUIComponent: Found FluidTankComponent with \(tank.tanks.count) tanks, maxCapacity: \(tank.maxCapacity)")
 
-            let tankSpacing: Float = 80 * UIScale  // Vertical spacing between stacked tanks
+            // Position tanks just below the progress bar
+            let tankSpacing: Float = 50 * UIScale  // Reduced spacing for better fit
             let tankBaseX = ui.frame.center.x - 150 * UIScale + Float(fluidIndex) * 120 * UIScale  // Align tanks with the steam indicator
+            let labelSpacing: Float = 20 * UIScale
+
+            // Calculate starting Y position based on progress bar position
+            let progressBarBottom: Float
+            if let rootView = ui.rootView {
+                let b = rootView.bounds
+                let scale = Float(UIScreen.main.scale)
+                let panelOriginPts = ui.panelFrameInPoints().origin
+
+                // Progress bar position in UIKit points
+                let barYUIPoints = Float(b.height) * 0.18
+                let barHeight: Float = 20
+
+                // Convert to Metal coordinates: (UIKit points + panel origin) * scale
+                let barYMetal = (barYUIPoints + Float(panelOriginPts.y)) * scale
+                progressBarBottom = barYMetal + (barHeight * 4) + 16 * scale // Add padding below progress bar
+            } else {
+                progressBarBottom = Float(ui.frame.center.y) // Fallback
+            }
 
             // Show at least one tank indicator, even if empty
             let tankCount = max(tank.tanks.count, 1)
-            print("FluidMachineUIComponent: Will show \(min(tankCount, 2)) tank indicators")
+            print("FluidMachineUIComponent: Will show \(min(tankCount, 4)) tank indicators")
 
-            for index in 0..<min(tankCount, 2) { // Limit to 2 visible tanks
-                let tankY = fluidY + Float(index) * tankSpacing
+            for index in 0..<min(tankCount, 4) { // Limit to 4 visible tanks
+                let tankY = progressBarBottom + Float(index) * (tankSpacing + labelSpacing)
                 let tankSize: Float = indicatorSize
                 let tankFrame = Rect(center: Vector2(tankBaseX, tankY), size: Vector2(tankSize, tankSize))
 
