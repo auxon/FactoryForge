@@ -7,6 +7,45 @@ typealias UIKitButton = UIKit.UIButton
 /// Callback type for recipe selection
 typealias RecipeSelectionCallback = (Entity, Recipe) -> Void
 
+/// Unified layout system for MachineUI positioning
+struct MachineUILayout {
+    let W: CGFloat
+    let H: CGFloat
+
+    let margin: CGFloat = 16
+    let slotSize: CGFloat = 32
+    let slotSpacing: CGFloat = 8
+
+    // Columns
+    let leftColX: CGFloat
+    let midColX: CGFloat
+    let tankColX: CGFloat
+
+    // Bands
+    let topBandY: CGFloat
+    let midBandY: CGFloat
+    let bottomBandY: CGFloat
+
+    init(bounds: CGRect) {
+        W = bounds.width
+        H = bounds.height
+
+        leftColX = max(margin, W * 0.083)           // consistent with standard layout
+        tankColX = max(W * 0.78, W - 120)           // push tanks further right than 0.75
+        midColX  = (leftColX + tankColX) * 0.5      // generic "middle"
+
+        topBandY = H * 0.10
+        midBandY = H * 0.28
+        bottomBandY = H * 0.58
+    }
+
+    var recipeRegionX: CGFloat { leftColX + slotSize + margin }
+    var recipeRegionWidth: CGFloat { (tankColX - margin) - recipeRegionX }
+
+    // Chemical plant specific columns
+    var chemOutputColX: CGFloat { tankColX - (slotSize + margin + 10) }
+}
+
 /// Metal-rendered recipe button for machine UI
 class MachineRecipeButton: UIElement {
     var frame: Rect
@@ -119,6 +158,12 @@ final class MachineUI: UIPanel_Base {
     private var progressBarBackground: UIView?
     private var progressBarFill: UIView?
     private var progressStatusLabel: UILabel?
+
+    // Chemical plant tank UI references
+    private var chemTankViews: [UIView] = []
+    private var chemFillViews: [UIView] = []
+    private var chemTankLabels: [UILabel] = []
+    private var chemHeaders: [UILabel] = []
 
     // UIKit scroll view for recipe buttons
     private var recipeScrollView: ClearScrollView?
@@ -321,29 +366,13 @@ final class MachineUI: UIPanel_Base {
     private func setupRecipeScrollView(for entity: Entity, gameLoop: GameLoop) {
         // Create scroll view for recipe buttons (in points, relative to root view)
         guard let rootView = rootView else { return }
-        let panelBounds = rootView.bounds
+        let L = MachineUILayout(bounds: rootView.bounds)
 
-        // Position scroll view at bottom of panel with margins
-        let margin: CGFloat = 20
+        // Position scroll view at bottom of panel
         let scrollViewHeight: CGFloat = 150
-
-        // Adjust recipe area for chemical plants (leave space for tank column)
-        var scrollViewWidth: CGFloat
-        var scrollViewX: CGFloat
-
-        if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
-           buildingDef.type == .chemicalPlant {
-            // Chemical plant: center recipes in space before tank column
-            let tankColumnStart = panelBounds.width * 0.75
-            scrollViewWidth = tankColumnStart - margin * 2
-            scrollViewX = margin
-        } else {
-            // Standard layout
-            scrollViewWidth = panelBounds.width - margin * 2
-            scrollViewX = margin
-        }
-
-        let scrollViewY: CGFloat = panelBounds.height - scrollViewHeight - margin
+        let scrollViewWidth: CGFloat = L.recipeRegionWidth
+        let scrollViewX: CGFloat = L.recipeRegionX
+        let scrollViewY: CGFloat = L.bottomBandY
 
         recipeScrollView = ClearScrollView(frame: CGRect(
             x: scrollViewX,
@@ -402,26 +431,34 @@ final class MachineUI: UIPanel_Base {
         outputCountLabels.removeAll()
     }
 
+    private func layoutAll() {
+        layoutProgressBar()
+        relayoutCountLabels()
+        // Layout chemical plant tanks if present
+        if let entity = currentEntity, let gameLoop = gameLoop,
+           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
+           buildingDef.type == .chemicalPlant {
+            // Re-layout tanks if needed
+            updateChemicalPlantTanks(entity)
+        }
+    }
+
     private func layoutProgressBar() {
         guard let rootView, let progressBarBackground, let progressBarFill else { return }
-        let b = rootView.bounds
+        let L = MachineUILayout(bounds: rootView.bounds)
 
-        let buttonSize: CGFloat = 32
         let pad: CGFloat = 16
 
-        let leftColumnX = b.width * 0.083
-        let rightColumnX = b.width * 0.75
-
-        // Make bar span between columns (with padding)
-        let barX = leftColumnX + buttonSize + pad
-        let barRight = rightColumnX - pad
+        // Make bar span the recipe region (with padding)
+        let barX = L.recipeRegionX + pad
+        let barRight = L.recipeRegionX + L.recipeRegionWidth - pad
         let unclampedWidth = barRight - barX
 
         // Clamp for aesthetics if panel is huge
         let barWidth = min(unclampedWidth, 360)
 
         let barHeight: CGFloat = 20
-        let barY = b.height * 0.18   // put it above the recipe grid
+        let barY = L.topBandY   // put it in the top band
 
         progressBarBackground.frame = CGRect(x: barX, y: barY, width: barWidth, height: barHeight)
         progressBarFill.frame = CGRect(x: barX, y: barY, width: progressBarFill.frame.width, height: barHeight)
@@ -607,20 +644,19 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func setupChemicalPlantSlotButtons(_ buildingDef: BuildingDefinition, panelBounds: CGRect) {
-        let buttonSizePoints: CGFloat = 32
-        let spacingPoints: CGFloat = 8
+        let L = MachineUILayout(bounds: panelBounds)
 
-        // Chemical plant layout:
-        // - 3 input slots on left (25% from left)
-        // - 2 output slots on right (55% from left, leaving space for fluid tanks)
-        // - Fluid tank column reserved on far right (75%+ from left)
+        // Chemical plant layout using unified coordinate system:
+        // - Input slots in left column
+        // - Output slots to the left of tanks
+        // - Fluid tank column on far right
 
-        // Create input slots (left side) - 3 slots for chemical plant
+        // Create input slots (left column) - 3 slots for chemical plant
         for i in 0..<buildingDef.inputSlots {
-            let buttonX = panelBounds.width * 0.25  // 25% from left
-            let buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)
+            let buttonX = L.leftColX
+            let buttonY = L.midBandY + (L.slotSize + L.slotSpacing) * CGFloat(i)
 
-            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: L.slotSize, height: L.slotSize))
             button.backgroundColor = UIColor(red: 0.4, green: 0.4, blue: 0.5, alpha: 1.0)
             button.layer.borderColor = UIColor.white.cgColor
             button.layer.borderWidth = 1.0
@@ -637,12 +673,12 @@ final class MachineUI: UIPanel_Base {
             rootView?.addSubview(label)
         }
 
-        // Create output slots (right side, but not too far to leave space for fluid tanks) - 2 slots for chemical plant
+        // Create output slots (to the left of tanks) - 2 slots for chemical plant
         for i in 0..<buildingDef.outputSlots {
-            let buttonX = panelBounds.width * 0.55  // 55% from left (leaves space for fluid tanks)
-            let buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)
+            let buttonX = L.chemOutputColX
+            let buttonY = L.midBandY + (L.slotSize + L.slotSpacing) * CGFloat(i)
 
-            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: L.slotSize, height: L.slotSize))
             button.backgroundColor = UIColor(red: 0.3, green: 0.5, blue: 0.3, alpha: 1.0)
             button.layer.borderColor = UIColor.white.cgColor
             button.layer.borderWidth = 1.0
@@ -666,56 +702,75 @@ final class MachineUI: UIPanel_Base {
     private func setupChemicalPlantFluidTanks(_ panelBounds: CGRect) {
         guard let entity = currentEntity,
               let gameLoop = gameLoop,
-              let fluidTankComponent = gameLoop.world.get(FluidTankComponent.self, for: entity) else {
+              let fluidTankComponent = gameLoop.world.get(FluidTankComponent.self, for: entity),
+              let rootView = rootView else {
             return
         }
+
+        let L = MachineUILayout(bounds: panelBounds)
 
         let tankWidth: CGFloat = 60
         let tankHeight: CGFloat = 40
         let tankSpacing: CGFloat = 8
-        let tankStartX = panelBounds.width * 0.75  // 75% from left
-        let tankStartY = panelBounds.height * 0.325
+
+        // Clear existing tank UI
+        chemTankViews.forEach { $0.removeFromSuperview() }
+        chemFillViews.forEach { $0.removeFromSuperview() }
+        chemTankLabels.forEach { $0.removeFromSuperview() }
+        chemHeaders.forEach { $0.removeFromSuperview() }
+
+        chemTankViews.removeAll()
+        chemFillViews.removeAll()
+        chemTankLabels.removeAll()
+        chemHeaders.removeAll()
 
         // Input Tanks Header
-        let inputHeaderLabel = UILabel(frame: CGRect(x: tankStartX, y: tankStartY - 20, width: tankWidth, height: 15))
+        let inputHeaderLabel = UILabel(frame: CGRect(x: L.tankColX, y: L.midBandY - 20, width: tankWidth, height: 15))
         inputHeaderLabel.text = "INPUT"
         inputHeaderLabel.font = UIFont.systemFont(ofSize: 8, weight: .bold)
         inputHeaderLabel.textColor = .cyan
         inputHeaderLabel.textAlignment = .center
-        rootView?.addSubview(inputHeaderLabel)
+        rootView.addSubview(inputHeaderLabel)
+        chemHeaders.append(inputHeaderLabel)
 
         // Input tanks (top section)
         for i in 0..<min(fluidTankComponent.tanks.count, 2) {  // First 2 tanks as inputs
-            let tankY = tankStartY + CGFloat(i) * (tankHeight + tankSpacing)
+            let tankY = L.midBandY + CGFloat(i) * (tankHeight + tankSpacing)
 
             // Tank background
-            let tankView = UIView(frame: CGRect(x: tankStartX, y: tankY, width: tankWidth, height: tankHeight))
+            let tankView = UIView(frame: CGRect(x: L.tankColX, y: tankY, width: tankWidth, height: tankHeight))
             tankView.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.3, alpha: 0.8)
             tankView.layer.borderColor = UIColor.cyan.cgColor
             tankView.layer.borderWidth = 1.0
             tankView.layer.cornerRadius = 3.0
-            rootView?.addSubview(tankView)
+            tankView.clipsToBounds = true  // Enable clipping for fill views
+            rootView.addSubview(tankView)
+            chemTankViews.append(tankView)
 
-            // Fluid fill indicator
+            // Fluid fill indicator (inside tank view for proper clipping)
             if i < fluidTankComponent.tanks.count {
                 let tank = fluidTankComponent.tanks[i]
                 let fillLevel = fluidTankComponent.maxCapacity > 0 ? tank.amount / fluidTankComponent.maxCapacity : 0
                 let fillHeight = tankHeight * CGFloat(fillLevel)
 
-                let fillView = UIView(frame: CGRect(x: tankStartX, y: tankY + tankHeight - fillHeight, width: tankWidth, height: fillHeight))
+                let fillView = UIView(frame: CGRect(x: 0, y: tankHeight - fillHeight, width: tankWidth, height: fillHeight))
                 let fluidColor = getFluidColor(for: tank.type)
                 fillView.backgroundColor = fluidColor.withAlphaComponent(0.8)
-                rootView?.addSubview(fillView)
+                tankView.addSubview(fillView)
+                chemFillViews.append(fillView)
             }
 
             // Tank label - positioned clearly below tank
             let labelY = tankY + tankHeight + 4  // 4px below tank for clear separation
-            let label = UILabel(frame: CGRect(x: tankStartX, y: labelY, width: tankWidth, height: 15))
+            let label = UILabel(frame: CGRect(x: L.tankColX, y: labelY, width: tankWidth, height: 15))
             if i < fluidTankComponent.tanks.count {
                 let tank = fluidTankComponent.tanks[i]
-                let fluidName = tank.amount > 0 ? tank.type.rawValue : "Empty"
-                let displayName = fluidName == "water" && tank.amount == 0 ? "Empty" : fluidName
-                label.text = "\(displayName): \(Int(tank.amount))/\(Int(fluidTankComponent.maxCapacity))"
+                let cap = fluidTankComponent.maxCapacity
+                if tank.amount <= 0.0001 {
+                    label.text = "Empty: 0/\(Int(cap))"
+                } else {
+                    label.text = "\(tank.type.rawValue): \(Int(tank.amount))/\(Int(cap))"
+                }
             } else {
                 label.text = "Empty: 0/\(Int(fluidTankComponent.maxCapacity))"
             }
@@ -723,17 +778,18 @@ final class MachineUI: UIPanel_Base {
             label.textColor = .cyan
             label.textAlignment = .center
             label.adjustsFontSizeToFitWidth = true
-            rootView?.addSubview(label)
+            rootView.addSubview(label)
+            chemTankLabels.append(label)
         }
 
         // Output Tanks Header
-        let outputHeaderY = tankStartY + 2 * (tankHeight + tankSpacing) + 5
-        let outputHeaderLabel = UILabel(frame: CGRect(x: tankStartX, y: outputHeaderY, width: tankWidth, height: 15))
+        let outputHeaderY = L.midBandY + 2 * (tankHeight + tankSpacing) + 5
+        let outputHeaderLabel = UILabel(frame: CGRect(x: L.tankColX, y: outputHeaderY, width: tankWidth, height: 15))
         outputHeaderLabel.text = "OUTPUT"
         outputHeaderLabel.font = UIFont.systemFont(ofSize: 8, weight: .bold)
         outputHeaderLabel.textColor = .green
         outputHeaderLabel.textAlignment = .center
-        rootView?.addSubview(outputHeaderLabel)
+        rootView.addSubview(outputHeaderLabel)
 
         // Output tanks (bottom section)
         let outputTankStartY = outputHeaderY + 15 + 5  // Space after header
@@ -742,26 +798,26 @@ final class MachineUI: UIPanel_Base {
             let tankY = outputTankStartY + CGFloat(tankIndex) * (tankHeight + tankSpacing)
 
             // Tank background
-            let tankView = UIView(frame: CGRect(x: tankStartX, y: tankY, width: tankWidth, height: tankHeight))
+            let tankView = UIView(frame: CGRect(x: L.tankColX, y: tankY, width: tankWidth, height: tankHeight))
             tankView.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.3, alpha: 0.8)
             tankView.layer.borderColor = UIColor.green.cgColor
             tankView.layer.borderWidth = 1.0
             tankView.layer.cornerRadius = 3.0
-            rootView?.addSubview(tankView)
+            rootView.addSubview(tankView)
 
             // Fluid fill indicator
             let tank = fluidTankComponent.tanks[i]
             let fillLevel = fluidTankComponent.maxCapacity > 0 ? tank.amount / fluidTankComponent.maxCapacity : 0
             let fillHeight = tankHeight * CGFloat(fillLevel)
 
-            let fillView = UIView(frame: CGRect(x: tankStartX, y: tankY + tankHeight - fillHeight, width: tankWidth, height: fillHeight))
+            let fillView = UIView(frame: CGRect(x: L.tankColX, y: tankY + tankHeight - fillHeight, width: tankWidth, height: fillHeight))
             let fluidColor = getFluidColor(for: tank.type)
             fillView.backgroundColor = fluidColor.withAlphaComponent(0.8)
-            rootView?.addSubview(fillView)
+            rootView.addSubview(fillView)
 
             // Tank label - positioned clearly below tank
             let labelY = tankY + tankHeight + 4  // 4px below tank for clear separation
-            let label = UILabel(frame: CGRect(x: tankStartX, y: labelY, width: tankWidth, height: 15))
+            let label = UILabel(frame: CGRect(x: L.tankColX, y: labelY, width: tankWidth, height: 15))
             let fluidName = tank.amount > 0 ? tank.type.rawValue : "Empty"
             let displayName = fluidName == "water" && tank.amount == 0 ? "Empty" : fluidName
             label.text = "\(displayName): \(Int(tank.amount))/\(Int(fluidTankComponent.maxCapacity))"
@@ -769,31 +825,68 @@ final class MachineUI: UIPanel_Base {
             label.textColor = .green
             label.textAlignment = .center
             label.adjustsFontSizeToFitWidth = true
-            rootView?.addSubview(label)
+            rootView.addSubview(label)
         }
     }
 
     private func updateChemicalPlantTanks(_ entity: Entity) {
         guard let gameLoop = gameLoop,
-              let fluidTankComponent = gameLoop.world.get(FluidTankComponent.self, for: entity),
-              let rootView = rootView else {
+              let fluidTankComponent = gameLoop.world.get(FluidTankComponent.self, for: entity) else {
             return
         }
 
-        // Remove existing chemical plant tank views and labels
-        // We identify them by their specific positioning (75%+ from left, specific size ranges)
-        let tankSubviews = rootView.subviews.filter { subview in
-            let frame = subview.frame
-            // Tank views and labels are positioned at 75%+ from left and have specific dimensions
-            return frame.origin.x >= rootView.bounds.width * 0.75 &&
-                   ((frame.size.width >= 55 && frame.size.width <= 65) || // Tank width ~60
-                    (frame.size.height >= 12 && frame.size.height <= 18))   // Label height ~15
+        let tankHeight: CGFloat = 40
+        let tankWidth: CGFloat = 60
+        let cap = fluidTankComponent.maxCapacity
+
+        // Update input tanks (first 2 tanks)
+        for i in 0..<min(fluidTankComponent.tanks.count, 2) {
+            if i < chemFillViews.count && i < chemTankLabels.count {
+                let tank = fluidTankComponent.tanks[i]
+                let fillLevel = cap > 0 ? tank.amount / cap : 0
+                let fillHeight = tankHeight * CGFloat(fillLevel)
+
+                // Update fill view height and position
+                chemFillViews[i].frame = CGRect(x: 0, y: tankHeight - fillHeight, width: tankWidth, height: fillHeight)
+
+                // Update fill color
+                let fluidColor = getFluidColor(for: tank.type)
+                chemFillViews[i].backgroundColor = fluidColor.withAlphaComponent(0.8)
+
+                // Update label
+                if tank.amount <= 0.0001 {
+                    chemTankLabels[i].text = "Empty: 0/\(Int(cap))"
+                } else {
+                    chemTankLabels[i].text = "\(tank.type.rawValue): \(Int(tank.amount))/\(Int(cap))"
+                }
+            }
         }
 
-        tankSubviews.forEach { $0.removeFromSuperview() }
+        // Update output tanks (tanks 2+)
+        for i in 2..<fluidTankComponent.tanks.count {
+            let tankIndex = i - 2
+            if tankIndex < chemFillViews.count - 2 && tankIndex < chemTankLabels.count - 2 {
+                let tank = fluidTankComponent.tanks[i]
+                let fillLevel = cap > 0 ? tank.amount / cap : 0
+                let fillHeight = tankHeight * CGFloat(fillLevel)
 
-        // Recreate the tank display
-        setupChemicalPlantFluidTanks(rootView.bounds)
+                // Update fill view (account for input tanks in array)
+                let fillViewIndex = i
+                chemFillViews[fillViewIndex].frame = CGRect(x: 0, y: tankHeight - fillHeight, width: tankWidth, height: fillHeight)
+
+                // Update fill color
+                let fluidColor = getFluidColor(for: tank.type)
+                chemFillViews[fillViewIndex].backgroundColor = fluidColor.withAlphaComponent(0.8)
+
+                // Update label (account for input tanks in array)
+                let labelIndex = i
+                if tank.amount <= 0.0001 {
+                    chemTankLabels[labelIndex].text = "Empty: 0/\(Int(cap))"
+                } else {
+                    chemTankLabels[labelIndex].text = "\(tank.type.rawValue): \(Int(tank.amount))/\(Int(cap))"
+                }
+            }
+        }
     }
 
     private func setupRecipeButtons() {
@@ -817,7 +910,7 @@ final class MachineUI: UIPanel_Base {
 
                 return categoryMatches && fluidCheckPasses
             }
-        } else if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity),
+        } else if let _ = gameLoop.world.get(FluidTankComponent.self, for: entity),
                   let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
             // For fluid-based machines (like oil refineries), filter by building crafting category
             availableRecipes = availableRecipes.filter { recipe in
@@ -1095,22 +1188,26 @@ final class MachineUI: UIPanel_Base {
 
         // Show recipe requirements with icons similar to CraftingMenu
         guard let rootView = rootView else { return }
+        let L = MachineUILayout(bounds: rootView.bounds)
 
-        let detailsY = rootView.bounds.height - 80
+        let detailsY = L.bottomBandY + 20  // Position below recipe scroll view
         let iconSize: CGFloat = 30
         let iconSpacing: CGFloat = 40
 
-        // Show input requirements (items and fluids)
-        var currentX: CGFloat = 20
+        // Show input requirements (items and fluids) within recipe region bounds
+        var currentX: CGFloat = L.recipeRegionX
+        let maxX = L.recipeRegionX + L.recipeRegionWidth
 
         // Item inputs
         for input in recipe.inputs {
+            if currentX + iconSize > maxX { break } // Don't overflow recipe region
             addItemIcon(input.itemId, count: input.count, atX: currentX, y: detailsY, iconSize: iconSize, to: rootView)
             currentX += iconSpacing
         }
 
         // Fluid inputs
         for fluidInput in recipe.fluidInputs {
+            if currentX + iconSize > maxX { break } // Don't overflow recipe region
             addFluidIcon(fluidInput.type, amount: fluidInput.amount, atX: currentX, y: detailsY, iconSize: iconSize, to: rootView)
             currentX += iconSpacing
         }
@@ -1131,12 +1228,14 @@ final class MachineUI: UIPanel_Base {
         // Show outputs (items and fluids)
         // Item outputs
         for output in recipe.outputs {
+            if currentX + iconSize > maxX { break } // Don't overflow recipe region
             addItemIcon(output.itemId, count: output.count, atX: currentX, y: detailsY, iconSize: iconSize, to: rootView)
             currentX += iconSpacing
         }
 
         // Fluid outputs
         for fluidOutput in recipe.fluidOutputs {
+            if currentX + iconSize > maxX { break } // Don't overflow recipe region
             addFluidIcon(fluidOutput.type, amount: fluidOutput.amount, atX: currentX, y: detailsY, iconSize: iconSize, to: rootView)
             currentX += iconSpacing
         }
@@ -1764,8 +1863,7 @@ final class MachineUI: UIPanel_Base {
         if currentEntity != nil {
             clearSlotUI()
             setupSlotButtons()
-            layoutProgressBar()
-            relayoutCountLabels()
+            layoutAll()
             // Update the UI with current machine state
             updateMachine(currentEntity!)
         }
