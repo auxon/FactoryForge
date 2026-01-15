@@ -467,6 +467,31 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         uiSystem?.getInventoryUI().onRemoveScrollView = { (sv: ClearScrollView) in
             sv.removeFromSuperview()
         }
+
+        uiSystem?.getInventoryUI().onAddPlaceBuildingButton = { [weak self] (button: UIView) in
+            guard let self else { return }
+            button.removeFromSuperview()
+            self.view.addSubview(button)
+
+            // Position button in top right corner of inventory panel
+            let screenSize = self.view.bounds.size
+            let scale = Float(self.metalView.contentScaleFactor)
+            let buttonWidth: CGFloat = 120
+            let buttonHeight: CGFloat = 40
+            let margin: CGFloat = 25
+            let buttonX = screenSize.width - margin - buttonWidth / 2
+            let buttonY = margin + 30 + buttonHeight / 2  // Below close button
+
+            button.frame = CGRect(x: buttonX - buttonWidth / 2, y: buttonY - buttonHeight / 2, width: buttonWidth, height: buttonHeight)
+
+            // Keep tooltips on top
+            self.view.bringSubviewToFront(self.tooltipLabel)
+            self.view.bringSubviewToFront(self.tooltipIconView)
+        }
+
+        uiSystem?.getInventoryUI().onRemovePlaceBuildingButton = { (button: UIView) in
+            button.removeFromSuperview()
+        }
     }
 
     private func setupUISystem() {

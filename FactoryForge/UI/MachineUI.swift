@@ -840,6 +840,12 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
     // Merge UI state
     private var showingMergeOptions: Bool = false
 
+    // Tank selection UI state
+    private var showingTankSelection: Bool = false
+    private var adjacentBuildingsWithTanks: [(entity: Entity, direction: Direction, tanks: [FluidStack])] = []
+    private var tankSelectionLabels: [UILabel] = []
+    private var tankSelectionButtons: [Int: UIKit.UIButton] = [:] // Tank index -> Button
+
     // Reference to parent UI
     private weak var parentUI: MachineUI?
 
@@ -858,11 +864,19 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         currentNetworkId = pipe.networkId
         connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
 
+        // Find adjacent buildings with fluid tanks
+        adjacentBuildingsWithTanks = findAdjacentBuildingsWithTanks(for: entity, in: gameLoop.world)
+
         // Create network info section
         setupNetworkInfo(in: ui)
 
         // Create directional connection buttons
         setupConnectionButtons(in: ui)
+
+        // Create tank selection section if adjacent buildings found
+        if !adjacentBuildingsWithTanks.isEmpty {
+            setupTankSelectionSection(in: ui)
+        }
 
         // Position all elements
         positionLabels(in: ui)
@@ -885,9 +899,18 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             currentY += 25
         }
 
-        if let changeNetworkButton = changeNetworkButton {
-            changeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
-            currentY += 40
+        // Tank selection button (if adjacent buildings exist)
+        if !adjacentBuildingsWithTanks.isEmpty {
+            if let changeNetworkButton = changeNetworkButton {
+                changeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
+                currentY += 40
+            }
+        } else {
+            // Original change network button for network management
+            if let changeNetworkButton = changeNetworkButton {
+                changeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
+                currentY += 40
+            }
         }
 
         if let mergeNetworkButton = mergeNetworkButton {
@@ -908,8 +931,29 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
                 currentY += 30
             }
             currentY += 10 // Extra spacing after merge options
+        } else if showingTankSelection {
+            // Position tank selection options
+            for (index, buildingInfo) in adjacentBuildingsWithTanks.enumerated() {
+                // Building label
+                if index < tankSelectionLabels.count {
+                    let label = tankSelectionLabels[index]
+                    label.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 20)
+                    currentY += 25
+                }
+
+                // Tank buttons for this building
+                let (_, _, tanks) = buildingInfo
+                for tankIndex in 0..<tanks.count {
+                    if let button = tankSelectionButtons[tankIndex] {
+                        button.frame = CGRect(x: 30, y: currentY, width: panelRect.width - 60, height: 25)
+                        currentY += 30
+                    }
+                }
+                currentY += 10 // Spacing between buildings
+            }
+            currentY += 10 // Extra spacing after tank options
         } else {
-            // Add some spacing before connection buttons when not showing merge options
+            // Add some spacing before connection buttons when not showing merge or tank options
             currentY += 20
         }
 
@@ -955,6 +999,11 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         // Update connection states
         connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
         updateConnectionButtons()
+
+        // Update tank selection buttons if showing
+        if showingTankSelection {
+            updateTankSelectionButtons()
+        }
     }
 
     override func getLabels() -> [UILabel] {
@@ -962,6 +1011,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         if let networkLabel = networkLabel { labels.append(networkLabel) }
         if let networkIdLabel = networkIdLabel { labels.append(networkIdLabel) }
         if let availableNetworksLabel = availableNetworksLabel { labels.append(availableNetworksLabel) }
+        labels.append(contentsOf: tankSelectionLabels)
         return labels
     }
 
@@ -1047,6 +1097,202 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
             rootView.addSubview(button)
             connectionButtons[direction] = button
+        }
+    }
+
+    private func setupTankSelectionSection(in ui: MachineUI) {
+        guard let rootView = ui.rootView else { return }
+
+        // Tank selection toggle button
+        let tankSelectionButton = UIKit.UIButton(type: .system)
+        tankSelectionButton.setTitle("Tank Connections", for: .normal)
+        tankSelectionButton.setTitleColor(.white, for: .normal)
+        tankSelectionButton.backgroundColor = UIColor(red: 0.2, green: 0.5, blue: 0.2, alpha: 0.8)
+        tankSelectionButton.layer.borderColor = UIColor.green.cgColor
+        tankSelectionButton.layer.borderWidth = 1.0
+        tankSelectionButton.layer.cornerRadius = 4.0
+        tankSelectionButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
+        tankSelectionButton.addTarget(self, action: #selector(tankSelectionTapped(_:)), for: .touchUpInside)
+        rootView.addSubview(tankSelectionButton)
+        changeNetworkButton = tankSelectionButton // Reuse this variable for now
+    }
+
+    @objc private func tankSelectionTapped(_ sender: UIKit.UIButton) {
+        showingTankSelection = !showingTankSelection
+
+        if showingTankSelection {
+            showTankSelectionOptions()
+        } else {
+            hideTankSelectionOptions()
+        }
+
+        // Reposition all elements
+        if let ui = parentUI {
+            positionLabels(in: ui)
+        }
+    }
+
+    private func showTankSelectionOptions() {
+        guard let ui = parentUI,
+              let rootView = ui.rootView,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop else {
+            return
+        }
+
+        // Clear existing tank selection UI
+        hideTankSelectionOptions()
+
+        // Create tank selection options for each adjacent building
+        for (index, buildingInfo) in adjacentBuildingsWithTanks.enumerated() {
+            let (buildingEntity, direction, tanks) = buildingInfo
+
+            // Building header label
+            let buildingLabel = UILabel()
+            buildingLabel.text = "\(direction.rawValue): Building"
+            buildingLabel.font = UIFont.systemFont(ofSize: 12, weight: .bold)
+            buildingLabel.textColor = .cyan
+            buildingLabel.textAlignment = .center
+            buildingLabel.frame = CGRect(x: 20, y: 0, width: ui.panelFrameInPoints().width - 40, height: 20)
+            rootView.addSubview(buildingLabel)
+            tankSelectionLabels.append(buildingLabel)
+
+            // Tank selection buttons
+            for (tankIndex, tank) in tanks.enumerated() {
+                let button = UIKit.UIButton(type: .system)
+
+                // Determine if this tank is currently connected
+                let isConnected = isTankConnected(entity: entity, buildingEntity: buildingEntity, tankIndex: tankIndex, world: gameLoop.world)
+                let fluidName = tank.type.rawValue
+                let amountText = String(format: "%.0f/%.0fL", tank.amount, tank.maxAmount)
+
+                button.setTitle("Tank \(tankIndex + 1): \(fluidName) (\(amountText)) \(isConnected ? "✓" : "")", for: .normal)
+                button.setTitleColor(isConnected ? .green : .white, for: .normal)
+                button.backgroundColor = UIColor(red: 0.3, green: 0.3, blue: 0.4, alpha: 0.8)
+                button.layer.borderColor = isConnected ? UIColor.green.cgColor : UIColor.gray.cgColor
+                button.layer.borderWidth = 1.0
+                button.layer.cornerRadius = 3.0
+                button.frame = CGRect(x: 30, y: 0, width: ui.panelFrameInPoints().width - 60, height: 25)
+
+                // Store building and tank info in button tag
+                // Use a compound tag: (buildingEntity.id * 1000) + tankIndex
+                button.tag = (Int(buildingEntity.id) * 1000) + tankIndex
+                button.addTarget(self, action: #selector(tankButtonTapped(_:)), for: .touchUpInside)
+
+                rootView.addSubview(button)
+                tankSelectionButtons[tankIndex] = button
+            }
+        }
+    }
+
+    private func hideTankSelectionOptions() {
+        for label in tankSelectionLabels {
+            label.removeFromSuperview()
+        }
+        tankSelectionLabels.removeAll()
+
+        for button in tankSelectionButtons.values {
+            button.removeFromSuperview()
+        }
+        tankSelectionButtons.removeAll()
+    }
+
+    private func isTankConnected(entity: Entity, buildingEntity: Entity, tankIndex: Int, world: World) -> Bool {
+        guard let pipe = world.get(PipeComponent.self, for: entity) else {
+            return false
+        }
+        return pipe.tankConnections[buildingEntity] == tankIndex
+    }
+
+    @objc private func tankButtonTapped(_ sender: UIKit.UIButton) {
+        guard let ui = parentUI,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop else {
+            return
+        }
+
+        // Decode building entity ID and tank index from button tag
+        let compoundTag = sender.tag
+        let buildingEntityId = compoundTag / 1000
+        let tankIndex = compoundTag % 1000
+
+        // Find the building entity
+        guard let buildingEntity = gameLoop.world.entities.first(where: { $0.id == buildingEntityId }) else {
+            return
+        }
+
+        toggleTankConnection(for: entity, buildingEntity: buildingEntity, tankIndex: tankIndex, in: gameLoop.world, fluidNetworkSystem: gameLoop.fluidNetworkSystem)
+
+        // Update UI
+        updateTankSelectionButtons()
+    }
+
+    private func toggleTankConnection(for pipeEntity: Entity, buildingEntity: Entity, tankIndex: Int, in world: World, fluidNetworkSystem: FluidNetworkSystem) {
+        guard let pipe = world.get(PipeComponent.self, for: pipeEntity),
+              let buildingTank = world.get(FluidTankComponent.self, for: buildingEntity) else {
+            return
+        }
+
+        let isCurrentlyConnected = pipe.tankConnections[buildingEntity] == tankIndex
+
+        if isCurrentlyConnected {
+            // Disconnect from this tank
+            pipe.tankConnections.removeValue(forKey: buildingEntity)
+
+            // Remove from building's connections if no other tanks are connected from this pipe
+            if !pipe.tankConnections.keys.contains(where: { $0 == buildingEntity }) {
+                buildingTank.connections.removeAll { $0 == pipeEntity }
+            }
+
+            print("PipeConnectionUIComponent: Disconnected pipe \(pipeEntity.id) from building \(buildingEntity.id) tank \(tankIndex)")
+        } else {
+            // Disconnect from any other tank on this building first
+            pipe.tankConnections.removeValue(forKey: buildingEntity)
+
+            // Connect to this specific tank
+            pipe.tankConnections[buildingEntity] = tankIndex
+
+            // Add to building's connections if not already connected
+            if !buildingTank.connections.contains(pipeEntity) {
+                buildingTank.connections.append(pipeEntity)
+            }
+
+            print("PipeConnectionUIComponent: Connected pipe \(pipeEntity.id) to building \(buildingEntity.id) tank \(tankIndex)")
+        }
+
+        // Update components in world
+        world.add(pipe, to: pipeEntity)
+        world.add(buildingTank, to: buildingEntity)
+
+        // Mark networks as dirty for recalculation
+        fluidNetworkSystem.markEntityDirty(pipeEntity)
+        fluidNetworkSystem.markEntityDirty(buildingEntity)
+    }
+
+    private func updateTankSelectionButtons() {
+        guard let ui = parentUI,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop else {
+            return
+        }
+
+        // Update all tank selection buttons
+        for (tankIndex, button) in tankSelectionButtons {
+            // Find which building this button belongs to
+            for buildingInfo in adjacentBuildingsWithTanks {
+                let (buildingEntity, _, tanks) = buildingInfo
+                if tankIndex < tanks.count {
+                    let tank = tanks[tankIndex]
+                    let isConnected = isTankConnected(entity: entity, buildingEntity: buildingEntity, tankIndex: tankIndex, world: gameLoop.world)
+                    let fluidName = tank.type.rawValue
+                    let amountText = String(format: "%.0f/%.0fL", tank.amount, tank.maxAmount)
+
+                    button.setTitle("Tank \(tankIndex + 1): \(fluidName) (\(amountText)) \(isConnected ? "✓" : "")", for: .normal)
+                    button.setTitleColor(isConnected ? .green : .white, for: .normal)
+                    button.layer.borderColor = isConnected ? UIColor.green.cgColor : UIColor.gray.cgColor
+                    break
+                }
+            }
         }
     }
 
@@ -1272,6 +1518,31 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             }
         }
         return nil
+    }
+
+    private func findAdjacentBuildingsWithTanks(for entity: Entity, in world: World) -> [(entity: Entity, direction: Direction, tanks: [FluidStack])] {
+        var buildings: [(entity: Entity, direction: Direction, tanks: [FluidStack])] = []
+
+        // Check each direction for buildings with fluid tanks
+        for direction in Direction.allCases {
+            let neighborPos = getNeighborPosition(for: entity, direction: direction, in: world)
+            if let neighborPos = neighborPos {
+                // Find entities at this position
+                let entitiesWithPosition = world.query(PositionComponent.self)
+                for otherEntity in entitiesWithPosition {
+                    if let otherPos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
+                       otherPos == neighborPos,
+                       let tankComponent = world.get(FluidTankComponent.self, for: otherEntity),
+                       !tankComponent.tanks.isEmpty {
+                        // Found a building with fluid tanks
+                        buildings.append((entity: otherEntity, direction: direction, tanks: tankComponent.tanks))
+                        break // Only one building per direction
+                    }
+                }
+            }
+        }
+
+        return buildings
     }
 
     private func toggleConnection(for entity: Entity, direction: Direction, in world: World, fluidNetworkSystem: FluidNetworkSystem) {

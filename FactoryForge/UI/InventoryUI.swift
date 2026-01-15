@@ -47,6 +47,7 @@ final class InventoryUI: UIPanel_Base {
     private var closeButton: CloseButton!
     private var trashTarget: UIButton!
     private var scrollView: ClearScrollView!
+    private var placeBuildingButton: UIKit.UIButton!
 
     // Public accessor for scroll view (needed for touch event handling)
     var publicScrollView: UIScrollView? {
@@ -83,6 +84,8 @@ final class InventoryUI: UIPanel_Base {
     // Callbacks for managing UIKit components
     var onAddScrollView: ((ClearScrollView) -> Void)?
     var onRemoveScrollView: ((ClearScrollView) -> Void)?
+    var onAddPlaceBuildingButton: ((UIView) -> Void)?
+    var onRemovePlaceBuildingButton: ((UIView) -> Void)?
     var onShowTooltip: ((String) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
@@ -102,6 +105,7 @@ final class InventoryUI: UIPanel_Base {
         // setupSlots()
         setupCountLabels()
         setupTrashTarget()
+        setupPlaceBuildingButton()
     }
 
     func enterMachineInputMode(entity: Entity, slotIndex: Int) {
@@ -444,6 +448,26 @@ final class InventoryUI: UIPanel_Base {
         }
     }
 
+    private func setupPlaceBuildingButton() {
+        // Create button with temporary frame - positioning will be handled by the callback
+        let buttonWidth: CGFloat = 120
+        let buttonHeight: CGFloat = 40
+        placeBuildingButton = UIKit.UIButton(frame: CGRect(x: 0, y: 0, width: buttonWidth, height: buttonHeight))
+
+        placeBuildingButton.setTitle("Place Building", for: UIControl.State.normal)
+        placeBuildingButton.setTitleColor(UIColor.white, for: UIControl.State.normal)
+        placeBuildingButton.backgroundColor = UIColor(red: 0.2, green: 0.6, blue: 0.2, alpha: 1.0)
+        placeBuildingButton.layer.cornerRadius = 8
+        placeBuildingButton.layer.masksToBounds = true
+        placeBuildingButton.translatesAutoresizingMaskIntoConstraints = true
+
+        placeBuildingButton.addTarget(self, action: #selector(placeBuildingButtonTapped), for: UIControl.Event.touchUpInside)
+
+        // Initially hidden
+        placeBuildingButton.isHidden = true
+        placeBuildingButton.alpha = 0.0
+    }
+
     private func setupCloseButton() {
         let buttonSize: Float = 30 * UIScale
         let buttonX = frame.maxX - 25 * UIScale
@@ -659,6 +683,9 @@ final class InventoryUI: UIPanel_Base {
                 for j in 0..<totalSlots { slots[j].isSelected = false } // clear previous
                 slot.isSelected = true
 
+                // Update place building button visibility
+                updatePlaceBuildingButtonVisibility()
+
                 // Show tooltip for tapped item
                 if let item = slot.item, let itemRegistry = gameLoop?.itemRegistry {
                     let tooltip = itemRegistry.get(item.itemId)?.name ?? item.itemId
@@ -726,6 +753,14 @@ final class InventoryUI: UIPanel_Base {
             onRemoveScrollView?(scrollView)
             scrollView = nil
         }
+
+        // Hide and remove place building button
+        if !placeBuildingButton.isHidden {
+            onRemovePlaceBuildingButton?(placeBuildingButton)
+        }
+        placeBuildingButton.isHidden = true
+        placeBuildingButton.alpha = 0.0
+
         exitMachineInputMode()
         exitChestMode()
         exitChestOnlyMode()
@@ -994,6 +1029,44 @@ final class InventoryUI: UIPanel_Base {
         }
 
         AudioManager.shared.playClickSound()
+    }
+
+    private func isBuildingItem(itemId: String) -> Bool {
+        guard let gameLoop = gameLoop else { return false }
+        return gameLoop.buildingRegistry.get(itemId) != nil
+    }
+
+    private func placeSelectedBuilding() {
+        // Find the currently selected slot
+        guard let selectedSlot = slots.first(where: { $0.isSelected }),
+              let itemStack = selectedSlot.item,
+              isBuildingItem(itemId: itemStack.itemId) else { return }
+
+        // Enter build mode with the selected building
+        gameLoop?.inputManager?.enterBuildMode(buildingId: itemStack.itemId)
+    }
+
+    @objc private func placeBuildingButtonTapped() {
+        placeSelectedBuilding()
+    }
+
+    private func updatePlaceBuildingButtonVisibility() {
+        // Check if any slot has a selected building item
+        let hasSelectedBuilding = slots.contains { slot in
+            slot.isSelected && slot.item != nil && isBuildingItem(itemId: slot.item!.itemId)
+        }
+
+        if hasSelectedBuilding && placeBuildingButton.isHidden {
+            // Show button
+            placeBuildingButton.isHidden = false
+            placeBuildingButton.alpha = 1.0
+            onAddPlaceBuildingButton?(placeBuildingButton)
+        } else if !hasSelectedBuilding && !placeBuildingButton.isHidden {
+            // Hide button
+            placeBuildingButton.isHidden = true
+            placeBuildingButton.alpha = 0.0
+            onRemovePlaceBuildingButton?(placeBuildingButton)
+        }
     }
 
     private func handleTrashDrop(slotIndex: Int) {
