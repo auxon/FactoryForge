@@ -734,8 +734,18 @@ class FluidTankComponent: BuildingComponent {
 }
 
 /// Component for pipes
+enum PipeShape: String, Codable {
+    case straight
+    case corner
+    case tee
+    case cross
+    case end
+}
+
 class PipeComponent: BuildingComponent {
     var direction: Direction
+    var shape: PipeShape
+    var allowedDirections: Set<Direction>
     var fluidType: FluidType?
     var fluidAmount: Float
     var maxCapacity: Float
@@ -753,22 +763,42 @@ class PipeComponent: BuildingComponent {
     // Maps connected building entity to specific tank index
     var tankConnections: [Entity: Int] = [:]  // Entity -> Tank Index
 
-    init(buildingId: String, direction: Direction, maxCapacity: Float = 100) {
+    init(buildingId: String, direction: Direction, maxCapacity: Float = 100, shape: PipeShape = .straight) {
         self.direction = direction
+        self.shape = shape
+        self.allowedDirections = PipeComponent.allowedDirections(for: shape, direction: direction)
         self.fluidType = nil
         self.fluidAmount = 0
         self.maxCapacity = maxCapacity
         super.init(buildingId: buildingId)
     }
 
+    static func allowedDirections(for shape: PipeShape, direction: Direction) -> Set<Direction> {
+        switch shape {
+        case .straight:
+            return [direction, direction.opposite]
+        case .corner:
+            return [direction, direction.clockwise]
+        case .tee:
+            return [direction, direction.opposite, direction.clockwise]
+        case .cross:
+            return Set(Direction.allCases)
+        case .end:
+            return [direction]
+        }
+    }
+
     // MARK: - Codable conformance
     enum CodingKeys: String, CodingKey {
-        case buildingId, direction, fluidType, fluidAmount, maxCapacity, connections, flowRate, pressure, networkId, manuallyDisconnectedDirections, tankConnections
+        case buildingId, direction, shape, allowedDirections, fluidType, fluidAmount, maxCapacity, connections, flowRate, pressure, networkId, manuallyDisconnectedDirections, tankConnections
     }
 
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         direction = try container.decode(Direction.self, forKey: .direction)
+        shape = try container.decodeIfPresent(PipeShape.self, forKey: .shape) ?? .cross
+        allowedDirections = try container.decodeIfPresent(Set<Direction>.self, forKey: .allowedDirections)
+            ?? PipeComponent.allowedDirections(for: shape, direction: direction)
         fluidType = try container.decodeIfPresent(FluidType.self, forKey: .fluidType)
         fluidAmount = try container.decode(Float.self, forKey: .fluidAmount)
         maxCapacity = try container.decode(Float.self, forKey: .maxCapacity)
@@ -787,6 +817,8 @@ class PipeComponent: BuildingComponent {
     override func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(direction, forKey: .direction)
+        try container.encode(shape, forKey: .shape)
+        try container.encode(allowedDirections, forKey: .allowedDirections)
         try container.encode(fluidType, forKey: .fluidType)
         try container.encode(fluidAmount, forKey: .fluidAmount)
         try container.encode(maxCapacity, forKey: .maxCapacity)
@@ -920,4 +952,3 @@ class WallComponent: BuildingComponent {
         try super.encode(to: encoder)
     }
 }
-

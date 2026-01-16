@@ -1000,7 +1000,7 @@ final class GameLoop {
             world.add(InventoryComponent(slots: buildingDef.inventorySlots, allowedItems: nil), to: entity)
             
         case .pipe:
-            world.add(PipeComponent(buildingId: buildingDef.id, direction: direction, maxCapacity: buildingDef.fluidCapacity), to: entity)
+            world.add(PipeComponent(buildingId: buildingDef.id, direction: direction, maxCapacity: buildingDef.fluidCapacity, shape: .straight), to: entity)
             
         case .pumpjack:
             world.add(PumpjackComponent(
@@ -1397,12 +1397,13 @@ final class GameLoop {
         let updatedPipe = pipe
         let newDirection = pipe.direction.clockwise
         updatedPipe.direction = newDirection
+        updatedPipe.allowedDirections = PipeComponent.allowedDirections(for: updatedPipe.shape, direction: newDirection)
 
         // Update pipe component
         world.add(updatedPipe, to: entity)
 
-        // TODO: Update fluid network when pipe direction changes
-        // This will be implemented when fluid networks are added
+        // Ensure fluid connections reflect the new direction
+        _fluidNetworkSystem.markEntityDirty(entity)
 
         // Update sprite if needed (pipes might not have directional sprites)
         // For now, pipes don't have directional visual differences

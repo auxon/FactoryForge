@@ -500,13 +500,6 @@ final class FluidNetworkSystem: System {
             let directionOffset = adjacentPos - position
             let direction = directionFromOffset(directionOffset)
 
-            // Check if this direction has been manually disconnected for pipes
-            if let pipe = world.get(PipeComponent.self, for: entity),
-               pipe.manuallyDisconnectedDirections.contains(direction) {
-                // print("establishConnections: Direction \(direction) manually disconnected for pipe \(entity.id), skipping connection")
-                continue
-            }
-
             // Find entities at this position - use fallback if spatial query fails
             var entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
 
@@ -853,30 +846,76 @@ final class FluidNetworkSystem: System {
             return false
         }
 
-        // Get positions
-        guard let pos1 = world.get(PositionComponent.self, for: entity1)?.tilePosition,
-              let pos2 = world.get(PositionComponent.self, for: entity2)?.tilePosition else {
+        guard let adjacency = adjacencyBetween(entity1, entity2) else {
             return false
         }
 
-        // Check if entities are adjacent (including diagonally for now - can be refined later)
-        let deltaX = abs(pos1.x - pos2.x)
-        let deltaY = abs(pos1.y - pos2.y)
+        let directionToEntity2 = adjacency.directionFromEntity1
+        let directionToEntity1 = adjacency.directionFromEntity2
 
-        // Must be adjacent (not the same position)
-        if deltaX > 1 || deltaY > 1 || (deltaX == 0 && deltaY == 0) {
-            return false
+        // Pipes only connect on allowed sides, and respect manual disconnects
+        if let pipe1 = world.get(PipeComponent.self, for: entity1) {
+            if pipe1.manuallyDisconnectedDirections.contains(directionToEntity2) {
+                return false
+            }
+            if !pipe1.allowedDirections.contains(directionToEntity2) {
+                return false
+            }
         }
 
-        // Pipes can connect to any adjacent fluid entities
-        if world.has(PipeComponent.self, for: entity1) || world.has(PipeComponent.self, for: entity2) {
-            return true
+        if let pipe2 = world.get(PipeComponent.self, for: entity2) {
+            if pipe2.manuallyDisconnectedDirections.contains(directionToEntity1) {
+                return false
+            }
+            if !pipe2.allowedDirections.contains(directionToEntity1) {
+                return false
+            }
         }
 
         // For building-to-building connections, check if they have compatible interfaces
         // For now, allow connections between any fluid buildings (simplified)
         // TODO: Add direction-based connection rules for specific buildings
         return true
+    }
+
+    private func adjacencyBetween(_ entity1: Entity, _ entity2: Entity) -> (directionFromEntity1: Direction, directionFromEntity2: Direction)? {
+        let tiles1 = getOccupiedTiles(for: entity1)
+        let tiles2 = getOccupiedTiles(for: entity2)
+        guard !tiles1.isEmpty && !tiles2.isEmpty else { return nil }
+
+        for tile1 in tiles1 {
+            for tile2 in tiles2 {
+                let offset = tile2 - tile1
+                let isCardinal = (abs(offset.x) + abs(offset.y)) == 1
+                if !isCardinal {
+                    continue
+                }
+                let directionToEntity2 = directionFromOffset(offset)
+                return (directionToEntity2, directionToEntity2.opposite)
+            }
+        }
+
+        return nil
+    }
+
+    private func getOccupiedTiles(for entity: Entity) -> [IntVector2] {
+        guard let position = world.get(PositionComponent.self, for: entity)?.tilePosition else {
+            return []
+        }
+
+        let size = getBuildingSize(for: entity)
+        if size.width == 1 && size.height == 1 {
+            return [position]
+        }
+
+        var tiles: [IntVector2] = []
+        tiles.reserveCapacity(size.width * size.height)
+        for x in 0..<size.width {
+            for y in 0..<size.height {
+                tiles.append(position + IntVector2(x: Int32(x), y: Int32(y)))
+            }
+        }
+        return tiles
     }
 
     /// Checks if an entity is capable of fluid operations

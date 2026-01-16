@@ -266,14 +266,23 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         for (index, direction) in directions.enumerated() {
             let button = UIKit.UIButton(type: .system)
             let isConnected = connectedDirections.contains(direction)
+            let isAllowed = isDirectionAllowed(direction: direction)
 
-            button.setTitle("\(directionNames[index]): \(isConnected ? "✓" : "✗")", for: .normal)
-            button.setTitleColor(isConnected ? .green : .red, for: .normal)
-            button.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 0.8)
-            button.layer.borderColor = UIColor.white.cgColor
+            let stateText = isAllowed ? (isConnected ? "✓" : "✗") : "Blocked"
+            button.setTitle("\(directionNames[index]): \(stateText)", for: .normal)
+            if isAllowed {
+                button.setTitleColor(isConnected ? .green : .red, for: .normal)
+                button.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 0.8)
+                button.layer.borderColor = UIColor.white.cgColor
+            } else {
+                button.setTitleColor(.lightGray, for: .normal)
+                button.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.15, alpha: 0.8)
+                button.layer.borderColor = UIColor.gray.cgColor
+            }
             button.layer.borderWidth = 1.0
             button.layer.cornerRadius = 4.0
             button.frame = CGRect(x: 0, y: 0, width: 100, height: 30)
+            button.isEnabled = isAllowed
 
             // Store direction in button tag for callback
             button.tag = Int(direction.rawValue)
@@ -488,8 +497,19 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             guard let button = connectionButtons[direction] else { continue }
             let isConnected = connectedDirections.contains(direction)
 
-            button.setTitle("\(directionNames[direction.rawValue]): \(isConnected ? "✓" : "✗")", for: .normal)
-            button.setTitleColor(isConnected ? .green : .red, for: .normal)
+            let isAllowed = isDirectionAllowed(direction: direction)
+            let stateText = isAllowed ? (isConnected ? "✓" : "✗") : "Blocked"
+            button.setTitle("\(directionNames[direction.rawValue]): \(stateText)", for: .normal)
+            if isAllowed {
+                button.setTitleColor(isConnected ? .green : .red, for: .normal)
+                button.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 0.8)
+                button.layer.borderColor = UIColor.white.cgColor
+            } else {
+                button.setTitleColor(.lightGray, for: .normal)
+                button.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.15, alpha: 0.8)
+                button.layer.borderColor = UIColor.gray.cgColor
+            }
+            button.isEnabled = isAllowed
         }
     }
 
@@ -518,23 +538,65 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         return position + direction.intVector
     }
 
+    private func isDirectionAllowed(direction: Direction) -> Bool {
+        guard let ui = parentUI,
+              let entity = ui.currentEntity,
+              let world = ui.gameLoop?.world,
+              let pipe = world.get(PipeComponent.self, for: entity) else {
+            return true
+        }
+        return pipe.allowedDirections.contains(direction)
+    }
+
     private func hasConnection(to neighborPos: IntVector2, for entity: Entity, in world: World) -> Bool {
         guard let pipe = world.get(PipeComponent.self, for: entity) else {
             return false
         }
 
-        // Check if there's a pipe at the neighbor position
-        let entitiesWithPosition = world.query(PositionComponent.self)
-        for otherEntity in entitiesWithPosition {
-            if let otherPos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
-               otherPos == neighborPos,
-               world.has(PipeComponent.self, for: otherEntity) {
-                // Check if these pipes are connected in the connections array
-                return pipe.connections.contains(otherEntity)
+        guard let gameLoop = parentUI?.gameLoop else {
+            return false
+        }
+
+        // Check if any connected entity occupies the neighbor position
+        for connectedEntity in pipe.connections {
+            if entityOccupiesTile(connectedEntity, tile: neighborPos, gameLoop: gameLoop) {
+                return true
             }
         }
 
         return false
+    }
+
+    private func entityOccupiesTile(_ entity: Entity, tile: IntVector2, gameLoop: GameLoop) -> Bool {
+        guard let pos = gameLoop.world.get(PositionComponent.self, for: entity)?.tilePosition else {
+            return false
+        }
+        let size = fluidEntitySize(entity: entity, gameLoop: gameLoop)
+        let withinX = tile.x >= pos.x && tile.x < pos.x + Int32(size.width)
+        let withinY = tile.y >= pos.y && tile.y < pos.y + Int32(size.height)
+        return withinX && withinY
+    }
+
+    private func fluidEntitySize(entity: Entity, gameLoop: GameLoop) -> (width: Int, height: Int) {
+        var buildingId: String?
+
+        if let pipe = gameLoop.world.get(PipeComponent.self, for: entity) {
+            buildingId = pipe.buildingId
+        } else if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            buildingId = producer.buildingId
+        } else if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            buildingId = consumer.buildingId
+        } else if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            buildingId = tank.buildingId
+        } else if let pump = gameLoop.world.get(FluidPumpComponent.self, for: entity) {
+            buildingId = pump.buildingId
+        }
+
+        if let buildingId = buildingId, let def = gameLoop.buildingRegistry.get(buildingId) {
+            return (def.width, def.height)
+        }
+
+        return (1, 1)
     }
 
     @objc private func connectionButtonTapped(_ sender: UIKit.UIButton) {
@@ -757,6 +819,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             pipe.connections.removeAll { $0 == neighbor }
             neighborPipe.connections.removeAll { $0 == entity }
             pipe.manuallyDisconnectedDirections.insert(direction)
+            neighborPipe.manuallyDisconnectedDirections.insert(direction.opposite)
             world.add(pipe, to: entity)
             world.add(neighborPipe, to: neighbor)
             print("PipeConnectionUIComponent: Disconnected pipe \(entity.id) from \(neighbor.id) (direction: \(direction))")
@@ -765,6 +828,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             pipe.connections.append(neighbor)
             neighborPipe.connections.append(entity)
             pipe.manuallyDisconnectedDirections.remove(direction)
+            neighborPipe.manuallyDisconnectedDirections.remove(direction.opposite)
             world.add(pipe, to: entity)
             world.add(neighborPipe, to: neighbor)
             print("PipeConnectionUIComponent: Connected pipe \(entity.id) to \(neighbor.id) (direction: \(direction))")

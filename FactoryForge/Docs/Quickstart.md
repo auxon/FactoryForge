@@ -25,6 +25,12 @@ Produce rockets with satellites in orbit to achieve victory. This requires build
 - Connect everything with **Small Electric Poles**
 - **Note**: Boilers require constant water supply - without water pumps and pipes, your power plant won't work!
 
+### Pipe Placement + Rotation
+- Drag to lay multiple pipe segments in a line, like belts
+- Pipes now have real direction: straight segments connect front/back
+- Rotate pipes to change their allowed connection sides
+- Use the pipe connection UI to manually block specific sides
+
 ### 3. Begin Automation
 - Replace burner miners with **Electric Mining Drills**
 - Build **Assembling Machine 1** for crafting components
@@ -144,6 +150,12 @@ Produce rockets with satellites in orbit to achieve victory. This requires build
 5. **Inserter Upgrades**: Stack inserters handle multiple items at once, fast inserters for speed
 6. **Power Scaling**: Transition from steam to solar/nuclear as you expand
 7. **Water Management**: Never forget water pumps - boilers and oil processing both need constant water
+
+## Pipe Checklist
+- Drag place a straight pipe run and verify both ends connect
+- Rotate a pipe and confirm connections update as expected
+- Use the pipe connection UI to block a side and confirm it stays disconnected
+- Check pipe flow/connection indicators to confirm network rebuilds
 
 ## Critical Path Summary
 **Basic Mining** → **Labs + Automation Science** → **Inserters/Belts** → **Logistic Science** → **Oil Processing** → **Chemical Science** → **Nuclear + Advanced Materials** → **Rocket Silo** → **Space Science (Victory)**

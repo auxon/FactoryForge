@@ -142,8 +142,8 @@ final class SpriteRenderer {
                 rotation = -belt.direction.angle
             } else if let pipe = pipe {
                 // Pipes use their direction for visual rotation
-                // Negate angle for clockwise rotation to match texture orientation
-                rotation = -pipe.direction.angle
+                // pipe.png is oriented east-west, so offset by 90 degrees
+                rotation = (.pi / 2) - pipe.direction.angle
             }
             // Other sprites (buildings) don't rotate
 
@@ -832,4 +832,3 @@ struct SpriteInstanceData {
 struct SpriteUniforms {
     var viewProjection: Matrix4
 }
-

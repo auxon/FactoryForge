@@ -284,6 +284,7 @@ FactoryForge features a realistic fluid simulation system inspired by Factorio. 
 - **Function**: Transport fluids between buildings
 - **Capacity**: 100 units per pipe segment
 - **Connections**: Up to 4 directions (north, south, east, west)
+- **Placement**: Drag to place multiple segments; rotate to control which sides connect
 - **Flow**: Automatic pressure-based distribution
 
 #### Water Pumps

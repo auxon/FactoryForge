@@ -443,8 +443,9 @@ final class InputManager: NSObject {
         case .placing:
             let tilePos = IntVector2(from: worldPos)
             
-            // Handle belt/pole placement (tap to set start tile, then drag)
-            if let buildingId = selectedBuildingId, buildingId.contains("belt") || buildingId.contains("pole") {
+            // Handle belt/pole/pipe placement (tap to set start tile, then drag)
+            if let buildingId = selectedBuildingId,
+               buildingId.contains("belt") || buildingId.contains("pole") || buildingId.contains("pipe") {
                 // Just set the start tile, items will be placed during drag
                 dragPlacementStartTile = tilePos
                 dragPlacedTiles = []
@@ -507,6 +508,10 @@ final class InputManager: NSObject {
                     // Keep in build mode to allow placing more buildings
                     // Play placement sound/feedback
                     AudioManager.shared.playPlaceSound()
+
+                    if buildingDef.type == .pipe {
+                        updatePipeShapeForPlacement(at: tilePos, fallbackDirection: buildDirection, gameLoop: gameLoop)
+                    }
 
                     // Select the newly placed entity
                     if let placedEntity = gameLoop.world.getEntityAt(position: tilePos) {
@@ -650,8 +655,9 @@ final class InputManager: NSObject {
                 // Update build preview position
                 buildPreviewPosition = IntVector2(from: worldPos)
                 
-                // For belt/pole placement, set start tile if not already set
-                if buildMode == .placing, let buildingId = selectedBuildingId, buildingId.contains("belt") || buildingId.contains("pole") {
+                // For belt/pole/pipe placement, set start tile if not already set
+                if buildMode == .placing, let buildingId = selectedBuildingId,
+                   buildingId.contains("belt") || buildingId.contains("pole") || buildingId.contains("pipe") {
                     if dragPlacementStartTile == nil {
                         dragPlacementStartTile = IntVector2(from: worldPos)
                         dragPlacedTiles = []
@@ -661,14 +667,14 @@ final class InputManager: NSObject {
             }
             
         case .changed:
-            // Prioritize belt/pole drag placement when in placing mode
+            // Prioritize belt/pole/pipe drag placement when in placing mode
             // This needs to run before UI drag checks to prevent interference
-            if buildMode == .placing, let buildingId = selectedBuildingId, 
-               (buildingId.contains("belt") || buildingId.contains("pole")) {
-                // Handle belt/pole placement during drag
+            if buildMode == .placing, let buildingId = selectedBuildingId,
+               (buildingId.contains("belt") || buildingId.contains("pole") || buildingId.contains("pipe")) {
+                // Handle belt/pole/pipe placement during drag
                 buildPreviewPosition = IntVector2(from: worldPos)
                 handleDragPlacement(at: worldPos, gameLoop: gameLoop, buildingId: buildingId)
-                return  // Belt placement consumes the gesture
+                return  // Drag placement consumes the gesture
             }
             
             // Update build preview position for other build modes
@@ -1739,7 +1745,7 @@ final class InputManager: NSObject {
         selectionRect = nil
     }
     
-    // MARK: - Belt Placement
+    // MARK: - Belt/Pipe Placement
     
     /// Checks if an entity can be a belt source (has inventory/output)
     private func canBeBeltSource(entity: Entity, world: World) -> Bool {
@@ -1774,6 +1780,7 @@ final class InputManager: NSObject {
         dragPathPreview = path
         
         let isBelt = buildingDef.type == .belt
+        let isPipe = buildingDef.type == .pipe
         
         // Place items along the path that haven't been placed yet
         for (index, pos) in path.enumerated() {
@@ -1791,8 +1798,9 @@ final class InputManager: NSObject {
                 continue
             }
             
-            // Determine direction - only needed for belts, poles use .north
+            // Determine direction - belts and pipes use directional placement
             let direction: Direction
+            var pipeShape: PipeShape? = nil
             if isBelt {
                 if index == 0 && path.count > 1 {
                     // For the start tile, use direction to the next tile
@@ -1831,6 +1839,10 @@ final class InputManager: NSObject {
                 } else {
                     direction = .north  // Default for single tile path
                 }
+            } else if isPipe {
+                let segmentInfo = pipeSegmentInfo(at: index, path: path, fallbackDirection: buildDirection)
+                direction = segmentInfo.direction
+                pipeShape = segmentInfo.shape
             } else {
                 // Poles don't need direction
                 direction = .north
@@ -1839,6 +1851,20 @@ final class InputManager: NSObject {
             // Place the building (placeBuilding already removes items from inventory)
             if gameLoop.placeBuilding(buildingId, at: pos, direction: direction, offset: .zero) {
                 dragPlacedTiles.insert(pos)
+
+                if isPipe, let placedEntity = gameLoop.world.getEntityAt(position: pos),
+                   let pipe = gameLoop.world.get(PipeComponent.self, for: placedEntity),
+                   let pipeShape = pipeShape {
+                    pipe.direction = direction
+                    pipe.shape = pipeShape
+                    pipe.allowedDirections = PipeComponent.allowedDirections(for: pipeShape, direction: direction)
+                    gameLoop.world.add(pipe, to: placedEntity)
+                    gameLoop.fluidNetworkSystem.markEntityDirty(placedEntity)
+                }
+
+                if isPipe {
+                    updatePipeShapeForPlacement(at: pos, fallbackDirection: direction, gameLoop: gameLoop)
+                }
 
                 // Don't select entities during drag placement to avoid UI confusion
             }
@@ -1876,6 +1902,157 @@ final class InputManager: NSObject {
     
     func rotateBuildDirection() {
         buildDirection = buildDirection.clockwise
+    }
+
+    private func pipeSegmentInfo(at index: Int, path: [IntVector2], fallbackDirection: Direction) -> (direction: Direction, shape: PipeShape) {
+        if path.count <= 1 {
+            return (fallbackDirection, .straight)
+        }
+
+        let current = path[index]
+        let hasPrev = index > 0
+        let hasNext = index + 1 < path.count
+        let dirToPrev = hasPrev ? direction(from: current, to: path[index - 1]) : nil
+        let dirToNext = hasNext ? direction(from: current, to: path[index + 1]) : nil
+
+        if let dirToPrev = dirToPrev, let dirToNext = dirToNext {
+            if dirToPrev == dirToNext.opposite {
+                return (dirToNext, .straight)
+            }
+            if dirToNext == dirToPrev.clockwise {
+                return (dirToPrev, .corner)
+            }
+            if dirToPrev == dirToNext.clockwise {
+                return (dirToNext, .corner)
+            }
+            return (dirToNext, .corner)
+        }
+
+        if let dir = dirToNext ?? dirToPrev {
+            return (dir, .straight)
+        }
+
+        return (fallbackDirection, .straight)
+    }
+
+    private func direction(from start: IntVector2, to end: IntVector2) -> Direction {
+        let offset = end - start
+        if offset.x == 0 && offset.y == 1 { return .north }
+        if offset.x == 1 && offset.y == 0 { return .east }
+        if offset.x == 0 && offset.y == -1 { return .south }
+        if offset.x == -1 && offset.y == 0 { return .west }
+        return .north
+    }
+
+    private func updatePipeShapeForPlacement(at position: IntVector2, fallbackDirection: Direction, gameLoop: GameLoop) {
+        updatePipeShape(at: position, fallbackDirection: fallbackDirection, gameLoop: gameLoop)
+
+        for direction in Direction.allCases {
+            let neighborPos = position + direction.intVector
+            guard let neighbor = gameLoop.world.getEntityAt(position: neighborPos),
+                  gameLoop.world.has(PipeComponent.self, for: neighbor) else {
+                continue
+            }
+            updatePipeShape(at: neighborPos, fallbackDirection: direction.opposite, gameLoop: gameLoop)
+        }
+    }
+
+    private func updatePipeShape(at position: IntVector2, fallbackDirection: Direction, gameLoop: GameLoop) {
+        guard let entity = gameLoop.world.getEntityAt(position: position),
+              let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else {
+            return
+        }
+
+        var neighborDirections: Set<Direction> = []
+        for direction in Direction.allCases {
+            let neighborPos = position + direction.intVector
+            if isFluidEntityOccupying(tile: neighborPos, gameLoop: gameLoop) {
+                neighborDirections.insert(direction)
+            }
+        }
+
+        let shapeInfo = pipeShapeAndDirection(for: neighborDirections, fallbackDirection: fallbackDirection)
+        pipe.direction = shapeInfo.direction
+        pipe.shape = shapeInfo.shape
+        pipe.allowedDirections = PipeComponent.allowedDirections(for: shapeInfo.shape, direction: shapeInfo.direction)
+        gameLoop.world.add(pipe, to: entity)
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+    }
+
+    private func pipeShapeAndDirection(for directions: Set<Direction>, fallbackDirection: Direction) -> (shape: PipeShape, direction: Direction) {
+        let count = directions.count
+        if count == 0 {
+            return (.straight, fallbackDirection)
+        }
+        if count == 1, let dir = directions.first {
+            return (.end, dir)
+        }
+        if count == 2 {
+            let dirs = Array(directions)
+            if dirs[0] == dirs[1].opposite {
+                return (.straight, dirs[0])
+            }
+            if dirs[1] == dirs[0].clockwise {
+                return (.corner, dirs[0])
+            }
+            if dirs[0] == dirs[1].clockwise {
+                return (.corner, dirs[1])
+            }
+            return (.corner, fallbackDirection)
+        }
+        if count == 3 {
+            let missing = Direction.allCases.first { !directions.contains($0) } ?? fallbackDirection
+            return (.tee, missing.clockwise)
+        }
+        return (.cross, fallbackDirection)
+    }
+
+    private func isFluidEntity(_ entity: Entity, world: World) -> Bool {
+        return world.has(PipeComponent.self, for: entity) ||
+            world.has(FluidProducerComponent.self, for: entity) ||
+            world.has(FluidConsumerComponent.self, for: entity) ||
+            world.has(FluidTankComponent.self, for: entity) ||
+            world.has(FluidPumpComponent.self, for: entity)
+    }
+
+    private func isFluidEntityOccupying(tile: IntVector2, gameLoop: GameLoop) -> Bool {
+        for entity in gameLoop.world.entities {
+            if !isFluidEntity(entity, world: gameLoop.world) {
+                continue
+            }
+            guard let pos = gameLoop.world.get(PositionComponent.self, for: entity)?.tilePosition else {
+                continue
+            }
+            let size = fluidEntitySize(entity: entity, gameLoop: gameLoop)
+            let withinX = tile.x >= pos.x && tile.x < pos.x + Int32(size.width)
+            let withinY = tile.y >= pos.y && tile.y < pos.y + Int32(size.height)
+            if withinX && withinY {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func fluidEntitySize(entity: Entity, gameLoop: GameLoop) -> (width: Int, height: Int) {
+        var buildingId: String?
+
+        if let pipe = gameLoop.world.get(PipeComponent.self, for: entity) {
+            buildingId = pipe.buildingId
+        } else if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            buildingId = producer.buildingId
+        } else if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            buildingId = consumer.buildingId
+        } else if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            buildingId = tank.buildingId
+        } else if let pump = gameLoop.world.get(FluidPumpComponent.self, for: entity) {
+            buildingId = pump.buildingId
+        }
+
+        if let buildingId = buildingId, let def = gameLoop.buildingRegistry.get(buildingId) {
+            return (def.width, def.height)
+        }
+
+        return (1, 1)
     }
 }
 
@@ -2002,4 +2179,3 @@ extension InputManager: UIGestureRecognizerDelegate {
         return false
     }
 }
-
