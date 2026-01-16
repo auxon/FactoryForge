@@ -374,6 +374,13 @@ final class UISystem {
     // MARK: - Update
     
     func update(deltaTime: Float) {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.update(deltaTime: deltaTime)
+            }
+            return
+        }
+
         if let panel = activePanel, panel == .loadingMenu || panel == .autoplayMenu || panel == .helpMenu || panel == .documentViewer {
             if panel == .loadingMenu {
                 loadingMenu.update(deltaTime: deltaTime)
@@ -1756,5 +1763,4 @@ class InserterConnectionDialog {
         }
     }
 }
-
 

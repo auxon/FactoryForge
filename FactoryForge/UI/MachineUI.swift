@@ -2745,6 +2745,17 @@ final class MachineUI: UIPanel_Base {
         // Update progress bar
         updateProgressBar()
 
+        // Keep custom fluid tank UI in sync for chemical plants and refineries
+        if let entity = currentEntity,
+           let gameLoop = gameLoop,
+           let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+            if buildingDef.type == .chemicalPlant {
+                updateChemicalPlantTanks(entity)
+            } else if buildingDef.type == .oilRefinery {
+                updateOilRefineryTanks(entity)
+            }
+        }
+
         if let entity = currentEntity,
            let gameLoop = gameLoop,
            let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
@@ -2758,9 +2769,20 @@ final class MachineUI: UIPanel_Base {
 
         // Update fluid components for real-time buffer displays
         if let entity = currentEntity {
-            for component in machineComponents {
-                if let fluidComponent = component as? FluidMachineUIComponent {
-                    fluidComponent.updateUI(for: entity, in: self)
+            let updateFluidUI = { [weak self] in
+                guard let self else { return }
+                for component in self.machineComponents {
+                    if let fluidComponent = component as? FluidMachineUIComponent {
+                        fluidComponent.updateUI(for: entity, in: self)
+                    }
+                }
+            }
+
+            if Thread.isMainThread {
+                updateFluidUI()
+            } else {
+                DispatchQueue.main.async {
+                    updateFluidUI()
                 }
             }
         }

@@ -66,6 +66,13 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     }
 
     override func updateUI(for entity: Entity, in ui: MachineUI) {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.updateUI(for: entity, in: ui)
+            }
+            return
+        }
+
         print("FluidMachineUIComponent: updateUI called for entity \(entity.id) at \(Date().timeIntervalSince1970)")
         currentEntity = entity
         gameLoop = ui.gameLoop
@@ -897,16 +904,24 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                         fluidImageView.isHidden = true
                         tankView.backgroundColor = UIColor.gray.withAlphaComponent(0.7)
                     }
+
+                    tankLabels[i].setNeedsDisplay()
+                    tankView.setNeedsDisplay()
                 } else if i < tankLabels.count {
                     tankLabels[i].text = String(format: "Empty: 0/%.0f L", tank.maxCapacity)
                     if i < fluidTankViews.count {
                         fluidTankViews[i].backgroundColor = UIColor.gray.withAlphaComponent(0.7)
+                        fluidTankViews[i].setNeedsDisplay()
                     }
                     if i < fluidTankImages.count {
                         fluidTankImages[i].isHidden = true
                     }
+                    tankLabels[i].setNeedsDisplay()
                 }
             }
+
+            ui.rootView?.setNeedsLayout()
+            ui.rootView?.layoutIfNeeded()
         }
     }
 }
