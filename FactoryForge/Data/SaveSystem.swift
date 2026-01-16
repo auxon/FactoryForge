@@ -159,8 +159,12 @@ final class SaveSystem {
         // This is a safety measure in case some entities weren't added during deserialization
         gameLoop.world.rebuildSpatialIndex()
 
-        // Recompute pipe shapes based on current adjacency
-        gameLoop.fluidNetworkSystem.recomputePipeShapes()
+        // Force a fluid network rebuild immediately so connections are correct after load
+        gameLoop.fluidNetworkSystem.rebuildNetworks()
+        gameLoop.fluidNetworkSystem.update(deltaTime: 0)
+
+        // Recompute pipe shapes based on saved connections (preserve manual overrides)
+        gameLoop.fluidNetworkSystem.recomputePipeShapesFromConnections()
 
         // Debug: Check what entities exist after loading
         var assemblerCount = 0

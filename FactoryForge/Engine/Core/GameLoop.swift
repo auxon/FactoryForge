@@ -1050,8 +1050,8 @@ final class GameLoop {
             ), to: entity)
             world.add(FluidProducerComponent(
                 buildingId: buildingDef.id,
-                outputType: .crudeOil,
-                productionRate: 10.0,  // 10 crude oil/s
+                outputType: buildingDef.fluidOutputType ?? .crudeOil,
+                productionRate: buildingDef.extractionRate,
                 powerConsumption: buildingDef.powerConsumption
             ), to: entity)
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
@@ -1062,8 +1062,8 @@ final class GameLoop {
         case .waterPump:
             world.add(FluidProducerComponent(
                 buildingId: buildingDef.id,
-                outputType: .water,
-                productionRate: 20.0,  // 20 water/s - matches Factorio offshore pump (1200/minute)
+                outputType: buildingDef.fluidOutputType ?? .water,
+                productionRate: buildingDef.extractionRate,
                 powerConsumption: 0  // No power required, like Factorio offshore pumps
             ), to: entity)
             // No inventory needed - water pumps output fluid directly to pipes

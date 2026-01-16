@@ -589,6 +589,7 @@ final class BuildingRegistry {
         )
         pumpjack.powerConsumption = 90  // kW
         pumpjack.extractionRate = 1.0   // 1 crude oil per second at full power
+        pumpjack.fluidOutputType = .crudeOil
         pumpjack.inventorySlots = 1     // fuelSlots + inputSlots + outputSlots = 0 + 0 + 1
         pumpjack.inputSlots = 0
         pumpjack.outputSlots = 1
@@ -606,6 +607,7 @@ final class BuildingRegistry {
         )
         waterPump.powerConsumption = 30  // kW - less than oil well
         waterPump.extractionRate = 20.0  // 20 water per second - matches Factorio offshore pump
+        waterPump.fluidOutputType = .water
         waterPump.inventorySlots = 0     // No inventory - outputs fluid directly to pipes
         waterPump.inputSlots = 0
         waterPump.outputSlots = 0        // No item outputs
@@ -751,4 +753,3 @@ final class BuildingRegistry {
         register(storageTank)
     }
 }
-

@@ -892,6 +892,73 @@ extension World {
                 }
             }
         }
+
+        func remapEntity(_ entity: Entity?) -> Entity? {
+            guard let entity else { return nil }
+            return oldIdToNewEntity[entity.id]
+        }
+
+        func remapConnections(_ connections: [Entity]) -> [Entity] {
+            connections.compactMap { oldIdToNewEntity[$0.id] }
+        }
+
+        // Fix entity references in fluid components after all entities are loaded
+        for entity in entities {
+            if let pipe = get(PipeComponent.self, for: entity) {
+                let remappedConnections = remapConnections(pipe.connections)
+                var remappedTankConnections: [Entity: Int] = [:]
+                for (oldEntity, tankIndex) in pipe.tankConnections {
+                    if let newEntity = oldIdToNewEntity[oldEntity.id] {
+                        remappedTankConnections[newEntity] = tankIndex
+                    }
+                }
+
+                if remappedConnections != pipe.connections || remappedTankConnections != pipe.tankConnections {
+                    pipe.connections = remappedConnections
+                    pipe.tankConnections = remappedTankConnections
+                    add(pipe, to: entity)
+                }
+            }
+
+            if let fluidProducer = get(FluidProducerComponent.self, for: entity) {
+                let remappedConnections = remapConnections(fluidProducer.connections)
+                if remappedConnections != fluidProducer.connections {
+                    fluidProducer.connections = remappedConnections
+                    add(fluidProducer, to: entity)
+                }
+            }
+
+            if let fluidConsumer = get(FluidConsumerComponent.self, for: entity) {
+                let remappedConnections = remapConnections(fluidConsumer.connections)
+                if remappedConnections != fluidConsumer.connections {
+                    fluidConsumer.connections = remappedConnections
+                    add(fluidConsumer, to: entity)
+                }
+            }
+
+            if let fluidTank = get(FluidTankComponent.self, for: entity) {
+                let remappedConnections = remapConnections(fluidTank.connections)
+                if remappedConnections != fluidTank.connections {
+                    fluidTank.connections = remappedConnections
+                    add(fluidTank, to: entity)
+                }
+            }
+
+            if let fluidPump = get(FluidPumpComponent.self, for: entity) {
+                let remappedInput = remapEntity(fluidPump.inputConnection)
+                let remappedOutput = remapEntity(fluidPump.outputConnection)
+                let remappedConnections = remapConnections(fluidPump.connections)
+
+                if remappedInput != fluidPump.inputConnection ||
+                    remappedOutput != fluidPump.outputConnection ||
+                    remappedConnections != fluidPump.connections {
+                    fluidPump.inputConnection = remappedInput
+                    fluidPump.outputConnection = remappedOutput
+                    fluidPump.connections = remappedConnections
+                    add(fluidPump, to: entity)
+                }
+            }
+        }
     }
 }
 

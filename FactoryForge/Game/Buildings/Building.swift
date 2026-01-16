@@ -55,6 +55,7 @@ struct BuildingDefinition: Identifiable, Codable {
     var fluidCapacity: Float = 0
     var fluidInputTanks: Int = 0  // Number of tanks dedicated to fluid inputs
     var fluidOutputTanks: Int = 0 // Number of tanks dedicated to fluid outputs
+    var fluidOutputType: FluidType? = nil
 
     // UI slot counts
     var inputSlots: Int = 0
@@ -136,4 +137,3 @@ enum BuildingType: String, Codable, CaseIterable {
         }
     }
 }
-

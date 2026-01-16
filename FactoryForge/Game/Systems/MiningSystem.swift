@@ -186,10 +186,10 @@ final class MiningSystem: System {
         // Process pumpjacks (oil wells and water pumps)
         world.forEach(PumpjackComponent.self) { [self] entity, pumpjack in
             guard let position = world.get(PositionComponent.self, for: entity) else { return }
-            guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
 
             let updatedPumpjack = pumpjack
             let tilePos = position.tilePosition
+            let usesFluidOutput = world.has(FluidProducerComponent.self, for: entity)
 
             // Determine what resource this pumpjack extracts and if it requires deposits
             let resourceItem = pumpjack.resourceType
@@ -222,10 +222,13 @@ final class MiningSystem: System {
                 }
             }
 
-            // Check if output inventory has space for the resource
-            guard inventory.canAccept(itemId: resourceItem) else {
-                pumpjackModifications.append((entity, updatedPumpjack))
-                return
+            if !usesFluidOutput {
+                guard let inventory = world.get(InventoryComponent.self, for: entity) else { return }
+                // Check if output inventory has space for the resource
+                guard inventory.canAccept(itemId: resourceItem) else {
+                    pumpjackModifications.append((entity, updatedPumpjack))
+                    return
+                }
             }
 
             // Calculate extraction time based on extraction rate
@@ -244,11 +247,14 @@ final class MiningSystem: System {
             if updatedPumpjack.progress >= 1.0 {
                 updatedPumpjack.progress = 0
 
-                // Extract resource (deposits are infinite in Factorio, so we don't reduce the deposit amount)
-                if let itemDef = itemRegistry.get(resourceItem) {
-                    inventory.add(itemId: resourceItem, count: 1, maxStack: itemDef.stackSize)
+                if !usesFluidOutput {
+                    guard var inventory = world.get(InventoryComponent.self, for: entity) else { return }
+                    // Extract resource (deposits are infinite in Factorio, so we don't reduce the deposit amount)
+                    if let itemDef = itemRegistry.get(resourceItem) {
+                        inventory.add(itemId: resourceItem, count: 1, maxStack: itemDef.stackSize)
+                    }
+                    inventoryModifications.append((entity, inventory))
                 }
-                inventoryModifications.append((entity, inventory))
             }
 
             pumpjackModifications.append((entity, updatedPumpjack))
@@ -347,4 +353,3 @@ final class MiningSystem: System {
         return nil
     }
 }
-

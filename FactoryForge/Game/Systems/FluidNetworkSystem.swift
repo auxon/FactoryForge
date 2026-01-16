@@ -1254,8 +1254,9 @@ final class FluidNetworkSystem: System {
                     // Other producers - check power and output capacity
                     let powerSatisfaction = world.get(PowerConsumerComponent.self, for: producerEntity)?.satisfaction ?? 1.0
                     let hasPower = producer.powerConsumption == 0 || powerSatisfaction > 0.5
+                    let pumpjackActive = world.get(PumpjackComponent.self, for: producerEntity)?.isActive ?? true
 
-                    if hasPower {
+                    if hasPower && pumpjackActive {
                         // Check if producer can output (connected pipes have space)
                         let canOutput = hasOutputCapacity(producerEntity: producerEntity, network: network)
                         if canOutput {
@@ -2076,19 +2077,17 @@ final class FluidNetworkSystem: System {
         dirtyEntities.formUnion(fluidEntities)
     }
 
-    /// Recompute pipe shapes/directions based on current adjacency (used after loading saves)
-    func recomputePipeShapes() {
+    /// Recompute pipe shapes/directions based on current connections (used after loading saves)
+    func recomputePipeShapesFromConnections() {
         for pipeEntity in world.query(PipeComponent.self) {
-            guard let pipe = world.get(PipeComponent.self, for: pipeEntity),
-                  let position = world.get(PositionComponent.self, for: pipeEntity)?.tilePosition else {
+            guard let pipe = world.get(PipeComponent.self, for: pipeEntity) else {
                 continue
             }
 
             var neighborDirections: Set<Direction> = []
-            for direction in Direction.allCases {
-                let neighborPos = position + direction.intVector
-                if hasFluidEntity(at: neighborPos) {
-                    neighborDirections.insert(direction)
+            for connected in pipe.connections {
+                if let adjacency = adjacencyBetween(pipeEntity, connected) {
+                    neighborDirections.insert(adjacency.directionFromEntity1)
                 }
             }
 
