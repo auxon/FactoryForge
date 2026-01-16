@@ -337,11 +337,20 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             let button = UIKit.UIButton(type: .system)
             let isConnected = connectedDirections.contains(direction)
             let isAllowed = isDirectionAllowed(direction: direction)
+            let mismatchText = fluidTypeMismatchText(for: direction)
 
             let stateText = isAllowed ? (isConnected ? "✓" : "✗") : "Blocked"
-            button.setTitle("\(directionNames[index]): \(stateText)", for: .normal)
+            let warningSuffix = mismatchText != nil ? "\nType mismatch: \(mismatchText!)" : ""
+            button.setTitle("\(directionNames[index]): \(stateText)\(warningSuffix)", for: .normal)
+            button.titleLabel?.numberOfLines = 2
+            button.titleLabel?.lineBreakMode = .byWordWrapping
+            button.titleLabel?.font = UIFont.systemFont(ofSize: 11, weight: .medium)
             if isAllowed {
-                button.setTitleColor(isConnected ? .green : .red, for: .normal)
+                if mismatchText != nil {
+                    button.setTitleColor(.systemOrange, for: .normal)
+                } else {
+                    button.setTitleColor(isConnected ? .green : .red, for: .normal)
+                }
                 button.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 0.8)
                 button.layer.borderColor = UIColor.white.cgColor
             } else {
@@ -568,10 +577,16 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             let isConnected = connectedDirections.contains(direction)
 
             let isAllowed = isDirectionAllowed(direction: direction)
+            let mismatchText = fluidTypeMismatchText(for: direction)
             let stateText = isAllowed ? (isConnected ? "✓" : "✗") : "Blocked"
-            button.setTitle("\(directionNames[direction.rawValue]): \(stateText)", for: .normal)
+            let warningSuffix = mismatchText != nil ? "\nType mismatch: \(mismatchText!)" : ""
+            button.setTitle("\(directionNames[direction.rawValue]): \(stateText)\(warningSuffix)", for: .normal)
             if isAllowed {
-                button.setTitleColor(isConnected ? .green : .red, for: .normal)
+                if mismatchText != nil {
+                    button.setTitleColor(.systemOrange, for: .normal)
+                } else {
+                    button.setTitleColor(isConnected ? .green : .red, for: .normal)
+                }
                 button.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 0.8)
                 button.layer.borderColor = UIColor.white.cgColor
             } else {
@@ -606,6 +621,35 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             return nil
         }
         return position + direction.intVector
+    }
+
+    private func fluidTypeMismatchText(for direction: Direction) -> String? {
+        guard let ui = parentUI,
+              let entity = ui.currentEntity,
+              let world = ui.gameLoop?.world,
+              let pipe = world.get(PipeComponent.self, for: entity),
+              let neighborPos = getNeighborPosition(for: entity, direction: direction, in: world) else {
+            return nil
+        }
+
+        var neighborPipe: PipeComponent?
+        for otherEntity in world.query(PositionComponent.self) {
+            if let otherPos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
+               otherPos == neighborPos,
+               let otherPipe = world.get(PipeComponent.self, for: otherEntity) {
+                neighborPipe = otherPipe
+                break
+            }
+        }
+
+        guard let otherPipe = neighborPipe,
+              let pipeType = pipe.fluidType,
+              let neighborType = otherPipe.fluidType,
+              pipeType != neighborType else {
+            return nil
+        }
+
+        return "\(pipeType.rawValue) vs \(neighborType.rawValue)"
     }
 
     private func isDirectionAllowed(direction: Direction) -> Bool {

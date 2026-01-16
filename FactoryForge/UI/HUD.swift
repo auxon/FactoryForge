@@ -806,7 +806,7 @@ final class HUD {
 
         // Check fluid debug button (top-left corner)
         let debugButtonSize: Float = 30 * scale
-        let debugButtonX = debugButtonSize + 500 * scale
+        let debugButtonX = debugButtonSize / 2 + 5 * scale
         let debugButtonY = debugButtonSize / 2 + 5 * scale
         if checkButtonTap(at: position, buttonPos: Vector2(debugButtonX, debugButtonY)) {
             onFluidDebugPressed?()

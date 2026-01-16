@@ -1663,8 +1663,8 @@ final class FluidNetworkSystem: System {
     private func removeFluidFromPipe(_ pipeEntity: Entity, amount: Float, fluidType: FluidType) -> Float {
         guard let originalPipe = world.get(PipeComponent.self, for: pipeEntity) else { return 0 }
 
-        // Check if pipe has the correct fluid type (ignore for steam since pipes may have mixed fluids)
-        if originalPipe.fluidType == fluidType || fluidType == .steam {
+        // Only allow removing matching fluid types
+        if originalPipe.fluidType == fluidType {
             let pipe = originalPipe
             let removed = min(amount, pipe.fluidAmount)
             pipe.fluidAmount -= removed
@@ -1682,7 +1682,11 @@ final class FluidNetworkSystem: System {
     private func addFluidToPipe(_ pipeEntity: Entity, amount: Float, fluidType: FluidType) -> Float {
         guard let originalPipe = world.get(PipeComponent.self, for: pipeEntity) else { return 0 }
 
-        // Pipes can accept any fluid type if they have space (fluids can mix/displace)
+        // Pipes can only accept their current fluid type or be empty
+        if let currentType = originalPipe.fluidType, currentType != fluidType {
+            return 0
+        }
+
         let maxAllowed = originalPipe.maxCapacity * 1.5
         let hasSpace = originalPipe.fluidAmount < maxAllowed
 
@@ -1694,13 +1698,15 @@ final class FluidNetworkSystem: System {
             let added = min(amount, space)
             updatedPipe.fluidAmount += added
 
-            // Set fluid type to the new fluid (injection can change fluid type)
-            updatedPipe.fluidType = fluidType
+            // Set fluid type when filling an empty pipe
+            if updatedPipe.fluidType == nil {
+                updatedPipe.fluidType = fluidType
+            }
 
             world.add(updatedPipe, to: pipeEntity)
             return added
         }
-        return 0  // Cannot add different fluid type to pipe
+        return 0
     }
 
     /// Remove fluid from a tank

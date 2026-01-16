@@ -401,6 +401,10 @@ final class BuildingRegistry {
         boiler.fuelCategory = "chemical"
         boiler.inputSlots = 0  // Takes fuel from fuel category
         boiler.outputSlots = 0  // Produces steam (fluid)
+        boiler.fluidOutputType = .steam
+        boiler.fluidCapacity = 540
+        boiler.fluidInputTanks = 1
+        boiler.fluidOutputTanks = 1
         boiler.fuelSlots = 1
         register(boiler)
         
@@ -421,6 +425,10 @@ final class BuildingRegistry {
         steamEngine.inputSlots = 0  // Takes steam (fluid)
         steamEngine.outputSlots = 0  // Produces power
         steamEngine.fuelSlots = 0
+        steamEngine.fluidInputTanks = 1
+        steamEngine.fluidOutputTanks = 0
+        steamEngine.fluidOutputType = .none
+        steamEngine.fluidCapacity = 540
         register(steamEngine)
         
         var solarPanel = BuildingDefinition(
