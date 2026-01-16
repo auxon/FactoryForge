@@ -1038,8 +1038,9 @@ final class FluidNetworkSystem: System {
         // Early exit optimization: skip calculation if network has no producers/consumers
         let hasActivity = !network.producers.isEmpty || !network.consumers.isEmpty
         if !hasActivity {
-            // No production or consumption, just update basic capacity
+            // No production or consumption, just update basic capacity + pressure for debug.
             network.updateCapacity(world)
+            applyBasicPipePressure(in: network)
             return
         }
 
@@ -1086,8 +1087,9 @@ final class FluidNetworkSystem: System {
 
         // Early exit optimization: if net flow is negligible, skip detailed calculations
         if abs(netFlow) < 0.01 && network.pipes.count > 10 {
-            // For large networks with minimal flow, just update capacity
+            // For large networks with minimal flow, just update capacity + pressure for debug.
             network.updateCapacity(world)
+            applyBasicPipePressure(in: network)
             return
         }
 
@@ -1096,6 +1098,7 @@ final class FluidNetworkSystem: System {
         let pressureStart = CACurrentMediaTime()
         #endif
         let pressureMap = calculatePressureDistribution(in: network, netFlow: netFlow)
+        applyPipePressure(in: network, pressureMap: pressureMap)
         #if DEBUG
         let pressureElapsed = CACurrentMediaTime() - pressureStart
         #endif
@@ -1105,10 +1108,10 @@ final class FluidNetworkSystem: System {
         #if DEBUG
         let flowStart = CACurrentMediaTime()
         #endif
-        if network.pipes.count > 1 {
-            flowRates = calculateFlowRates(in: network, pressureMap: pressureMap, deltaTime: deltaTime, networkId: networkId)
+        if network.pipes.isEmpty {
+            flowRates = [:]
         } else {
-            flowRates = [:]  // No flow calculations needed for single-pipe networks
+            flowRates = calculateFlowRates(in: network, pressureMap: pressureMap, deltaTime: deltaTime, networkId: networkId)
         }
         #if DEBUG
         let flowElapsed = CACurrentMediaTime() - flowStart
@@ -2102,6 +2105,27 @@ final class FluidNetworkSystem: System {
 
         let totalPressure = pressureMap.values.reduce(0, +)
         return totalPressure / Float(pressureMap.count)
+    }
+
+    private func applyPipePressure(in network: FluidNetwork, pressureMap: [Entity: Float]) {
+        for pipeEntity in network.pipes {
+            guard let pipe = world.get(PipeComponent.self, for: pipeEntity) else { continue }
+            let updatedPipe = pipe
+            updatedPipe.pressure = pressureMap[pipeEntity] ?? pipe.pressure
+            world.add(updatedPipe, to: pipeEntity)
+        }
+    }
+
+    private func applyBasicPipePressure(in network: FluidNetwork) {
+        for pipeEntity in network.pipes {
+            guard let pipe = world.get(PipeComponent.self, for: pipeEntity) else { continue }
+            let capacity = max(pipe.maxCapacity, 0.01)
+            let fillRatio = pipe.fluidAmount / capacity
+            let pressure = fillRatio * 50.0
+            let updatedPipe = pipe
+            updatedPipe.pressure = pressure
+            world.add(updatedPipe, to: pipeEntity)
+        }
     }
 
 
