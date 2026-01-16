@@ -38,13 +38,26 @@ Produce rockets with satellites in orbit to achieve victory. This requires build
 
 ## Phase 2: Science Research (10-30 minutes)
 
+### Research System Overview
+- Build **Labs** to process science packs and unlock technologies
+- Labs require **60 kW power** and consume science packs continuously
+- Research unlocks new recipes, buildings, and technologies
+- **Without research, you cannot progress!** Build labs early and keep them supplied with science packs.
+
+### Lab Construction
+- **Lab** requires: 10 Electronic Circuits + 10 Iron Gear Wheels + 4 Transport Belts
+- Place labs near your science pack production and connect to power grid
+- Labs have 4 input slots for different science pack types
+
 ### Automation Science Packs
-- Craft: 1 Copper plate + 1 Iron gear wheel → 5 packs
-- Enables basic machine upgrades
+- Craft: 1 Copper plate + 1 Iron gear wheel → 5 packs (5 seconds)
+- Unlocks: Steel smelting, Electric mining drills, Assembling Machine 2, Electric furnaces
+- **Priority**: Research this immediately after basic setup
 
 ### Logistic Science Packs
-- Craft: 1 Inserter + 1 Transport Belt → 5 packs
-- Unlocks advanced belts and inserters
+- Craft: 1 Inserter + 1 Transport Belt → 5 packs (6 seconds)
+- Unlocks: Fast transport belts, Fast inserters, Steel chests, Underground belts, Splitters
+- Enables efficient material handling and storage
 
 **Upgrade your factory:**
 - **Fast Transport Belts** (30 items/second) - faster item throughput
@@ -53,6 +66,16 @@ Produce rockets with satellites in orbit to achieve victory. This requires build
 - **Steel Furnaces** (2x faster smelting)
 - **Assembling Machine 2** (1.25x faster crafting)
 - **Inserter Strategy**: Use long-handed inserters for spacing, fast inserters for high-volume production lines
+
+### Chemical Science Packs
+- Craft: 3 Advanced Circuits + 2 Engine Units + 1 Sulfuric Acid → 1 pack (24 seconds)
+- Unlocks: Nuclear power, Uranium processing, Advanced oil processing, Electric furnace upgrades
+- **Requires oil processing infrastructure**
+
+### Space Science Packs
+- **Generated automatically** by successful rocket launches with satellites
+- Unlocks: Final technologies and victory
+- Requires completed rocket silo and satellite production
 
 ## Phase 3: Oil Processing (30-60 minutes)
 
@@ -109,16 +132,20 @@ Produce rockets with satellites in orbit to achieve victory. This requires build
 
 ## Victory Conditions
 - Launch satellites into orbit using the Rocket Silo
-- Space Science Packs are generated automatically from successful launches
-- Accumulate enough space science to complete the final research
+- **Space Science Packs** are generated automatically from successful satellite launches (1000 packs per launch)
+- Feed space science packs to labs to complete the final research technologies
+- Victory is achieved when all required space science research is completed
 
 ## Tips for Speed
-1. **Parallel Production**: Set up multiple production lines for key materials
-2. **Inserter Mastery**: Always use inserters to automate material flow - they're your factory's "workers"
-3. **Belt Optimization**: Use splitters and mergers for efficient item distribution
-4. **Inserter Upgrades**: Stack inserters handle multiple items at once, fast inserters for speed
-5. **Power Scaling**: Transition from steam to solar/nuclear as you expand
-6. **Water Management**: Never forget water pumps - boilers and oil processing both need constant water
+1. **Research Priority**: Build labs early and keep them constantly supplied - research unlocks everything
+2. **Parallel Production**: Set up multiple production lines for key materials
+3. **Inserter Mastery**: Always use inserters to automate material flow - they're your factory's "workers"
+4. **Belt Optimization**: Use splitters and mergers for efficient item distribution
+5. **Inserter Upgrades**: Stack inserters handle multiple items at once, fast inserters for speed
+6. **Power Scaling**: Transition from steam to solar/nuclear as you expand
+7. **Water Management**: Never forget water pumps - boilers and oil processing both need constant water
 
 ## Critical Path Summary
-**Iron Plates** → **Copper Cables** → **Electric Circuits** → **Inserters/Belts** → **Oil Processing** → **Advanced Circuits** → **Processing Units** → **Rocket Components** → **Satellite Launch**
+**Basic Mining** → **Labs + Automation Science** → **Inserters/Belts** → **Logistic Science** → **Oil Processing** → **Chemical Science** → **Nuclear + Advanced Materials** → **Rocket Silo** → **Space Science (Victory)**
+
+**Research unlocks everything - build labs immediately after basic power!**

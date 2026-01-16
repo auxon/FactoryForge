@@ -669,6 +669,18 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
             views.forEach { $0.removeFromSuperview() }
         }
 
+        researchUI?.onAddRootView = { [weak self] (view: UIView) in
+            guard let self = self else { return }
+            view.removeFromSuperview()
+            self.view.insertSubview(view, aboveSubview: self.metalView)
+            self.view.bringSubviewToFront(view)
+            self.view.bringSubviewToFront(self.tooltipLabel)
+            self.view.bringSubviewToFront(self.tooltipIconView)
+        }
+        researchUI?.onRemoveRootView = { (view: UIView) in
+            view.removeFromSuperview()
+        }
+
         // Set up research UI tooltip callback
         researchUI?.onShowTooltip = { [weak self] (tooltip: String) -> Void in
             self?.showTooltip(tooltip, duration: 5.0) // Show for 5 seconds for selected tech
@@ -766,6 +778,17 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // MachineUI now uses a single rootView instead of separate callbacks
 
         // Re-set up research UI label callbacks (UI system was recreated)
+        uiSystem?.getResearchUI().onAddRootView = { [weak self] (view: UIView) in
+            guard let self = self else { return }
+            view.removeFromSuperview()
+            self.view.insertSubview(view, aboveSubview: self.metalView)
+            self.view.bringSubviewToFront(view)
+            self.view.bringSubviewToFront(self.tooltipLabel)
+            self.view.bringSubviewToFront(self.tooltipIconView)
+        }
+        uiSystem?.getResearchUI().onRemoveRootView = { (view: UIView) in
+            view.removeFromSuperview()
+        }
         uiSystem?.getResearchUI().onAddLabels = { [weak self] (labels: [UILabel]) -> Void in
             labels.forEach {
                 self?.view.addSubview($0)
@@ -931,6 +954,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Update UI system with game loop (this recreates UI components)
         uiSystem?.setGameLoop(gameLoop!)
         renderer.uiSystem = uiSystem
+
+        // Re-wire UI callbacks after setGameLoop recreated components
+        setupResearchUICallbacks()
 
         // Setup input
         setupInput()

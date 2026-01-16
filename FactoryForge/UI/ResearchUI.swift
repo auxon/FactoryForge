@@ -4,7 +4,7 @@ import UIKit
 /// Research/Technology tree UI
 final class ResearchUI: UIPanel_Base {
     private weak var gameLoop: GameLoop?
-    private var closeButton: CloseButton!
+    private var closeButtonView: UIKit.UIButton?
     private var selectedTech: Technology?
 
     // UIKit scrolling components (like HelpMenu)
@@ -28,6 +28,12 @@ final class ResearchUI: UIPanel_Base {
     var onShowTooltip: ((String) -> Void)?
 
     private weak var parentView: UIKit.UIView?
+
+    private var rootView: UIView?
+
+    // Root view callbacks
+    var onAddRootView: ((UIView) -> Void)?
+    var onRemoveRootView: ((UIView) -> Void)?
     
     init(screenSize: Vector2, gameLoop: GameLoop?) {
         // Use full screen size for background
@@ -38,8 +44,17 @@ final class ResearchUI: UIPanel_Base {
         
         super.init(frame: panelFrame)
         self.gameLoop = gameLoop
+    }
 
-        setupCloseButton()
+    /// Convert Metal frame to UIKit points for panel container
+    private func panelFrameInPoints() -> CGRect {
+        let screenScale = UIScreen.main.scale
+        return CGRect(
+            x: CGFloat(frame.minX) / screenScale,
+            y: CGFloat(frame.minY) / screenScale,
+            width: CGFloat(frame.size.x) / screenScale,
+            height: CGFloat(frame.size.y) / screenScale
+        )
     }
 
     private func addSciencePackIcons(to button: UIKit.UIButton, for tech: Technology) {
@@ -121,6 +136,42 @@ final class ResearchUI: UIPanel_Base {
         }
     }
 
+    private func setupCloseButtonViewIfNeeded() {
+        guard let rootView = rootView else { return }
+        if closeButtonView != nil { return }
+
+        let button = UIKit.UIButton(type: .system)
+        button.setTitle("X", for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = UIColor(white: 0.3, alpha: 1.0)
+        button.layer.cornerRadius = 4
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+        button.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
+        rootView.addSubview(button)
+        closeButtonView = button
+    }
+
+    @objc private func closeButtonTapped() {
+        close()
+        gameLoop?.uiSystem?.closeAllPanels()
+    }
+
+    private func layoutCloseButton() {
+        guard let rootView = rootView else { return }
+        let bounds = rootView.bounds
+        let closeSize: CGFloat = 36
+        let closeMargin: CGFloat = 10
+        closeButtonView?.frame = CGRect(
+            x: bounds.width - closeMargin - closeSize,
+            y: closeMargin,
+            width: closeSize,
+            height: closeSize
+        )
+        if let closeButtonView = closeButtonView {
+            rootView.bringSubviewToFront(closeButtonView)
+        }
+    }
+
     /// Sets up UIScrollView with clickable UIButton overlays for tech selection
     /// Must be called from GameViewController after ResearchUI is created
     func setupLabels() {
@@ -130,16 +181,17 @@ final class ResearchUI: UIPanel_Base {
             print("ResearchUI: No technology registry available")
             return
         }
+        guard let rootView = rootView else { return }
         // Create scroll view for technologies (similar to HelpMenu)
-        let screenBounds = UIScreen.main.bounds
+        let bounds = rootView.bounds
         let scrollViewHeight: CGFloat = 200 // Smaller height to fit on screen
         let researchButtonHeight: CGFloat = 40
         let researchButtonSpacing: CGFloat = 10
-        let startY: CGFloat = 80 // Fixed position below close button area
+        let startY: CGFloat = 60 // Fixed position below close button area
         let scrollViewFrame = CGRect(
-            x: screenBounds.width * 0.1, // 10% margin on sides
+            x: bounds.width * 0.1, // 10% margin on sides
             y: startY,
-            width: screenBounds.width * 0.8, // 80% width
+            width: bounds.width * 0.8, // 80% width
             height: scrollViewHeight
         )
 
@@ -198,12 +250,13 @@ final class ResearchUI: UIPanel_Base {
             scrollView.addSubview(button)
             techButtonViews.append(button)
         }
+        rootView.addSubview(scrollView)
 
 
         // Create research button below the scroll view (normal sized, centered)
         let researchButtonWidth: CGFloat = 200
         let researchButtonFrame = CGRect(
-            x: (screenBounds.width - researchButtonWidth) / 2, // Center horizontally
+            x: (bounds.width - researchButtonWidth) / 2, // Center horizontally
             y: scrollViewFrame.maxY + researchButtonSpacing, // Below scroll view
             width: researchButtonWidth,
             height: researchButtonHeight
@@ -223,6 +276,7 @@ final class ResearchUI: UIPanel_Base {
         researchBtn.alpha = 0.5 // Visually indicate disabled state
 
         self.researchButton = researchBtn
+        rootView.addSubview(researchBtn)
 
         // Create research info label (positioned outside scroll view)
         if researchInfoLabel == nil {
@@ -240,6 +294,9 @@ final class ResearchUI: UIPanel_Base {
             label.layer.shadowRadius = 2
             label.layer.shadowOpacity = 0.6
             researchInfoLabel = label
+        }
+        if let infoLabel = researchInfoLabel {
+            rootView.addSubview(infoLabel)
         }
 
         // Create progress label (positioned outside scroll view)
@@ -259,26 +316,9 @@ final class ResearchUI: UIPanel_Base {
             label.layer.shadowOpacity = 0.6
             progressLabel = label
         }
-
-        // Add labels to view using callback
-        var allLabels: [UIKit.UILabel] = []
-        if let infoLabel = researchInfoLabel {
-            allLabels.append(infoLabel)
-        }
         if let progLabel = progressLabel {
-            allLabels.append(progLabel)
+            rootView.addSubview(progLabel)
         }
-        onAddLabels?(allLabels)
-
-        // Add scroll view and research button through callback
-        var allViews: [UIKit.UIView] = []
-        if let scrollView = self.scrollView {
-            allViews.append(scrollView)
-        }
-        if let researchButton = self.researchButton {
-            allViews.append(researchButton)
-        }
-        onAddViews?(allViews)
 
         scrollView.isHidden = !isOpen
         updateLabels()
@@ -302,7 +342,11 @@ final class ResearchUI: UIPanel_Base {
 
 
     private func updateTechButtonAppearance(_ button: UIKit.UIButton, for tech: Technology) {
-        guard let researchSystem = gameLoop?.researchSystem else { return }
+        guard let researchSystem = gameLoop?.researchSystem else {
+            button.setTitle(tech.name, for: UIKit.UIControl.State.normal)
+            button.setTitleColor(UIKit.UIColor.white, for: UIKit.UIControl.State.normal)
+            return
+        }
 
         let isCompleted = researchSystem.completedTechnologies.contains(tech.id)
         let isResearching = researchSystem.currentResearch?.id == tech.id
@@ -351,32 +395,15 @@ final class ResearchUI: UIPanel_Base {
     }
 
     private func removeLabels() {
-        // Use callbacks to remove views from view
-        var allViews: [UIKit.UIView] = []
-        if let scrollView = self.scrollView {
-            allViews.append(scrollView)
-        }
-        if let researchButton = self.researchButton {
-            allViews.append(researchButton)
-        }
-        onRemoveViews?(allViews)
-
-        // Clear references
+        scrollView?.removeFromSuperview()
         scrollView = nil
         techButtonViews.removeAll()
+        researchButton?.removeFromSuperview()
         researchButton = nil
 
-        // Use callbacks to remove labels from view
-        var allLabels: [UIKit.UILabel] = []
-        if let infoLabel = researchInfoLabel {
-            allLabels.append(infoLabel)
-        }
-        if let progLabel = progressLabel {
-            allLabels.append(progLabel)
-        }
-        onRemoveLabels?(allLabels)
-
+        researchInfoLabel?.removeFromSuperview()
         researchInfoLabel = nil
+        progressLabel?.removeFromSuperview()
         progressLabel = nil
     }
 
@@ -488,24 +515,19 @@ final class ResearchUI: UIPanel_Base {
         }
     }
 
-    private func setupCloseButton() {
-        let buttonSize: Float = 30 * UIScale
-        let buttonX = frame.maxX - 25 * UIScale
-        let buttonY = frame.minY + 25 * UIScale
-
-        closeButton = CloseButton(frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)))
-        closeButton.onTap = { [weak self] in
-            self?.close()
-            // Also notify UISystem to update panel state
-            self?.gameLoop?.uiSystem?.closeAllPanels()
-        }
-    }
-
     override func open() {
         super.open()
 
+        if rootView == nil {
+            rootView = UIView(frame: panelFrameInPoints())
+            rootView?.backgroundColor = .clear
+            rootView?.isUserInteractionEnabled = true
+        }
+
+        setupCloseButtonViewIfNeeded()
+
         // Create UIKit views if they don't exist yet and we have the necessary data
-        if scrollView == nil && gameLoop?.technologyRegistry != nil {
+        if (scrollView == nil || techButtonViews.isEmpty) && gameLoop?.technologyRegistry != nil {
             setupLabels()
         }
 
@@ -520,6 +542,11 @@ final class ResearchUI: UIPanel_Base {
         researchButton?.alpha = 0.5
         // Force update to set initial button states
         update(deltaTime: 0)
+
+        if let rootView = rootView {
+            onAddRootView?(rootView)
+            layoutCloseButton()
+        }
     }
 
     override func close() {
@@ -530,6 +557,18 @@ final class ResearchUI: UIPanel_Base {
         // Hide labels when menu closes
         researchInfoLabel?.isHidden = true
         progressLabel?.isHidden = true
+
+        closeButtonView?.removeFromSuperview()
+        closeButtonView = nil
+
+        removeLabels()
+
+        if let rv = rootView {
+            rv.isUserInteractionEnabled = false
+            rv.removeFromSuperview()
+            onRemoveRootView?(rv)
+        }
+        rootView = nil
     }
     
     
@@ -667,12 +706,6 @@ final class ResearchUI: UIPanel_Base {
         guard isOpen else { return }
 
         super.render(renderer: renderer)
-
-        // Render close button
-        closeButton.render(renderer: renderer)
-
-        // Tech buttons are now UIKit buttons in the scroll view
-        // Research info and progress are rendered as text labels
     }
     
     
@@ -682,11 +715,6 @@ final class ResearchUI: UIPanel_Base {
     
     override func handleTap(at position: Vector2) -> Bool {
         guard isOpen else { return false }
-
-        // Check close button first
-        if closeButton.handleTap(at: position) {
-            return true
-        }
 
         // Tech button taps are handled by UIKit gesture recognizers
         // Consume tap within panel bounds to prevent it from going to game world
@@ -699,4 +727,3 @@ final class ResearchUI: UIPanel_Base {
         return nil
     }
 }
-
