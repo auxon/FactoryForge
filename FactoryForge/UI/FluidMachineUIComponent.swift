@@ -21,6 +21,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     private var fluidTankImages: [UIImageView] = [] // Images for fluid textures
     private var tankDisplayTypes: [FluidType?] = []
     private var tankDisplayIndices: [Int?] = []
+    private var tankDisplayRoles: [TankRole?] = []
     private var bufferBars: [UIView] = [] // Small buffer visualization bars for converters like boilers
     private var bufferFills: [UIView] = [] // Fill views for buffer bars (one per bar)
     private var bufferLabels: [UILabel] = [] // Tiny labels under buffer bars showing amounts
@@ -63,6 +64,9 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
         fluidInputIndicators.removeAll()
         fluidOutputIndicators.removeAll()
+        tankDisplayTypes.removeAll()
+        tankDisplayIndices.removeAll()
+        tankDisplayRoles.removeAll()
 
         clearTankViews()
     }
@@ -205,9 +209,6 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         }
 
         // Tank labels: inputs to the right, outputs to the left
-        let inputTypes = buildingDef?.fluidInputTypes ?? []
-        let outputTypes = buildingDef?.fluidOutputTypes ?? []
-        let expectedTypes = inputTypes + outputTypes
         for (i, label) in tankLabels.enumerated() {
             guard i < fluidTankViews.count else { continue }
             let tankFrame = fluidTankViews[i].frame
@@ -215,8 +216,8 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             let labelWidth: CGFloat = 90
             let labelHeight: CGFloat = 20
             let labelSpacing: CGFloat = 6
-            let expectedType = i < tankDisplayTypes.count ? tankDisplayTypes[i] : nil
-            let isInputTank = expectedType.map { inputTypes.contains($0) } ?? (i < (buildingDef?.fluidInputTanks ?? 0))
+            let role = i < tankDisplayRoles.count ? tankDisplayRoles[i] : nil
+            let isInputTank = role != .output
 
             let labelX = isInputTank ? (tankFrame.maxX + labelSpacing) : (tankFrame.minX - labelWidth - labelSpacing)
             label.frame = CGRect(
@@ -454,10 +455,11 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                 tankStartYPoints = Float(ui.frame.center.y) - 130 * UIScale
             }
 
-            // Determine display ordering based on expected input/output types.
+            // Determine display ordering based on configured tank types.
             let displayMapping = buildTankDisplayMapping(tank: tank, buildingDef: buildingDef)
             tankDisplayTypes = displayMapping.types
             tankDisplayIndices = displayMapping.indices
+            tankDisplayRoles = displayMapping.roles
 
             let maxVisibleTanks = 8 // Allow up to 8 tanks for complex fluid processing buildings
             let displayCount = min(tankDisplayTypes.count, maxVisibleTanks)
@@ -467,21 +469,20 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                 print("FluidMachineUIComponent: Tank \(i): \(tank.amount)L of \(tank.type)")
             }
 
-            // Get building definition to determine input vs output tank positioning
-            let buildingDef = ui.getBuildingDefinition(for: ui.currentEntity!, gameLoop: ui.gameLoop!)
-            let inputTypes = buildingDef?.fluidInputTypes ?? []
-            let inputCount = inputTypes.count
-
+            var inputIndex = 0
+            var outputIndex = 0
             for index in 0..<displayCount { // Allow more tanks for fluid processing
-                let expectedType = tankDisplayTypes[index]
-                let isInputTank = expectedType.map { inputTypes.contains($0) } ?? (index < inputCount)
+                let role = index < tankDisplayRoles.count ? tankDisplayRoles[index] : nil
+                let isInputTank = role != .output
                 let tankX: Float
                 let localIndex: Int
 
-                if inputCount > 0 {
-                    localIndex = isInputTank ? index : max(0, index - inputCount)
+                if isInputTank {
+                    localIndex = inputIndex
+                    inputIndex += 1
                 } else {
-                    localIndex = index
+                    localIndex = outputIndex
+                    outputIndex += 1
                 }
 
                 if isInputTank {
@@ -934,41 +935,27 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         }
     }
 
-    private func buildTankDisplayMapping(tank: FluidTankComponent, buildingDef: BuildingDefinition?) -> (types: [FluidType?], indices: [Int?]) {
-        let inputTypes = buildingDef?.fluidInputTypes ?? []
-        let outputTypes = buildingDef?.fluidOutputTypes ?? []
-        let expectedTypes = inputTypes + outputTypes
+    private func buildTankDisplayMapping(tank: FluidTankComponent, buildingDef: BuildingDefinition?) -> (types: [FluidType?], indices: [Int?], roles: [TankRole?]) {
+        let tankSpecs = buildingDef?.fluidTanks ?? []
         let displayTypes: [FluidType?]
+        let displayRoles: [TankRole?]
 
-        if !expectedTypes.isEmpty {
-            displayTypes = expectedTypes.map { Optional($0) }
+        if !tankSpecs.isEmpty {
+            displayTypes = tankSpecs.map { Optional($0.fluidType) }
+            displayRoles = tankSpecs.map { Optional($0.role) }
         } else if !tank.tanks.isEmpty {
             displayTypes = tank.tanks.map { Optional($0.type) }
+            displayRoles = Array(repeating: nil, count: tank.tanks.count)
         } else {
             displayTypes = [nil]
+            displayRoles = [nil]
         }
 
-        var usedIndices = Set<Int>()
-        var indices: [Int?] = []
-        indices.reserveCapacity(displayTypes.count)
-
-        for displayType in displayTypes {
-            guard let displayType else {
-                indices.append(nil)
-                continue
-            }
-            let matchIndex = tank.tanks.indices.first { idx in
-                !usedIndices.contains(idx) && tank.tanks[idx].type == displayType
-            }
-            if let matchIndex {
-                usedIndices.insert(matchIndex)
-                indices.append(matchIndex)
-            } else {
-                indices.append(nil)
-            }
+        let indices: [Int?] = displayTypes.indices.map { idx in
+            tank.tanks.indices.contains(idx) ? idx : nil
         }
 
-        return (displayTypes, indices)
+        return (displayTypes, indices, displayRoles)
     }
 
     private func displayName(for fluidType: FluidType) -> String {

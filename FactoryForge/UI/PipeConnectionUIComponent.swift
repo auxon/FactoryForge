@@ -698,15 +698,14 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             return Array(repeating: "Tank", count: tankCount)
         }
 
-        let inputSource = def.fluidInputTypes.isEmpty ? def.fluidInputTanks : def.fluidInputTypes.count
-        let outputSource = def.fluidOutputTypes.isEmpty ? def.fluidOutputTanks : def.fluidOutputTypes.count
-        let inputCount = min(inputSource, tankCount)
-        let outputCount = max(0, min(outputSource, tankCount - inputCount))
-        let remaining = max(0, tankCount - inputCount - outputCount)
+        if !def.fluidTanks.isEmpty {
+            let roles = def.fluidTanks.map { $0.role }
+            let mapped = roles.prefix(tankCount).map { $0 == .input ? "Input" : "Output" }
+            let remaining = max(0, tankCount - mapped.count)
+            return mapped + Array(repeating: "Tank", count: remaining)
+        }
 
-        return Array(repeating: "Input", count: inputCount) +
-            Array(repeating: "Output", count: outputCount) +
-            Array(repeating: "Tank", count: remaining)
+        return Array(repeating: "Tank", count: tankCount)
     }
 
     private func fluidTypeMismatchText(for direction: Direction) -> String? {

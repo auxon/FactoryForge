@@ -166,6 +166,8 @@ final class MachineUI: UIPanel_Base {
 
     // UIKit recipe buttons
     private var recipeUIButtons: [UIKitButton] = []
+    private var recipeHeaderLabel: UILabel?
+    private var noRecipeSelectedLabel: UILabel?
 
     // Filtered recipes for current machine (to ensure consistent indexing)
     private var filteredRecipes: [Recipe] = []
@@ -381,6 +383,16 @@ final class MachineUI: UIPanel_Base {
         headerLabel.textColor = .lightGray
         headerLabel.textAlignment = .center
         rootView.addSubview(headerLabel)
+        recipeHeaderLabel = headerLabel
+
+        let emptyLabel = UILabel(frame: CGRect(x: scrollViewX, y: scrollViewY - 36, width: scrollViewWidth, height: 16))
+        emptyLabel.text = "No recipe selected"
+        emptyLabel.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+        emptyLabel.textColor = UIColor(white: 0.7, alpha: 1.0)
+        emptyLabel.textAlignment = .center
+        emptyLabel.isHidden = selectedRecipe != nil
+        rootView.addSubview(emptyLabel)
+        noRecipeSelectedLabel = emptyLabel
 
         // Add background color to prevent see-through appearance
         scrollView.backgroundColor = UIColor(red: 0.08, green: 0.08, blue: 0.1, alpha: 0.6)
@@ -781,6 +793,20 @@ final class MachineUI: UIPanel_Base {
     private var craftButton: UIKit.UIButton?
     private var recipeLabels: [UIView] = [] // Now contains both labels and image views
 
+    func activeFluidRecipe(for entity: Entity) -> Recipe? {
+        if let selectedRecipe {
+            return selectedRecipe
+        }
+        guard let gameLoop else { return nil }
+        if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            return assembler.recipe
+        }
+        if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+            return furnace.recipe
+        }
+        return nil
+    }
+
     @objc private func recipeButtonTapped(_ sender: Any) {
         guard let button = sender as? UIKit.UIButton else { return }
         guard gameLoop != nil else { return }
@@ -804,6 +830,7 @@ final class MachineUI: UIPanel_Base {
 
             // Just select the recipe - don't craft yet
             selectedRecipe = recipe
+            noRecipeSelectedLabel?.isHidden = true
 
             // Update recipe buttons appearance
             updateRecipeButtonStates()
@@ -953,6 +980,7 @@ final class MachineUI: UIPanel_Base {
     private func showRecipeDetails(_ recipe: Recipe) {
         // Clear previous recipe details
         clearRecipeDetails()
+        noRecipeSelectedLabel?.isHidden = true
 
         // Show recipe requirements with icons similar to CraftingMenu
         guard let rootView = rootView else { return }
@@ -1642,6 +1670,7 @@ final class MachineUI: UIPanel_Base {
 
             // Clear any previous recipe selection and update button states
             selectedRecipe = nil
+            noRecipeSelectedLabel?.isHidden = false
             updateRecipeButtonStates()
         } else {
             // No recipes for this machine - hide recipe UI
@@ -1848,6 +1877,7 @@ final class MachineUI: UIPanel_Base {
 
         // Clear recipe selection and details
         selectedRecipe = nil
+        noRecipeSelectedLabel?.isHidden = false
         craftButton?.removeFromSuperview()
         craftButton = nil
         clearRecipeDetails()
@@ -1859,6 +1889,10 @@ final class MachineUI: UIPanel_Base {
         // Remove recipe buttons (they're in the scroll view)
         recipeUIButtons.forEach { $0.removeFromSuperview() }
         recipeUIButtons.removeAll()
+        recipeHeaderLabel?.removeFromSuperview()
+        recipeHeaderLabel = nil
+        noRecipeSelectedLabel?.removeFromSuperview()
+        noRecipeSelectedLabel = nil
 
         // Remove any rocket button
         launchButton?.removeFromSuperview()

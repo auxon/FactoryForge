@@ -475,7 +475,6 @@ final class GameLoop {
         }
 
         if buildingId == "oil-refinery" {
-            print("GameLoop: Placing oil refinery - fluidInputTanks: \(buildingDef.fluidInputTanks), fluidOutputTanks: \(buildingDef.fluidOutputTanks)")
         }
         guard canPlaceBuilding(buildingDef, at: position) else { return false }
         if buildingDef.type == .pipe && !canPlacePipe(at: position, direction: direction, offset: offset) {
@@ -992,7 +991,9 @@ final class GameLoop {
         case .generator:
             if buildingDef.id == "boiler" {
                 // Boiler: consumes fuel + water, produces steam
-                let boilerOutput = buildingDef.fluidOutputTypes.first ?? buildingDef.fluidOutputType ?? .steam
+                let boilerOutput = buildingDef.fluidTanks.first(where: { $0.role == .output })?.fluidType
+                    ?? buildingDef.fluidOutputType
+                    ?? .steam
                 world.add(FluidProducerComponent(
                     buildingId: buildingDef.id,
                     outputType: boilerOutput,
@@ -1000,7 +1001,9 @@ final class GameLoop {
                     powerConsumption: 0  // Boilers don't consume electricity
                 ), to: entity)
                 // Boiler consumes water as fluid input
-                let boilerInput = buildingDef.fluidInputTypes.first ?? buildingDef.fluidInputType ?? .water
+                let boilerInput = buildingDef.fluidTanks.first(where: { $0.role == .input })?.fluidType
+                    ?? buildingDef.fluidInputType
+                    ?? .water
                 world.add(FluidConsumerComponent(
                     buildingId: buildingDef.id,
                     inputType: boilerInput,
@@ -1010,7 +1013,16 @@ final class GameLoop {
                 // Boiler consumes fuel (coal, wood, solid-fuel)
                 world.add(InventoryComponent(slots: 1, allowedItems: ItemRegistry.allowedFuel), to: entity)
                 // Add a fluid tank for water storage (enough for ~5 minutes of operation)
-                world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 540), to: entity)  // 540L = 1.8L/s * 300s
+                let boilerTankSpecs = buildingDef.fluidTanks
+                let boilerCapacity = boilerTankSpecs.reduce(0) { $0 + Float($1.capacity) }
+                let boilerTank = FluidTankComponent(
+                    buildingId: buildingDef.id,
+                    maxCapacity: boilerCapacity > 0 ? boilerCapacity : buildingDef.fluidCapacity
+                )
+                for spec in boilerTankSpecs {
+                    boilerTank.tanks.append(FluidStack(type: spec.fluidType, amount: 0, maxAmount: Float(spec.capacity)))
+                }
+                world.add(boilerTank, to: entity)
                 print("GameLoop: Added FluidProducerComponent (steam) to boiler entity \(entity)")
             } else if buildingDef.id == "steam-engine" {
                 // Steam Engine: consumes steam, produces power
@@ -1020,7 +1032,9 @@ final class GameLoop {
                     powerOutput: powerOutput,
                     fuelCategory: ""  // Steam engines don't use fuel categories
                 ), to: entity)
-                let steamInput = buildingDef.fluidInputTypes.first ?? buildingDef.fluidInputType ?? .steam
+                let steamInput = buildingDef.fluidTanks.first(where: { $0.role == .input })?.fluidType
+                    ?? buildingDef.fluidInputType
+                    ?? .steam
                 let steamConsumer = FluidConsumerComponent(
                     buildingId: buildingDef.id,
                     inputType: steamInput,
@@ -1028,8 +1042,19 @@ final class GameLoop {
                     efficiency: 1.0
                 )
                 world.add(steamConsumer, to: entity)
-                let steamTank = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: buildingDef.fluidCapacity)
-                steamTank.tanks.append(FluidStack(type: steamInput, amount: 0, maxAmount: buildingDef.fluidCapacity))
+                let steamTankSpecs = buildingDef.fluidTanks
+                let steamCapacity = steamTankSpecs.reduce(0) { $0 + Float($1.capacity) }
+                let steamTank = FluidTankComponent(
+                    buildingId: buildingDef.id,
+                    maxCapacity: steamCapacity > 0 ? steamCapacity : buildingDef.fluidCapacity
+                )
+                if steamTankSpecs.isEmpty {
+                    steamTank.tanks.append(FluidStack(type: steamInput, amount: 0, maxAmount: steamTank.maxCapacity))
+                } else {
+                    for spec in steamTankSpecs {
+                        steamTank.tanks.append(FluidStack(type: spec.fluidType, amount: 0, maxAmount: Float(spec.capacity)))
+                    }
+                }
                 world.add(steamTank, to: entity)
                 print("GameLoop: Added GeneratorComponent and FluidConsumerComponent to steam engine entity \(entity)")
             } else {
@@ -1092,7 +1117,7 @@ final class GameLoop {
                 extractionRate: buildingDef.extractionRate,
                 resourceType: "crude-oil"
             ), to: entity)
-            let pumpOutput = buildingDef.fluidOutputTypes.first ?? buildingDef.fluidOutputType ?? .crudeOil
+            let pumpOutput = buildingDef.fluidOutputType ?? .crudeOil
             world.add(FluidProducerComponent(
                 buildingId: buildingDef.id,
                 outputType: pumpOutput,
@@ -1105,7 +1130,7 @@ final class GameLoop {
             world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
 
         case .waterPump:
-            let waterOutput = buildingDef.fluidOutputTypes.first ?? buildingDef.fluidOutputType ?? .water
+            let waterOutput = buildingDef.fluidOutputType ?? .water
             world.add(FluidProducerComponent(
                 buildingId: buildingDef.id,
                 outputType: waterOutput,
@@ -1119,14 +1144,16 @@ final class GameLoop {
             world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
             // Oil refinery is purely fluid-based - no item inventory needed
             // All inputs/outputs are fluids that flow through fluid tanks
-            let totalTanks = buildingDef.fluidInputTanks + buildingDef.fluidOutputTanks
-            print("GameLoop: Oil refinery - fluidInputTanks: \(buildingDef.fluidInputTanks), fluidOutputTanks: \(buildingDef.fluidOutputTanks), total: \(totalTanks)")
-            let refineryTanks = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: buildingDef.fluidCapacity)
-            let refineryTankTypes = buildingDef.fluidInputTypes + buildingDef.fluidOutputTypes
-            for i in 0..<totalTanks {
-                let tankType = i < refineryTankTypes.count ? refineryTankTypes[i] : .water
-                refineryTanks.tanks.append(FluidStack(type: tankType, amount: 0, temperature: 20, maxAmount: 2500))
-                print("GameLoop: Created tank \(i) for oil refinery")
+            let refineryTankSpecs = buildingDef.fluidTanks
+            let refineryCapacity = refineryTankSpecs.reduce(0) { $0 + Float($1.capacity) }
+            let refineryTanks = FluidTankComponent(
+                buildingId: buildingDef.id,
+                maxCapacity: refineryCapacity > 0 ? refineryCapacity : buildingDef.fluidCapacity
+            )
+            for spec in refineryTankSpecs {
+                refineryTanks.tanks.append(
+                    FluidStack(type: spec.fluidType, amount: 0, temperature: 20, maxAmount: Float(spec.capacity))
+                )
             }
             world.add(refineryTanks, to: entity)
 
@@ -1137,12 +1164,16 @@ final class GameLoop {
             let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
             world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
             // Chemical plants need fluid tanks for various fluid inputs/outputs
-            let totalTanks = buildingDef.fluidInputTanks + buildingDef.fluidOutputTanks
-            let chemicalTanks = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 1500)
-            let chemicalTankTypes = buildingDef.fluidInputTypes + buildingDef.fluidOutputTypes
-            for i in 0..<totalTanks {
-                let tankType = i < chemicalTankTypes.count ? chemicalTankTypes[i] : .water
-                chemicalTanks.tanks.append(FluidStack(type: tankType, amount: 0, temperature: 20, maxAmount: 1500))
+            let chemicalTankSpecs = buildingDef.fluidTanks
+            let chemicalCapacity = chemicalTankSpecs.reduce(0) { $0 + Float($1.capacity) }
+            let chemicalTanks = FluidTankComponent(
+                buildingId: buildingDef.id,
+                maxCapacity: chemicalCapacity > 0 ? chemicalCapacity : 1500
+            )
+            for spec in chemicalTankSpecs {
+                chemicalTanks.tanks.append(
+                    FluidStack(type: spec.fluidType, amount: 0, temperature: 20, maxAmount: Float(spec.capacity))
+                )
             }
             world.add(chemicalTanks, to: entity)
 

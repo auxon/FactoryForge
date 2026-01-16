@@ -403,11 +403,10 @@ final class BuildingRegistry {
         boiler.outputSlots = 0  // Produces steam (fluid)
         boiler.fluidInputType = .water
         boiler.fluidOutputType = .steam
-        boiler.fluidInputTypes = [.water]
-        boiler.fluidOutputTypes = [.steam]
         boiler.fluidCapacity = 540
-        boiler.fluidInputTanks = 1
-        boiler.fluidOutputTanks = 1
+        boiler.fluidTanks = [
+            TankSpec(role: .input, fluidType: .water, capacity: 540)
+        ]
         boiler.fuelSlots = 1
         register(boiler)
         
@@ -428,11 +427,11 @@ final class BuildingRegistry {
         steamEngine.inputSlots = 0  // Takes steam (fluid)
         steamEngine.outputSlots = 0  // Produces power
         steamEngine.fuelSlots = 0
-        steamEngine.fluidInputTanks = 1
-        steamEngine.fluidOutputTanks = 0
         steamEngine.fluidInputType = .steam
-        steamEngine.fluidInputTypes = [.steam]
         steamEngine.fluidCapacity = 540
+        steamEngine.fluidTanks = [
+            TankSpec(role: .input, fluidType: .steam, capacity: 540)
+        ]
         register(steamEngine)
         
         var solarPanel = BuildingDefinition(
@@ -602,7 +601,6 @@ final class BuildingRegistry {
         pumpjack.powerConsumption = 90  // kW
         pumpjack.extractionRate = 1.0   // 1 crude oil per second at full power
         pumpjack.fluidOutputType = .crudeOil
-        pumpjack.fluidOutputTypes = [.crudeOil]
         pumpjack.inventorySlots = 1     // fuelSlots + inputSlots + outputSlots = 0 + 0 + 1
         pumpjack.inputSlots = 0
         pumpjack.outputSlots = 1
@@ -621,7 +619,6 @@ final class BuildingRegistry {
         waterPump.powerConsumption = 30  // kW - less than oil well
         waterPump.extractionRate = 20.0  // 20 water per second - matches Factorio offshore pump
         waterPump.fluidOutputType = .water
-        waterPump.fluidOutputTypes = [.water]
         waterPump.inventorySlots = 0     // No inventory - outputs fluid directly to pipes
         waterPump.inputSlots = 0
         waterPump.outputSlots = 0        // No item outputs
@@ -647,11 +644,14 @@ final class BuildingRegistry {
         oilRefinery.outputSlots = 0         // No item outputs (fluids go to tanks)
         oilRefinery.fuelSlots = 0
         oilRefinery.craftingCategory = "oil-processing"
-        oilRefinery.fluidInputTanks = 2     // 2 tanks for inputs (crude oil, water)
-        oilRefinery.fluidOutputTanks = 3    // 3 tanks for outputs (petroleum gas, light oil, heavy oil)
-        oilRefinery.fluidInputTypes = [.crudeOil, .water]
-        oilRefinery.fluidOutputTypes = [.petroleumGas, .lightOil, .heavyOil]
         oilRefinery.fluidCapacity = 12500
+        oilRefinery.fluidTanks = [
+            TankSpec(role: .input, fluidType: .crudeOil, capacity: 2500),
+            TankSpec(role: .input, fluidType: .water, capacity: 2500),
+            TankSpec(role: .output, fluidType: .petroleumGas, capacity: 2500),
+            TankSpec(role: .output, fluidType: .lightOil, capacity: 2500),
+            TankSpec(role: .output, fluidType: .heavyOil, capacity: 2500)
+        ]
         register(oilRefinery)
 
         var chemicalPlant = BuildingDefinition(
@@ -671,8 +671,16 @@ final class BuildingRegistry {
         chemicalPlant.inputSlots = 3
         chemicalPlant.outputSlots = 2
         chemicalPlant.fuelSlots = 0
-        chemicalPlant.fluidInputTanks = 2    // Chemical plants can use fluid inputs
-        chemicalPlant.fluidOutputTanks = 2   // Chemical plants can produce fluid outputs
+        chemicalPlant.fluidTanks = [
+            TankSpec(role: .input, fluidType: .water, capacity: 1500),
+            TankSpec(role: .input, fluidType: .petroleumGas, capacity: 1500),
+            TankSpec(role: .input, fluidType: .lightOil, capacity: 1500),
+            TankSpec(role: .input, fluidType: .heavyOil, capacity: 1500),
+            TankSpec(role: .output, fluidType: .petroleumGas, capacity: 1500),
+            TankSpec(role: .output, fluidType: .lightOil, capacity: 1500),
+            TankSpec(role: .output, fluidType: .sulfuricAcid, capacity: 1500),
+            TankSpec(role: .output, fluidType: .lubricant, capacity: 1500)
+        ]
         register(chemicalPlant)
 
         // Nuclear buildings
