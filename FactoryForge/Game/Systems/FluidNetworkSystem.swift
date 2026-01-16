@@ -57,6 +57,10 @@ final class FluidNetworkSystem: System {
     /// Performance optimization: Update frequency control
     private var updateCounter: Int = 0
     private let updateFrequency = 3  // Update every 3 frames for less critical calculations
+    private var boilerUpdateAccumulator: Float = 0
+    private let boilerUpdateInterval: Float = 0.1  // 10 Hz for boiler networks
+    private var flowUpdateCursorByNetwork: [Int: Int] = [:]
+    private let maxPipesPerFlowUpdate: Int = 64
 
 
     init(world: World, buildingRegistry: BuildingRegistry, itemRegistry: ItemRegistry) {
@@ -68,26 +72,48 @@ final class FluidNetworkSystem: System {
     func update(deltaTime: Float) {
         updateCounter += 1
 
+        #if DEBUG
+        let updateStart = CACurrentMediaTime()
+        var updateTimings: [String: Double] = [:]
+        #endif
 
         // Process dirty entities (pipes/buildings that were added/removed/modified)
         if !dirtyEntities.isEmpty {
+            #if DEBUG
+            let start = CACurrentMediaTime()
+            #endif
             updateNetworks()
+            #if DEBUG
+            updateTimings["updateNetworks"] = CACurrentMediaTime() - start
+            #endif
             dirtyEntities.removeAll()
         }
 
-        // Special case: Always process networks containing boilers every frame
-        // This ensures boiler fuel consumption happens continuously at 60 FPS
-        let boilerNetworks = getNetworksWithBoilers()
-        if !boilerNetworks.isEmpty {
-            updateFlowCalculations(for: boilerNetworks, deltaTime: deltaTime)
-            // Keep boiler networks dirty for next frame
-            dirtyNetworks.formUnion(boilerNetworks)
+        // Special case: Process networks containing boilers on a short interval
+        // This keeps boiler consumption responsive without heavy per-frame cost.
+        boilerUpdateAccumulator += deltaTime
+        if boilerUpdateAccumulator >= boilerUpdateInterval {
+            let accumulatedDelta = boilerUpdateAccumulator
+            boilerUpdateAccumulator = 0
+            let boilerNetworks = getNetworksWithBoilers()
+            if !boilerNetworks.isEmpty {
+                #if DEBUG
+                let start = CACurrentMediaTime()
+                #endif
+                updateFlowCalculations(for: boilerNetworks, deltaTime: accumulatedDelta)
+                #if DEBUG
+                updateTimings["boilerFlow"] = CACurrentMediaTime() - start
+                #endif
+            }
         }
 
         // Process dirty networks (need flow recalculation)
         // For performance, only update flow calculations every few frames for large networks
 
         if !dirtyNetworks.isEmpty {
+            #if DEBUG
+            let start = CACurrentMediaTime()
+            #endif
             let largeNetworks = dirtyNetworks.filter { networkId in
                 networks[networkId]?.pipes.count ?? 0 > 50
             }
@@ -106,10 +132,16 @@ final class FluidNetworkSystem: System {
             if updateCounter % updateFrequency == 0 {
                 dirtyNetworks.subtract(largeNetworks)
             }
+            #if DEBUG
+            updateTimings["dirtyFlow"] = CACurrentMediaTime() - start
+            #endif
         }
 
         // Periodic cleanup and optimization
-        if updateCounter % 60 == 0 {  // Every second at 60 FPS
+        if updateCounter % 240 == 0 {  // Every ~4 seconds at 60 FPS
+            #if DEBUG
+            let start = CACurrentMediaTime()
+            #endif
             performPeriodicOptimization()
             // Also periodically mark all fluid consumers as dirty to update consumption
             // This ensures boilers start consuming when fuel is added
@@ -122,7 +154,20 @@ final class FluidNetworkSystem: System {
                     }
                 }
             }
+            #if DEBUG
+            updateTimings["periodic"] = CACurrentMediaTime() - start
+            #endif
         }
+        #if DEBUG
+        let totalElapsed = CACurrentMediaTime() - updateStart
+        if totalElapsed >= 0.025 {
+            let details = updateTimings
+                .map { "\($0.key)=\(String(format: "%.2f", $0.value * 1000))ms" }
+                .sorted()
+                .joined(separator: ", ")
+            print("FluidNetworkSystem: update \(String(format: "%.2f", totalElapsed * 1000))ms | \(details)")
+        }
+        #endif
     }
 
     // MARK: - Network Management
@@ -498,7 +543,7 @@ final class FluidNetworkSystem: System {
         for adjacentPos in adjacentPositionsList {
             // Calculate which direction this adjacent position represents
             let directionOffset = adjacentPos - position
-            let direction = directionFromOffset(directionOffset)
+            _ = directionFromOffset(directionOffset)
 
             // Find entities at this position - use fallback if spatial query fails
             var entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
@@ -525,8 +570,6 @@ final class FluidNetworkSystem: System {
                     // Also add the connection to the adjacent entity
                     addConnection(from: adjacentEntity, to: entity)
                     addConnection(from: entity, to: adjacentEntity)
-                    // Mark the adjacent entity as dirty so its connections get updated too
-                    markEntityDirty(adjacentEntity)
                 } else {
                     // print("establishConnections: Cannot connect to adjacent entity \(adjacentEntity.id)")
                 }
@@ -929,18 +972,12 @@ final class FluidNetworkSystem: System {
 
     // MARK: - Flow Calculations
 
-    /// Updates flow calculations for dirty networks
-    private func updateFlowCalculations(_ deltaTime: Float) {
-        for networkId in dirtyNetworks {
-            if var network = networks[networkId] {
-                calculateNetworkFlow(&network, deltaTime: deltaTime)
-                networks[networkId] = network
-            }
-        }
-    }
-
     /// Calculates fluid flow within a network using advanced pressure simulation
-    private func calculateNetworkFlow(_ network: inout FluidNetwork, deltaTime: Float) {
+    private func calculateNetworkFlow(_ network: inout FluidNetwork, deltaTime: Float, networkId: Int) {
+        #if DEBUG
+        let startTime = CACurrentMediaTime()
+        #endif
+
         // Early exit optimization: skip calculation if network has no producers/consumers
         let hasActivity = !network.producers.isEmpty || !network.consumers.isEmpty
         if !hasActivity {
@@ -950,13 +987,31 @@ final class FluidNetworkSystem: System {
         }
 
         // Step 1: Calculate consumption volumes first (needed for boiler tank filling)
+        #if DEBUG
+        let consumptionStart = CACurrentMediaTime()
+        #endif
         let consumptionVolumes = calculateConsumptionVolumes(for: network, deltaTime: deltaTime)
+        #if DEBUG
+        let consumptionElapsed = CACurrentMediaTime() - consumptionStart
+        #endif
 
         // Step 1.5: Handle fluid consumption from the network (fill consumer tanks like boilers)
+        #if DEBUG
+        let consumeStart = CACurrentMediaTime()
+        #endif
         consumeFluidFromNetwork(consumptionVolumes: consumptionVolumes, network: network)
+        #if DEBUG
+        let consumeElapsed = CACurrentMediaTime() - consumeStart
+        #endif
 
         // Step 2: Calculate production rates (now boilers have water in their tanks)
+        #if DEBUG
+        let productionStart = CACurrentMediaTime()
+        #endif
         let productionRates = calculateProductionRates(for: network, deltaTime: deltaTime)
+        #if DEBUG
+        let productionElapsed = CACurrentMediaTime() - productionStart
+        #endif
 
         let totalProduction = productionRates.values.reduce(0, +)
         let totalConsumption = consumptionVolumes.values.reduce(0, +)
@@ -964,7 +1019,13 @@ final class FluidNetworkSystem: System {
 
 
         // Step 1.5: Inject produced fluid into the network
+        #if DEBUG
+        let injectStart = CACurrentMediaTime()
+        #endif
         injectProducedFluid(productionRates: productionRates, network: network)
+        #if DEBUG
+        let injectElapsed = CACurrentMediaTime() - injectStart
+        #endif
 
         // Early exit optimization: if net flow is negligible, skip detailed calculations
         if abs(netFlow) < 0.01 && network.pipes.count > 10 {
@@ -974,25 +1035,65 @@ final class FluidNetworkSystem: System {
         }
 
         // Step 2: Calculate pressure distribution across the network
+        #if DEBUG
+        let pressureStart = CACurrentMediaTime()
+        #endif
         let pressureMap = calculatePressureDistribution(in: network, netFlow: netFlow)
+        #if DEBUG
+        let pressureElapsed = CACurrentMediaTime() - pressureStart
+        #endif
 
         // Step 3: Calculate flow rates between connected components (skip for very small networks)
         let flowRates: [EntityPair: Float]
+        #if DEBUG
+        let flowStart = CACurrentMediaTime()
+        #endif
         if network.pipes.count > 1 {
-            flowRates = calculateFlowRates(in: network, pressureMap: pressureMap, deltaTime: deltaTime)
+            flowRates = calculateFlowRates(in: network, pressureMap: pressureMap, deltaTime: deltaTime, networkId: networkId)
         } else {
             flowRates = [:]  // No flow calculations needed for single-pipe networks
         }
+        #if DEBUG
+        let flowElapsed = CACurrentMediaTime() - flowStart
+        #endif
 
         // Step 4: Apply fluid transfers based on calculated flow rates
+        #if DEBUG
+        let transferStart = CACurrentMediaTime()
+        #endif
         if !flowRates.isEmpty {
             applyFluidTransfers(in: network, flowRates: flowRates, deltaTime: deltaTime)
         } else {
         }
+        #if DEBUG
+        let transferElapsed = CACurrentMediaTime() - transferStart
+        #endif
 
         // Step 5: Update network pressure and capacity
+        #if DEBUG
+        let finalizeStart = CACurrentMediaTime()
+        #endif
         network.pressure = calculateNetworkPressure(network: network, pressureMap: pressureMap)
         network.updateCapacity(world)
+        #if DEBUG
+        let finalizeElapsed = CACurrentMediaTime() - finalizeStart
+
+        let totalElapsed = CACurrentMediaTime() - startTime
+        if totalElapsed >= 0.01 {
+            let size = network.pipes.count + network.tanks.count + network.producers.count + network.consumers.count
+            let timingSummary = [
+                String(format: "consumption=%.2f", consumptionElapsed * 1000),
+                String(format: "consume=%.2f", consumeElapsed * 1000),
+                String(format: "production=%.2f", productionElapsed * 1000),
+                String(format: "inject=%.2f", injectElapsed * 1000),
+                String(format: "pressure=%.2f", pressureElapsed * 1000),
+                String(format: "flow=%.2f", flowElapsed * 1000),
+                String(format: "transfer=%.2f", transferElapsed * 1000),
+                String(format: "finalize=%.2f", finalizeElapsed * 1000)
+            ].joined(separator: ", ")
+            print("FluidNetworkSystem: network \(networkId) size \(size) pipes \(network.pipes.count) total \(String(format: "%.2f", totalElapsed * 1000))ms | \(timingSummary)")
+        }
+        #endif
     }
 
     /// Update flow calculations for specific networks (performance optimization)
@@ -1005,7 +1106,7 @@ final class FluidNetworkSystem: System {
                     // For very large networks, do simplified calculations only
                     performSimplifiedFlowCalculation(for: &network, deltaTime: deltaTime)
                 } else {
-                    calculateNetworkFlow(&network, deltaTime: deltaTime)
+                    calculateNetworkFlow(&network, deltaTime: deltaTime, networkId: networkId)
                 }
                 networks[networkId] = network
             }
@@ -1299,7 +1400,7 @@ final class FluidNetworkSystem: System {
 
         // Performance optimization: For very large networks, use simplified pressure calculation
         let networkSize = network.pipes.count + network.tanks.count
-        let useSimplified = networkSize > 100
+        let useSimplified = networkSize > 50
 
         if useSimplified {
             // Simplified calculation for large networks
@@ -1349,7 +1450,7 @@ final class FluidNetworkSystem: System {
             }
 
             // Propagate pressure through the network using iterative relaxation
-            let iterations = 5  // Number of relaxation iterations
+            let iterations = networkSize > 25 ? 2 : 4  // Fewer iterations for medium networks
             for _ in 0..<iterations {
                 var newPressures = pressureMap
 
@@ -1387,12 +1488,23 @@ final class FluidNetworkSystem: System {
     }
 
     /// Calculate flow rates between connected components based on pressure gradients
-    private func calculateFlowRates(in network: FluidNetwork, pressureMap: [Entity: Float], deltaTime: Float) -> [EntityPair: Float] {
+    private func calculateFlowRates(in network: FluidNetwork, pressureMap: [Entity: Float], deltaTime: Float, networkId: Int) -> [EntityPair: Float] {
         var flowRates: [EntityPair: Float] = [:]
 
 
         // Check all pipes and their connections
-        for pipeEntity in network.pipes {
+        let pipes = network.pipes
+        let totalPipes = pipes.count
+        if totalPipes == 0 {
+            return flowRates
+        }
+
+        let pipesToProcess = totalPipes > maxPipesPerFlowUpdate ? maxPipesPerFlowUpdate : totalPipes
+        let startIndex = flowUpdateCursorByNetwork[networkId] ?? 0
+
+        for i in 0..<pipesToProcess {
+            let index = (startIndex + i) % totalPipes
+            let pipeEntity = pipes[index]
             guard let pipe = world.get(PipeComponent.self, for: pipeEntity),
                   let pipePressure = pressureMap[pipeEntity] else {
                 continue
@@ -1437,20 +1549,12 @@ final class FluidNetworkSystem: System {
             }
         }
 
+        flowUpdateCursorByNetwork[networkId] = (startIndex + pipesToProcess) % totalPipes
         return flowRates
     }
 
     /// Apply calculated fluid transfers
     private func applyFluidTransfers(in network: FluidNetwork, flowRates: [EntityPair: Float], deltaTime: Float) {
-        // First, reset all pipe flow rates to 0
-        for pipeEntity in network.pipes {
-            if let pipe = world.get(PipeComponent.self, for: pipeEntity) {
-                let updatedPipe = pipe
-                updatedPipe.flowRate = 0
-                world.add(updatedPipe, to: pipeEntity)
-            }
-        }
-
         // Calculate net flow rates for each pipe
         var netFlowRates: [Entity: Float] = [:]
         for (entityPair, flowRate) in flowRates {
@@ -1463,7 +1567,7 @@ final class FluidNetworkSystem: System {
             netFlowRates[toEntity, default: 0] += transferRate
         }
 
-        // Apply net flow rates to pipes
+        // Apply net flow rates to only the pipes that were updated this tick
         for (pipeEntity, netFlowRate) in netFlowRates {
             if let pipe = world.get(PipeComponent.self, for: pipeEntity) {
                 let updatedPipe = pipe

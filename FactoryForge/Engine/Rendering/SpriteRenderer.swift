@@ -55,7 +55,7 @@ final class SpriteRenderer {
         queuedSprites.append(sprite)
     }
     
-    func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, world: World, camera: Camera2D, selectedEntity: Entity?, deltaTime: Float, showFluidDebug: Bool = false) {
+    func render(encoder: MTLRenderCommandEncoder, viewProjection: Matrix4, world: World, chunkManager: ChunkManager, camera: Camera2D, selectedEntity: Entity?, deltaTime: Float, showFluidDebug: Bool = false) {
         frameCount += 1
 
         // Collect sprites from world entities
@@ -68,8 +68,9 @@ final class SpriteRenderer {
         var spritesCulledSize = 0
         var animationUpdates: [(Entity, SpriteComponent)] = []
 
-        // Query all entities with position and sprite components
-        for entity in world.query(PositionComponent.self, SpriteComponent.self) {
+        // Query sprite entities by visible chunks to avoid scanning all sprites
+        let visibleEntities = chunkManager.entities(in: visibleRect)
+        for entity in visibleEntities {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
 
@@ -215,26 +216,39 @@ final class SpriteRenderer {
         spriteVertices.removeAll(keepingCapacity: true)
 
         let spritesToRender = min(queuedSprites.count, maxVertices / 6)
+        let zoomScale = camera.zoom * 32.0
         for sprite in queuedSprites.prefix(spritesToRender) {
             let uvOrigin = Vector2(sprite.textureRect.origin.x, sprite.textureRect.origin.y)
             let uvSize = Vector2(sprite.textureRect.size.x, sprite.textureRect.size.y)
             let color = sprite.color.vector4
 
-            let transform = createTransform(
-                position: sprite.position,
-                size: sprite.size,
-                rotation: sprite.rotation
-            )
+            let screenCenter = camera.worldToScreen(sprite.position)
+            let halfSize = sprite.size * 0.5
+            let cosR = cos(sprite.rotation)
+            let sinR = sin(sprite.rotation)
+            let right = Vector2(halfSize.x * cosR, halfSize.x * sinR)
+            let up = Vector2(-halfSize.y * sinR, halfSize.y * cosR)
 
-            for i in 0..<6 {
-                let localPos = quadVertices[i]
-                let worldPos4 = transform * SIMD4(localPos.x, localPos.y, 0, 1)
-                let worldPos = Vector2(worldPos4.x, worldPos4.y)
-                let screenPos = camera.worldToScreen(worldPos)
-                let texCoord = uvOrigin + quadTexCoords[i] * uvSize
+            let screenRight = Vector2(right.x * zoomScale, -right.y * zoomScale)
+            let screenUp = Vector2(up.x * zoomScale, -up.y * zoomScale)
 
-                spriteVertices.append(UIVertex(position: screenPos, texCoord: texCoord, color: color))
-            }
+            let topLeft = screenCenter - screenRight + screenUp
+            let topRight = screenCenter + screenRight + screenUp
+            let bottomLeft = screenCenter - screenRight - screenUp
+            let bottomRight = screenCenter + screenRight - screenUp
+
+            let uvTopLeft = Vector2(uvOrigin.x, uvOrigin.y)
+            let uvTopRight = Vector2(uvOrigin.x + uvSize.x, uvOrigin.y)
+            let uvBottomLeft = Vector2(uvOrigin.x, uvOrigin.y + uvSize.y)
+            let uvBottomRight = Vector2(uvOrigin.x + uvSize.x, uvOrigin.y + uvSize.y)
+
+            spriteVertices.append(UIVertex(position: topLeft, texCoord: uvTopLeft, color: color))
+            spriteVertices.append(UIVertex(position: topRight, texCoord: uvTopRight, color: color))
+            spriteVertices.append(UIVertex(position: bottomRight, texCoord: uvBottomRight, color: color))
+
+            spriteVertices.append(UIVertex(position: topLeft, texCoord: uvTopLeft, color: color))
+            spriteVertices.append(UIVertex(position: bottomRight, texCoord: uvBottomRight, color: color))
+            spriteVertices.append(UIVertex(position: bottomLeft, texCoord: uvBottomLeft, color: color))
         }
 
         queuedSprites.removeAll(keepingCapacity: true)
@@ -337,8 +351,8 @@ final class SpriteRenderer {
         let cameraCenter = camera.position
         let maxRenderDistance = 60.0 / camera.zoom
 
-        // Query entities with MinerComponent and SpriteComponent
-        for entity in world.query(MinerComponent.self, SpriteComponent.self) {
+        // Query miner entities and fetch sprite/position to avoid set intersections
+        for entity in world.query(MinerComponent.self) {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let miner = world.get(MinerComponent.self, for: entity),
                   let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
@@ -392,8 +406,8 @@ final class SpriteRenderer {
         let cameraCenter = camera.position
         let maxRenderDistance = 60.0 / camera.zoom
 
-        // Query entities with PipeComponent and SpriteComponent
-        for entity in world.query(PipeComponent.self, SpriteComponent.self) {
+        // Query pipe entities and fetch sprite/position to avoid set intersections
+        for entity in world.query(PipeComponent.self) {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let pipe = world.get(PipeComponent.self, for: entity),
                   let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
@@ -707,7 +721,7 @@ final class SpriteRenderer {
         // Query entities with crafting components and sprite components
 
         // Render furnace progress bars
-        for entity in world.query(FurnaceComponent.self, SpriteComponent.self) {
+        for entity in world.query(FurnaceComponent.self) {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let furnace = world.get(FurnaceComponent.self, for: entity),
                   let sprite = world.get(SpriteComponent.self, for: entity) else { continue }
@@ -757,7 +771,7 @@ final class SpriteRenderer {
         }
 
         // Render assembler progress bars
-        for entity in world.query(AssemblerComponent.self, SpriteComponent.self) {
+        for entity in world.query(AssemblerComponent.self) {
             guard let position = world.get(PositionComponent.self, for: entity),
                   let assembler = world.get(AssemblerComponent.self, for: entity),
                   let sprite = world.get(SpriteComponent.self, for: entity) else { continue }

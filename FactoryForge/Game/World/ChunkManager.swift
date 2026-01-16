@@ -22,6 +22,26 @@ final class ChunkManager {
     
     /// Chunks queued for saving
     private var dirtyChunks: Set<ChunkCoord> = []
+
+    /// Pending chunks to load (throttled to reduce hitches)
+    private var pendingChunkLoads: [ChunkCoord] = []
+    private var desiredChunks: Set<ChunkCoord> = []
+    private let maxLoadsPerUpdate: Int = 1
+
+    /// Background save queue for dirty chunks
+    private let saveQueue = DispatchQueue(label: "ChunkManager.saveQueue", qos: .utility)
+    private var pendingChunkSaves: [Chunk] = []
+    private var pendingSaveSet: Set<ChunkCoord> = []
+    private let saveLock = NSLock()
+    private let maxSavesPerDrain: Int = 1
+
+    /// Background loading queue and staging area
+    private let loadQueue = DispatchQueue(label: "ChunkManager.loadQueue", qos: .utility)
+    private var inFlightLoads: Set<ChunkCoord> = []
+    private var pendingLoadedChunks: [ChunkCoord: Chunk] = [:]
+    private let pendingLock = NSLock()
+    private var integrationFrameCounter: Int = 0
+    private var hasIntegratedAnyChunk: Bool = false
     
     init(seed: UInt64) {
         self.seed = seed
@@ -42,7 +62,8 @@ final class ChunkManager {
     // MARK: - Chunk Loading
     
     /// Updates loaded chunks based on player position
-    func update(playerPosition: Vector2) {
+    @discardableResult
+    func update(playerPosition: Vector2) -> Bool {
         let playerChunk = Chunk.worldToChunk(IntVector2(from: playerPosition))
         
         var chunksToLoad: Set<ChunkCoord> = []
@@ -62,37 +83,136 @@ final class ChunkManager {
                 chunksToUnload.insert(coord)
             }
         }
-        
+
         // Unload chunks
         for coord in chunksToUnload {
             unloadChunk(at: coord)
         }
-        
-        // Load new chunks
-        for coord in chunksToLoad {
-            if !loadedChunks.contains(coord) {
-                loadChunk(at: coord)
+
+        desiredChunks = chunksToLoad
+
+        // Queue new chunks for loading
+        for coord in chunksToLoad where !loadedChunks.contains(coord) {
+            if !pendingChunkLoads.contains(coord) {
+                pendingChunkLoads.append(coord)
             }
         }
-    }
-    
-    private func loadChunk(at coord: ChunkCoord) {
-        // Try to load from disk first
-        if let savedChunk = loadChunkFromDisk(coord) {
-            chunks[coord] = savedChunk
-        } else {
-            // Generate new chunk (chunk file doesn't exist or failed to load)
-            let biome = biomeGenerator.getBiome(at: coord)
-            let chunk = worldGenerator.generateChunk(at: coord, biome: biome)
-            chunks[coord] = chunk
+
+        // Drop pending loads that are no longer needed
+        if !pendingChunkLoads.isEmpty {
+            pendingChunkLoads.removeAll { !desiredChunks.contains($0) }
         }
 
+        // Load a limited number of chunks per update to avoid frame hitches
+        var loadsRemaining = maxLoadsPerUpdate
+        while loadsRemaining > 0 && !pendingChunkLoads.isEmpty {
+            let coord = pendingChunkLoads.removeFirst()
+            guard desiredChunks.contains(coord), !loadedChunks.contains(coord) else { continue }
+            startBackgroundLoad(for: coord)
+            loadsRemaining -= 1
+        }
+
+        // Integrate any chunks that finished loading in the background (staggered)
+        integrationFrameCounter += 1
+        var integratedCount = 0
+        if !hasIntegratedAnyChunk || integrationFrameCounter % 4 == 0 {
+            integratedCount = drainPendingLoadedChunks(limit: maxLoadsPerUpdate)
+        }
+
+        return !chunksToUnload.isEmpty || integratedCount > 0
+    }
+
+    private func loadChunk(at coord: ChunkCoord) {
+        let chunk = loadChunkData(at: coord)
+        chunks[coord] = chunk
         loadedChunks.insert(coord)
+    }
+
+    private func loadChunkData(at coord: ChunkCoord) -> Chunk {
+        // Try to load from disk first
+        if let savedChunk = loadChunkFromDisk(coord) {
+            return savedChunk
+        }
+        // Generate new chunk (chunk file doesn't exist or failed to load)
+        let biome = biomeGenerator.getBiome(at: coord)
+        return worldGenerator.generateChunk(at: coord, biome: biome)
+    }
+
+    private func startBackgroundLoad(for coord: ChunkCoord) {
+        pendingLock.lock()
+        if inFlightLoads.contains(coord) || pendingLoadedChunks[coord] != nil {
+            pendingLock.unlock()
+            return
+        }
+        inFlightLoads.insert(coord)
+        pendingLock.unlock()
+
+        loadQueue.async { [weak self] in
+            guard let self = self else { return }
+            let chunk = self.loadChunkData(at: coord)
+            self.pendingLock.lock()
+            self.pendingLoadedChunks[coord] = chunk
+            self.inFlightLoads.remove(coord)
+            self.pendingLock.unlock()
+        }
+    }
+
+    private func drainPendingLoadedChunks(limit: Int) -> Int {
+        guard limit > 0 else { return 0 }
+        var integrated = 0
+
+        while integrated < limit {
+            var next: (ChunkCoord, Chunk)?
+            pendingLock.lock()
+            if let entry = pendingLoadedChunks.first {
+                next = entry
+                pendingLoadedChunks.removeValue(forKey: entry.key)
+            }
+            pendingLock.unlock()
+
+            guard let (coord, chunk) = next else { break }
+            guard desiredChunks.contains(coord), !loadedChunks.contains(coord) else { continue }
+            chunks[coord] = chunk
+            loadedChunks.insert(coord)
+            hasIntegratedAnyChunk = true
+            integrated += 1
+        }
+        return integrated
+    }
+
+    /// Forces a minimal synchronous load of the player's current chunk.
+    func forceLoadPlayerChunk(at playerPosition: Vector2) {
+        let playerChunk = Chunk.worldToChunk(IntVector2(from: playerPosition))
+        let coord = ChunkCoord(x: playerChunk.x, y: playerChunk.y)
+        if loadedChunks.contains(coord) || chunks[coord] != nil {
+            return
+        }
+        let chunk = loadChunkData(at: coord)
+        chunks[coord] = chunk
+        loadedChunks.insert(coord)
+        hasIntegratedAnyChunk = true
+    }
+
+    /// Forces a synchronous load of the initial area around the player.
+    func forceLoadInitialArea(at playerPosition: Vector2) {
+        let playerChunk = Chunk.worldToChunk(IntVector2(from: playerPosition))
+        for dy in -loadRadius...loadRadius {
+            for dx in -loadRadius...loadRadius {
+                let coord = ChunkCoord(x: playerChunk.x + Int32(dx), y: playerChunk.y + Int32(dy))
+                if loadedChunks.contains(coord) || chunks[coord] != nil {
+                    continue
+                }
+                let chunk = loadChunkData(at: coord)
+                chunks[coord] = chunk
+                loadedChunks.insert(coord)
+            }
+        }
+        hasIntegratedAnyChunk = true
     }
     
     private func unloadChunk(at coord: ChunkCoord) {
         if let chunk = chunks[coord], chunk.isDirty {
-            saveChunkToDisk(chunk)
+            enqueueChunkSave(chunk)
         }
         chunks.removeValue(forKey: coord)
         loadedChunks.remove(coord)
@@ -136,6 +256,22 @@ final class ChunkManager {
     var allLoadedChunks: [Chunk] {
         return Array(chunks.values)
     }
+
+    /// Returns entities in chunks that intersect a visible rect
+    func entities(in visibleRect: Rect) -> [Entity] {
+        var results: [Entity] = []
+        var seen: Set<Entity> = []
+
+        for chunk in chunks.values where chunk.worldBounds.intersects(visibleRect) {
+            for entity in chunk.getEntities() {
+                if seen.insert(entity).inserted {
+                    results.append(entity)
+                }
+            }
+        }
+
+        return results
+    }
     
     /// Clears all loaded chunks
     /// - Parameter saveDirty: If true, saves dirty chunks before clearing. If false, discards them (use when loading a game to avoid overwriting saved chunks)
@@ -144,17 +280,11 @@ final class ChunkManager {
         if saveDirty {
             // Only save dirty chunks if we have a valid save slot set
             // This prevents saving chunks from one slot to another when switching saves
-            if let slotName = currentSaveSlot {
-                var savedCount = 0
-                for (_, chunk) in chunks {
-                    if chunk.isDirty {
-                        saveChunkToDisk(chunk)
-                        savedCount += 1
-                    }
+            if currentSaveSlot != nil {
+                for (_, chunk) in chunks where chunk.isDirty {
+                    enqueueChunkSave(chunk)
                 }
-                if savedCount > 0 {
-                    print("ChunkManager: Saved \(savedCount) dirty chunks before clearing (slot: \(slotName))")
-                }
+                drainPendingSavesAsync()
             } else {
                 print("ChunkManager: WARNING - clearLoadedChunks called without save slot set, not saving dirty chunks")
             }
@@ -218,11 +348,49 @@ final class ChunkManager {
         }
         
         for (_, chunk) in chunks {
-            saveChunkToDisk(chunk)
+            enqueueChunkSave(chunk)
             // Mark as not dirty since we just saved it
             chunk.isDirty = false
         }
-        print("ChunkManager: Saved \(chunks.count) chunks to disk for slot: \(currentSaveSlot ?? "unknown")")
+        drainPendingSavesAsync()
+        print("ChunkManager: Queued \(chunks.count) chunks to save for slot: \(currentSaveSlot ?? "unknown")")
+    }
+
+    private func enqueueChunkSave(_ chunk: Chunk) {
+        guard currentSaveSlot != nil else { return }
+        saveLock.lock()
+        if pendingSaveSet.contains(chunk.coord) {
+            saveLock.unlock()
+            return
+        }
+        pendingChunkSaves.append(chunk)
+        pendingSaveSet.insert(chunk.coord)
+        saveLock.unlock()
+    }
+
+    private func drainPendingSavesAsync() {
+        saveQueue.async { [weak self] in
+            guard let self = self else { return }
+            var batch: [Chunk] = []
+            self.saveLock.lock()
+            let count = min(self.pendingChunkSaves.count, self.maxSavesPerDrain)
+            if count > 0 {
+                batch = Array(self.pendingChunkSaves.prefix(count))
+                self.pendingChunkSaves.removeFirst(count)
+                for chunk in batch {
+                    self.pendingSaveSet.remove(chunk.coord)
+                }
+            }
+            self.saveLock.unlock()
+
+            guard !batch.isEmpty else { return }
+            for chunk in batch {
+                self.saveChunkToDisk(chunk)
+            }
+
+            // Continue draining until queue is empty
+            self.drainPendingSavesAsync()
+        }
     }
     
     private func saveChunkToDisk(_ chunk: Chunk) {
@@ -340,4 +508,3 @@ final class ChunkManager {
         }
     }
 }
-

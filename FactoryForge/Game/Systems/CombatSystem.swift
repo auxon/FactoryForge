@@ -5,10 +5,12 @@ final class CombatSystem: System {
     let priority = SystemPriority.combat.rawValue
     
     private let world: World
+    private let chunkManager: ChunkManager
     private weak var renderer: MetalRenderer?
     
-    init(world: World) {
+    init(world: World, chunkManager: ChunkManager) {
         self.world = world
+        self.chunkManager = chunkManager
     }
     
     func setRenderer(_ renderer: MetalRenderer?) {
@@ -141,10 +143,14 @@ final class CombatSystem: System {
         
         let direction = (targetPos.worldPosition - position.worldPosition).normalized
         let startPos = position.worldPosition + direction * 0.5
-        
-        world.add(PositionComponent(tilePosition: IntVector2(from: startPos)), to: projectile)
+
+        let startTile = IntVector2(from: startPos)
+        world.add(PositionComponent(tilePosition: startTile), to: projectile)
         world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
         world.add(VelocityComponent(velocity: direction * 30), to: projectile)
+        if let chunk = chunkManager.getChunk(at: startTile) {
+            chunk.addEntity(projectile, at: startTile)
+        }
         
         var projectileComp = ProjectileComponent(damage: turret.damage, speed: 30)
         projectileComp.target = target
@@ -166,6 +172,10 @@ final class CombatSystem: System {
             proj.lifetime -= deltaTime
             
             if proj.lifetime <= 0 {
+                if let position = world.get(PositionComponent.self, for: entity),
+                   let chunk = chunkManager.getChunk(at: position.tilePosition) {
+                    chunk.removeEntity(entity)
+                }
                 world.despawnDeferred(entity)
                 return
             }
@@ -174,6 +184,7 @@ final class CombatSystem: System {
                   let velocity = world.get(VelocityComponent.self, for: entity) else { return }
             
             // Move projectile
+            let oldTilePos = position.tilePosition
             position.offset = position.offset + velocity.velocity * deltaTime
             
             // Handle tile transitions
@@ -195,6 +206,15 @@ final class CombatSystem: System {
             }
             
             world.add(position, to: entity)
+
+            if oldTilePos != position.tilePosition {
+                if let oldChunk = chunkManager.getChunk(at: oldTilePos) {
+                    oldChunk.removeEntity(entity)
+                }
+                if let newChunk = chunkManager.getChunk(at: position.tilePosition) {
+                    newChunk.addEntity(entity, at: position.tilePosition)
+                }
+            }
             
             // Check for collision with target
             if let target = proj.target,
@@ -205,6 +225,9 @@ final class CombatSystem: System {
                     // Hit target
                     print("Projectile \(entity) hit target \(target), distance: \(distance)")
                     applyDamage(proj.damage, to: target, from: proj.source)
+                    if let chunk = chunkManager.getChunk(at: position.tilePosition) {
+                        chunk.removeEntity(entity)
+                    }
                     world.despawnDeferred(entity)
                     return
                 }
@@ -353,4 +376,3 @@ final class CombatSystem: System {
         }
     }
 }
-

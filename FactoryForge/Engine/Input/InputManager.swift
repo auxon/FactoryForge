@@ -667,6 +667,20 @@ final class InputManager: NSObject {
             }
             
         case .changed:
+            // Handle joystick movement early to avoid unnecessary UI/drag checks
+            if isJoystickActive {
+                joystick?.handleTouchMoved(at: screenPos, touchId: 0)
+                if buildMode != .none {
+                    exitBuildMode()
+                }
+                if isSelecting {
+                    isSelecting = false
+                    selectionStartScreenPos = nil
+                    selectionRect = nil
+                }
+                return
+            }
+
             // Prioritize belt/pole/pipe drag placement when in placing mode
             // This needs to run before UI drag checks to prevent interference
             if buildMode == .placing, let buildingId = selectedBuildingId,
@@ -726,23 +740,6 @@ final class InputManager: NSObject {
                 if let uiSystem = gameLoop.uiSystem {
                     _ = uiSystem.handleDrag(from: dragStartPosition, to: screenPos)
                 }
-                return
-            }
-
-            // Handle joystick movement
-            if isJoystickActive {
-                joystick?.handleTouchMoved(at: screenPos, touchId: 0)
-                // Exit build mode when player starts moving
-                if buildMode != .none {
-                    exitBuildMode()
-                }
-                // Reset selection state when joystick is active (safety check)
-                if isSelecting {
-                    isSelecting = false
-                    selectionStartScreenPos = nil
-                    selectionRect = nil
-                }
-                // Prevent selection when joystick is active
                 return
             }
 

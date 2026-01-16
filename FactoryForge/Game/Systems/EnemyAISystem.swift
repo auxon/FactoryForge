@@ -247,6 +247,7 @@ final class EnemyAISystem: System {
 
         // Set initial position
         biter.position = spawnPos
+        let spawnTile = IntVector2(from: spawnPos)
 
         // Add health component
         let scaledHealth = enemyType.baseHealth * (1 + evolutionFactor)
@@ -265,6 +266,10 @@ final class EnemyAISystem: System {
         // Add velocity and collision components
         world.add(VelocityComponent(), to: biter.biterEntity)
         world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: biter.biterEntity)
+
+        if let chunk = chunkManager.getChunk(at: spawnTile) {
+            chunk.addEntity(biter.biterEntity, at: spawnTile)
+        }
 
         // Store the biter object for animation updates
         activeBiters[biter.biterEntity] = biter
@@ -519,6 +524,7 @@ final class EnemyAISystem: System {
             if let position = world.get(PositionComponent.self, for: entity),
                velocity.velocity.lengthSquared > 0.001 {
                 var pos = position
+                let oldTilePos = pos.tilePosition
                 pos.offset = pos.offset + velocity.velocity * deltaTime
 
                 // Handle tile transitions
@@ -540,6 +546,15 @@ final class EnemyAISystem: System {
                 }
 
                 world.add(pos, to: entity)
+
+                if oldTilePos != pos.tilePosition {
+                    if let oldChunk = chunkManager.getChunk(at: oldTilePos) {
+                        oldChunk.removeEntity(entity)
+                    }
+                    if let newChunk = chunkManager.getChunk(at: pos.tilePosition) {
+                        newChunk.addEntity(entity, at: pos.tilePosition)
+                    }
+                }
             }
         }
     }
@@ -707,4 +722,3 @@ final class EnemyAISystem: System {
         evolutionFactor = min(1.0, (Time.shared.totalTime / (60 * 60 * 4)) * 0.5 + pollutionEvolution * 0.5)
     }
 }
-

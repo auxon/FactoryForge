@@ -60,32 +60,18 @@ final class TileMapRenderer {
         let cameraCenter = camera.position
         let maxTileDistance = 100.0 / camera.zoom  // Increased render distance when zoomed out
 
-        // Frustum cull with distance culling for performance
-        var visibleTiles: [TileInstance] = []
-        for tile in queuedTiles {
-            let worldPos = tile.position.toVector2
-            if visibleRect.contains(worldPos) {
-                // Additional distance culling to reduce load
-                let distanceFromCamera = (worldPos - cameraCenter).length
-                if distanceFromCamera <= maxTileDistance {
-                    visibleTiles.append(tile)
-                }
-            }
-        }
-
-        // Sort by distance to camera (closest first) to prioritize important tiles
-        visibleTiles.sort { tile1, tile2 in
-            let dist1 = tile1.position.toVector2.distance(to: camera.position)
-            let dist2 = tile2.position.toVector2.distance(to: camera.position)
-            return dist1 < dist2
-        }
-
-        // Convert to instance data, limiting to maxInstances
+        // Frustum cull with distance culling for performance (no sorting)
         var instances: [TileInstanceData] = []
-        instances.reserveCapacity(min(visibleTiles.count, maxInstances))
+        instances.reserveCapacity(min(queuedTiles.count, maxInstances))
 
-        for tile in visibleTiles.prefix(maxInstances) {
+        for tile in queuedTiles {
+            if instances.count >= maxInstances { break }
             // Get texture UV from atlas based on tile type
+            let worldPos = tile.position.toVector2
+            if !visibleRect.contains(worldPos) { continue }
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            if distanceFromCamera > maxTileDistance { continue }
+
             let textureRect = getTileTextureRect(for: tile)
 
             instances.append(TileInstanceData(
@@ -188,4 +174,3 @@ struct TileInstanceData {
 struct TileUniforms {
     var viewProjection: Matrix4
 }
-

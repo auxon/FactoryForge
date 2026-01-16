@@ -274,6 +274,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
                 encoder: encoder,
                 viewProjection: viewProjection,
                 world: gameLoop.world,
+                chunkManager: gameLoop.chunkManager,
                 camera: camera,
                 selectedEntity: selectedEntity,
                 deltaTime: Time.shared.deltaTime,
@@ -656,4 +657,3 @@ enum RenderLayer: Int, Comparable, Codable {
         return lhs.rawValue < rhs.rawValue
     }
 }
-

@@ -68,6 +68,7 @@ final class GameLoop {
     // Chunk loading optimization
     private var lastChunkUpdatePosition: Vector2 = .zero
     private let chunkUpdateThreshold: Float = 1.0  // Only update chunks if player moved more than 1 unit (decreased for better responsiveness)
+    private var lastPlayerTilePosition: IntVector2? = nil
 
     // Performance profiling
     private var frameCount: Int = 0
@@ -102,7 +103,7 @@ final class GameLoop {
         researchSystem = ResearchSystem(world: world, technologyRegistry: technologyRegistry)
         pollutionSystem = PollutionSystem(world: world, chunkManager: chunkManager)
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
-        combatSystem = CombatSystem(world: world)
+        combatSystem = CombatSystem(world: world, chunkManager: chunkManager)
         combatSystem.setRenderer(renderer)
         entityCleanupSystem = EntityCleanupSystem(world: world, chunkManager: chunkManager)
         rocketSystem = RocketSystem(world: world, itemRegistry: itemRegistry)
@@ -186,26 +187,49 @@ final class GameLoop {
 
         // Update player
         player.update(deltaTime: deltaTime)
+        syncPlayerChunkMembership()
 
-        // Update chunk loading based on player position (only if moved significantly)
+        // Update chunk loading based on player position (always if no chunks are loaded)
         let playerPos = player.position
+        let shouldForceChunkUpdate = chunkManager.allLoadedChunks.isEmpty
+        if shouldForceChunkUpdate {
+            chunkManager.forceLoadInitialArea(at: playerPos)
+        }
         let distanceMoved = (playerPos - lastChunkUpdatePosition).lengthSquared
-        if distanceMoved > chunkUpdateThreshold * chunkUpdateThreshold {
-            chunkManager.update(playerPosition: playerPos)
+        if shouldForceChunkUpdate || distanceMoved > chunkUpdateThreshold * chunkUpdateThreshold {
+            let chunksChanged = chunkManager.update(playerPosition: playerPos)
             lastChunkUpdatePosition = playerPos
 
             // Invalidate mining system cache when chunks change
-            miningSystem.invalidateResourceCache()
+            if chunksChanged {
+                miningSystem.invalidateResourceCache()
+            }
         }
 
         // Fixed timestep updates for game systems (limit to prevent spiral of death)
         var fixedUpdateCount = 0
         let maxFixedUpdates = 5  // Maximum fixed updates per frame
         while Time.shared.consumeFixedUpdate() && fixedUpdateCount < maxFixedUpdates {
+            let frameStart = CACurrentMediaTime()
+            var systemTimings: [(String, Double)] = []
+
             for system in systems {
+                let systemStart = CACurrentMediaTime()
                 system.update(deltaTime: Time.shared.fixedDeltaTime)
+                let systemElapsed = CACurrentMediaTime() - systemStart
+                systemTimings.append((String(describing: type(of: system)), systemElapsed))
             }
             fixedUpdateCount += 1
+
+            let frameElapsed = CACurrentMediaTime() - frameStart
+            #if DEBUG
+            if frameElapsed >= 0.025 {
+                let sortedTimings = systemTimings.sorted { $0.1 > $1.1 }
+                let topTimings = sortedTimings.prefix(3)
+                let timingSummary = topTimings.map { "\($0.0)=\(String(format: "%.2f", $0.1 * 1000))ms" }.joined(separator: ", ")
+                print("GameLoop: Fixed update spike \(String(format: "%.2f", frameElapsed * 1000))ms | \(timingSummary)")
+            }
+            #endif
         }
 
         // Update UI (skip if game is effectively paused to save performance)
@@ -371,6 +395,22 @@ final class GameLoop {
         // The player sprite component is already in the world, so it will be rendered automatically
 
         // Note: UI is rendered by MetalRenderer before this call to allow loading menu to render first
+    }
+
+    private func syncPlayerChunkMembership() {
+        guard let position = world.get(PositionComponent.self, for: player.playerEntity) else { return }
+
+        if let lastTile = lastPlayerTilePosition, lastTile != position.tilePosition {
+            if let oldChunk = chunkManager.getChunk(at: lastTile) {
+                oldChunk.removeEntity(player.playerEntity)
+            }
+        }
+
+        if let newChunk = chunkManager.getChunk(at: position.tilePosition) {
+            newChunk.addEntity(player.playerEntity, at: position.tilePosition)
+        }
+
+        lastPlayerTilePosition = position.tilePosition
     }
     
     // MARK: - Game Actions

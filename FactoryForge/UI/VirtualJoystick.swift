@@ -157,9 +157,12 @@ final class VirtualJoystick {
         }
 
         // Update direction and call callback
-        direction = newDirection
-        lastDirection = newDirection
-        onDirectionChanged?(direction)
+        let delta = newDirection - lastDirection
+        if delta.lengthSquared > 0.0004 {
+            direction = newDirection
+            lastDirection = newDirection
+            onDirectionChanged?(direction)
+        }
     }
     
     // MARK: - Rendering

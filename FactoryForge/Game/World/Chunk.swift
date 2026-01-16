@@ -16,7 +16,11 @@ final class Chunk {
     
     /// Entities in this chunk
     private var entities: Set<Entity> = []
-    
+
+    /// Cached tile instances for rendering
+    private var cachedTileInstances: [TileInstance] = []
+    private var tilesDirty: Bool = true
+
     /// Pollution level (0-1+)
     var pollution: Float = 0
     
@@ -54,6 +58,7 @@ final class Chunk {
             return
         }
         tiles[localY][localX] = tile
+        tilesDirty = true
         isDirty = true
     }
     
@@ -72,6 +77,7 @@ final class Chunk {
         
         let mined = resource.mine(amount: amount)
         tiles[localY][localX].resource = resource.isEmpty ? nil : resource
+        tilesDirty = true
         isDirty = true
         return mined
     }
@@ -124,6 +130,10 @@ final class Chunk {
     
     /// Creates tile instances for rendering
     func getTileInstances() -> [TileInstance] {
+        if !tilesDirty {
+            return cachedTileInstances
+        }
+
         var instances: [TileInstance] = []
         instances.reserveCapacity(Chunk.size * Chunk.size)
         
@@ -136,7 +146,9 @@ final class Chunk {
                 instances.append(tile.toInstance(at: worldPos))
             }
         }
-        
+
+        cachedTileInstances = instances
+        tilesDirty = false
         return instances
     }
     
@@ -209,4 +221,3 @@ struct TileData: Codable {
     let variation: UInt8
     let resource: ResourceDeposit?
 }
-

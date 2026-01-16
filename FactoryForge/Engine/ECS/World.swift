@@ -138,19 +138,60 @@ final class World {
     
     /// Queries entities with two components
     func query<T1: Component, T2: Component>(_ type1: T1.Type, _ type2: T2.Type) -> [Entity] {
-        let entities1 = Set(query(type1))
-        let entities2 = Set(query(type2))
-        return Array(entities1.intersection(entities2))
+        guard let store1 = componentStores[ObjectIdentifier(type1)] as? ComponentStore<T1>,
+              let store2 = componentStores[ObjectIdentifier(type2)] as? ComponentStore<T2> else {
+            return []
+        }
+
+        let (primaryStore, secondaryStore) = store1.count <= store2.count
+            ? (store1 as AnyComponentStore, store2 as AnyComponentStore)
+            : (store2 as AnyComponentStore, store1 as AnyComponentStore)
+
+        let primaryEntities: [Entity]
+        if let typedStore1 = primaryStore as? ComponentStore<T1> {
+            primaryEntities = typedStore1.entities
+        } else if let typedStore2 = primaryStore as? ComponentStore<T2> {
+            primaryEntities = typedStore2.entities
+        } else {
+            return []
+        }
+
+        var results: [Entity] = []
+        results.reserveCapacity(primaryEntities.count)
+        for entity in primaryEntities where secondaryStore.has(entity) {
+            results.append(entity)
+        }
+        return results
     }
     
     /// Queries entities with three components
     func query<T1: Component, T2: Component, T3: Component>(
         _ type1: T1.Type, _ type2: T2.Type, _ type3: T3.Type
     ) -> [Entity] {
-        let entities1 = Set(query(type1))
-        let entities2 = Set(query(type2))
-        let entities3 = Set(query(type3))
-        return Array(entities1.intersection(entities2).intersection(entities3))
+        guard let store1 = componentStores[ObjectIdentifier(type1)] as? ComponentStore<T1>,
+              let store2 = componentStores[ObjectIdentifier(type2)] as? ComponentStore<T2>,
+              let store3 = componentStores[ObjectIdentifier(type3)] as? ComponentStore<T3> else {
+            return []
+        }
+
+        let stores: [(AnyComponentStore, [Entity])] = [
+            (store1, store1.entities),
+            (store2, store2.entities),
+            (store3, store3.entities)
+        ]
+        guard let primary = stores.min(by: { $0.1.count < $1.1.count }) else {
+            return []
+        }
+
+        let (primaryStore, primaryEntities) = primary
+        let secondaryStores = stores.map { $0.0 }.filter { $0 !== primaryStore }
+
+        var results: [Entity] = []
+        results.reserveCapacity(primaryEntities.count)
+        for entity in primaryEntities where secondaryStores.allSatisfy({ $0.has(entity) }) {
+            results.append(entity)
+        }
+        return results
     }
     
     /// Iterates over all components of a type
@@ -863,4 +904,3 @@ struct EntityData: Codable {
     let generation: UInt16
     let components: [String: Data]
 }
-
