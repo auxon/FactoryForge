@@ -29,6 +29,8 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     // Debug overlay labels for pipe network IDs
     private var pipeNetworkOverlayLabels: [UILabel] = []
     private var pipeNetworkOverlayLabelPool: [UILabel] = []
+    private var fluidDebugInfoOverlayLabels: [UILabel] = []
+    private var fluidDebugInfoOverlayLabelPool: [UILabel] = []
     
     // Splash screen
     private var splashImageView: UIImageView!
@@ -444,12 +446,13 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
 
         if !renderer.showFluidDebug {
             clearPipeNetworkOverlay()
+            clearFluidDebugInfoOverlay()
             return
         }
 
         let visibleRect = renderer.camera.visibleRect
         let cameraCenter = renderer.camera.position
-        let maxRenderDistance = 60.0 / renderer.camera.zoom
+        let maxRenderDistance: Float = Float(60.0) / renderer.camera.zoom
         let scale = metalView?.contentScaleFactor ?? 1.0
 
         var labelsInUse = 0
@@ -488,6 +491,11 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
             }
             pipeNetworkOverlayLabels.removeLast(pipeNetworkOverlayLabels.count - labelsInUse)
         }
+
+        updateFluidDebugInfoOverlay(visibleRect: visibleRect,
+                                    cameraCenter: cameraCenter,
+                                    maxRenderDistance: maxRenderDistance,
+                                    scale: scale)
     }
 
     private func clearPipeNetworkOverlay() {
@@ -519,6 +527,119 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         }
 
         pipeNetworkOverlayLabels.append(label)
+        return label
+    }
+
+    private func updateFluidDebugInfoOverlay(visibleRect: Rect,
+                                             cameraCenter: Vector2,
+                                             maxRenderDistance: Float,
+                                             scale: CGFloat) {
+        guard let renderer, let gameLoop else { return }
+
+        var labelsInUse = 0
+
+        for entity in gameLoop.world.query(PipeComponent.self) {
+            guard let position = gameLoop.world.get(PositionComponent.self, for: entity),
+                  let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else { continue }
+
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
+
+            let capacity = max(pipe.maxCapacity, 0.01)
+            let fillRatio = (pipe.fluidAmount / capacity) * 100
+            let infoText = String(format: "P: %.2f  F: %.2f\nAmt: %.1f/%.1f (%.0f%%)\nC: %d",
+                                  pipe.pressure,
+                                  pipe.flowRate,
+                                  pipe.fluidAmount,
+                                  pipe.maxCapacity,
+                                  fillRatio,
+                                  pipe.connections.count)
+
+            let label = dequeueFluidDebugInfoLabel(at: labelsInUse)
+            labelsInUse += 1
+
+            label.text = infoText
+            label.sizeToFit()
+
+            let screenPos = renderer.worldToScreen(worldPos + Vector2(0, -0.25))
+            label.center = CGPoint(x: CGFloat(screenPos.x) / scale, y: CGFloat(screenPos.y) / scale)
+            label.isHidden = false
+        }
+
+        for entity in gameLoop.world.query(FluidTankComponent.self) {
+            guard let position = gameLoop.world.get(PositionComponent.self, for: entity),
+                  let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) else { continue }
+
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
+
+            let totalAmount = tank.tanks.reduce(Float(0)) { $0 + $1.amount }
+            let capacity = max(tank.maxCapacity, 0.01)
+            let fillRatio = (totalAmount / capacity) * 100
+            let infoText = String(format: "Tank\nFill: %.1f/%.1f (%.0f%%)\nC: %d",
+                                  totalAmount,
+                                  tank.maxCapacity,
+                                  fillRatio,
+                                  tank.connections.count)
+
+            let label = dequeueFluidDebugInfoLabel(at: labelsInUse)
+            labelsInUse += 1
+
+            label.text = infoText
+            label.sizeToFit()
+
+            let screenPos = renderer.worldToScreen(worldPos + Vector2(0, 0.65))
+            label.center = CGPoint(x: CGFloat(screenPos.x) / scale, y: CGFloat(screenPos.y) / scale)
+            label.isHidden = false
+        }
+
+        if labelsInUse < fluidDebugInfoOverlayLabels.count {
+            let unused = fluidDebugInfoOverlayLabels[labelsInUse...]
+            for label in unused {
+                label.isHidden = true
+                label.removeFromSuperview()
+                fluidDebugInfoOverlayLabelPool.append(label)
+            }
+            fluidDebugInfoOverlayLabels.removeLast(fluidDebugInfoOverlayLabels.count - labelsInUse)
+        }
+    }
+
+    private func clearFluidDebugInfoOverlay() {
+        for label in fluidDebugInfoOverlayLabels {
+            label.isHidden = true
+            label.removeFromSuperview()
+            fluidDebugInfoOverlayLabelPool.append(label)
+        }
+        fluidDebugInfoOverlayLabels.removeAll()
+    }
+
+    private func dequeueFluidDebugInfoLabel(at index: Int) -> UILabel {
+        if index < fluidDebugInfoOverlayLabels.count {
+            return fluidDebugInfoOverlayLabels[index]
+        }
+
+        let label = fluidDebugInfoOverlayLabelPool.popLast() ?? UILabel()
+        label.font = UIFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
+        label.textColor = .white
+        label.textAlignment = .left
+        label.numberOfLines = 0
+        label.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+        label.layer.cornerRadius = 3
+        label.layer.masksToBounds = true
+
+        if let metalView = metalView {
+            view.insertSubview(label, aboveSubview: metalView)
+        } else {
+            view.addSubview(label)
+        }
+
+        fluidDebugInfoOverlayLabels.append(label)
         return label
     }
 

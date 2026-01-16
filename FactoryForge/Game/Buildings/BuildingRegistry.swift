@@ -651,6 +651,7 @@ final class BuildingRegistry {
         oilRefinery.fluidOutputTanks = 3    // 3 tanks for outputs (petroleum gas, light oil, heavy oil)
         oilRefinery.fluidInputTypes = [.crudeOil, .water]
         oilRefinery.fluidOutputTypes = [.petroleumGas, .lightOil, .heavyOil]
+        oilRefinery.fluidCapacity = 12500
         register(oilRefinery)
 
         var chemicalPlant = BuildingDefinition(

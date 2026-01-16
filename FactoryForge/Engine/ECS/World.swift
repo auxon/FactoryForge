@@ -286,7 +286,9 @@ final class World {
                has(ChestComponent.self, for: entity) ||
                has(LabComponent.self, for: entity) ||
                has(SolarPanelComponent.self, for: entity) ||
-               has(AccumulatorComponent.self, for: entity) {
+               has(AccumulatorComponent.self, for: entity) ||
+               has(FluidTankComponent.self, for: entity) ||
+               has(FluidConsumerComponent.self, for: entity) {
                 return entity
             }
         }

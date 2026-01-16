@@ -512,7 +512,8 @@ final class GameLoop {
         // Trigger fluid network rebuild if it's a fluid-related building
         if buildingDef.type == .pipe || buildingDef.type == .pumpjack ||
            buildingDef.type == .waterPump || buildingDef.type == .generator ||
-           buildingDef.type == .oilRefinery || buildingDef.type == .chemicalPlant {
+           buildingDef.type == .oilRefinery || buildingDef.type == .chemicalPlant ||
+           buildingDef.type == .fluidTank {
             _fluidNetworkSystem.markEntityDirty(entity)
         }
 
@@ -1120,7 +1121,7 @@ final class GameLoop {
             // All inputs/outputs are fluids that flow through fluid tanks
             let totalTanks = buildingDef.fluidInputTanks + buildingDef.fluidOutputTanks
             print("GameLoop: Oil refinery - fluidInputTanks: \(buildingDef.fluidInputTanks), fluidOutputTanks: \(buildingDef.fluidOutputTanks), total: \(totalTanks)")
-            let refineryTanks = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 2500)
+            let refineryTanks = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: buildingDef.fluidCapacity)
             let refineryTankTypes = buildingDef.fluidInputTypes + buildingDef.fluidOutputTypes
             for i in 0..<totalTanks {
                 let tankType = i < refineryTankTypes.count ? refineryTankTypes[i] : .water
@@ -1168,7 +1169,10 @@ final class GameLoop {
             world.add(InventoryComponent(slots: 1, allowedItems: ["uranium-fuel-cell"]), to: entity)
 
         case .fluidTank:
-            world.add(FluidTankComponent(buildingId: buildingDef.id, maxCapacity: buildingDef.fluidCapacity), to: entity)
+            let tankComponent = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: buildingDef.fluidCapacity)
+            // Storage tanks have one flexible tank that can accept any fluid type
+            tankComponent.tanks.append(FluidStack(type: .water, amount: 0, temperature: 20, maxAmount: buildingDef.fluidCapacity))
+            world.add(tankComponent, to: entity)
         }
     }
 

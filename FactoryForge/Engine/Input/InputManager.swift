@@ -565,6 +565,8 @@ final class InputManager: NSObject {
                    gameLoop.world.has(BeltComponent.self, for: entityAtTile) ||
                    gameLoop.world.has(InserterComponent.self, for: entityAtTile) ||
                    gameLoop.world.has(FluidProducerComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(FluidConsumerComponent.self, for: entityAtTile) ||
+                   gameLoop.world.has(FluidTankComponent.self, for: entityAtTile) ||
                    gameLoop.world.has(AccumulatorComponent.self, for: entityAtTile) ||
                    gameLoop.world.has(SolarPanelComponent.self, for: entityAtTile) ||
                    gameLoop.world.has(TurretComponent.self, for: entityAtTile) ||
@@ -1016,13 +1018,15 @@ final class InputManager: NSObject {
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entity)
             let hasInserter = gameLoop.world.has(InserterComponent.self, for: entity)
             let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entity)
+            let hasFluidConsumer = gameLoop.world.has(FluidConsumerComponent.self, for: entity)
+            let hasFluidTank = gameLoop.world.has(FluidTankComponent.self, for: entity)
             let hasAccumulator = gameLoop.world.has(AccumulatorComponent.self, for: entity)
             let hasSolarPanel = gameLoop.world.has(SolarPanelComponent.self, for: entity)
             let hasTurret = gameLoop.world.has(TurretComponent.self, for: entity)
             let hasRocketSilo = gameLoop.world.has(RocketSiloComponent.self, for: entity)
             let hasPipe = gameLoop.world.has(PipeComponent.self, for: entity)
 
-            let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter || hasFluidProducer || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo || hasPipe
+            let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter || hasFluidProducer || hasFluidConsumer || hasFluidTank || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo || hasPipe
 
             return isInteractable
         }
@@ -1054,6 +1058,8 @@ final class InputManager: NSObject {
             let hasBelt = gameLoop.world.has(BeltComponent.self, for: entityAtTile)
             let hasInserter = gameLoop.world.has(InserterComponent.self, for: entityAtTile)
             let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entityAtTile)
+            let hasFluidConsumer = gameLoop.world.has(FluidConsumerComponent.self, for: entityAtTile)
+            let hasFluidTank = gameLoop.world.has(FluidTankComponent.self, for: entityAtTile)
             let hasAccumulator = gameLoop.world.has(AccumulatorComponent.self, for: entityAtTile)
             let hasSolarPanel = gameLoop.world.has(SolarPanelComponent.self, for: entityAtTile)
             let hasTurret = gameLoop.world.has(TurretComponent.self, for: entityAtTile)
@@ -1063,7 +1069,7 @@ final class InputManager: NSObject {
             // Prioritize inserters explicitly (getEntityAt should already do this, but be explicit)
             if hasInserter {
                 closestEntity = entityAtTile
-            } else if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasFluidProducer || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo || hasPipe {
+            } else if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasFluidProducer || hasFluidConsumer || hasFluidTank || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo || hasPipe {
                 closestEntity = entityAtTile
             }
         }
@@ -1472,10 +1478,8 @@ final class InputManager: NSObject {
 
             let connectionCount = producer.connections.count
             tooltipLines.append("Connections: \(connectionCount)")
-            if producer.buildingId == "pumpjack" {
-                let networkText = producer.networkId.map { String($0) } ?? "-"
-                tooltipLines.append("Network: \(networkText)")
-            }
+            let networkText = producer.networkId.map { String($0) } ?? "-"
+            tooltipLines.append("Network: \(networkText)")
         }
 
         // Add fluid consumer information
@@ -1490,6 +1494,8 @@ final class InputManager: NSObject {
 
             let connectionCount = consumer.connections.count
             tooltipLines.append("Connections: \(connectionCount)")
+            let networkText = consumer.networkId.map { String($0) } ?? "-"
+            tooltipLines.append("Network: \(networkText)")
         }
 
         // Add fluid tank information
@@ -1515,6 +1521,15 @@ final class InputManager: NSObject {
 
             let connectionCount = tank.connections.count
             tooltipLines.append("Connections: \(connectionCount)")
+            let networkText = tank.networkId.map { String($0) } ?? "-"
+            tooltipLines.append("Network: \(networkText)")
+        }
+
+        if let pump = world.get(FluidPumpComponent.self, for: entity) {
+            let connectionCount = pump.connections.count
+            tooltipLines.append("Connections: \(connectionCount)")
+            let networkText = pump.networkId.map { String($0) } ?? "-"
+            tooltipLines.append("Network: \(networkText)")
         }
 
         // Join all lines with newlines

@@ -335,6 +335,7 @@ final class HUD {
         // Check if entity has components that indicate it should have a machine UI
         // Inserters also show an Open button (to open inserter type dialog)
         // Pipes now also show an Open button (to open pipe connection UI)
+        // Storage tanks show an Open button (to open fluid tank UI)
         return world.has(InventoryComponent.self, for: entity) ||
                world.has(FurnaceComponent.self, for: entity) ||
                world.has(AssemblerComponent.self, for: entity) ||
@@ -342,6 +343,7 @@ final class HUD {
                world.has(GeneratorComponent.self, for: entity) ||
                world.has(InserterComponent.self, for: entity) ||
                world.has(FluidProducerComponent.self, for: entity) ||
+               world.has(FluidTankComponent.self, for: entity) ||
                world.has(PipeComponent.self, for: entity)
     }
     

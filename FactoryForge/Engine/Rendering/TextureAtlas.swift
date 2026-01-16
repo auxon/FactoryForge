@@ -296,7 +296,7 @@ final class TextureAtlas {
                     "electric_mining_drill", "electric_furnace", "burner_mining_drill",
                     "burner_mining_drill", "stone_furnace", "steel_furnace",
                     "lab", "solar_panel", "boiler", "steam_engine",
-                    "gun_turret", "laser_turret", "radar", "oil_refinery", "chemical_plant"
+                    "gun_turret", "laser_turret", "radar", "oil_refinery", "chemical_plant", "fluid_tank"
                 ]
                 let buttonSpriteSize = uiButtonNames.contains(textureId) ? 256 : spriteSize
                 let useActualSize = bulletNames.contains(textureId)

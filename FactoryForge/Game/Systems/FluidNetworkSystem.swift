@@ -1493,6 +1493,8 @@ final class FluidNetworkSystem: System {
             for consumerEntity in network.consumers {
                 pressureMap[consumerEntity] = basePressure - 20.0  // Consumers reduce pressure
             }
+
+            applyProducerHeadPressure(&pressureMap, network: network)
         } else {
             // Detailed calculation for smaller networks
             // Start with base pressure from fill levels
@@ -1521,6 +1523,8 @@ final class FluidNetworkSystem: System {
             for consumerEntity in network.consumers {
                 pressureMap[consumerEntity] = 0.0  // Low pressure sink
             }
+
+            applyProducerHeadPressure(&pressureMap, network: network)
 
             // Propagate pressure through the network using iterative relaxation
             let iterations = networkSize > 25 ? 2 : 4  // Fewer iterations for medium networks
@@ -1560,6 +1564,40 @@ final class FluidNetworkSystem: System {
         return pressureMap
     }
 
+    private func applyProducerHeadPressure(_ pressureMap: inout [Entity: Float], network: FluidNetwork) {
+        for producerEntity in network.producers {
+            guard let producer = world.get(FluidProducerComponent.self, for: producerEntity) else { continue }
+            let head = producerHeadPressure(for: producer)
+            if head <= 0 { continue }
+
+            let currentProducerPressure = pressureMap[producerEntity] ?? 0
+            pressureMap[producerEntity] = max(currentProducerPressure, head)
+
+            for connectedEntity in producer.connections {
+                if world.has(PipeComponent.self, for: connectedEntity) {
+                    let current = pressureMap[connectedEntity] ?? 0
+                    pressureMap[connectedEntity] = max(current, head)
+                } else if world.has(FluidTankComponent.self, for: connectedEntity) {
+                    let current = pressureMap[connectedEntity] ?? 0
+                    pressureMap[connectedEntity] = max(current, head * 0.6)
+                }
+            }
+        }
+    }
+
+    private func producerHeadPressure(for producer: FluidProducerComponent) -> Float {
+        switch producer.buildingId {
+        case "pumpjack":
+            return 80.0
+        case "water-pump":
+            return 60.0
+        case "boiler":
+            return 30.0
+        default:
+            return 20.0
+        }
+    }
+
     /// Calculate flow rates between connected components based on pressure gradients
     private func calculateFlowRates(in network: FluidNetwork, pressureMap: [Entity: Float], deltaTime: Float, networkId: Int) -> [EntityPair: Float] {
         var flowRates: [EntityPair: Float] = [:]
@@ -1584,14 +1622,30 @@ final class FluidNetworkSystem: System {
             }
 
 
-            for connectedEntity in pipe.connections {
+            var connectedEntities = pipe.connections
+            if !pipe.tankConnections.isEmpty {
+                for buildingEntity in pipe.tankConnections.keys {
+                    if !connectedEntities.contains(buildingEntity) {
+                        connectedEntities.append(buildingEntity)
+                    }
+                }
+            }
+
+            for connectedEntity in connectedEntities {
                 // Skip connections to producers - they inject fluid separately
                 if network.producers.contains(connectedEntity) {
                     continue
                 }
                 // Allow connections to consumers - flow can transfer fluid to them
 
-                guard let connectedPressure = pressureMap[connectedEntity] else {
+                let connectedPressure: Float
+                if let cachedPressure = pressureMap[connectedEntity] {
+                    connectedPressure = cachedPressure
+                } else if let tank = world.get(FluidTankComponent.self, for: connectedEntity) {
+                    let totalFluid = tank.tanks.reduce(0) { $0 + $1.amount }
+                    let fillRatio = tank.maxCapacity > 0 ? totalFluid / tank.maxCapacity : 0
+                    connectedPressure = fillRatio * 100.0
+                } else {
                     continue
                 }
 
@@ -1599,8 +1653,9 @@ final class FluidNetworkSystem: System {
                 let pressureDiff = pipePressure - connectedPressure
 
 
+                let flowThreshold: Float = world.has(FluidTankComponent.self, for: connectedEntity) ? 0.01 : 0.1
                 // Only flow if there's a significant pressure difference
-                if abs(pressureDiff) > 0.1 {
+                if abs(pressureDiff) > flowThreshold {
                     // Calculate flow rate based on pressure difference and pipe properties
                     let baseFlowRate = pressureDiff * 2.0 // Pressure difference drives flow
 
@@ -1618,6 +1673,24 @@ final class FluidNetworkSystem: System {
 
                     let entityPair = EntityPair(from: pipeEntity, to: connectedEntity)
                     flowRates[entityPair] = actualFlowRate
+                } else if let tank = world.get(FluidTankComponent.self, for: connectedEntity),
+                          pipe.fluidAmount > 0 {
+                    // Allow low-pressure equalization into tanks based on fill ratio.
+                    let tankFluid = tank.tanks.reduce(0) { $0 + $1.amount }
+                    let tankFillRatio = tank.maxCapacity > 0 ? tankFluid / tank.maxCapacity : 0
+                    let pipeCapacity = pipe.maxCapacity > 0 ? pipe.maxCapacity : 1
+                    let pipeFillRatio = pipe.fluidAmount / pipeCapacity
+
+                    if pipeFillRatio > tankFillRatio {
+                        let ratioDiff = pipeFillRatio - tankFillRatio
+                        let baseFlowRate = ratioDiff * pipeCapacity
+                        let maxFlowRate = pipeCapacity * 0.5
+                        let flowRate = min(baseFlowRate, maxFlowRate)
+                        if flowRate > 0 {
+                            let entityPair = EntityPair(from: pipeEntity, to: connectedEntity)
+                            flowRates[entityPair] = flowRate
+                        }
+                    }
                 }
             }
         }

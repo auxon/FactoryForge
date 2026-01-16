@@ -581,9 +581,31 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         world.add(pipe, to: pipeEntity)
         world.add(buildingTank, to: buildingEntity)
 
+        // Ensure the pipe and building are in the same network when manually connected.
+        syncNetworkIds(pipeEntity: pipeEntity, buildingEntity: buildingEntity, world: world, fluidNetworkSystem: fluidNetworkSystem)
+
         // Mark networks as dirty for recalculation
         fluidNetworkSystem.markEntityDirty(pipeEntity)
         fluidNetworkSystem.markEntityDirty(buildingEntity)
+    }
+
+    private func syncNetworkIds(pipeEntity: Entity, buildingEntity: Entity, world: World, fluidNetworkSystem: FluidNetworkSystem) {
+        let pipeNetwork = world.get(PipeComponent.self, for: pipeEntity)?.networkId
+        let tankNetwork = world.get(FluidTankComponent.self, for: buildingEntity)?.networkId
+
+        switch (pipeNetwork, tankNetwork) {
+        case let (pipeId?, tankId?) where pipeId != tankId:
+            fluidNetworkSystem.mergeNetworksContainingEntities(pipeEntity, buildingEntity)
+        case let (pipeId?, nil):
+            fluidNetworkSystem.assignNetworkId(pipeId, to: [buildingEntity])
+        case let (nil, tankId?):
+            fluidNetworkSystem.assignNetworkId(tankId, to: [pipeEntity])
+        case (nil, nil):
+            let newId = fluidNetworkSystem.getNextNetworkId()
+            fluidNetworkSystem.assignNetworkId(newId, to: [pipeEntity, buildingEntity])
+        default:
+            break
+        }
     }
 
     private func updateTankSelectionButtons() {
