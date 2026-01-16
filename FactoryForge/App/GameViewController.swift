@@ -25,6 +25,10 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     // Game over UI
     private var gameOverLabel: UILabel!
     private var menuButtonLabel: UILabel!
+
+    // Debug overlay labels for pipe network IDs
+    private var pipeNetworkOverlayLabels: [UILabel] = []
+    private var pipeNetworkOverlayLabelPool: [UILabel] = []
     
     // Splash screen
     private var splashImageView: UIImageView!
@@ -423,6 +427,99 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         guard let device = metalView.device else { return }
         renderer = MetalRenderer(device: device, view: metalView)
         metalView.delegate = renderer
+        renderer.onDebugOverlayUpdate = { [weak self] in
+            guard let self else { return }
+            if Thread.isMainThread {
+                self.updatePipeNetworkOverlay()
+            } else {
+                DispatchQueue.main.async { [weak self] in
+                    self?.updatePipeNetworkOverlay()
+                }
+            }
+        }
+    }
+
+    private func updatePipeNetworkOverlay() {
+        guard let renderer, let gameLoop else { return }
+
+        if !renderer.showFluidDebug {
+            clearPipeNetworkOverlay()
+            return
+        }
+
+        let visibleRect = renderer.camera.visibleRect
+        let cameraCenter = renderer.camera.position
+        let maxRenderDistance = 60.0 / renderer.camera.zoom
+        let scale = metalView?.contentScaleFactor ?? 1.0
+
+        var labelsInUse = 0
+
+        for entity in gameLoop.world.query(PipeComponent.self) {
+            guard let position = gameLoop.world.get(PositionComponent.self, for: entity),
+                  let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else { continue }
+
+            let worldPos = position.worldPosition
+            guard visibleRect.contains(worldPos) else { continue }
+
+            let distanceFromCamera = (worldPos - cameraCenter).length
+            guard distanceFromCamera <= maxRenderDistance else { continue }
+
+            let label = dequeuePipeNetworkLabel(at: labelsInUse)
+            labelsInUse += 1
+
+            if let networkId = pipe.networkId {
+                label.text = "\(networkId)"
+            } else {
+                label.text = "-"
+            }
+            label.sizeToFit()
+
+            let screenPos = renderer.worldToScreen(worldPos + Vector2(0, 0.35))
+            label.center = CGPoint(x: CGFloat(screenPos.x) / scale, y: CGFloat(screenPos.y) / scale)
+            label.isHidden = false
+        }
+
+        if labelsInUse < pipeNetworkOverlayLabels.count {
+            let unused = pipeNetworkOverlayLabels[labelsInUse...]
+            for label in unused {
+                label.isHidden = true
+                label.removeFromSuperview()
+                pipeNetworkOverlayLabelPool.append(label)
+            }
+            pipeNetworkOverlayLabels.removeLast(pipeNetworkOverlayLabels.count - labelsInUse)
+        }
+    }
+
+    private func clearPipeNetworkOverlay() {
+        for label in pipeNetworkOverlayLabels {
+            label.isHidden = true
+            label.removeFromSuperview()
+            pipeNetworkOverlayLabelPool.append(label)
+        }
+        pipeNetworkOverlayLabels.removeAll()
+    }
+
+    private func dequeuePipeNetworkLabel(at index: Int) -> UILabel {
+        if index < pipeNetworkOverlayLabels.count {
+            return pipeNetworkOverlayLabels[index]
+        }
+
+        let label = pipeNetworkOverlayLabelPool.popLast() ?? UILabel()
+        label.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .bold)
+        label.textColor = .white
+        label.textAlignment = .center
+        label.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+        label.layer.cornerRadius = 3
+        label.layer.masksToBounds = true
+
+        if let metalView = metalView {
+            view.insertSubview(label, aboveSubview: metalView)
+        } else {
+            view.addSubview(label)
+        }
+
+        pipeNetworkOverlayLabels.append(label)
+        return label
     }
 
     private func installInventoryScrollCallbacks() {

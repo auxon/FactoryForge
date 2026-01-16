@@ -477,7 +477,35 @@ final class HUD {
         let textureRect = renderer.textureAtlas.getTextureRect(for: buildingDef.textureId)
 
         // For pipes, render the path preview with direction overlay
-        if buildingId.contains("pipe") && !inputManager.dragPathPreview.isEmpty {
+        if buildingId.contains("pipe") && !inputManager.dragPathPreviewWorld.isEmpty {
+            for (index, worldPos) in inputManager.dragPathPreviewWorld.enumerated() {
+                let tilePos = IntVector2(from: worldPos)
+
+                // Check if placement is valid
+                let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
+                let placementOffset = worldPos - tileCenter
+                let direction = pipePreviewDirection(for: index, path: inputManager.dragPathPreviewWorld, fallback: inputManager.buildDirection)
+                let isValidPlacement = gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: direction) &&
+                    gameLoop.canPlacePipe(at: tilePos, direction: direction, offset: placementOffset)
+
+                // Choose color based on validity
+                let previewColor = isValidPlacement ?
+                    Color(r: 0.2, g: 0.8, b: 0.2, a: 0.6) :  // Green for valid
+                    Color(r: 0.8, g: 0.2, b: 0.2, a: 0.6)    // Red for invalid
+
+                // Render ghost preview for this tile
+                renderer.queueSprite(SpriteInstance(
+                    position: worldPos,
+                    size: Vector2(1.0, 0.66), // Thin pipe preview
+                    rotation: pipeRotation(for: direction),
+                    textureRect: textureRect,
+                    color: previewColor,
+                    layer: .entity // Render above ground but below UI
+                ))
+
+                renderPipeDirectionOverlay(renderer: renderer, worldPos: worldPos, direction: direction)
+            }
+        } else if buildingId.contains("pipe") && !inputManager.dragPathPreview.isEmpty {
             for (index, tilePos) in inputManager.dragPathPreview.enumerated() {
                 let worldPos = Vector2(Float(tilePos.x) + 0.5, Float(tilePos.y) + 0.5)
 
@@ -494,7 +522,7 @@ final class HUD {
                 // Render ghost preview for this tile
                 renderer.queueSprite(SpriteInstance(
                     position: worldPos,
-                    size: Vector2(1.0, 1.0), // Standard tile size
+                    size: Vector2(1.0, 0.66), // Thin pipe preview
                     rotation: pipeRotation(for: direction),
                     textureRect: textureRect,
                     color: previewColor,
@@ -540,7 +568,7 @@ final class HUD {
             let previewRotation = buildingId.contains("pipe") ? pipeRotation(for: inputManager.buildDirection) : 0
             renderer.queueSprite(SpriteInstance(
                 position: worldPos,
-                size: Vector2(1.0, 1.0), // Standard tile size
+                size: buildingId.contains("pipe") ? Vector2(1.0, 0.66) : Vector2(1.0, 1.0),
                 rotation: previewRotation,
                 textureRect: textureRect,
                 color: previewColor,
@@ -569,6 +597,29 @@ final class HUD {
             color: Color(r: 0.9, g: 0.9, b: 0.9, a: 0.75),
             layer: .entity
         ))
+    }
+
+    private func pipePreviewDirection(for index: Int, path: [Vector2], fallback: Direction) -> Direction {
+        guard !path.isEmpty else { return fallback }
+        if index < path.count - 1 {
+            let delta = path[index + 1] - path[index]
+            return dominantDirection(from: delta, fallback: fallback)
+        }
+        if index > 0 {
+            let delta = path[index] - path[index - 1]
+            return dominantDirection(from: delta, fallback: fallback)
+        }
+        return fallback
+    }
+
+    private func dominantDirection(from delta: Vector2, fallback: Direction) -> Direction {
+        if abs(delta.x) >= abs(delta.y) {
+            return delta.x >= 0 ? .east : .west
+        }
+        if abs(delta.y) > 0 {
+            return delta.y >= 0 ? .north : .south
+        }
+        return fallback
     }
 
     private func pipePreviewDirection(for index: Int, path: [IntVector2], fallback: Direction) -> Direction {

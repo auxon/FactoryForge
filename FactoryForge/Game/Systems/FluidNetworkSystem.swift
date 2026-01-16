@@ -109,7 +109,7 @@ final class FluidNetworkSystem: System {
 
         // Process dirty networks (need flow recalculation)
         // For performance, only update flow calculations every few frames for large networks
-
+        var updatedNetworks = Set<Int>()
         if !dirtyNetworks.isEmpty {
             #if DEBUG
             let start = CACurrentMediaTime()
@@ -121,10 +121,12 @@ final class FluidNetworkSystem: System {
 
             // Always update small networks immediately
             updateFlowCalculations(for: smallNetworks, deltaTime: deltaTime)
+            updatedNetworks.formUnion(smallNetworks)
 
             // Update large networks less frequently
             if updateCounter % updateFrequency == 0 {
                 updateFlowCalculations(for: largeNetworks, deltaTime: deltaTime)
+                updatedNetworks.formUnion(largeNetworks)
             }
 
             // Clear processed networks
@@ -135,6 +137,13 @@ final class FluidNetworkSystem: System {
             #if DEBUG
             updateTimings["dirtyFlow"] = CACurrentMediaTime() - start
             #endif
+        }
+
+        // Keep active networks updating even when not marked dirty.
+        let activeNetworks = networks.filter { !$0.value.producers.isEmpty || !$0.value.consumers.isEmpty }.keys
+        let networksNeedingUpdate = Set(activeNetworks).subtracting(updatedNetworks)
+        if !networksNeedingUpdate.isEmpty {
+            updateFlowCalculations(for: networksNeedingUpdate, deltaTime: deltaTime)
         }
 
         // Periodic cleanup and optimization
@@ -357,38 +366,11 @@ final class FluidNetworkSystem: System {
     private func findConnectedNetworkIds(for entity: Entity) -> Set<Int> {
         var connectedNetworkIds = Set<Int>()
 
-        // Use cached position if available, otherwise get from world
-        guard let position = entityPositions[entity] ?? world.get(PositionComponent.self, for: entity)?.tilePosition else {
-            return connectedNetworkIds
-        }
-
-        // Check all adjacent positions
-        let adjacentPositions = [
-            position + IntVector2(x: 0, y: 1),   // North
-            position + IntVector2(x: 1, y: 0),   // East
-            position + IntVector2(x: 0, y: -1),  // South
-            position + IntVector2(x: -1, y: 0)   // West
-        ]
-
-        // Performance optimization: Check spatial index first for adjacent positions
-        for adjacentPos in adjacentPositions {
-            if let networkId = networksByPosition[adjacentPos] {
-                // Quick check: if we already know this position belongs to a network
+        let candidates = candidateEntities(near: entity, radius: 1)
+        for candidate in candidates {
+            if canConnect(entity, to: candidate),
+               let networkId = getEntityNetworkId(candidate) {
                 connectedNetworkIds.insert(networkId)
-            } else {
-                // Fallback: check entities at this position
-                let entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
-                for adjacentEntity in entitiesAtPos {
-                    // Check if this entity can connect to our entity
-                    if canConnect(entity, to: adjacentEntity) {
-                        // Check what network this adjacent entity belongs to
-                        if let networkId = getEntityNetworkId(adjacentEntity) {
-                            connectedNetworkIds.insert(networkId)
-                            // Cache this for future lookups
-                            networksByPosition[adjacentPos] = networkId
-                        }
-                    }
-                }
             }
         }
 
@@ -520,58 +502,38 @@ final class FluidNetworkSystem: System {
             }
         }
 
-        // Check all adjacent positions around each occupied position
-        var adjacentPositions = Set<IntVector2>()
+        let proximityRadius = 1
+        var candidateEntities = Set<Entity>()
+
         for checkPos in positionsToCheckAdjacentTo {
-            adjacentPositions.insert(checkPos + IntVector2(x: 0, y: 1))   // North
-            adjacentPositions.insert(checkPos + IntVector2(x: 1, y: 0))   // East
-            adjacentPositions.insert(checkPos + IntVector2(x: 0, y: -1))  // South
-            adjacentPositions.insert(checkPos + IntVector2(x: -1, y: 0))  // West
-        }
-
-        // Remove positions that are occupied by this entity itself
-        adjacentPositions = adjacentPositions.filter { adjPos in
-            let entitiesAtPos = world.getAllEntitiesAt(position: adjPos)
-            return !entitiesAtPos.contains(entity)
-        }
-
-        let adjacentPositionsList = Array(adjacentPositions)
-
-        var newConnections: [Entity] = []
-
-        // print("establishConnections: Checking \(adjacentPositionsList.count) adjacent positions for entity \(entity.id)")
-        for adjacentPos in adjacentPositionsList {
-            // Calculate which direction this adjacent position represents
-            let directionOffset = adjacentPos - position
-            _ = directionFromOffset(directionOffset)
-
-            // Find entities at this position - use fallback if spatial query fails
-            var entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
-
-            // Fallback: if no entities found, manually check all entities (spatial index bug workaround)
-            if entitiesAtPos.isEmpty {
-                for otherEntity in world.entities {
-                    if let pos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
-                       pos == adjacentPos {
-                        entitiesAtPos.append(otherEntity)
+            for dy in -proximityRadius...proximityRadius {
+                for dx in -proximityRadius...proximityRadius {
+                    let probePos = checkPos + IntVector2(x: Int32(dx), y: Int32(dy))
+                    for otherEntity in world.getAllEntitiesAt(position: probePos) {
+                        candidateEntities.insert(otherEntity)
                     }
                 }
             }
+        }
 
-            // print("establishConnections: Position \(adjacentPos) has \(entitiesAtPos.count) entities")
-            if entitiesAtPos.count > 0 {
-                // print("establishConnections: Found entities at \(adjacentPos): \(entitiesAtPos.map { "\($0.id)" }.joined(separator: ", "))")
+        candidateEntities.remove(entity)
+
+        var newConnections: [Entity] = []
+
+        for candidate in candidateEntities {
+            if canConnect(entity, to: candidate) {
+                newConnections.append(candidate)
+                addConnection(from: candidate, to: entity)
+                addConnection(from: entity, to: candidate)
             }
-            for adjacentEntity in entitiesAtPos {
-                // Check if this entity can connect to our entity
-                if canConnect(entity, to: adjacentEntity) {
-                    // print("establishConnections: Can connect to adjacent entity \(adjacentEntity.id)")
-                    newConnections.append(adjacentEntity)
-                    // Also add the connection to the adjacent entity
-                    addConnection(from: adjacentEntity, to: entity)
-                    addConnection(from: entity, to: adjacentEntity)
-                } else {
-                    // print("establishConnections: Cannot connect to adjacent entity \(adjacentEntity.id)")
+        }
+
+        if let pipe = world.get(PipeComponent.self, for: entity) {
+            for buildingEntity in pipe.tankConnections.keys {
+                if !newConnections.contains(buildingEntity) {
+                    newConnections.append(buildingEntity)
+                    addConnection(from: buildingEntity, to: entity)
+                    addConnection(from: entity, to: buildingEntity)
                 }
             }
         }
@@ -830,27 +792,10 @@ final class FluidNetworkSystem: System {
         // Fallback: calculate connections from scratch
         var connected: [Entity] = []
 
-        // Get position of the entity (use cache if available)
-        guard let position = entityPositions[entity] ?? world.get(PositionComponent.self, for: entity)?.tilePosition else {
-            return connected
-        }
-
-        // Check all adjacent positions
-        let adjacentPositions = [
-            position + IntVector2(x: 0, y: 1),   // North
-            position + IntVector2(x: 1, y: 0),   // East
-            position + IntVector2(x: 0, y: -1),  // South
-            position + IntVector2(x: -1, y: 0)   // West
-        ]
-
-        for adjacentPos in adjacentPositions {
-            // Find entities at this position
-            let entitiesAtPos = world.getAllEntitiesAt(position: adjacentPos)
-            for adjacentEntity in entitiesAtPos {
-                // Check if this entity can connect to our entity
-                if canConnect(entity, to: adjacentEntity) {
-                    connected.append(adjacentEntity)
-                }
+        let candidates = candidateEntities(near: entity, radius: 1)
+        for candidate in candidates {
+            if canConnect(entity, to: candidate) {
+                connected.append(candidate)
             }
         }
 
@@ -858,6 +803,40 @@ final class FluidNetworkSystem: System {
         entityConnections[entity] = connected
 
         return connected
+    }
+
+    private func candidateEntities(near entity: Entity, radius: Int) -> [Entity] {
+        guard let position = entityPositions[entity] ?? world.get(PositionComponent.self, for: entity)?.tilePosition else {
+            return []
+        }
+
+        let size = getBuildingSize(for: entity)
+        var tilesToProbe: [IntVector2] = []
+        tilesToProbe.append(position)
+
+        if size.width > 1 || size.height > 1 {
+            for x in 0..<size.width {
+                for y in 0..<size.height {
+                    let tile = position + IntVector2(x: Int32(x), y: Int32(y))
+                    tilesToProbe.append(tile)
+                }
+            }
+        }
+
+        var candidates = Set<Entity>()
+
+        for tile in tilesToProbe {
+            for dy in -radius...radius {
+                for dx in -radius...radius {
+                    let probe = tile + IntVector2(x: Int32(dx), y: Int32(dy))
+                    for other in world.getAllEntitiesAt(position: probe) where other != entity {
+                        candidates.insert(other)
+                    }
+                }
+            }
+        }
+
+        return Array(candidates)
     }
 
     /// Checks if an entity can accept more fluid (for flow simulation)
@@ -877,19 +856,32 @@ final class FluidNetworkSystem: System {
             return false
         }
 
-        guard let adjacency = adjacencyBetween(entity1, entity2) else {
+        let entity1IsPipe = world.has(PipeComponent.self, for: entity1)
+        let entity2IsPipe = world.has(PipeComponent.self, for: entity2)
+
+        let directionToEntity2: Direction
+        let directionToEntity1: Direction
+
+        if let adjacency = adjacencyBetween(entity1, entity2) ?? proximityBetween(entity1, entity2) {
+            directionToEntity2 = adjacency.directionFromEntity1
+            directionToEntity1 = adjacency.directionFromEntity2
+        } else if entity1IsPipe != entity2IsPipe,
+                  let pos1 = world.get(PositionComponent.self, for: entity1)?.worldPosition,
+                  let pos2 = world.get(PositionComponent.self, for: entity2)?.worldPosition {
+            let delta = pos2 - pos1
+            let dir = dominantCardinalDirection(from: delta)
+            directionToEntity2 = dir
+            directionToEntity1 = dir.opposite
+        } else {
             return false
         }
 
-        let directionToEntity2 = adjacency.directionFromEntity1
-        let directionToEntity1 = adjacency.directionFromEntity2
-
-        // Pipes only connect on allowed sides, and respect manual disconnects
+        // Pipes respect manual disconnects. Allowed directions only block pipe-to-pipe connections.
         if let pipe1 = world.get(PipeComponent.self, for: entity1) {
             if pipe1.manuallyDisconnectedDirections.contains(directionToEntity2) {
                 return false
             }
-            if !pipe1.allowedDirections.contains(directionToEntity2) {
+            if entity2IsPipe && !pipe1.allowedDirections.contains(directionToEntity2) {
                 return false
             }
         }
@@ -898,7 +890,7 @@ final class FluidNetworkSystem: System {
             if pipe2.manuallyDisconnectedDirections.contains(directionToEntity1) {
                 return false
             }
-            if !pipe2.allowedDirections.contains(directionToEntity1) {
+            if entity1IsPipe && !pipe2.allowedDirections.contains(directionToEntity1) {
                 return false
             }
         }
@@ -907,6 +899,13 @@ final class FluidNetworkSystem: System {
         // For now, allow connections between any fluid buildings (simplified)
         // TODO: Add direction-based connection rules for specific buildings
         return true
+    }
+
+    private func dominantCardinalDirection(from delta: Vector2) -> Direction {
+        if abs(delta.x) >= abs(delta.y) {
+            return delta.x >= 0 ? .east : .west
+        }
+        return delta.y >= 0 ? .north : .south
     }
 
     private func adjacencyBetween(_ entity1: Entity, _ entity2: Entity) -> (directionFromEntity1: Direction, directionFromEntity2: Direction)? {
@@ -926,6 +925,76 @@ final class FluidNetworkSystem: System {
             }
         }
 
+        return nil
+    }
+
+    private func proximityBetween(_ entity1: Entity, _ entity2: Entity) -> (directionFromEntity1: Direction, directionFromEntity2: Direction)? {
+        guard let pos1 = world.get(PositionComponent.self, for: entity1)?.worldPosition,
+              let pos2 = world.get(PositionComponent.self, for: entity2)?.worldPosition else {
+            return nil
+        }
+
+        let aabb1 = entityBounds(for: entity1)
+        let aabb2 = entityBounds(for: entity2)
+        let nearest1 = nearestPoint(on: aabb2, to: pos1)
+        let nearest2 = nearestPoint(on: aabb1, to: pos2)
+
+        var delta1 = nearest1 - pos1
+        var delta2 = nearest2 - pos2
+
+        let range: Float = 0.75
+        let lateralTolerance: Float = 0.35
+
+        let minMagnitude: Float = 0.01
+        if delta1.length <= minMagnitude || delta2.length <= minMagnitude {
+            let between = pos2 - pos1
+            if between.length <= minMagnitude {
+                if let pipe = world.get(PipeComponent.self, for: entity1) {
+                    return (pipe.direction, pipe.direction.opposite)
+                }
+                if let pipe = world.get(PipeComponent.self, for: entity2) {
+                    return (pipe.direction.opposite, pipe.direction)
+                }
+            }
+            delta1 = between
+            delta2 = -between
+        }
+
+        if let dir1 = cardinalDirection(from: delta1, range: range, lateralTolerance: lateralTolerance),
+           let dir2 = cardinalDirection(from: delta2, range: range, lateralTolerance: lateralTolerance) {
+            return (dir1, dir2)
+        }
+
+        return nil
+    }
+
+    private func entityBounds(for entity: Entity) -> Rect {
+        guard let position = world.get(PositionComponent.self, for: entity) else {
+            return Rect(x: 0, y: 0, width: 0, height: 0)
+        }
+        let size = getBuildingSize(for: entity)
+        let origin = position.tilePosition.toVector2
+        return Rect(origin: origin, size: Vector2(Float(size.width), Float(size.height)))
+    }
+
+    private func nearestPoint(on bounds: Rect, to point: Vector2) -> Vector2 {
+        let clampedX = min(max(point.x, bounds.minX), bounds.maxX)
+        let clampedY = min(max(point.y, bounds.minY), bounds.maxY)
+        return Vector2(clampedX, clampedY)
+    }
+
+    private func cardinalDirection(from delta: Vector2, range: Float, lateralTolerance: Float) -> Direction? {
+        let absX = abs(delta.x)
+        let absY = abs(delta.y)
+        let withinX = absX <= range && absY <= lateralTolerance
+        let withinY = absY <= range && absX <= lateralTolerance
+
+        if withinX || withinY {
+            if absX >= absY {
+                return delta.x >= 0 ? .east : .west
+            }
+            return delta.y >= 0 ? .north : .south
+        }
         return nil
     }
 
@@ -1351,8 +1420,14 @@ final class FluidNetworkSystem: System {
         if let producer = world.get(FluidProducerComponent.self, for: producerEntity) {
             for connectedEntity in producer.connections {
                 if let pipe = world.get(PipeComponent.self, for: connectedEntity) {
+                    let effectiveCapacity = pipe.maxCapacity > 0 ? pipe.maxCapacity : (buildingRegistry.get(pipe.buildingId)?.fluidCapacity ?? 100)
+                    if pipe.maxCapacity <= 0 && effectiveCapacity > 0 {
+                        let updatedPipe = pipe
+                        updatedPipe.maxCapacity = effectiveCapacity
+                        world.add(updatedPipe, to: connectedEntity)
+                    }
                     // Check if pipe has space and can accept this fluid type
-                    if pipe.fluidAmount < pipe.maxCapacity &&
+                    if pipe.fluidAmount < effectiveCapacity &&
                        (pipe.fluidType == nil || pipe.fluidType == producer.outputType) {
                         return true
                     }
@@ -1687,16 +1762,20 @@ final class FluidNetworkSystem: System {
             return 0
         }
 
-        let maxAllowed = originalPipe.maxCapacity * 1.5
+        let effectiveCapacity = originalPipe.maxCapacity > 0 ? originalPipe.maxCapacity : (buildingRegistry.get(originalPipe.buildingId)?.fluidCapacity ?? 100)
+        let maxAllowed = effectiveCapacity * 1.5
         let hasSpace = originalPipe.fluidAmount < maxAllowed
 
         if hasSpace {
             let updatedPipe = originalPipe
             // Allow some overfill to simulate pressurization (up to 150% capacity)
-            let maxAllowed = updatedPipe.maxCapacity * 1.5
+            let maxAllowed = effectiveCapacity * 1.5
             let space = maxAllowed - updatedPipe.fluidAmount
             let added = min(amount, space)
             updatedPipe.fluidAmount += added
+            if updatedPipe.maxCapacity <= 0 && effectiveCapacity > 0 {
+                updatedPipe.maxCapacity = effectiveCapacity
+            }
 
             // Set fluid type when filling an empty pipe
             if updatedPipe.fluidType == nil {
@@ -1970,6 +2049,20 @@ final class FluidNetworkSystem: System {
     /// Gets all existing network IDs
     func getAllNetworkIds() -> [Int] {
         return Array(networks.keys).sorted()
+    }
+
+    /// Assigns entities to a specific network ID, creating the network if needed.
+    func assignNetworkId(_ networkId: Int, to entities: [Entity]) {
+        guard !entities.isEmpty else { return }
+        var network = networks[networkId] ?? FluidNetwork(id: networkId)
+
+        for entity in entities {
+            setEntityNetworkId(entity, networkId: networkId)
+            network.addEntity(entity, world: world)
+        }
+
+        networks[networkId] = network
+        markNetworkDirty(networkId)
     }
 
     /// Merges the network of the specified entity with another network

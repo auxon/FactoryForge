@@ -401,7 +401,10 @@ final class BuildingRegistry {
         boiler.fuelCategory = "chemical"
         boiler.inputSlots = 0  // Takes fuel from fuel category
         boiler.outputSlots = 0  // Produces steam (fluid)
+        boiler.fluidInputType = .water
         boiler.fluidOutputType = .steam
+        boiler.fluidInputTypes = [.water]
+        boiler.fluidOutputTypes = [.steam]
         boiler.fluidCapacity = 540
         boiler.fluidInputTanks = 1
         boiler.fluidOutputTanks = 1
@@ -427,7 +430,8 @@ final class BuildingRegistry {
         steamEngine.fuelSlots = 0
         steamEngine.fluidInputTanks = 1
         steamEngine.fluidOutputTanks = 0
-        steamEngine.fluidOutputType = .none
+        steamEngine.fluidInputType = .steam
+        steamEngine.fluidInputTypes = [.steam]
         steamEngine.fluidCapacity = 540
         register(steamEngine)
         
@@ -598,6 +602,7 @@ final class BuildingRegistry {
         pumpjack.powerConsumption = 90  // kW
         pumpjack.extractionRate = 1.0   // 1 crude oil per second at full power
         pumpjack.fluidOutputType = .crudeOil
+        pumpjack.fluidOutputTypes = [.crudeOil]
         pumpjack.inventorySlots = 1     // fuelSlots + inputSlots + outputSlots = 0 + 0 + 1
         pumpjack.inputSlots = 0
         pumpjack.outputSlots = 1
@@ -616,6 +621,7 @@ final class BuildingRegistry {
         waterPump.powerConsumption = 30  // kW - less than oil well
         waterPump.extractionRate = 20.0  // 20 water per second - matches Factorio offshore pump
         waterPump.fluidOutputType = .water
+        waterPump.fluidOutputTypes = [.water]
         waterPump.inventorySlots = 0     // No inventory - outputs fluid directly to pipes
         waterPump.inputSlots = 0
         waterPump.outputSlots = 0        // No item outputs
@@ -643,6 +649,8 @@ final class BuildingRegistry {
         oilRefinery.craftingCategory = "oil-processing"
         oilRefinery.fluidInputTanks = 2     // 2 tanks for inputs (crude oil, water)
         oilRefinery.fluidOutputTanks = 3    // 3 tanks for outputs (petroleum gas, light oil, heavy oil)
+        oilRefinery.fluidInputTypes = [.crudeOil, .water]
+        oilRefinery.fluidOutputTypes = [.petroleumGas, .lightOil, .heavyOil]
         register(oilRefinery)
 
         var chemicalPlant = BuildingDefinition(

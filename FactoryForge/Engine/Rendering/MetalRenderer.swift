@@ -54,6 +54,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
 
     // Debug visualization modes
     var showFluidDebug: Bool = false
+    var onDebugOverlayUpdate: (() -> Void)?
 
     /// Toggle fluid network debug visualization
     func toggleFluidDebug() {
@@ -231,6 +232,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
 
         // Update game logic
         gameLoop?.update()
+        onDebugOverlayUpdate?()
         
         // Render UI first (in case loading menu is active)
         // UI system can exist without game loop (for loading menu)

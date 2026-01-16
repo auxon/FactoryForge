@@ -46,7 +46,13 @@ final class InputManager: NSObject {
     // Belt and pole placement (drag-based)
     private var dragPlacementStartTile: IntVector2?  // Starting tile for drag placement
     private var dragPlacedTiles: Set<IntVector2> = []  // Tiles where items have been placed in current drag
+    private var dragPlacementOffset: Vector2?  // Offset for drag placement (pipes)
+    private var dragStartWorldPos: Vector2?  // World position where drag started (pipes)
+    private var dragPlacedPositions: [Vector2] = []  // World positions placed for pipes
+    private var dragPlacementNetworkId: Int?  // Network ID for pipe drag placement
+    private var dragPlacedPipeEntities: Set<Entity> = []  // Pipes placed during drag
     var dragPathPreview: [IntVector2] = []  // Preview path for rendering
+    var dragPathPreviewWorld: [Vector2] = []  // Preview path for pipes
     
     // Selection rectangle
     var selectionRect: Rect?  // Selection rectangle in world coordinates (for rendering)
@@ -290,10 +296,12 @@ final class InputManager: NSObject {
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
                 let isBelt = buildingDef.type == .belt
                 let isInserter = buildingDef.type == .inserter
+                let isPipe = buildingDef.type == .pipe
                 let tapOffset = (isBelt || isInserter) ? (worldPos - tileCenter) : (worldPos - tileCenter - spriteSize / 2)
 
                 // Check placement validity
-                if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
+                let canPlacePipe = !isPipe || gameLoop.canPlacePipe(at: tilePos, direction: buildDirection, offset: tapOffset)
+                if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) || !canPlacePipe {
                     onTooltip?("Cannot place building here")
                     return
                 }
@@ -450,6 +458,15 @@ final class InputManager: NSObject {
                 dragPlacementStartTile = tilePos
                 dragPlacedTiles = []
                 dragPathPreview = [tilePos]
+                let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
+                dragPlacementOffset = buildingId.contains("pipe") ? (worldPos - tileCenter) : .zero
+                dragStartWorldPos = buildingId.contains("pipe") ? worldPos : nil
+                dragPlacedPositions = []
+                dragPathPreviewWorld = []
+                if buildingId.contains("pipe") {
+                    dragPlacementNetworkId = gameLoop.fluidNetworkSystem.getNextNetworkId()
+                    dragPlacedPipeEntities.removeAll()
+                }
                 return
             }
             
@@ -494,10 +511,12 @@ final class InputManager: NSObject {
                 let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
                 let isBelt = buildingDef.type == .belt
                 let isInserter = buildingDef.type == .inserter
+                let isPipe = buildingDef.type == .pipe
                 let tapOffset = (isBelt || isInserter) ? (worldPos - tileCenter) : (worldPos - tileCenter - spriteSize / 2)
 
                 // Check placement validity
-                if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) {
+                let canPlacePipe = !isPipe || gameLoop.canPlacePipe(at: tilePos, direction: buildDirection, offset: tapOffset)
+                if !gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: buildDirection) || !canPlacePipe {
                     onTooltip?("Cannot place building here")
                     return
                 }
@@ -659,9 +678,19 @@ final class InputManager: NSObject {
                 if buildMode == .placing, let buildingId = selectedBuildingId,
                    buildingId.contains("belt") || buildingId.contains("pole") || buildingId.contains("pipe") {
                     if dragPlacementStartTile == nil {
-                        dragPlacementStartTile = IntVector2(from: worldPos)
+                        let startTile = IntVector2(from: worldPos)
+                        dragPlacementStartTile = startTile
                         dragPlacedTiles = []
                         dragPathPreview = [dragPlacementStartTile!]
+                        let tileCenter = startTile.toVector2 + Vector2(0.5, 0.5)
+                        dragPlacementOffset = buildingId.contains("pipe") ? (worldPos - tileCenter) : .zero
+                        dragStartWorldPos = buildingId.contains("pipe") ? worldPos : nil
+                        dragPlacedPositions = []
+                        dragPathPreviewWorld = []
+                        if buildingId.contains("pipe") {
+                            dragPlacementNetworkId = gameLoop.fluidNetworkSystem.getNextNetworkId()
+                            dragPlacedPipeEntities.removeAll()
+                        }
                     }
                 }
             }
@@ -780,6 +809,9 @@ final class InputManager: NSObject {
 
             // Exit build mode if we were doing drag placement
             if buildMode == .placing && dragPlacementStartTile != nil {
+                if let buildingId = selectedBuildingId, buildingId.contains("pipe") {
+                    finalizePipeDragNetworkAssignment(gameLoop: gameLoop)
+                }
                 exitBuildMode()
             }
 
@@ -1440,6 +1472,10 @@ final class InputManager: NSObject {
 
             let connectionCount = producer.connections.count
             tooltipLines.append("Connections: \(connectionCount)")
+            if producer.buildingId == "pumpjack" {
+                let networkText = producer.networkId.map { String($0) } ?? "-"
+                tooltipLines.append("Network: \(networkText)")
+            }
         }
 
         // Add fluid consumer information
@@ -1538,6 +1574,12 @@ final class InputManager: NSObject {
         buildMode = .placing
         selectedBuildingId = buildingId
         selectedEntity = nil
+        dragPlacementOffset = nil
+        dragStartWorldPos = nil
+        dragPlacedPositions = []
+        dragPathPreviewWorld = []
+        dragPlacementNetworkId = nil
+        dragPlacedPipeEntities.removeAll()
         // Clear selection rectangle state when entering build mode
         isSelecting = false
         selectionStartScreenPos = nil
@@ -1563,6 +1605,12 @@ final class InputManager: NSObject {
         dragPlacementStartTile = nil
         dragPlacedTiles = []
         dragPathPreview = []
+        dragPlacementOffset = nil
+        dragStartWorldPos = nil
+        dragPlacedPositions = []
+        dragPathPreviewWorld = []
+        dragPlacementNetworkId = nil
+        dragPlacedPipeEntities.removeAll()
         entityToMove = nil
         // Clear inserter connection state
         inserterToConfigure = nil
@@ -1736,6 +1784,12 @@ final class InputManager: NSObject {
         dragPlacementStartTile = nil
         dragPlacedTiles = []
         dragPathPreview = []
+        dragPlacementOffset = nil
+        dragStartWorldPos = nil
+        dragPlacedPositions = []
+        dragPathPreviewWorld = []
+        dragPlacementNetworkId = nil
+        dragPlacedPipeEntities.removeAll()
         // Clear selection rectangle state when entering move mode
         isSelecting = false
         selectionStartScreenPos = nil
@@ -1768,16 +1822,21 @@ final class InputManager: NSObject {
         // Ensure we have a start tile
         guard let startTile = dragPlacementStartTile else { return }
         
-        let currentTile = IntVector2(from: worldPos)
-        
-        // Calculate path from start to current tile using Manhattan distance
-        let path = calculateBeltPath(from: startTile, to: currentTile)
-        
-        // Update preview
-        dragPathPreview = path
-        
         let isBelt = buildingDef.type == .belt
         let isPipe = buildingDef.type == .pipe
+
+        if isPipe {
+            handlePipeDragPlacement(at: worldPos, gameLoop: gameLoop, buildingId: buildingId)
+            return
+        }
+
+        let currentTile = IntVector2(from: worldPos)
+
+        // Calculate path from start to current tile using Manhattan distance
+        let path = calculateBeltPath(from: startTile, to: currentTile)
+
+        // Update preview
+        dragPathPreview = path
         
         // Place items along the path that haven't been placed yet
         for (index, pos) in path.enumerated() {
@@ -1846,7 +1905,11 @@ final class InputManager: NSObject {
             }
             
             // Place the building (placeBuilding already removes items from inventory)
-            if gameLoop.placeBuilding(buildingId, at: pos, direction: direction, offset: .zero) {
+            let placementOffset = isPipe ? (dragPlacementOffset ?? .zero) : .zero
+            if isPipe && !gameLoop.canPlacePipe(at: pos, direction: direction, offset: placementOffset) {
+                continue
+            }
+            if gameLoop.placeBuilding(buildingId, at: pos, direction: direction, offset: placementOffset) {
                 dragPlacedTiles.insert(pos)
 
                 if isPipe, let placedEntity = gameLoop.world.getEntityAt(position: pos),
@@ -1866,6 +1929,70 @@ final class InputManager: NSObject {
                 // Don't select entities during drag placement to avoid UI confusion
             }
         }
+    }
+
+    private func handlePipeDragPlacement(at worldPos: Vector2, gameLoop: GameLoop, buildingId: String) {
+        guard let startWorldPos = dragStartWorldPos else { return }
+        let delta = worldPos - startWorldPos
+        let distance = (delta.x * delta.x + delta.y * delta.y).squareRoot()
+        let spacing: Float = 0.33  // Allow ~3 pipes per tile
+        let steps = max(1, Int(floor(distance / spacing)))
+        let directionVector = distance > 0 ? delta / distance : Vector2(0, 0)
+
+        dragPathPreviewWorld = []
+        dragPathPreview = []
+
+        for step in 0...steps {
+            let stepDistance = Float(step) * spacing
+            let pipeWorldPos = startWorldPos + directionVector * stepDistance
+            dragPathPreviewWorld.append(pipeWorldPos)
+
+            if dragPlacedPositions.contains(where: { $0.distance(to: pipeWorldPos) < spacing * 0.4 }) {
+                continue
+            }
+
+            let tilePos = IntVector2(from: pipeWorldPos)
+            let tileCenter = tilePos.toVector2 + Vector2(0.5, 0.5)
+            let placementOffset = pipeWorldPos - tileCenter
+
+            guard gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: .north) else {
+                continue
+            }
+            guard gameLoop.player.inventory.has(items: gameLoop.buildingRegistry.get(buildingId)?.cost ?? []) else {
+                continue
+            }
+
+            let direction = cardinalDirection(from: directionVector, fallback: buildDirection)
+            if !gameLoop.canPlacePipe(at: tilePos, direction: direction, offset: placementOffset) {
+                continue
+            }
+            if gameLoop.placeBuilding(buildingId, at: tilePos, direction: direction, offset: placementOffset) {
+                dragPlacedPositions.append(pipeWorldPos)
+
+                if let placedEntity = pipeEntity(at: tilePos, offset: placementOffset, gameLoop: gameLoop),
+                   let pipe = gameLoop.world.get(PipeComponent.self, for: placedEntity) {
+                    let pipeShape = PipeShape.straight
+                    pipe.direction = direction
+                    pipe.shape = pipeShape
+                    pipe.allowedDirections = PipeComponent.allowedDirections(for: pipeShape, direction: direction)
+                    gameLoop.world.add(pipe, to: placedEntity)
+                    gameLoop.fluidNetworkSystem.markEntityDirty(placedEntity)
+                    dragPlacedPipeEntities.insert(placedEntity)
+                }
+
+                updatePipeShapeForPlacement(at: tilePos, fallbackDirection: direction, gameLoop: gameLoop)
+            }
+        }
+    }
+
+    private func cardinalDirection(from vector: Vector2, fallback: Direction) -> Direction {
+        if abs(vector.x) >= abs(vector.y) {
+            return vector.x >= 0 ? .east : .west
+        }
+        if abs(vector.y) > 0 {
+            return vector.y >= 0 ? .north : .south
+        }
+        return fallback
     }
     
     /// Calculates a path of tiles between two points (Manhattan path)
@@ -2047,6 +2174,43 @@ final class InputManager: NSObject {
             }
         }
         return nil
+    }
+
+    private func pipeEntity(at position: IntVector2, offset: Vector2, gameLoop: GameLoop) -> Entity? {
+        let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: position)
+        let tolerance: Float = 0.1
+        var bestMatch: Entity?
+        var bestDistance: Float = .greatestFiniteMagnitude
+
+        for entity in entitiesAtPos {
+            guard gameLoop.world.has(PipeComponent.self, for: entity),
+                  let entityPos = gameLoop.world.get(PositionComponent.self, for: entity) else {
+                continue
+            }
+            let distance = (entityPos.offset - offset).length
+            if distance < bestDistance {
+                bestDistance = distance
+                bestMatch = entity
+            }
+        }
+
+        if let match = bestMatch, bestDistance <= tolerance {
+            return match
+        }
+
+        return bestMatch ?? pipeEntity(at: position, gameLoop: gameLoop)
+    }
+
+    private func finalizePipeDragNetworkAssignment(gameLoop: GameLoop) {
+        guard let networkId = dragPlacementNetworkId,
+              !dragPlacedPipeEntities.isEmpty else {
+            return
+        }
+        let entities = Array(dragPlacedPipeEntities)
+        gameLoop.fluidNetworkSystem.assignNetworkId(networkId, to: entities)
+        for entity in entities {
+            gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+        }
     }
 
     private func isFluidEntityOccupying(tile: IntVector2, gameLoop: GameLoop) -> Bool {

@@ -55,7 +55,10 @@ struct BuildingDefinition: Identifiable, Codable {
     var fluidCapacity: Float = 0
     var fluidInputTanks: Int = 0  // Number of tanks dedicated to fluid inputs
     var fluidOutputTanks: Int = 0 // Number of tanks dedicated to fluid outputs
+    var fluidInputType: FluidType? = nil
     var fluidOutputType: FluidType? = nil
+    var fluidInputTypes: [FluidType] = []
+    var fluidOutputTypes: [FluidType] = []
 
     // UI slot counts
     var inputSlots: Int = 0

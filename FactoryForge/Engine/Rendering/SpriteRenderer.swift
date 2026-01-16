@@ -101,7 +101,10 @@ final class SpriteRenderer {
             let textureRect = textureAtlas.getTextureRect(for: renderSprite.textureId)
 
             // Use sprite size as defined in the building/component
-            let effectiveSize = renderSprite.size
+            var effectiveSize = renderSprite.size
+            if pipe != nil {
+                effectiveSize.y *= 0.66  // Shrink pipe thickness for multi-pipe tiles
+            }
 
             // Skip very small sprites when zoomed out (performance optimization)
             // Convert world size to screen size: worldSize * zoom * 32.0 (pixels per world unit)

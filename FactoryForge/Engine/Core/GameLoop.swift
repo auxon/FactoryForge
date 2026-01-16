@@ -478,6 +478,9 @@ final class GameLoop {
             print("GameLoop: Placing oil refinery - fluidInputTanks: \(buildingDef.fluidInputTanks), fluidOutputTanks: \(buildingDef.fluidOutputTanks)")
         }
         guard canPlaceBuilding(buildingDef, at: position) else { return false }
+        if buildingDef.type == .pipe && !canPlacePipe(at: position, direction: direction, offset: offset) {
+            return false
+        }
 
         // Check if player has required items
         guard player.inventory.has(items: buildingDef.cost) else { return false }
@@ -782,6 +785,9 @@ final class GameLoop {
                            world.has(GeneratorComponent.self, for: entity) {  // Allow pipes near steam engines
                             continue  // Allow pipes to connect to fluid/power buildings
                         }
+                        if world.has(PipeComponent.self, for: entity) {
+                            continue  // Allow multiple pipes per tile
+                        }
                         break
 
                     case .powerPole:
@@ -816,6 +822,37 @@ final class GameLoop {
                world.has(SolarPanelComponent.self, for: entity) ||
                world.has(AccumulatorComponent.self, for: entity)
     }
+
+    func canPlacePipe(at position: IntVector2, direction: Direction, offset: Vector2) -> Bool {
+        let entitiesAtPos = world.getAllEntitiesAt(position: position)
+        let newBounds = pipeBounds(at: position, direction: direction, offset: offset)
+
+        for entity in entitiesAtPos {
+            guard let pipe = world.get(PipeComponent.self, for: entity),
+                  let existingPos = world.get(PositionComponent.self, for: entity) else {
+                continue
+            }
+            let existingBounds = pipeBounds(at: existingPos.tilePosition, direction: pipe.direction, offset: existingPos.offset)
+            if newBounds.intersects(existingBounds) {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private func pipeBounds(at position: IntVector2, direction: Direction, offset: Vector2) -> Rect {
+        let thickness: Float = 0.66
+        let size: Vector2
+        switch direction {
+        case .north, .south:
+            size = Vector2(thickness, 1.0)
+        case .east, .west:
+            size = Vector2(1.0, thickness)
+        }
+        let center = position.toVector2 + Vector2(0.5, 0.5) + offset
+        return Rect(center: center, size: size)
+    }
     
     private func addBuildingComponents(entity: Entity, buildingDef: BuildingDefinition, position: IntVector2, direction: Direction) {
         // Add render component - belts should appear above ground but below buildings
@@ -832,6 +869,7 @@ final class GameLoop {
         // This ensures they appear exactly where the user taps
         let isBelt = buildingDef.type == .belt
         let isInserter = buildingDef.type == .inserter
+        let isPipe = buildingDef.type == .pipe
 
         // Use building dimensions for sprite size
         let spriteSize = Vector2(Float(buildingDef.width), Float(buildingDef.height))
@@ -840,7 +878,7 @@ final class GameLoop {
             textureId: buildingDef.textureId,
             size: spriteSize,
             layer: renderLayer,
-            centered: isBelt || isInserter
+            centered: isBelt || isInserter || isPipe
         ), to: entity)
         
         // Add health component
@@ -953,16 +991,18 @@ final class GameLoop {
         case .generator:
             if buildingDef.id == "boiler" {
                 // Boiler: consumes fuel + water, produces steam
+                let boilerOutput = buildingDef.fluidOutputTypes.first ?? buildingDef.fluidOutputType ?? .steam
                 world.add(FluidProducerComponent(
                     buildingId: buildingDef.id,
-                    outputType: .steam,
+                    outputType: boilerOutput,
                     productionRate: 1.8,  // 1.8 steam/s when fueled + water available (Factorio balanced)
                     powerConsumption: 0  // Boilers don't consume electricity
                 ), to: entity)
                 // Boiler consumes water as fluid input
+                let boilerInput = buildingDef.fluidInputTypes.first ?? buildingDef.fluidInputType ?? .water
                 world.add(FluidConsumerComponent(
                     buildingId: buildingDef.id,
-                    inputType: .water,
+                    inputType: boilerInput,
                     consumptionRate: 1.8,  // 1.8 water/s to match steam production
                     efficiency: 1.0
                 ), to: entity)
@@ -979,14 +1019,17 @@ final class GameLoop {
                     powerOutput: powerOutput,
                     fuelCategory: ""  // Steam engines don't use fuel categories
                 ), to: entity)
-            let steamConsumer = FluidConsumerComponent(
-                buildingId: buildingDef.id,
-                inputType: .steam,
-                consumptionRate: 1.8,  // 1.8 steam/s = 900 kW output (Factorio balanced)
-                efficiency: 1.0
-            )
-            steamConsumer.inputType = .steam  // Ensure it's steam
-            world.add(steamConsumer, to: entity)
+                let steamInput = buildingDef.fluidInputTypes.first ?? buildingDef.fluidInputType ?? .steam
+                let steamConsumer = FluidConsumerComponent(
+                    buildingId: buildingDef.id,
+                    inputType: steamInput,
+                    consumptionRate: 1.8,  // 1.8 steam/s = 900 kW output (Factorio balanced)
+                    efficiency: 1.0
+                )
+                world.add(steamConsumer, to: entity)
+                let steamTank = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: buildingDef.fluidCapacity)
+                steamTank.tanks.append(FluidStack(type: steamInput, amount: 0, maxAmount: buildingDef.fluidCapacity))
+                world.add(steamTank, to: entity)
                 print("GameLoop: Added GeneratorComponent and FluidConsumerComponent to steam engine entity \(entity)")
             } else {
                 // Fallback for other generators
@@ -1048,9 +1091,10 @@ final class GameLoop {
                 extractionRate: buildingDef.extractionRate,
                 resourceType: "crude-oil"
             ), to: entity)
+            let pumpOutput = buildingDef.fluidOutputTypes.first ?? buildingDef.fluidOutputType ?? .crudeOil
             world.add(FluidProducerComponent(
                 buildingId: buildingDef.id,
-                outputType: buildingDef.fluidOutputType ?? .crudeOil,
+                outputType: pumpOutput,
                 productionRate: buildingDef.extractionRate,
                 powerConsumption: buildingDef.powerConsumption
             ), to: entity)
@@ -1060,9 +1104,10 @@ final class GameLoop {
             world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
 
         case .waterPump:
+            let waterOutput = buildingDef.fluidOutputTypes.first ?? buildingDef.fluidOutputType ?? .water
             world.add(FluidProducerComponent(
                 buildingId: buildingDef.id,
-                outputType: buildingDef.fluidOutputType ?? .water,
+                outputType: waterOutput,
                 productionRate: buildingDef.extractionRate,
                 powerConsumption: 0  // No power required, like Factorio offshore pumps
             ), to: entity)
@@ -1076,9 +1121,10 @@ final class GameLoop {
             let totalTanks = buildingDef.fluidInputTanks + buildingDef.fluidOutputTanks
             print("GameLoop: Oil refinery - fluidInputTanks: \(buildingDef.fluidInputTanks), fluidOutputTanks: \(buildingDef.fluidOutputTanks), total: \(totalTanks)")
             let refineryTanks = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 2500)
-            // Initialize with the specified number of empty tanks
+            let refineryTankTypes = buildingDef.fluidInputTypes + buildingDef.fluidOutputTypes
             for i in 0..<totalTanks {
-                refineryTanks.tanks.append(FluidStack(type: .water, amount: 0, temperature: 20, maxAmount: 2500))
+                let tankType = i < refineryTankTypes.count ? refineryTankTypes[i] : .water
+                refineryTanks.tanks.append(FluidStack(type: tankType, amount: 0, temperature: 20, maxAmount: 2500))
                 print("GameLoop: Created tank \(i) for oil refinery")
             }
             world.add(refineryTanks, to: entity)
@@ -1092,9 +1138,10 @@ final class GameLoop {
             // Chemical plants need fluid tanks for various fluid inputs/outputs
             let totalTanks = buildingDef.fluidInputTanks + buildingDef.fluidOutputTanks
             let chemicalTanks = FluidTankComponent(buildingId: buildingDef.id, maxCapacity: 1500)
-            // Initialize with the specified number of empty tanks
-            for _ in 0..<totalTanks {
-                chemicalTanks.tanks.append(FluidStack(type: .water, amount: 0, temperature: 20, maxAmount: 1500))
+            let chemicalTankTypes = buildingDef.fluidInputTypes + buildingDef.fluidOutputTypes
+            for i in 0..<totalTanks {
+                let tankType = i < chemicalTankTypes.count ? chemicalTankTypes[i] : .water
+                chemicalTanks.tanks.append(FluidStack(type: tankType, amount: 0, temperature: 20, maxAmount: 1500))
             }
             world.add(chemicalTanks, to: entity)
 

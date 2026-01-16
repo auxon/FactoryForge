@@ -54,7 +54,11 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         setupScrollContainer(in: ui)
 
         // Store current state
-        currentNetworkId = pipe.networkId
+        if pipe.networkId == nil {
+            gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+            gameLoop.fluidNetworkSystem.rebuildNetworks()
+        }
+        currentNetworkId = gameLoop.world.get(PipeComponent.self, for: entity)?.networkId
         connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
 
         // Find adjacent buildings with fluid tanks
@@ -210,8 +214,13 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         }
 
         // Update network info
-        currentNetworkId = pipe.networkId
-        networkIdLabel?.text = "Network: \(pipe.networkId ?? 0)"
+        if pipe.networkId == nil {
+            gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+            gameLoop.fluidNetworkSystem.rebuildNetworks()
+        }
+        let refreshedNetworkId = gameLoop.world.get(PipeComponent.self, for: entity)?.networkId
+        currentNetworkId = refreshedNetworkId
+        networkIdLabel?.text = "Network: \(refreshedNetworkId?.description ?? "-")"
 
         // Update connection states
         connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
@@ -418,6 +427,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         // Create tank selection options for each adjacent building
         for (index, buildingInfo) in adjacentBuildingsWithTanks.enumerated() {
             let (buildingEntity, direction, tanks) = buildingInfo
+            let tankRoles = tankRolesForBuilding(entity: buildingEntity, gameLoop: gameLoop, tankCount: tanks.count)
 
             // Building header label
             let buildingLabel = UILabel()
@@ -437,8 +447,9 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
                 let isConnected = isTankConnected(entity: entity, buildingEntity: buildingEntity, tankIndex: tankIndex, world: gameLoop.world)
                 let fluidName = tank.type.rawValue
                 let amountText = String(format: "%.0f/%.0fL", tank.amount, tank.maxAmount)
+                let roleText = tankIndex < tankRoles.count ? tankRoles[tankIndex] : "Tank"
 
-                button.setTitle("Tank \(tankIndex + 1): \(fluidName) (\(amountText)) \(isConnected ? "✓" : "")", for: .normal)
+                button.setTitle("\(roleText) \(tankIndex + 1): \(fluidName) (\(amountText)) \(isConnected ? "✓" : "")", for: .normal)
                 button.setTitleColor(isConnected ? .green : .white, for: .normal)
                 button.backgroundColor = UIColor(red: 0.3, green: 0.3, blue: 0.4, alpha: 0.8)
                 button.layer.borderColor = isConnected ? UIColor.green.cgColor : UIColor.gray.cgColor
@@ -505,6 +516,16 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             return
         }
 
+        func addConnection(_ entity: Entity, to componentConnections: inout [Entity]) {
+            if !componentConnections.contains(entity) {
+                componentConnections.append(entity)
+            }
+        }
+
+        func removeConnection(_ entity: Entity, from componentConnections: inout [Entity]) {
+            componentConnections.removeAll { $0 == entity }
+        }
+
         let isCurrentlyConnected = pipe.tankConnections[buildingEntity] == tankIndex
 
         if isCurrentlyConnected {
@@ -513,7 +534,20 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
             // Remove from building's connections if no other tanks are connected from this pipe
             if !pipe.tankConnections.keys.contains(where: { $0 == buildingEntity }) {
-                buildingTank.connections.removeAll { $0 == pipeEntity }
+                removeConnection(pipeEntity, from: &buildingTank.connections)
+                if var consumer = world.get(FluidConsumerComponent.self, for: buildingEntity) {
+                    removeConnection(pipeEntity, from: &consumer.connections)
+                    world.add(consumer, to: buildingEntity)
+                }
+                if var producer = world.get(FluidProducerComponent.self, for: buildingEntity) {
+                    removeConnection(pipeEntity, from: &producer.connections)
+                    world.add(producer, to: buildingEntity)
+                }
+                if var pump = world.get(FluidPumpComponent.self, for: buildingEntity) {
+                    removeConnection(pipeEntity, from: &pump.connections)
+                    world.add(pump, to: buildingEntity)
+                }
+                removeConnection(buildingEntity, from: &pipe.connections)
             }
 
             print("PipeConnectionUIComponent: Disconnected pipe \(pipeEntity.id) from building \(buildingEntity.id) tank \(tankIndex)")
@@ -525,9 +559,20 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             pipe.tankConnections[buildingEntity] = tankIndex
 
             // Add to building's connections if not already connected
-            if !buildingTank.connections.contains(pipeEntity) {
-                buildingTank.connections.append(pipeEntity)
+            addConnection(pipeEntity, to: &buildingTank.connections)
+            if var consumer = world.get(FluidConsumerComponent.self, for: buildingEntity) {
+                addConnection(pipeEntity, to: &consumer.connections)
+                world.add(consumer, to: buildingEntity)
             }
+            if var producer = world.get(FluidProducerComponent.self, for: buildingEntity) {
+                addConnection(pipeEntity, to: &producer.connections)
+                world.add(producer, to: buildingEntity)
+            }
+            if var pump = world.get(FluidPumpComponent.self, for: buildingEntity) {
+                addConnection(pipeEntity, to: &pump.connections)
+                world.add(pump, to: buildingEntity)
+            }
+            addConnection(buildingEntity, to: &pipe.connections)
 
             print("PipeConnectionUIComponent: Connected pipe \(pipeEntity.id) to building \(buildingEntity.id) tank \(tankIndex)")
         }
@@ -558,8 +603,10 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
                     let isConnected = isTankConnected(entity: entity, buildingEntity: buildingEntity, tankIndex: tankIndex, world: gameLoop.world)
                     let fluidName = tank.type.rawValue
                     let amountText = String(format: "%.0f/%.0fL", tank.amount, tank.maxAmount)
+                    let tankRoles = tankRolesForBuilding(entity: buildingEntity, gameLoop: gameLoop, tankCount: tanks.count)
+                    let roleText = tankIndex < tankRoles.count ? tankRoles[tankIndex] : "Tank"
 
-                    button.setTitle("Tank \(tankIndex + 1): \(fluidName) (\(amountText)) \(isConnected ? "✓" : "")", for: .normal)
+                    button.setTitle("\(roleText) \(tankIndex + 1): \(fluidName) (\(amountText)) \(isConnected ? "✓" : "")", for: .normal)
                     button.setTitleColor(isConnected ? .green : .white, for: .normal)
                     button.layer.borderColor = isConnected ? UIColor.green.cgColor : UIColor.gray.cgColor
                     break
@@ -621,6 +668,23 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             return nil
         }
         return position + direction.intVector
+    }
+
+    private func tankRolesForBuilding(entity: Entity, gameLoop: GameLoop, tankCount: Int) -> [String] {
+        let buildingId = gameLoop.world.get(FluidTankComponent.self, for: entity)?.buildingId ?? ""
+        guard let def = gameLoop.buildingRegistry.get(buildingId) else {
+            return Array(repeating: "Tank", count: tankCount)
+        }
+
+        let inputSource = def.fluidInputTypes.isEmpty ? def.fluidInputTanks : def.fluidInputTypes.count
+        let outputSource = def.fluidOutputTypes.isEmpty ? def.fluidOutputTanks : def.fluidOutputTypes.count
+        let inputCount = min(inputSource, tankCount)
+        let outputCount = max(0, min(outputSource, tankCount - inputCount))
+        let remaining = max(0, tankCount - inputCount - outputCount)
+
+        return Array(repeating: "Input", count: inputCount) +
+            Array(repeating: "Output", count: outputCount) +
+            Array(repeating: "Tank", count: remaining)
     }
 
     private func fluidTypeMismatchText(for direction: Direction) -> String? {
@@ -747,6 +811,9 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         // Get a new network ID
         let newNetworkId = gameLoop.fluidNetworkSystem.getNextNetworkId()
         pipe.networkId = newNetworkId
+        gameLoop.world.add(pipe, to: entity)
+        gameLoop.fluidNetworkSystem.markNetworkDirty(newNetworkId)
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
 
         // Update UI
         currentNetworkId = newNetworkId
@@ -842,6 +909,17 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
         // Find an entity in the target network to merge with
         if let targetEntity = findEntityInNetwork(targetNetworkId, gameLoop: gameLoop) {
+            guard let sourceNetworkId = ensureNetworkId(for: entity, gameLoop: gameLoop),
+                  let targetEntityNetworkId = ensureNetworkId(for: targetEntity, gameLoop: gameLoop) else {
+                gameLoop.inputManager?.onTooltip?("Merge failed: missing network id")
+                return
+            }
+
+            guard sourceNetworkId != targetEntityNetworkId else {
+                gameLoop.inputManager?.onTooltip?("Already in network \(sourceNetworkId)")
+                return
+            }
+
             gameLoop.fluidNetworkSystem.mergeNetworksContainingEntities(entity, targetEntity)
 
             // Update UI
@@ -858,7 +936,37 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             positionLabels(in: ui)
 
             print("PipeConnectionUIComponent: Successfully merged networks")
+        } else {
+            gameLoop.inputManager?.onTooltip?("Merge failed: target network not found")
         }
+    }
+
+    private func ensureNetworkId(for entity: Entity, gameLoop: GameLoop) -> Int? {
+        if let networkId = networkId(for: entity, in: gameLoop.world) {
+            return networkId
+        }
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+        gameLoop.fluidNetworkSystem.rebuildNetworks()
+        return networkId(for: entity, in: gameLoop.world)
+    }
+
+    private func networkId(for entity: Entity, in world: World) -> Int? {
+        if let pipe = world.get(PipeComponent.self, for: entity) {
+            return pipe.networkId
+        }
+        if let producer = world.get(FluidProducerComponent.self, for: entity) {
+            return producer.networkId
+        }
+        if let consumer = world.get(FluidConsumerComponent.self, for: entity) {
+            return consumer.networkId
+        }
+        if let tank = world.get(FluidTankComponent.self, for: entity) {
+            return tank.networkId
+        }
+        if let pump = world.get(FluidPumpComponent.self, for: entity) {
+            return pump.networkId
+        }
+        return nil
     }
 
     @objc private func clearPipeTapped(_ sender: UIKit.UIButton) {
@@ -1033,28 +1141,52 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
     }
 
     private func findAdjacentBuildingsWithTanks(for entity: Entity, in world: World) -> [(entity: Entity, direction: Direction, tanks: [FluidStack])] {
-        var buildings: [(entity: Entity, direction: Direction, tanks: [FluidStack])] = []
-
-        // Check each direction for buildings with fluid tanks
-        for direction in Direction.allCases {
-            let neighborPos = getNeighborPosition(for: entity, direction: direction, in: world)
-            if let neighborPos = neighborPos {
-                // Find entities at this position
-                let entitiesWithPosition = world.query(PositionComponent.self)
-                for otherEntity in entitiesWithPosition {
-                    if let otherPos = world.get(PositionComponent.self, for: otherEntity)?.tilePosition,
-                       otherPos == neighborPos,
-                       let tankComponent = world.get(FluidTankComponent.self, for: otherEntity),
-                       !tankComponent.tanks.isEmpty {
-                        // Found a building with fluid tanks
-                        buildings.append((entity: otherEntity, direction: direction, tanks: tankComponent.tanks))
-                        break // Only one building per direction
-                    }
-                }
-            }
+        guard let gameLoop = parentUI?.gameLoop,
+              let pipePos = world.get(PositionComponent.self, for: entity)?.worldPosition else {
+            return []
         }
 
-        return buildings
+        var buildingsByEntity: [Entity: (direction: Direction, tanks: [FluidStack])] = [:]
+        let connectionRange: Float = 0.75
+
+        for otherEntity in world.query(FluidTankComponent.self) {
+            guard let tankComponent = world.get(FluidTankComponent.self, for: otherEntity),
+                  !tankComponent.tanks.isEmpty else {
+                continue
+            }
+
+            let bounds = buildingBounds(for: otherEntity, gameLoop: gameLoop)
+            let nearest = nearestPoint(on: bounds, to: pipePos)
+            let delta = pipePos - nearest
+            let distance = (delta.x * delta.x + delta.y * delta.y).squareRoot()
+            guard distance <= connectionRange else { continue }
+
+            let direction = dominantDirection(from: delta)
+            buildingsByEntity[otherEntity] = (direction: direction, tanks: tankComponent.tanks)
+        }
+
+        return buildingsByEntity.map { (entity: $0.key, direction: $0.value.direction, tanks: $0.value.tanks) }
+    }
+
+    private func buildingBounds(for entity: Entity, gameLoop: GameLoop) -> Rect {
+        guard let pos = gameLoop.world.get(PositionComponent.self, for: entity)?.tilePosition else {
+            return Rect(x: 0, y: 0, width: 0, height: 0)
+        }
+        let size = fluidEntitySize(entity: entity, gameLoop: gameLoop)
+        return Rect(origin: pos.toVector2, size: Vector2(Float(size.width), Float(size.height)))
+    }
+
+    private func nearestPoint(on bounds: Rect, to point: Vector2) -> Vector2 {
+        let clampedX = min(max(point.x, bounds.minX), bounds.maxX)
+        let clampedY = min(max(point.y, bounds.minY), bounds.maxY)
+        return Vector2(clampedX, clampedY)
+    }
+
+    private func dominantDirection(from delta: Vector2) -> Direction {
+        if abs(delta.x) >= abs(delta.y) {
+            return delta.x >= 0 ? .east : .west
+        }
+        return delta.y >= 0 ? .north : .south
     }
 
     private func toggleConnection(for entity: Entity, direction: Direction, in world: World, fluidNetworkSystem: FluidNetworkSystem) {
