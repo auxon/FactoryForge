@@ -1942,20 +1942,30 @@ final class InputManager: NSObject {
     }
 
     private func updatePipeShapeForPlacement(at position: IntVector2, fallbackDirection: Direction, gameLoop: GameLoop) {
-        updatePipeShape(at: position, fallbackDirection: fallbackDirection, gameLoop: gameLoop)
+        var queue: [IntVector2] = [position]
+        var visited: Set<IntVector2> = []
 
-        for direction in Direction.allCases {
-            let neighborPos = position + direction.intVector
-            guard let neighbor = gameLoop.world.getEntityAt(position: neighborPos),
-                  gameLoop.world.has(PipeComponent.self, for: neighbor) else {
+        while let current = queue.first {
+            queue.removeFirst()
+            if visited.contains(current) {
                 continue
             }
-            updatePipeShape(at: neighborPos, fallbackDirection: direction.opposite, gameLoop: gameLoop)
+            visited.insert(current)
+
+            let currentFallback = currentPipeDirection(at: current, fallback: fallbackDirection, gameLoop: gameLoop)
+            updatePipeShape(at: current, fallbackDirection: currentFallback, gameLoop: gameLoop)
+
+            for direction in Direction.allCases {
+                let neighborPos = current + direction.intVector
+                if let _ = pipeEntity(at: neighborPos, gameLoop: gameLoop), !visited.contains(neighborPos) {
+                    queue.append(neighborPos)
+                }
+            }
         }
     }
 
     private func updatePipeShape(at position: IntVector2, fallbackDirection: Direction, gameLoop: GameLoop) {
-        guard let entity = gameLoop.world.getEntityAt(position: position),
+        guard let entity = pipeEntity(at: position, gameLoop: gameLoop),
               let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else {
             return
         }
@@ -2010,6 +2020,33 @@ final class InputManager: NSObject {
             world.has(FluidConsumerComponent.self, for: entity) ||
             world.has(FluidTankComponent.self, for: entity) ||
             world.has(FluidPumpComponent.self, for: entity)
+    }
+
+    private func currentPipeDirection(at position: IntVector2, fallback: Direction, gameLoop: GameLoop) -> Direction {
+        if let entity = pipeEntity(at: position, gameLoop: gameLoop),
+           let pipe = gameLoop.world.get(PipeComponent.self, for: entity) {
+            return pipe.direction
+        }
+        return fallback
+    }
+
+    private func pipeEntity(at position: IntVector2, gameLoop: GameLoop) -> Entity? {
+        let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: position)
+        if let entity = entitiesAtPos.first(where: { gameLoop.world.has(PipeComponent.self, for: $0) }) {
+            return entity
+        }
+
+        // Fallback for any spatial index gaps
+        for entity in gameLoop.world.entities {
+            guard gameLoop.world.has(PipeComponent.self, for: entity),
+                  let pos = gameLoop.world.get(PositionComponent.self, for: entity)?.tilePosition else {
+                continue
+            }
+            if pos == position {
+                return entity
+            }
+        }
+        return nil
     }
 
     private func isFluidEntityOccupying(tile: IntVector2, gameLoop: GameLoop) -> Bool {

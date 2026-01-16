@@ -341,6 +341,7 @@ final class HUD {
                world.has(MinerComponent.self, for: entity) ||
                world.has(GeneratorComponent.self, for: entity) ||
                world.has(InserterComponent.self, for: entity) ||
+               world.has(FluidProducerComponent.self, for: entity) ||
                world.has(PipeComponent.self, for: entity)
     }
     

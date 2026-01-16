@@ -14,8 +14,13 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
     private var networkIdLabel: UILabel?
     private var changeNetworkButton: UIKit.UIButton?
     private var mergeNetworkButton: UIKit.UIButton?
+    private var clearPipeButton: UIKit.UIButton?
+    private var clearNetworkButton: UIKit.UIButton?
+    private var clearTanksButton: UIKit.UIButton?
     private var availableNetworksLabel: UILabel?
     private var mergeButtons: [Int: UIKit.UIButton] = [:]
+    private var scrollView: UIScrollView?
+    private var scrollContentView: UIView?
 
     // Store current pipe state
     private var currentNetworkId: Int?
@@ -44,6 +49,10 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         // Store parent UI reference
         parentUI = ui
 
+        teardownUIElements()
+
+        setupScrollContainer(in: ui)
+
         // Store current state
         currentNetworkId = pipe.networkId
         connectedDirections = getConnectedDirections(for: entity, in: gameLoop.world)
@@ -67,7 +76,12 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
     }
 
     func positionLabels(in ui: MachineUI) {
-        let panelRect = ui.panelFrameInPoints()
+        guard let rootView = ui.rootView else { return }
+        let panelRect = rootView.bounds
+
+        if let scrollView = scrollView {
+            scrollView.frame = rootView.bounds
+        }
 
         // Start positioning from top-left of panel
         var currentY: CGFloat = 20 // Start 20 points from top
@@ -99,6 +113,21 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
         if let mergeNetworkButton = mergeNetworkButton {
             mergeNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
+            currentY += 45
+        }
+
+        if let clearPipeButton = clearPipeButton {
+            clearPipeButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
+            currentY += 45
+        }
+
+        if let clearNetworkButton = clearNetworkButton {
+            clearNetworkButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
+            currentY += 45
+        }
+
+        if let clearTanksButton = clearTanksButton {
+            clearTanksButton.frame = CGRect(x: 20, y: currentY, width: panelRect.width - 40, height: 30)
             currentY += 45
         }
 
@@ -168,6 +197,10 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         if let westButton = connectionButtons[.west] {
             westButton.frame = CGRect(x: 20, y: currentY, width: buttonWidth, height: buttonHeight)
         }
+
+        let contentHeight = max(currentY + buttonHeight + 20, panelRect.height + 1)
+        scrollContentView?.frame = CGRect(x: 0, y: 0, width: panelRect.width, height: contentHeight)
+        scrollView?.contentSize = CGSize(width: panelRect.width, height: contentHeight)
     }
 
     override func updateUI(for entity: Entity, in ui: MachineUI) {
@@ -200,7 +233,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
     }
 
     private func setupNetworkInfo(in ui: MachineUI) {
-        guard let rootView = ui.rootView else { return }
+        guard let containerView = scrollContentView ?? ui.rootView else { return }
 
         // Network info label
         let networkInfoLabel = UILabel()
@@ -213,7 +246,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         networkInfoLabel.layer.borderColor = UIColor.cyan.cgColor
         networkInfoLabel.layer.borderWidth = 1.0
         networkInfoLabel.layer.cornerRadius = 4.0
-        rootView.addSubview(networkInfoLabel)
+        containerView.addSubview(networkInfoLabel)
         networkLabel = networkInfoLabel
 
         // Network ID label
@@ -227,7 +260,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         idLabel.layer.borderColor = UIColor.cyan.cgColor
         idLabel.layer.borderWidth = 0.5
         idLabel.layer.cornerRadius = 3.0
-        rootView.addSubview(idLabel)
+        containerView.addSubview(idLabel)
         networkIdLabel = idLabel
 
         // Change network button
@@ -240,7 +273,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         changeButton.layer.cornerRadius = 4.0
         changeButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
         changeButton.addTarget(self, action: #selector(changeNetworkTapped(_:)), for: .touchUpInside)
-        rootView.addSubview(changeButton)
+        containerView.addSubview(changeButton)
         changeNetworkButton = changeButton
 
         // Merge network button
@@ -253,12 +286,49 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         mergeButton.layer.cornerRadius = 4.0
         mergeButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
         mergeButton.addTarget(self, action: #selector(mergeNetworkTapped(_:)), for: .touchUpInside)
-        rootView.addSubview(mergeButton)
+        containerView.addSubview(mergeButton)
         mergeNetworkButton = mergeButton
+
+        // Clear pipe button
+        let clearButton = UIKit.UIButton(type: .system)
+        clearButton.setTitle("Clear Pipe Fluid", for: .normal)
+        clearButton.setTitleColor(.white, for: .normal)
+        clearButton.backgroundColor = UIColor(red: 0.5, green: 0.3, blue: 0.3, alpha: 0.8)
+        clearButton.layer.borderColor = UIColor.red.cgColor
+        clearButton.layer.borderWidth = 1.0
+        clearButton.layer.cornerRadius = 4.0
+        clearButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
+        clearButton.addTarget(self, action: #selector(clearPipeTapped(_:)), for: .touchUpInside)
+        containerView.addSubview(clearButton)
+        clearPipeButton = clearButton
+
+        let clearNetwork = UIKit.UIButton(type: .system)
+        clearNetwork.setTitle("Clear Network Fluid", for: .normal)
+        clearNetwork.setTitleColor(.white, for: .normal)
+        clearNetwork.backgroundColor = UIColor(red: 0.5, green: 0.25, blue: 0.25, alpha: 0.8)
+        clearNetwork.layer.borderColor = UIColor.red.cgColor
+        clearNetwork.layer.borderWidth = 1.0
+        clearNetwork.layer.cornerRadius = 4.0
+        clearNetwork.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
+        clearNetwork.addTarget(self, action: #selector(clearNetworkTapped(_:)), for: .touchUpInside)
+        containerView.addSubview(clearNetwork)
+        clearNetworkButton = clearNetwork
+
+        let clearTanks = UIKit.UIButton(type: .system)
+        clearTanks.setTitle("Clear Connected Tanks", for: .normal)
+        clearTanks.setTitleColor(.white, for: .normal)
+        clearTanks.backgroundColor = UIColor(red: 0.45, green: 0.25, blue: 0.25, alpha: 0.8)
+        clearTanks.layer.borderColor = UIColor.red.cgColor
+        clearTanks.layer.borderWidth = 1.0
+        clearTanks.layer.cornerRadius = 4.0
+        clearTanks.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
+        clearTanks.addTarget(self, action: #selector(clearConnectedTanksTapped(_:)), for: .touchUpInside)
+        containerView.addSubview(clearTanks)
+        clearTanksButton = clearTanks
     }
 
     private func setupConnectionButtons(in ui: MachineUI) {
-        guard let rootView = ui.rootView else { return }
+        guard let containerView = scrollContentView ?? ui.rootView else { return }
 
         let directions: [Direction] = [.north, .east, .south, .west]
         let directionNames = ["North", "East", "South", "West"]
@@ -288,13 +358,13 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             button.tag = Int(direction.rawValue)
             button.addTarget(self, action: #selector(connectionButtonTapped(_:)), for: .touchUpInside)
 
-            rootView.addSubview(button)
+            containerView.addSubview(button)
             connectionButtons[direction] = button
         }
     }
 
     private func setupTankSelectionSection(in ui: MachineUI) {
-        guard let rootView = ui.rootView else { return }
+        guard let containerView = scrollContentView ?? ui.rootView else { return }
 
         // Tank selection toggle button
         let tankSelectionButton = UIKit.UIButton(type: .system)
@@ -306,7 +376,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         tankSelectionButton.layer.cornerRadius = 4.0
         tankSelectionButton.frame = CGRect(x: 0, y: 0, width: 120, height: 30)
         tankSelectionButton.addTarget(self, action: #selector(tankSelectionTapped(_:)), for: .touchUpInside)
-        rootView.addSubview(tankSelectionButton)
+        containerView.addSubview(tankSelectionButton)
         changeNetworkButton = tankSelectionButton // Reuse this variable for now
     }
 
@@ -327,7 +397,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
     private func showTankSelectionOptions() {
         guard let ui = parentUI,
-              let rootView = ui.rootView,
+              let containerView = scrollContentView ?? ui.rootView,
               let entity = ui.currentEntity,
               let gameLoop = ui.gameLoop else {
             return
@@ -347,7 +417,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             buildingLabel.textColor = .cyan
             buildingLabel.textAlignment = .center
             buildingLabel.frame = CGRect(x: 20, y: 0, width: ui.panelFrameInPoints().width - 40, height: 20)
-            rootView.addSubview(buildingLabel)
+            containerView.addSubview(buildingLabel)
             tankSelectionLabels.append(buildingLabel)
 
             // Tank selection buttons
@@ -372,7 +442,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
                 button.tag = (Int(buildingEntity.id) * 1000) + tankIndex
                 button.addTarget(self, action: #selector(tankButtonTapped(_:)), for: .touchUpInside)
 
-                rootView.addSubview(button)
+                containerView.addSubview(button)
                 tankSelectionButtons[tankIndex] = button
             }
         }
@@ -658,7 +728,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
     private func showAvailableNetworks() {
         guard let ui = parentUI,
-              let rootView = ui.rootView,
+              let containerView = scrollContentView ?? ui.rootView,
               let entity = ui.currentEntity,
               let gameLoop = ui.gameLoop else {
             return
@@ -681,7 +751,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         label.textColor = .cyan
         label.textAlignment = .center
         label.frame = CGRect(x: 20, y: 0, width: ui.panelFrameInPoints().width - 40, height: 20)
-        rootView.addSubview(label)
+        containerView.addSubview(label)
         availableNetworksLabel = label
 
         // Get all network IDs except current one
@@ -701,7 +771,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             button.frame = CGRect(x: 30, y: 0, width: ui.panelFrameInPoints().width - 60, height: 25)
             button.tag = networkId
             button.addTarget(self, action: #selector(mergeWithNetworkTapped(_:)), for: .touchUpInside)
-            rootView.addSubview(button)
+            containerView.addSubview(button)
             mergeButtons[networkId] = button
         }
     }
@@ -745,6 +815,158 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
             print("PipeConnectionUIComponent: Successfully merged networks")
         }
+    }
+
+    @objc private func clearPipeTapped(_ sender: UIKit.UIButton) {
+        guard let ui = parentUI,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop,
+              let pipe = gameLoop.world.get(PipeComponent.self, for: entity) else {
+            return
+        }
+
+        pipe.fluidAmount = 0
+        pipe.fluidType = nil
+        pipe.flowRate = 0
+        gameLoop.world.add(pipe, to: entity)
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+
+        updateUI(for: entity, in: ui)
+    }
+
+    @objc private func clearNetworkTapped(_ sender: UIKit.UIButton) {
+        guard let ui = parentUI,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop,
+              let pipe = gameLoop.world.get(PipeComponent.self, for: entity),
+              let networkId = pipe.networkId else {
+            return
+        }
+
+        for pipeEntity in gameLoop.world.query(PipeComponent.self) {
+            guard let networkPipe = gameLoop.world.get(PipeComponent.self, for: pipeEntity),
+                  networkPipe.networkId == networkId else {
+                continue
+            }
+            networkPipe.fluidAmount = 0
+            networkPipe.fluidType = nil
+            networkPipe.flowRate = 0
+            gameLoop.world.add(networkPipe, to: pipeEntity)
+        }
+
+        gameLoop.fluidNetworkSystem.markNetworkDirty(networkId)
+        updateUI(for: entity, in: ui)
+    }
+
+    @objc private func clearConnectedTanksTapped(_ sender: UIKit.UIButton) {
+        guard let ui = parentUI,
+              let entity = ui.currentEntity,
+              let gameLoop = ui.gameLoop else {
+            return
+        }
+
+        var clearedAny = false
+        for connected in getConnectedTankEntities(from: entity, gameLoop: gameLoop) {
+            guard let tank = gameLoop.world.get(FluidTankComponent.self, for: connected) else { continue }
+            tank.tanks = tank.tanks.map { stack in
+                var cleared = stack
+                cleared.amount = 0
+                return cleared
+            }
+            gameLoop.world.add(tank, to: connected)
+            clearedAny = true
+        }
+
+        if clearedAny {
+            gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+        }
+        updateUI(for: entity, in: ui)
+    }
+
+    private func setupScrollContainer(in ui: MachineUI) {
+        guard let rootView = ui.rootView else { return }
+        if scrollView == nil {
+            let newScrollView = UIScrollView(frame: rootView.bounds)
+            newScrollView.showsVerticalScrollIndicator = true
+            newScrollView.alwaysBounceVertical = true
+            newScrollView.backgroundColor = .clear
+            rootView.addSubview(newScrollView)
+            scrollView = newScrollView
+
+            let contentView = UIView(frame: newScrollView.bounds)
+            contentView.backgroundColor = .clear
+            newScrollView.addSubview(contentView)
+            scrollContentView = contentView
+        } else {
+            scrollView?.frame = rootView.bounds
+            scrollContentView?.frame = rootView.bounds
+        }
+    }
+
+    private func teardownUIElements() {
+        let viewsToRemove: [UIView?] = [
+            networkLabel,
+            networkIdLabel,
+            changeNetworkButton,
+            mergeNetworkButton,
+            clearPipeButton,
+            clearNetworkButton,
+            clearTanksButton,
+            availableNetworksLabel
+        ]
+
+        for view in viewsToRemove {
+            view?.removeFromSuperview()
+        }
+
+        for button in connectionButtons.values {
+            button.removeFromSuperview()
+        }
+        connectionButtons.removeAll()
+
+        for button in mergeButtons.values {
+            button.removeFromSuperview()
+        }
+        mergeButtons.removeAll()
+
+        for label in tankSelectionLabels {
+            label.removeFromSuperview()
+        }
+        tankSelectionLabels.removeAll()
+
+        for button in tankSelectionButtons.values {
+            button.removeFromSuperview()
+        }
+        tankSelectionButtons.removeAll()
+
+        networkLabel = nil
+        networkIdLabel = nil
+        changeNetworkButton = nil
+        mergeNetworkButton = nil
+        clearPipeButton = nil
+        clearNetworkButton = nil
+        clearTanksButton = nil
+        availableNetworksLabel = nil
+    }
+
+    private func getConnectedTankEntities(from entity: Entity, gameLoop: GameLoop) -> [Entity] {
+        var tankEntities: Set<Entity> = []
+
+        if let pipe = gameLoop.world.get(PipeComponent.self, for: entity) {
+            for connected in pipe.connections where gameLoop.world.has(FluidTankComponent.self, for: connected) {
+                tankEntities.insert(connected)
+            }
+        }
+
+        for connected in tankEntities {
+            if let tank = gameLoop.world.get(FluidTankComponent.self, for: connected) {
+                for other in tank.connections where gameLoop.world.has(FluidTankComponent.self, for: other) {
+                    tankEntities.insert(other)
+                }
+            }
+        }
+
+        return Array(tankEntities)
     }
 
     private func findEntityInNetwork(_ networkId: Int, gameLoop: GameLoop) -> Entity? {

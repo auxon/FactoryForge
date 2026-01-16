@@ -159,6 +159,9 @@ final class SaveSystem {
         // This is a safety measure in case some entities weren't added during deserialization
         gameLoop.world.rebuildSpatialIndex()
 
+        // Recompute pipe shapes based on current adjacency
+        gameLoop.fluidNetworkSystem.recomputePipeShapes()
+
         // Debug: Check what entities exist after loading
         var assemblerCount = 0
         var furnaceCount = 0
@@ -436,4 +439,3 @@ private func addEntitiesToChunks(_ gameLoop: GameLoop) {
 
     print("SaveSystem: Processed \(entityCount) entities, added \(chunkedCount) to chunks")
 }
-

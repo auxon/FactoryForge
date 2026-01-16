@@ -463,11 +463,11 @@ final class MachineUI: UIPanel_Base {
 
         // Position status label below progress bar
         if let statusLabel = progressStatusLabel {
-            statusLabel.frame = CGRect(x: barX, y: barY + barHeight + 4, width: barWidth, height: 14)
+            statusLabel.frame = CGRect(x: barX, y: barY + barHeight + 4, width: barWidth, height: 32)
         }
     }
 
-    func positionProgressStatusLabel(centerX: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat = 14) {
+    func positionProgressStatusLabel(centerX: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat = 32) {
         guard let statusLabel = progressStatusLabel else { return }
         let labelWidth = max(width, 80)
         statusLabel.frame = CGRect(x: centerX - labelWidth * 0.5, y: y, width: labelWidth, height: height)
@@ -3146,8 +3146,12 @@ final class MachineUI: UIPanel_Base {
         // Get progress from the appropriate component
         var progress: Float = 0
         var isGenerator = false
+        var isPumpjack = false
         var powerAvailability: Float = 1.0
         var statusText: String = "Ready"
+        var statusColor: UIColor = .white
+        var statusFont: UIFont = UIFont.systemFont(ofSize: 10, weight: .medium)
+        var statusLines: Int = 1
 
         if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
             progress = miner.progress
@@ -3157,6 +3161,7 @@ final class MachineUI: UIPanel_Base {
             progress = assembler.craftingProgress
         } else if let pumpjack = gameLoop.world.get(PumpjackComponent.self, for: entity) {
             progress = pumpjack.progress
+            isPumpjack = true
         } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
             // For generators, show power availability bar instead of progress
             isGenerator = true
@@ -3173,24 +3178,38 @@ final class MachineUI: UIPanel_Base {
                 buildingDef.id == "boiler" {
                 let info = getBoilerStatusInfo(entity: entity, gameLoop: gameLoop)
                 statusText = info.detail.isEmpty ? info.title : "\(info.title)\n\(info.detail)"
-                progressStatusLabel?.numberOfLines = 2
-                progressStatusLabel?.font = UIFont.systemFont(ofSize: 10, weight: .semibold)
+                statusLines = 2
+                statusFont = UIFont.systemFont(ofSize: 10, weight: .semibold)
                 switch info.state {
                 case .running:
-                    progressStatusLabel?.textColor = UIColor.systemGreen
+                    statusColor = UIColor.systemGreen
                 case .ready:
-                    progressStatusLabel?.textColor = UIColor.white
+                    statusColor = UIColor.white
                 case .stalled:
-                    progressStatusLabel?.textColor = UIColor.systemOrange
+                    statusColor = UIColor.systemOrange
+                }
+            } else if let fluidProducer = gameLoop.world.get(FluidProducerComponent.self, for: entity),
+                      fluidProducer.buildingId != "boiler" {
+                let info = getFluidProducerStatusInfo(entity: entity, gameLoop: gameLoop)
+                statusText = info.detail.isEmpty ? info.title : "\(info.title)\n\(info.detail)"
+                statusLines = 2
+                statusFont = UIFont.systemFont(ofSize: 10, weight: .semibold)
+                switch info.state {
+                case .running:
+                    statusColor = UIColor.systemGreen
+                case .ready:
+                    statusColor = UIColor.white
+                case .stalled:
+                    statusColor = UIColor.systemOrange
                 }
             } else {
                 statusText = "Ready"
-                progressStatusLabel?.numberOfLines = 1
-                progressStatusLabel?.font = UIFont.systemFont(ofSize: 10, weight: .medium)
-                progressStatusLabel?.textColor = UIColor.white
             }
 
             // Set the status label and return early
+            progressStatusLabel?.numberOfLines = statusLines
+            progressStatusLabel?.font = statusFont
+            progressStatusLabel?.textColor = statusColor
             progressStatusLabel?.text = statusText
             return
         }
@@ -3219,7 +3238,18 @@ final class MachineUI: UIPanel_Base {
             let isMiner = getBuildingDefinition(for: entity, gameLoop: gameLoop)?.type == .miner
             let isFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
 
-            if progress > 0 {
+            if isPumpjack {
+                let info = getFluidProducerStatusInfo(entity: entity, gameLoop: gameLoop)
+                statusText = info.detail.isEmpty ? info.title : "\(info.title) • \(info.detail)"
+                switch info.state {
+                case .running:
+                    statusColor = UIColor.systemGreen
+                case .ready:
+                    statusColor = UIColor.white
+                case .stalled:
+                    statusColor = UIColor.systemOrange
+                }
+            } else if progress > 0 {
                 let label = isMiner ? "Mining" : (isFurnace ? "Smelting" : "Crafting")
                 statusText = String(format: "\(label): %.0f%%", p * 100)
             } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
@@ -3248,9 +3278,9 @@ final class MachineUI: UIPanel_Base {
             height: backgroundFrame.height
         )
         progressBarFill?.backgroundColor = fillColor
-        progressStatusLabel?.numberOfLines = 1
-        progressStatusLabel?.font = UIFont.systemFont(ofSize: 10, weight: .medium)
-        progressStatusLabel?.textColor = UIColor.white
+        progressStatusLabel?.numberOfLines = statusLines
+        progressStatusLabel?.font = statusFont
+        progressStatusLabel?.textColor = statusColor
         progressStatusLabel?.text = statusText
 
         // UIKit progress bar updated above
@@ -3384,5 +3414,160 @@ final class MachineUI: UIPanel_Base {
             return info.title
         }
         return "\(info.title) • \(info.detail)"
+    }
+
+    private enum ProducerStatusState {
+        case running
+        case ready
+        case stalled
+    }
+
+    private func getFluidProducerStatusInfo(entity: Entity, gameLoop: GameLoop) -> (title: String, detail: String, state: ProducerStatusState) {
+        guard let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity) else {
+            return ("Inactive", "No Producer", .stalled)
+        }
+
+        let isActive = producer.isActive
+        let powerSatisfaction = gameLoop.world.get(PowerConsumerComponent.self, for: entity)?.satisfaction ?? 1.0
+        let hasPower = producer.powerConsumption == 0 || powerSatisfaction > 0.5
+
+        var blockers: [String] = []
+
+        if !hasPower {
+            blockers.append("No Power")
+        }
+
+        if producer.buildingId == "water-pump" {
+            let onWater = isAnyOccupiedTile(entity: entity, gameLoop: gameLoop) { tilePos in
+                gameLoop.chunkManager.getTile(at: tilePos)?.type == .water
+            }
+            if !onWater {
+                blockers.append("No Water Tile")
+            }
+        } else if producer.buildingId == "pumpjack" {
+            let onOil = isAnyOccupiedTile(entity: entity, gameLoop: gameLoop) { tilePos in
+                gameLoop.chunkManager.getResource(at: tilePos)?.type == .oil
+            }
+            if !onOil {
+                blockers.append("No Oil")
+            }
+        }
+
+        let hasConnections = !producer.connections.isEmpty
+        if !hasConnections {
+            blockers.append("No Pipe Connection")
+        } else if !hasFluidOutputCapacity(producer: producer, gameLoop: gameLoop) {
+            let detail = outputBlockDetail(producer: producer, gameLoop: gameLoop)
+            blockers.append(detail.isEmpty ? "Output Blocked" : "Output Blocked: \(detail)")
+        }
+
+        if blockers.isEmpty {
+            let title = isActive ? "Running" : "Ready"
+            return (title, "Output OK", isActive ? .running : .ready)
+        }
+
+        return ("Stalled", blockers.joined(separator: " • "), .stalled)
+    }
+
+    private func hasFluidOutputCapacity(producer: FluidProducerComponent, gameLoop: GameLoop) -> Bool {
+        for connectedEntity in producer.connections {
+            if let pipe = gameLoop.world.get(PipeComponent.self, for: connectedEntity) {
+                if pipe.fluidAmount < pipe.maxCapacity &&
+                    (pipe.fluidType == nil || pipe.fluidType == producer.outputType) {
+                    return true
+                }
+            } else if let tank = gameLoop.world.get(FluidTankComponent.self, for: connectedEntity) {
+                let totalCapacity = tank.maxCapacity
+                let currentAmount = tank.tanks.reduce(0) { $0 + $1.amount }
+                if currentAmount < totalCapacity {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private func outputBlockDetail(producer: FluidProducerComponent, gameLoop: GameLoop) -> String {
+        var pipeFullCount = 0
+        var pipeMismatchCount = 0
+        var tankFullCount = 0
+        var pipeCount = 0
+        var tankCount = 0
+        var otherCount = 0
+
+        for connectedEntity in producer.connections {
+            if let pipe = gameLoop.world.get(PipeComponent.self, for: connectedEntity) {
+                pipeCount += 1
+                if pipe.fluidAmount >= pipe.maxCapacity {
+                    pipeFullCount += 1
+                } else if pipe.fluidType != nil && pipe.fluidType != producer.outputType {
+                    pipeMismatchCount += 1
+                }
+            } else if let tank = gameLoop.world.get(FluidTankComponent.self, for: connectedEntity) {
+                tankCount += 1
+                let totalCapacity = tank.maxCapacity
+                let currentAmount = tank.tanks.reduce(0) { $0 + $1.amount }
+                if currentAmount >= totalCapacity {
+                    tankFullCount += 1
+                }
+            } else {
+                otherCount += 1
+            }
+        }
+
+        var parts: [String] = []
+        if pipeCount > 0 {
+            if pipeFullCount == pipeCount {
+                parts.append("Pipes Full")
+            } else if pipeMismatchCount == pipeCount {
+                parts.append("Wrong Fluid In Pipes")
+            } else if pipeFullCount + pipeMismatchCount > 0 {
+                parts.append("Some Pipes Blocked")
+            }
+        }
+        if tankCount > 0 && tankFullCount == tankCount {
+            parts.append("Tanks Full")
+        }
+        if pipeCount == 0 && tankCount == 0 && otherCount > 0 {
+            parts.append("No Storage Connected")
+        }
+
+        return parts.joined(separator: " • ")
+    }
+
+    private func isAnyOccupiedTile(entity: Entity, gameLoop: GameLoop, predicate: (IntVector2) -> Bool) -> Bool {
+        guard let pos = gameLoop.world.get(PositionComponent.self, for: entity)?.tilePosition else {
+            return false
+        }
+        let size = getEntitySize(entity: entity, gameLoop: gameLoop)
+        for x in 0..<size.width {
+            for y in 0..<size.height {
+                let tilePos = pos + IntVector2(x: Int32(x), y: Int32(y))
+                if predicate(tilePos) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private func getEntitySize(entity: Entity, gameLoop: GameLoop) -> (width: Int, height: Int) {
+        var buildingId: String?
+
+        if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            buildingId = producer.buildingId
+        } else if let pumpjack = gameLoop.world.get(PumpjackComponent.self, for: entity) {
+            buildingId = pumpjack.buildingId
+        } else if let consumer = gameLoop.world.get(FluidConsumerComponent.self, for: entity) {
+            buildingId = consumer.buildingId
+        } else if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            buildingId = tank.buildingId
+        }
+
+        if let buildingId = buildingId, let def = gameLoop.buildingRegistry.get(buildingId) {
+            return (def.width, def.height)
+        }
+
+        return (1, 1)
     }
 }
