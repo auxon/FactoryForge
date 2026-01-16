@@ -9,12 +9,21 @@ final class ResearchUI: UIPanel_Base {
 
     // UIKit scrolling components (like HelpMenu)
     private var scrollView: UIKit.UIScrollView?
+    private var techPanelBackground: UIView?
+    private var techHeaderLabel: UILabel?
+    private var selectedPanelBackground: UIView?
     private var techButtonViews: [UIKit.UIButton] = [] // UIKit buttons for scrolling
     private var researchButton: UIKit.UIButton? // Button to start research
 
     // Text labels
-    private var researchInfoLabel: UIKit.UILabel?
+    private var selectedTitleLabel: UIKit.UILabel?
+    private var selectedDescLabel: UIKit.UILabel?
+    private var selectedCostLabel: UIKit.UILabel?
     private var progressLabel: UIKit.UILabel?
+    private var labStatusLabel: UIKit.UILabel?
+    private var nextStepLabel: UIKit.UILabel?
+    private var progressBarBackground: UIView?
+    private var progressBarFill: UIView?
 
     // Label management callbacks
     var onAddLabels: (([UIKit.UILabel]) -> Void)?
@@ -64,11 +73,11 @@ final class ResearchUI: UIPanel_Base {
         }
 
         let iconSize: CGFloat = 20
-        let iconSpacing: CGFloat = 4
-        let countLabelHeight: CGFloat = 12
+        let iconSpacing: CGFloat = 8
+        let countLabelHeight: CGFloat = 14
         let totalIconHeight = iconSize + countLabelHeight + 2 // icon + label + spacing
 
-        var currentX = button.bounds.width - 10 // Start from right edge with margin
+        var currentX = button.bounds.width - 12 // Start from right edge with margin
 
         for scienceCost in tech.cost.reversed() { // Reverse to show from right to left
             // Create icon image view
@@ -82,11 +91,6 @@ final class ResearchUI: UIPanel_Base {
                 iconView.image = image
             }
 
-            // Position icon
-            let iconY = (button.bounds.height - totalIconHeight) / 2
-            iconView.frame = CGRect(x: currentX - iconSize, y: iconY, width: iconSize, height: iconSize)
-            button.addSubview(iconView)
-
             // Create count label
             let countLabel = UIKit.UILabel()
             countLabel.tag = 999
@@ -97,13 +101,26 @@ final class ResearchUI: UIPanel_Base {
             countLabel.backgroundColor = UIKit.UIColor.black.withAlphaComponent(0.7)
             countLabel.layer.cornerRadius = 3
             countLabel.layer.masksToBounds = true
+            countLabel.sizeToFit()
+
+            let iconY = (button.bounds.height - totalIconHeight) / 2
 
             // Position count label below icon
+            let labelWidth = max(iconSize, countLabel.bounds.width + 6)
             let labelY = iconY + iconSize + 2
-            countLabel.frame = CGRect(x: currentX - iconSize, y: labelY, width: iconSize, height: countLabelHeight)
+            countLabel.frame = CGRect(x: currentX - labelWidth, y: labelY, width: labelWidth, height: countLabelHeight)
             button.addSubview(countLabel)
 
-            currentX -= (iconSize + iconSpacing)
+            // Position icon centered above label
+            iconView.frame = CGRect(
+                x: currentX - labelWidth + (labelWidth - iconSize) * 0.5,
+                y: iconY,
+                width: iconSize,
+                height: iconSize
+            )
+            button.addSubview(iconView)
+
+            currentX -= (labelWidth + iconSpacing)
         }
     }
 
@@ -133,6 +150,115 @@ final class ResearchUI: UIPanel_Base {
         if let scrollView = scrollView {
             parentView.addSubview(scrollView)
             parentView.bringSubviewToFront(scrollView)
+        }
+    }
+
+    private func setupPanelViewsIfNeeded() {
+        guard let rootView = rootView else { return }
+
+        if selectedPanelBackground == nil {
+            let background = UIView()
+            background.backgroundColor = UIColor(white: 0.12, alpha: 0.6)
+            background.layer.cornerRadius = 10
+            rootView.addSubview(background)
+            selectedPanelBackground = background
+        }
+
+        if techPanelBackground == nil {
+            let background = UIView()
+            background.backgroundColor = UIColor(white: 0.12, alpha: 0.6)
+            background.layer.cornerRadius = 10
+            rootView.addSubview(background)
+            techPanelBackground = background
+        }
+
+        if techHeaderLabel == nil {
+            let label = UILabel()
+            label.text = "Technologies"
+            label.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+            label.textColor = UIColor(white: 0.85, alpha: 1.0)
+            label.textAlignment = .center
+            rootView.addSubview(label)
+            techHeaderLabel = label
+        }
+
+        if selectedTitleLabel == nil {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
+            label.textColor = UIColor.white
+            label.textAlignment = .center
+            rootView.addSubview(label)
+            selectedTitleLabel = label
+        }
+
+        if selectedDescLabel == nil {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 12, weight: .regular)
+            label.textColor = UIColor(white: 0.85, alpha: 1.0)
+            label.numberOfLines = 2
+            label.textAlignment = .center
+            rootView.addSubview(label)
+            selectedDescLabel = label
+        }
+
+        if selectedCostLabel == nil {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+            label.textColor = UIColor(white: 0.9, alpha: 1.0)
+            label.textAlignment = .center
+            label.numberOfLines = 2
+            label.lineBreakMode = .byWordWrapping
+            rootView.addSubview(label)
+            selectedCostLabel = label
+        }
+
+        if progressLabel == nil {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+            label.textColor = UIColor(red: 1.0, green: 0.9, blue: 0.4, alpha: 1.0)
+            label.numberOfLines = 2
+            label.textAlignment = .center
+            label.lineBreakMode = .byWordWrapping
+            rootView.addSubview(label)
+            progressLabel = label
+        }
+
+        if labStatusLabel == nil {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 11, weight: .semibold)
+            label.textColor = UIColor(white: 0.9, alpha: 1.0)
+            label.textAlignment = .center
+            label.numberOfLines = 2
+            label.backgroundColor = UIColor(white: 0.12, alpha: 0.6)
+            label.layer.cornerRadius = 6
+            label.layer.masksToBounds = true
+            rootView.addSubview(label)
+            labStatusLabel = label
+        }
+
+        if nextStepLabel == nil {
+            let label = UILabel()
+            label.font = UIFont.systemFont(ofSize: 11, weight: .medium)
+            label.textColor = UIColor(white: 0.9, alpha: 1.0)
+            label.textAlignment = .center
+            rootView.addSubview(label)
+            nextStepLabel = label
+        }
+
+        if progressBarBackground == nil {
+            let background = UIView()
+            background.backgroundColor = UIColor.gray
+            background.layer.cornerRadius = 4
+            rootView.addSubview(background)
+            progressBarBackground = background
+        }
+
+        if progressBarFill == nil {
+            let fill = UIView()
+            fill.backgroundColor = UIColor.blue
+            fill.layer.cornerRadius = 4
+            rootView.addSubview(fill)
+            progressBarFill = fill
         }
     }
 
@@ -172,6 +298,77 @@ final class ResearchUI: UIPanel_Base {
         }
     }
 
+    private func layoutUI() {
+        guard let rootView = rootView else { return }
+
+        let bounds = rootView.bounds
+        let padding: CGFloat = 12
+        let columnGap: CGFloat = 12
+        let minRightWidth: CGFloat = 220
+        var leftWidth = min(bounds.width * 0.62, bounds.width - padding * 2 - columnGap - minRightWidth)
+        leftWidth = max(240, leftWidth)
+        let rightWidth = bounds.width - padding * 2 - columnGap - leftWidth
+        let leftX = padding
+        let rightX = leftX + leftWidth + columnGap
+        let leftY = padding
+        let leftHeight = bounds.height - padding * 2
+
+        let selectedPanelHeight: CGFloat = 112
+        let selectedPanelY = leftY
+        selectedPanelBackground?.frame = CGRect(x: rightX - 6, y: selectedPanelY - 6, width: rightWidth + 12, height: selectedPanelHeight + 12)
+        selectedTitleLabel?.frame = CGRect(x: rightX, y: selectedPanelY, width: rightWidth, height: 24)
+        selectedDescLabel?.frame = CGRect(x: rightX, y: selectedPanelY + 22, width: rightWidth, height: 36)
+        selectedCostLabel?.frame = CGRect(x: rightX, y: selectedPanelY + 60, width: rightWidth, height: 44)
+
+        let statusY = selectedPanelY + selectedPanelHeight + 10
+        let barWidth = rightWidth
+        let barHeight: CGFloat = 16
+        let barX = rightX
+        let barY = statusY
+        progressBarBackground?.frame = CGRect(x: barX, y: barY, width: barWidth, height: barHeight)
+        progressBarFill?.frame = CGRect(x: barX, y: barY, width: progressBarFill?.frame.width ?? 0, height: barHeight)
+        progressLabel?.frame = CGRect(x: barX, y: barY + barHeight + 4, width: barWidth, height: 48)
+        labStatusLabel?.frame = CGRect(x: barX, y: barY + barHeight + 56, width: barWidth, height: 28)
+        nextStepLabel?.frame = CGRect(x: barX, y: barY + barHeight + 88, width: barWidth, height: 16)
+
+        let headerHeight: CGFloat = 18
+        techHeaderLabel?.frame = CGRect(x: leftX, y: leftY, width: leftWidth, height: headerHeight)
+
+        let scrollY = leftY + headerHeight + 6
+        let scrollHeight = leftHeight - headerHeight - 6
+        techPanelBackground?.frame = CGRect(x: leftX - 6, y: scrollY - 6, width: leftWidth + 12, height: scrollHeight + 12)
+        scrollView?.frame = CGRect(x: leftX, y: scrollY, width: leftWidth, height: scrollHeight)
+
+        let researchButtonHeight: CGFloat = 40
+        let researchButtonY = leftY + leftHeight - researchButtonHeight
+        researchButton?.frame = CGRect(
+            x: rightX,
+            y: researchButtonY,
+            width: rightWidth,
+            height: researchButtonHeight
+        )
+
+        let closeSize: CGFloat = 36
+        let closeMargin: CGFloat = 10
+        closeButtonView?.frame = CGRect(
+            x: bounds.width - closeMargin - closeSize,
+            y: closeMargin,
+            width: closeSize,
+            height: closeSize
+        )
+
+        rootView.bringSubviewToFront(selectedPanelBackground ?? UIView())
+        rootView.bringSubviewToFront(selectedTitleLabel ?? UIView())
+        rootView.bringSubviewToFront(selectedDescLabel ?? UIView())
+        rootView.bringSubviewToFront(selectedCostLabel ?? UIView())
+        rootView.bringSubviewToFront(progressBarBackground ?? UIView())
+        rootView.bringSubviewToFront(progressBarFill ?? UIView())
+        rootView.bringSubviewToFront(progressLabel ?? UIView())
+        rootView.bringSubviewToFront(labStatusLabel ?? UIView())
+        rootView.bringSubviewToFront(nextStepLabel ?? UIView())
+        rootView.bringSubviewToFront(closeButtonView ?? UIView())
+    }
+
     /// Sets up UIScrollView with clickable UIButton overlays for tech selection
     /// Must be called from GameViewController after ResearchUI is created
     func setupLabels() {
@@ -184,22 +381,28 @@ final class ResearchUI: UIPanel_Base {
         guard let rootView = rootView else { return }
         // Create scroll view for technologies (similar to HelpMenu)
         let bounds = rootView.bounds
-        let scrollViewHeight: CGFloat = 200 // Smaller height to fit on screen
-        let researchButtonHeight: CGFloat = 40
-        let researchButtonSpacing: CGFloat = 10
-        let startY: CGFloat = 60 // Fixed position below close button area
+        let padding: CGFloat = 12
+        let columnGap: CGFloat = 12
+        let minRightWidth: CGFloat = 220
+        var leftWidth = min(bounds.width * 0.62, bounds.width - padding * 2 - columnGap - minRightWidth)
+        leftWidth = max(240, leftWidth)
+        let leftX = padding
+        let leftY = padding
+        let leftHeight = bounds.height - padding * 2
+        let headerHeight: CGFloat = 20
+        let scrollViewHeight = leftHeight - headerHeight - 6
         let scrollViewFrame = CGRect(
-            x: bounds.width * 0.1, // 10% margin on sides
-            y: startY,
-            width: bounds.width * 0.8, // 80% width
+            x: leftX,
+            y: leftY + headerHeight + 6,
+            width: leftWidth,
             height: scrollViewHeight
         )
 
         let scrollView = UIKit.UIScrollView(frame: scrollViewFrame)
         print("ResearchUI: Created scrollView with frame \(scrollViewFrame)")
-        scrollView.backgroundColor = UIKit.UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.9)
-        scrollView.layer.borderColor = UIKit.UIColor.white.cgColor
-        scrollView.layer.borderWidth = 2.0
+        scrollView.backgroundColor = UIKit.UIColor(red: 0.08, green: 0.08, blue: 0.1, alpha: 0.6)
+        scrollView.layer.borderColor = UIKit.UIColor.gray.cgColor
+        scrollView.layer.borderWidth = 1.0
         scrollView.layer.cornerRadius = 8.0
         scrollView.showsVerticalScrollIndicator = true
         scrollView.showsHorizontalScrollIndicator = false
@@ -210,23 +413,49 @@ final class ResearchUI: UIPanel_Base {
         self.scrollView = scrollView
 
         // Get all technologies sorted by tier and order
-        let allTechs = registry.all
+        let allTechs = registry.all.sorted { lhs, rhs in
+            if lhs.tier != rhs.tier {
+                return lhs.tier < rhs.tier
+            }
+            if lhs.order != rhs.order {
+                return lhs.order < rhs.order
+            }
+            return lhs.name < rhs.name
+        }
 
         // Calculate content size and create buttons
-        let buttonHeight: CGFloat = 50
+        let buttonHeight: CGFloat = 48
         let buttonSpacing: CGFloat = 8
-        let contentHeight = CGFloat(allTechs.count) * (buttonHeight + buttonSpacing) - buttonSpacing
+        let contentWidth = scrollViewFrame.width
 
-        scrollView.contentSize = CGSize(width: scrollViewFrame.width, height: max(contentHeight, scrollViewHeight))
+        var contentY: CGFloat = 0
+        var currentTier: Int?
 
-        for (index, tech) in allTechs.enumerated() {
-            let buttonY = CGFloat(index) * (buttonHeight + buttonSpacing)
+        for tech in allTechs {
+            if currentTier != tech.tier {
+                currentTier = tech.tier
+                let headerLabel = UILabel()
+                headerLabel.text = "Tier \(tech.tier)"
+                headerLabel.font = UIFont.systemFont(ofSize: 11, weight: .semibold)
+                headerLabel.textColor = UIColor(white: 0.8, alpha: 1.0)
+                headerLabel.textAlignment = .left
+                headerLabel.frame = CGRect(x: 12, y: contentY, width: contentWidth - 24, height: headerHeight)
+                scrollView.addSubview(headerLabel)
+                contentY += headerHeight + 6
+            }
+
             // Leave space on the right for science pack icons (up to 3 icons * ~24px each)
-            let iconSpace: CGFloat = 80
-            let buttonFrame = CGRect(x: 100, y: buttonY, width: scrollViewFrame.width - 200 - iconSpace, height: buttonHeight)
+            let iconSpace: CGFloat = 120
+            let buttonWidth = contentWidth - 24
+            let buttonFrame = CGRect(x: 12, y: contentY, width: buttonWidth, height: buttonHeight)
 
             let button: UIKit.UIButton = UIKit.UIButton(type: UIKit.UIButton.ButtonType.custom)
             button.frame = buttonFrame
+            var config = UIKit.UIButton.Configuration.plain()
+            config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 12, bottom: 0, trailing: iconSpace)
+            config.titleAlignment = .leading
+            config.titleLineBreakMode = .byWordWrapping
+            button.configuration = config
 
             // Set initial appearance
             updateTechButtonAppearance(button, for: tech)
@@ -236,7 +465,7 @@ final class ResearchUI: UIPanel_Base {
             button.layer.cornerRadius = 4
             button.titleLabel?.font = UIKit.UIFont.systemFont(ofSize: 14, weight: UIKit.UIFont.Weight.medium)
             button.titleLabel?.numberOfLines = 2
-            button.titleLabel?.textAlignment = UIKit.NSTextAlignment.center
+            button.titleLabel?.textAlignment = UIKit.NSTextAlignment.left
 
             // Add science pack icons
             addSciencePackIcons(to: button, for: tech)
@@ -249,18 +478,15 @@ final class ResearchUI: UIPanel_Base {
 
             scrollView.addSubview(button)
             techButtonViews.append(button)
+            contentY += buttonHeight + buttonSpacing
         }
+        let contentHeight = max(contentY - buttonSpacing, scrollViewHeight)
+        scrollView.contentSize = CGSize(width: scrollViewFrame.width, height: contentHeight)
         rootView.addSubview(scrollView)
 
 
-        // Create research button below the scroll view (normal sized, centered)
-        let researchButtonWidth: CGFloat = 200
-        let researchButtonFrame = CGRect(
-            x: (bounds.width - researchButtonWidth) / 2, // Center horizontally
-            y: scrollViewFrame.maxY + researchButtonSpacing, // Below scroll view
-            width: researchButtonWidth,
-            height: researchButtonHeight
-        )
+        // Create research button; layoutUI will finalize its position
+        let researchButtonFrame = CGRect(x: 0, y: 0, width: 200, height: 40)
 
         let researchBtn: UIKit.UIButton = UIKit.UIButton(type: UIKit.UIButton.ButtonType.custom)
         researchBtn.frame = researchButtonFrame
@@ -277,27 +503,6 @@ final class ResearchUI: UIPanel_Base {
 
         self.researchButton = researchBtn
         rootView.addSubview(researchBtn)
-
-        // Create research info label (positioned outside scroll view)
-        if researchInfoLabel == nil {
-            let label = UIKit.UILabel()
-            label.font = UIKit.UIFont.systemFont(ofSize: 16, weight: UIKit.UIFont.Weight.semibold)
-            label.textColor = UIKit.UIColor(red: 0.9, green: 0.9, blue: 1.0, alpha: 1.0)  // Light blue-white
-            label.numberOfLines = 1
-            label.backgroundColor = UIKit.UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.8)  // Dark panel background
-            label.textAlignment = UIKit.NSTextAlignment.right  // Right-aligned since label is on right side
-            label.layer.cornerRadius = 4
-            label.layer.masksToBounds = true
-            // Add subtle shadow
-            label.layer.shadowColor = UIKit.UIColor.black.cgColor
-            label.layer.shadowOffset = CGSize(width: 1, height: 1)
-            label.layer.shadowRadius = 2
-            label.layer.shadowOpacity = 0.6
-            researchInfoLabel = label
-        }
-        if let infoLabel = researchInfoLabel {
-            rootView.addSubview(infoLabel)
-        }
 
         // Create progress label (positioned outside scroll view)
         if progressLabel == nil {
@@ -343,8 +548,10 @@ final class ResearchUI: UIPanel_Base {
 
     private func updateTechButtonAppearance(_ button: UIKit.UIButton, for tech: Technology) {
         guard let researchSystem = gameLoop?.researchSystem else {
-            button.setTitle(tech.name, for: UIKit.UIControl.State.normal)
-            button.setTitleColor(UIKit.UIColor.white, for: UIKit.UIControl.State.normal)
+            var config = button.configuration ?? UIKit.UIButton.Configuration.plain()
+            config.title = tech.name
+            config.baseForegroundColor = UIKit.UIColor.white
+            button.configuration = config
             return
         }
 
@@ -353,42 +560,46 @@ final class ResearchUI: UIPanel_Base {
         let isAvailable = researchSystem.canResearch(tech) && !isResearching
         let isSelected = selectedTech?.id == tech.id
 
+        var config = button.configuration ?? UIKit.UIButton.Configuration.plain()
+
         // Set background color based on state
         if isSelected {
-            button.backgroundColor = UIKit.UIColor(red: 0.8, green: 0.6, blue: 0.1, alpha: 0.9) // Bright orange for selected
-            button.layer.borderWidth = 3
-            button.layer.borderColor = UIKit.UIColor.white.cgColor
+            config.background.backgroundColor = UIKit.UIColor(red: 0.8, green: 0.6, blue: 0.1, alpha: 0.9) // Bright orange for selected
+            config.background.strokeWidth = 3
+            config.background.strokeColor = UIKit.UIColor.white
         } else if isCompleted {
-            button.backgroundColor = UIKit.UIColor(red: 0.2, green: 0.4, blue: 0.2, alpha: 0.8) // Green for completed
-            button.layer.borderWidth = 1
-            button.layer.borderColor = UIKit.UIColor(white: 0.4, alpha: 1).cgColor
+            config.background.backgroundColor = UIKit.UIColor(red: 0.2, green: 0.4, blue: 0.2, alpha: 0.8) // Green for completed
+            config.background.strokeWidth = 1
+            config.background.strokeColor = UIKit.UIColor(white: 0.4, alpha: 1)
         } else if isResearching {
-            button.backgroundColor = UIKit.UIColor(red: 0.45, green: 0.45, blue: 0.15, alpha: 0.9) // Yellow/gold for researching
-            button.layer.borderWidth = 1
-            button.layer.borderColor = UIKit.UIColor(white: 0.4, alpha: 1).cgColor
+            config.background.backgroundColor = UIKit.UIColor(red: 0.45, green: 0.45, blue: 0.15, alpha: 0.9) // Yellow/gold for researching
+            config.background.strokeWidth = 1
+            config.background.strokeColor = UIKit.UIColor(white: 0.4, alpha: 1)
         } else if isAvailable {
-            button.backgroundColor = UIKit.UIColor(red: 0.25, green: 0.25, blue: 0.3, alpha: 0.7) // Light blue for available
-            button.layer.borderWidth = 1
-            button.layer.borderColor = UIKit.UIColor(white: 0.4, alpha: 1).cgColor
+            config.background.backgroundColor = UIKit.UIColor(red: 0.25, green: 0.25, blue: 0.3, alpha: 0.7) // Light blue for available
+            config.background.strokeWidth = 1
+            config.background.strokeColor = UIKit.UIColor(white: 0.4, alpha: 1)
         } else {
-            button.backgroundColor = UIKit.UIColor(red: 0.2, green: 0.15, blue: 0.15, alpha: 0.5) // Dark red for unavailable
-            button.layer.borderWidth = 1
-            button.layer.borderColor = UIKit.UIColor(white: 0.4, alpha: 1).cgColor
+            config.background.backgroundColor = UIKit.UIColor(red: 0.2, green: 0.15, blue: 0.15, alpha: 0.5) // Dark red for unavailable
+            config.background.strokeWidth = 1
+            config.background.strokeColor = UIKit.UIColor(white: 0.4, alpha: 1)
         }
 
         // Set text color
         if isCompleted {
-            button.setTitleColor(UIKit.UIColor(red: 0.6, green: 0.9, blue: 0.6, alpha: 1.0), for: UIKit.UIControl.State.normal) // Green tint
+            config.baseForegroundColor = UIKit.UIColor(red: 0.6, green: 0.9, blue: 0.6, alpha: 1.0)
         } else if isResearching {
-            button.setTitleColor(UIKit.UIColor(red: 1.0, green: 0.9, blue: 0.4, alpha: 1.0), for: UIKit.UIControl.State.normal) // Yellow/gold
+            config.baseForegroundColor = UIKit.UIColor(red: 1.0, green: 0.9, blue: 0.4, alpha: 1.0)
         } else if isAvailable {
-            button.setTitleColor(UIKit.UIColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 1.0), for: UIKit.UIControl.State.normal) // Light blue
+            config.baseForegroundColor = UIKit.UIColor(red: 0.7, green: 0.8, blue: 1.0, alpha: 1.0)
         } else {
-            button.setTitleColor(UIKit.UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0), for: UIKit.UIControl.State.normal) // Gray
+            config.baseForegroundColor = UIKit.UIColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
         }
 
         // Set button title with tech name
-        button.setTitle(tech.name, for: UIKit.UIControl.State.normal)
+        config.title = tech.name
+        config.background.cornerRadius = 4.0
+        button.configuration = config
 
         // Update science pack icons
         addSciencePackIcons(to: button, for: tech)
@@ -401,15 +612,10 @@ final class ResearchUI: UIPanel_Base {
         researchButton?.removeFromSuperview()
         researchButton = nil
 
-        researchInfoLabel?.removeFromSuperview()
-        researchInfoLabel = nil
-        progressLabel?.removeFromSuperview()
-        progressLabel = nil
+        // Panel views are cleared on close to avoid rebuilding them every list refresh.
     }
 
     private func updateLabels() {
-        let screenScale = CGFloat(UIScreen.main.scale)
-
         // Update tech button appearances
         guard let registry = gameLoop?.technologyRegistry else { return }
 
@@ -425,94 +631,16 @@ final class ResearchUI: UIPanel_Base {
             let canResearch = gameLoop?.researchSystem.canResearch(selectedTech) ?? false
             researchButton?.isEnabled = canResearch
             researchButton?.alpha = canResearch ? 1.0 : 0.3
-        }
-
-        // Update research info label
-        if let researchSystem = gameLoop?.researchSystem,
-           let currentResearch = researchSystem.currentResearch {
-            researchInfoLabel?.text = "Researching: \(currentResearch.name)"
-            researchInfoLabel?.isHidden = !isOpen
-
-            if isOpen {
-                // Position the info label on the right side with padding
-                let infoBarY = frame.maxY - 85 * UIScale
-                let labelHeight = researchInfoLabel?.font.lineHeight ?? 20
-                let padding: CGFloat = 8
-                let labelWidth: CGFloat = 300
-                let rightMargin: CGFloat = 20
-                let labelY = (CGFloat(infoBarY) / screenScale) - (labelHeight + padding) / 2
-                let labelX = (CGFloat(frame.maxX) / screenScale) - labelWidth - rightMargin
-                researchInfoLabel?.frame = CGRect(
-                    x: labelX, // Right side
-                    y: labelY,
-                    width: labelWidth,
-                    height: labelHeight + padding
-                )
-            }
+            updateSelectedTechPanel(selectedTech)
+            researchButton?.setTitle("Research", for: .normal)
         } else {
-            researchInfoLabel?.text = "No active research"
-            researchInfoLabel?.isHidden = !isOpen
-
-            if isOpen {
-                // Position the info label on the right side with padding
-                let infoBarY = frame.maxY - 55 * UIScale
-                let labelHeight = researchInfoLabel?.font.lineHeight ?? 20
-                let padding: CGFloat = 8
-                let labelWidth: CGFloat = 300
-                let rightMargin: CGFloat = 20
-                let labelY = (CGFloat(infoBarY) / screenScale) - (labelHeight + padding) / 2
-                let labelX = (CGFloat(frame.maxX) / screenScale) - labelWidth - rightMargin
-                researchInfoLabel?.frame = CGRect(
-                    x: labelX, // Right side
-                    y: labelY,
-                    width: labelWidth,
-                    height: labelHeight + padding
-                )
-            }
+            updateSelectedTechPanelForEmpty()
+            researchButton?.isEnabled = false
+            researchButton?.alpha = 0.5
+            researchButton?.setTitle("Select a technology", for: .normal)
         }
 
-        // Update progress label
-        if let researchSystem = gameLoop?.researchSystem,
-           let progressDetails = researchSystem.getResearchProgressDetails() {
-            progressLabel?.isHidden = !isOpen
-
-            if isOpen {
-                // Create detailed progress text
-                var progressText = "\(Int(progressDetails.overallProgress * 100))% complete\n"
-
-                // Add science pack progress
-                for (packId, packProgress) in progressDetails.packProgress {
-                    let packName = packId.replacingOccurrences(of: "-", with: " ").capitalized
-                    progressText += "\(packProgress.contributed)/\(packProgress.required) \(packName)\n"
-                }
-
-                // Add research speed bonus if any
-                if progressDetails.researchSpeedBonus > 0 {
-                    progressText += "Speed: +\(Int(progressDetails.researchSpeedBonus * 100))%"
-                }
-
-                progressLabel?.text = progressText.trimmingCharacters(in: .whitespacesAndNewlines)
-                progressLabel?.numberOfLines = 0  // Allow multiple lines
-
-                // Position the progress label on the left side, above the bottom
-                let progressY = frame.maxY - 100 * UIScale  // Higher up to avoid research button
-                let lineCount = progressDetails.packProgress.count + 1 + (progressDetails.researchSpeedBonus > 0 ? 1 : 0)
-                let labelHeight = (progressLabel?.font.lineHeight ?? 16) * CGFloat(lineCount)
-                let padding: CGFloat = 8
-                let labelWidth: CGFloat = 300
-                let leftMargin: CGFloat = 20
-                let labelY = (CGFloat(progressY) / screenScale) - (labelHeight + padding) / 2
-                let labelX = leftMargin  // Left side of screen
-                progressLabel?.frame = CGRect(
-                    x: labelX,
-                    y: labelY,
-                    width: labelWidth,
-                    height: labelHeight + padding
-                )
-            }
-        } else {
-            progressLabel?.isHidden = true
-        }
+        updateProgressUI()
     }
 
     override func open() {
@@ -524,16 +652,25 @@ final class ResearchUI: UIPanel_Base {
             rootView?.isUserInteractionEnabled = true
         }
 
+        setupPanelViewsIfNeeded()
         setupCloseButtonViewIfNeeded()
+        layoutUI()
 
         // Create UIKit views if they don't exist yet and we have the necessary data
         if (scrollView == nil || techButtonViews.isEmpty) && gameLoop?.technologyRegistry != nil {
             setupLabels()
+            layoutUI()
         }
 
         // Show scroll view and research button when menu opens
         scrollView?.isHidden = false
         researchButton?.isHidden = false
+        selectedTitleLabel?.isHidden = false
+        selectedDescLabel?.isHidden = false
+        selectedCostLabel?.isHidden = false
+        progressLabel?.isHidden = false
+        labStatusLabel?.isHidden = false
+        nextStepLabel?.isHidden = false
         // Scroll to top when opening
         scrollView?.setContentOffset(.zero, animated: false)
         // Reset selection state
@@ -545,7 +682,7 @@ final class ResearchUI: UIPanel_Base {
 
         if let rootView = rootView {
             onAddRootView?(rootView)
-            layoutCloseButton()
+            layoutUI()
         }
     }
 
@@ -554,14 +691,42 @@ final class ResearchUI: UIPanel_Base {
         // Hide scroll view and research button when menu closes
         scrollView?.isHidden = true
         researchButton?.isHidden = true
-        // Hide labels when menu closes
-        researchInfoLabel?.isHidden = true
+        selectedTitleLabel?.isHidden = true
+        selectedDescLabel?.isHidden = true
+        selectedCostLabel?.isHidden = true
         progressLabel?.isHidden = true
+        labStatusLabel?.isHidden = true
 
         closeButtonView?.removeFromSuperview()
         closeButtonView = nil
 
         removeLabels()
+
+        progressLabel?.removeFromSuperview()
+        progressLabel = nil
+        labStatusLabel?.removeFromSuperview()
+        labStatusLabel = nil
+        nextStepLabel?.removeFromSuperview()
+        nextStepLabel = nil
+
+        selectedTitleLabel?.removeFromSuperview()
+        selectedTitleLabel = nil
+        selectedDescLabel?.removeFromSuperview()
+        selectedDescLabel = nil
+        selectedCostLabel?.removeFromSuperview()
+        selectedCostLabel = nil
+
+        techPanelBackground?.removeFromSuperview()
+        techPanelBackground = nil
+        techHeaderLabel?.removeFromSuperview()
+        techHeaderLabel = nil
+        selectedPanelBackground?.removeFromSuperview()
+        selectedPanelBackground = nil
+
+        progressBarFill?.removeFromSuperview()
+        progressBarFill = nil
+        progressBarBackground?.removeFromSuperview()
+        progressBarBackground = nil
 
         if let rv = rootView {
             rv.isUserInteractionEnabled = false
@@ -575,7 +740,7 @@ final class ResearchUI: UIPanel_Base {
     private func selectTechnology(_ tech: Technology) {
         // Just select the technology and show cost info - research button will start it
         selectedTech = tech
-        showTechnologyCost(tech)
+        updateSelectedTechPanel(tech)
 
         // Show tooltip for the selected technology
         var tooltip = "\(tech.name)\n\(tech.description)\n\nCost:"
@@ -609,45 +774,7 @@ final class ResearchUI: UIPanel_Base {
     }
 
     private func showTechnologyCost(_ tech: Technology) {
-        var costText = "Cost: "
-        for (index, scienceCost) in tech.cost.enumerated() {
-            if index > 0 {
-                costText += ", "
-            }
-            costText += "\(scienceCost.count) \(scienceCost.packId.replacingOccurrences(of: "-", with: " ").capitalized)"
-        }
-
-        // Check if technology can be researched
-        let canResearch = gameLoop?.researchSystem.canResearch(tech) ?? false
-
-        if canResearch {
-            costText += "\nTap Research button to start"
-        } else {
-            costText += "\nRequirements not met"
-        }
-
-        // Update the research info label to show cost
-        researchInfoLabel?.text = costText
-        researchInfoLabel?.numberOfLines = 0  // Allow multiple lines
-        researchInfoLabel?.isHidden = !isOpen
-
-        if isOpen {
-            // Position the info label on the right side with padding (wider for cost text)
-            let screenScale = CGFloat(UIScreen.main.scale)
-            let infoBarY = frame.maxY - 85 * UIScale
-            let labelHeight = (researchInfoLabel?.font.lineHeight ?? 20) * 2  // Double height for 2 lines
-            let padding: CGFloat = 8
-            let labelWidth: CGFloat = 350  // Wider for cost text
-            let rightMargin: CGFloat = 20
-            let labelY = (CGFloat(infoBarY) / screenScale) - (labelHeight + padding) / 2
-            let labelX = (CGFloat(frame.maxX) / screenScale) - labelWidth - rightMargin
-            researchInfoLabel?.frame = CGRect(
-                x: labelX,
-                y: labelY,
-                width: labelWidth,
-                height: labelHeight + padding
-            )
-        }
+        updateSelectedTechPanel(tech)
     }
 
     private func startResearch(_ tech: Technology) {
@@ -681,18 +808,177 @@ final class ResearchUI: UIPanel_Base {
             } else {
                 print("ResearchUI: Failed to start research - tech may not be available or already completed")
                 // Show error message
-                researchInfoLabel?.text = "Cannot start research - check prerequisites"
-                researchInfoLabel?.isHidden = !isOpen
+                selectedCostLabel?.text = "Cannot start research — check prerequisites"
             }
         } else {
             print("ResearchUI: No research system available")
-            researchInfoLabel?.text = "Research system unavailable"
-            researchInfoLabel?.isHidden = !isOpen
+            selectedCostLabel?.text = "Research system unavailable"
         }
     }
     
     private func findResearchSystem() -> ResearchSystem? {
         return gameLoop?.researchSystem
+    }
+
+    private func updateSelectedTechPanel(_ tech: Technology) {
+        selectedTitleLabel?.text = tech.name
+        selectedDescLabel?.text = tech.description.isEmpty ? "Select a technology to see details." : tech.description
+
+        var costText = "Cost: "
+        for (index, scienceCost) in tech.cost.enumerated() {
+            if index > 0 {
+                costText += ", "
+            }
+            costText += "\(scienceCost.count) \(scienceCost.packId.replacingOccurrences(of: "-", with: " ").capitalized)"
+        }
+
+        let canResearch = gameLoop?.researchSystem.canResearch(tech) ?? false
+        if !canResearch {
+            if !tech.prerequisites.isEmpty {
+                let prereqNames = tech.prerequisites.compactMap { id in
+                    gameLoop?.technologyRegistry.get(id)?.name ?? id
+                }
+                costText += "\nRequires: " + prereqNames.joined(separator: ", ")
+            } else {
+                costText += "\nRequirements not met"
+            }
+        }
+        selectedCostLabel?.text = costText
+    }
+
+    private func updateSelectedTechPanelForEmpty() {
+        selectedTitleLabel?.text = "Select a technology"
+        selectedDescLabel?.text = "Choose a tech to view details. Labs consume science packs (player inventory does not)."
+        selectedCostLabel?.text = ""
+    }
+
+    private func updateLabStatusLabel() {
+        guard let world = gameLoop?.world else {
+            labStatusLabel?.text = "Labs: unavailable"
+            labStatusLabel?.isHidden = false
+            nextStepLabel?.text = "Next: Select a technology"
+            return
+        }
+
+        var totalLabs = 0
+        var activeLabs = 0
+        var poweredLabs = 0
+
+        world.forEach(LabComponent.self) { entity, lab in
+            totalLabs += 1
+            if lab.isResearching { activeLabs += 1 }
+            if let power = world.get(PowerConsumerComponent.self, for: entity), power.satisfaction > 0 {
+                poweredLabs += 1
+            }
+        }
+
+        if totalLabs == 0 {
+            labStatusLabel?.text = "Labs: 0 built — science packs must be in labs"
+            labStatusLabel?.isHidden = false
+            updateNextStepHint(activeLabs: 0, poweredLabs: 0, totalLabs: 0)
+            return
+        }
+
+        if let current = gameLoop?.researchSystem.currentResearch {
+            if activeLabs == 0 {
+                if poweredLabs == 0 {
+                    labStatusLabel?.text = "Labs: 0 active — no powered labs for \(current.name)"
+                } else {
+                    labStatusLabel?.text = "Labs: 0 active — add science packs to labs"
+                }
+                labStatusLabel?.isHidden = false
+                updateNextStepHint(activeLabs: activeLabs, poweredLabs: poweredLabs, totalLabs: totalLabs)
+                return
+            }
+        }
+
+        labStatusLabel?.text = "Labs: \(activeLabs) active / \(poweredLabs) powered / \(totalLabs) total"
+        labStatusLabel?.isHidden = false
+        updateNextStepHint(activeLabs: activeLabs, poweredLabs: poweredLabs, totalLabs: totalLabs)
+    }
+
+    private func updateNextStepHint(activeLabs: Int, poweredLabs: Int, totalLabs: Int) {
+        guard let researchSystem = gameLoop?.researchSystem else {
+            nextStepLabel?.text = "Next: Start a game to research"
+            return
+        }
+
+        if totalLabs == 0 {
+            nextStepLabel?.text = "Next: Build a lab (Automation)"
+            return
+        }
+
+        if let current = researchSystem.currentResearch {
+            if poweredLabs == 0 {
+                nextStepLabel?.text = "Next: Power a lab for \(current.name)"
+                return
+            }
+            if activeLabs == 0 {
+                nextStepLabel?.text = "Next: Add science packs to labs"
+                return
+            }
+            nextStepLabel?.text = "Next: Wait or add more labs"
+            return
+        }
+
+        if let selectedTech = selectedTech {
+            let canResearch = researchSystem.canResearch(selectedTech)
+            if canResearch {
+                nextStepLabel?.text = "Next: Tap Research to start"
+            } else if let prereq = selectedTech.prerequisites.first,
+                      let prereqTech = gameLoop?.technologyRegistry.get(prereq) {
+                nextStepLabel?.text = "Next: Research \(prereqTech.name)"
+            } else {
+                nextStepLabel?.text = "Next: Complete prerequisites"
+            }
+            return
+        }
+
+        nextStepLabel?.text = "Next: Select a technology"
+    }
+
+    private func updateProgressUI() {
+        guard let researchSystem = gameLoop?.researchSystem else {
+            progressLabel?.text = "No research system"
+            progressBarFill?.frame.size.width = 0
+            return
+        }
+
+        if let progressDetails = researchSystem.getResearchProgressDetails() {
+            let percent = Int(progressDetails.overallProgress * 100)
+            var progressText = "Researching: \(progressDetails.technologyName) • \(percent)%"
+            if progressDetails.researchSpeedBonus > 0 {
+                progressText += " • Speed +\(Int(progressDetails.researchSpeedBonus * 100))%"
+            }
+            var packLines: [String] = []
+            for (packId, packProgress) in progressDetails.packProgress {
+                let packName = packId.replacingOccurrences(of: "-", with: " ").capitalized
+                packLines.append("\(packProgress.contributed)/\(packProgress.required) \(packName)")
+            }
+            if !packLines.isEmpty {
+                progressText += "\n" + packLines.joined(separator: " • ")
+            }
+            progressLabel?.text = progressText
+
+            if let background = progressBarBackground {
+                let width = max(0, min(1, progressDetails.overallProgress)) * Float(background.frame.width)
+                progressBarFill?.frame.size.width = CGFloat(width)
+            }
+        } else {
+            if let selectedTech = selectedTech {
+                let canResearch = researchSystem.canResearch(selectedTech)
+                if canResearch {
+                    progressLabel?.text = "No active research — tap Research to start"
+                } else {
+                    progressLabel?.text = "Locked — complete prerequisites first"
+                }
+            } else {
+                progressLabel?.text = "Select a technology to see progress"
+            }
+            progressBarFill?.frame.size.width = 0
+        }
+
+        updateLabStatusLabel()
     }
     
     override func update(deltaTime: Float) {
