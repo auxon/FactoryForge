@@ -1,13 +1,17 @@
 import Foundation
 import UIKit
 
+
 /// Crafting menu panel
 final class CraftingMenu: UIPanel_Base {
     private weak var gameLoop: GameLoop?
     private var recipeScrollView: ClearScrollView?
+    private var recipePanelBackground: UIView?
+    private var recipeHeaderLabel: UILabel?
     private var recipeUIButtons: [UIKit.UIButton] = []
     private var filteredRecipes: [Recipe] = []
     private var closeButton: CloseButton!
+    private var closeButtonView: UIKit.UIButton?
     private var selectedRecipe: Recipe?
     private var lastRenderedRecipe: Recipe?
     private var recipeLabels: [UILabel] = [] // Track labels for recipe details
@@ -59,6 +63,26 @@ final class CraftingMenu: UIPanel_Base {
         }
     }
 
+    private func setupCloseButtonViewIfNeeded() {
+        guard let rootView = rootView else { return }
+        if closeButtonView != nil { return }
+
+        let button = UIKit.UIButton(type: .system)
+        button.setTitle("X", for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = UIColor(white: 0.3, alpha: 1.0)
+        button.layer.cornerRadius = 4
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+        button.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
+        rootView.addSubview(button)
+        closeButtonView = button
+    }
+
+    @objc private func closeButtonTapped() {
+        close()
+        gameLoop?.uiSystem?.closeAllPanels()
+    }
+
     /// Convert Metal frame to UIKit points for panel container
     private func panelFrameInPoints() -> CGRect {
         let screenScale = UIScreen.main.scale
@@ -79,6 +103,7 @@ final class CraftingMenu: UIPanel_Base {
         }
 
         setupProgressBarIfNeeded()
+        setupCloseButtonViewIfNeeded()
         setupRecipeScrollViewIfNeeded()
         layoutUI()
         refreshRecipes()
@@ -96,6 +121,9 @@ final class CraftingMenu: UIPanel_Base {
         lastRenderedRecipe = nil
         clearRecipeLabels()
 
+        closeButtonView?.removeFromSuperview()
+        closeButtonView = nil
+
         craftButton?.removeFromSuperview()
         craftButton = nil
 
@@ -112,6 +140,10 @@ final class CraftingMenu: UIPanel_Base {
 
         recipeScrollView?.removeFromSuperview()
         recipeScrollView = nil
+        recipeHeaderLabel?.removeFromSuperview()
+        recipeHeaderLabel = nil
+        recipePanelBackground?.removeFromSuperview()
+        recipePanelBackground = nil
 
         if let rv = rootView {
             rv.isUserInteractionEnabled = false
@@ -172,9 +204,6 @@ final class CraftingMenu: UIPanel_Base {
 
         super.render(renderer: renderer)
 
-        // Render close button
-        closeButton.render(renderer: renderer)
-        
         // Render selected recipe details
         if let recipe = selectedRecipe {
             // Always render the icons (every frame)
@@ -364,6 +393,24 @@ final class CraftingMenu: UIPanel_Base {
     private func setupRecipeScrollViewIfNeeded() {
         guard let rootView = rootView else { return }
 
+        if recipePanelBackground == nil {
+            let background = UIView()
+            background.backgroundColor = UIColor(white: 0.12, alpha: 0.6)
+            background.layer.cornerRadius = 10
+            rootView.addSubview(background)
+            recipePanelBackground = background
+        }
+
+        if recipeHeaderLabel == nil {
+            let label = UILabel()
+            label.text = "Recipes"
+            label.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+            label.textColor = UIColor(white: 0.85, alpha: 1.0)
+            label.textAlignment = .center
+            rootView.addSubview(label)
+            recipeHeaderLabel = label
+        }
+
         if recipeScrollView == nil {
             recipeScrollView = ClearScrollView(frame: .zero)
         }
@@ -394,22 +441,52 @@ final class CraftingMenu: UIPanel_Base {
         let rightX = padding + leftWidth + padding
         let scrollWidth = max(160, bounds.width - rightX - padding)
         let scrollHeight = bounds.height - padding * 2
-        recipeScrollView?.frame = CGRect(x: rightX, y: padding, width: scrollWidth, height: scrollHeight)
 
         let craftButtonHeight: CGFloat = 44
         let craftButtonWidth = min(220, leftWidth - 20)
         let craftButtonX = padding + (leftWidth - craftButtonWidth) * 0.5
         let craftButtonY = bounds.height - padding - craftButtonHeight
-        craftButton?.frame = CGRect(x: craftButtonX, y: craftButtonY, width: craftButtonWidth, height: craftButtonHeight)
 
         let progressBarHeight: CGFloat = 16
-        let progressBarWidth = min(280, leftWidth - 20)
+        let progressBarWidth = craftButtonWidth
         let progressBarX = padding + (leftWidth - progressBarWidth) * 0.5
         let progressBarY = craftButtonY - 50
+
+        let leftContentTop = padding
+        let leftContentBottom = craftButtonY + craftButtonHeight
+        let leftContentCenterY = (leftContentTop + leftContentBottom) * 0.5
+
+        var scrollY = leftContentCenterY - scrollHeight * 0.5
+        scrollY = max(padding, min(scrollY, bounds.height - padding - scrollHeight))
+
+        recipePanelBackground?.frame = CGRect(
+            x: rightX - 8,
+            y: scrollY - 8,
+            width: scrollWidth + 16,
+            height: scrollHeight + 16
+        )
+        recipeHeaderLabel?.frame = CGRect(x: rightX, y: scrollY - 22, width: scrollWidth, height: 18)
+        recipeScrollView?.frame = CGRect(x: rightX, y: scrollY, width: scrollWidth, height: scrollHeight)
+
+        craftButton?.frame = CGRect(x: craftButtonX, y: craftButtonY, width: craftButtonWidth, height: craftButtonHeight)
+
         progressBarBackground?.frame = CGRect(x: progressBarX, y: progressBarY, width: progressBarWidth, height: progressBarHeight)
         progressBarFill?.frame = CGRect(x: progressBarX, y: progressBarY, width: 0, height: progressBarHeight)
 
         progressStatusLabel?.frame = CGRect(x: progressBarX, y: progressBarY + progressBarHeight + 4, width: progressBarWidth, height: 14)
+
+        let closeSize: CGFloat = 36
+        let closeMargin: CGFloat = 10
+        closeButtonView?.frame = CGRect(
+            x: bounds.width - closeMargin - closeSize,
+            y: closeMargin,
+            width: closeSize,
+            height: closeSize
+        )
+
+        if let closeButtonView = closeButtonView {
+            rootView.bringSubviewToFront(closeButtonView)
+        }
 
         detailsIconYPoints = max(padding + 50, progressBarY - 45)
     }
@@ -519,9 +596,16 @@ final class CraftingMenu: UIPanel_Base {
             button.isHidden = false
             button.isEnabled = canCraft
             button.alpha = canCraft ? 1.0 : 0.5
+            var config = button.configuration
+            config?.title = "Craft"
+            button.configuration = config
         } else {
-            button.isHidden = true
+            button.isHidden = false
             button.isEnabled = false
+            button.alpha = 0.6
+            var config = button.configuration
+            config?.title = "Select a recipe"
+            button.configuration = config
         }
     }
 
