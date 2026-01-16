@@ -19,6 +19,8 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
     private var tankLabels: [UILabel] = []
     private var fluidTankViews: [UIView] = []
     private var fluidTankImages: [UIImageView] = [] // Images for fluid textures
+    private var tankDisplayTypes: [FluidType?] = []
+    private var tankDisplayIndices: [Int?] = []
     private var bufferBars: [UIView] = [] // Small buffer visualization bars for converters like boilers
     private var bufferFills: [UIView] = [] // Fill views for buffer bars (one per bar)
     private var bufferLabels: [UILabel] = [] // Tiny labels under buffer bars showing amounts
@@ -202,17 +204,23 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
             positionBoilerBufferBars(in: ui)
         }
 
-        // Tank labels to the right of tank views, stacked vertically
+        // Tank labels: inputs to the right, outputs to the left
+        let inputTypes = buildingDef?.fluidInputTypes ?? []
+        let outputTypes = buildingDef?.fluidOutputTypes ?? []
+        let expectedTypes = inputTypes + outputTypes
         for (i, label) in tankLabels.enumerated() {
             guard i < fluidTankViews.count else { continue }
             let tankFrame = fluidTankViews[i].frame
 
             let labelWidth: CGFloat = 90
             let labelHeight: CGFloat = 20
-            let labelSpacing: CGFloat = 4
+            let labelSpacing: CGFloat = 6
+            let expectedType = i < tankDisplayTypes.count ? tankDisplayTypes[i] : nil
+            let isInputTank = expectedType.map { inputTypes.contains($0) } ?? (i < (buildingDef?.fluidInputTanks ?? 0))
 
+            let labelX = isInputTank ? (tankFrame.maxX + labelSpacing) : (tankFrame.minX - labelWidth - labelSpacing)
             label.frame = CGRect(
-                x: tankFrame.maxX + labelSpacing,
+                x: labelX,
                 y: tankFrame.minY,
                 width: labelWidth,
                 height: labelHeight
@@ -422,45 +430,38 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
         if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity), !isBoiler {
             print("FluidMachineUIComponent: Found FluidTankComponent with \(tank.tanks.count) tanks, maxCapacity: \(tank.maxCapacity)")
 
-            // Position tanks just below the progress bar in a fixed right column
-            let tankSpacing: Float = 50 * UIScale  // Reduced spacing for better fit
-
-            // Calculate fixed right-side X position in UIKit points, then convert to Metal pixels
-            let tankXUIKitPoints: Float
-            if let rootView = ui.rootView {
-                tankXUIKitPoints = Float(rootView.bounds.width) * 0.75  // 75% from left for right column
-            } else {
-                tankXUIKitPoints = Float(ui.frame.center.x) + 150 * UIScale  // Fallback
-            }
-
-            // Convert UIKit points to Metal pixels
+            // Position tanks in two columns (inputs left, outputs right) to keep the center clear.
+            let tankSpacingPoints: Float = 52
+            let labelSpacingPoints: Float = 18
             let scale = Float(UIScreen.main.scale)
             let panelOriginPts = ui.panelFrameInPoints().origin
-            let tankBaseX = (tankXUIKitPoints + Float(panelOriginPts.x)) * scale
-            let labelSpacing: Float = 20 * UIScale
 
-            // Calculate starting Y position based on progress bar position
-            let progressBarBottom: Float
+            let leftColumnXPoints: Float
+            let rightColumnXPoints: Float
+            let tankStartYPoints: Float
+
             if let rootView = ui.rootView {
-                let b = rootView.bounds
-                let scale = Float(UIScreen.main.scale)
-                let panelOriginPts = ui.panelFrameInPoints().origin
-
-                // Progress bar position in UIKit points
-                let barYUIPoints = Float(b.height) * 0.18
-                let barHeight: Float = 20
-
-                // Convert to Metal coordinates: (UIKit points + panel origin) * scale
-                let barYMetal = (barYUIPoints + Float(panelOriginPts.y)) * scale
-                progressBarBottom = barYMetal + (barHeight * 4) + 16 * scale // Add padding below progress bar
+                let width = Float(rootView.bounds.width)
+                let height = Float(rootView.bounds.height)
+                let tankSizePoints = indicatorSize / scale
+                let edgePadding = max(10, (tankSizePoints * 0.5) + 8)
+                leftColumnXPoints = max(edgePadding, width * 0.08)
+                rightColumnXPoints = min(width - edgePadding, width * 0.92)
+                tankStartYPoints = height * 0.22
             } else {
-                progressBarBottom = Float(ui.frame.center.y) // Fallback
+                leftColumnXPoints = Float(ui.frame.center.x) - 220 * UIScale
+                rightColumnXPoints = Float(ui.frame.center.x) + 220 * UIScale
+                tankStartYPoints = Float(ui.frame.center.y) - 130 * UIScale
             }
 
-            // Show at least one tank indicator, even if empty
-            let tankCount = max(tank.tanks.count, 1)
+            // Determine display ordering based on expected input/output types.
+            let displayMapping = buildTankDisplayMapping(tank: tank, buildingDef: buildingDef)
+            tankDisplayTypes = displayMapping.types
+            tankDisplayIndices = displayMapping.indices
+
             let maxVisibleTanks = 8 // Allow up to 8 tanks for complex fluid processing buildings
-            print("FluidMachineUIComponent: Found \(tank.tanks.count) tanks, will show \(min(tankCount, maxVisibleTanks)) tank indicators")
+            let displayCount = min(tankDisplayTypes.count, maxVisibleTanks)
+            print("FluidMachineUIComponent: Found \(tank.tanks.count) tanks, will show \(displayCount) tank indicators")
             for i in 0..<tank.tanks.count {
                 let tank = tank.tanks[i]
                 print("FluidMachineUIComponent: Tank \(i): \(tank.amount)L of \(tank.type)")
@@ -468,30 +469,34 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
             // Get building definition to determine input vs output tank positioning
             let buildingDef = ui.getBuildingDefinition(for: ui.currentEntity!, gameLoop: ui.gameLoop!)
-            let inputTankCount = buildingDef?.fluidInputTanks ?? 0
+            let inputTypes = buildingDef?.fluidInputTypes ?? []
+            let inputCount = inputTypes.count
 
-            for index in 0..<min(tankCount, maxVisibleTanks) { // Allow more tanks for fluid processing
-                // Determine X position based on whether this is an input or output tank
-                let isInputTank = index < inputTankCount
+            for index in 0..<displayCount { // Allow more tanks for fluid processing
+                let expectedType = tankDisplayTypes[index]
+                let isInputTank = expectedType.map { inputTypes.contains($0) } ?? (index < inputCount)
                 let tankX: Float
+                let localIndex: Int
+
+                if inputCount > 0 {
+                    localIndex = isInputTank ? index : max(0, index - inputCount)
+                } else {
+                    localIndex = index
+                }
 
                 if isInputTank {
                     // Input tanks go near the left edge of the panel with padding
                     if ui.rootView != nil {
-                        let leftPadding: Float = 30 * UIScale // Padding from left edge
-                        let leftXUIKitPoints = leftPadding
-                        let scale = Float(UIScreen.main.scale)
-                        let panelOriginPts = ui.panelFrameInPoints().origin
-                        tankX = (leftXUIKitPoints + Float(panelOriginPts.x)) * scale
+                        tankX = (leftColumnXPoints + Float(panelOriginPts.x)) * scale
                     } else {
-                        tankX = tankBaseX - 200 * UIScale // Fallback position
+                        tankX = (leftColumnXPoints + Float(panelOriginPts.x)) * scale
                     }
                 } else {
                     // Output tanks stay on the right side
-                    tankX = tankBaseX // Original right position
+                    tankX = (rightColumnXPoints + Float(panelOriginPts.x)) * scale
                 }
 
-                let tankY = progressBarBottom + Float(index % 4) * (tankSpacing + labelSpacing) // Wrap every 4 tanks
+                let tankY = (tankStartYPoints + Float(localIndex) * (tankSpacingPoints + labelSpacingPoints) + Float(panelOriginPts.y)) * scale
                 let tankSize: Float = indicatorSize
                 let tankFrame = Rect(center: Vector2(tankX, tankY), size: Vector2(tankSize, tankSize))
 
@@ -519,7 +524,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                 let tapGesture = UITapGestureRecognizer(target: self, action: #selector(tankViewTapped(_:)))
                 tankView.addGestureRecognizer(tapGesture)
                 tankView.isUserInteractionEnabled = true
-                tankView.tag = index // Store tank index
+                tankView.tag = tankDisplayIndices.indices.contains(index) ? (tankDisplayIndices[index] ?? -1) : -1 // Store mapped tank index
 
                 // Add to the UI panel
                 if let rootView = ui.rootView {
@@ -653,6 +658,7 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
               let ui = ui else { return }
 
         let tankIndex = tankView.tag
+        guard tankIndex >= 0 else { return }
 
         if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity),
            tankIndex < fluidTank.tanks.count {
@@ -875,16 +881,24 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
 
         // Update fluid tanks (UIKit views) - skip for boilers
         if let tank = gameLoop.world.get(FluidTankComponent.self, for: entity), !isBoiler {
+            let displayMapping = buildTankDisplayMapping(tank: tank, buildingDef: buildingDef)
+            tankDisplayTypes = displayMapping.types
+            tankDisplayIndices = displayMapping.indices
+
             let maxVisibleTanks = 8
-            for i in 0..<min(tankLabels.count, max(tank.tanks.count, 1), maxVisibleTanks) {
-                if tank.tanks.indices.contains(i) && i < fluidTankViews.count && i < fluidTankImages.count {
-                    let stack = tank.tanks[i]
+            let displayCount = min(tankLabels.count, tankDisplayTypes.count, maxVisibleTanks)
+            let defaultMaxAmount = tank.tanks.first?.maxAmount ?? tank.maxCapacity
+            for i in 0..<displayCount {
+                let mappedIndex = tankDisplayIndices.indices.contains(i) ? tankDisplayIndices[i] : nil
+                let stack = mappedIndex.flatMap { tank.tanks.indices.contains($0) ? tank.tanks[$0] : nil }
+                if i < fluidTankViews.count && i < fluidTankImages.count {
                     let tankView = fluidTankViews[i]
                     let fluidImageView = fluidTankImages[i]
+                    let displayType = tankDisplayTypes[i]
 
-                    if stack.amount > 0 {
+                    if let stack, stack.amount > 0 {
                         // Tank has fluid - show texture
-                        let fluidName = stack.type.rawValue.replacingOccurrences(of: "-", with: " ").capitalized
+                        let fluidName = displayName(for: stack.type)
                         tankLabels[i].text = String(format: "%@: %.0f/%.0f L", fluidName, stack.amount, stack.maxAmount)
 
                         // Load fluid texture
@@ -900,28 +914,69 @@ class FluidMachineUIComponent: BaseMachineUIComponent {
                         }
                     } else {
                         // Tank is empty - show gray background
-                        tankLabels[i].text = String(format: "Empty: 0/%.0f L", stack.maxAmount)
+                        if let displayType = displayType {
+                            let fluidName = displayName(for: displayType)
+                            tankLabels[i].text = String(format: "%@: 0/%.0f L", fluidName, defaultMaxAmount)
+                        } else {
+                            tankLabels[i].text = String(format: "Empty: 0/%.0f L", defaultMaxAmount)
+                        }
                         fluidImageView.isHidden = true
                         tankView.backgroundColor = UIColor.gray.withAlphaComponent(0.7)
                     }
 
                     tankLabels[i].setNeedsDisplay()
                     tankView.setNeedsDisplay()
-                } else if i < tankLabels.count {
-                    tankLabels[i].text = String(format: "Empty: 0/%.0f L", tank.maxCapacity)
-                    if i < fluidTankViews.count {
-                        fluidTankViews[i].backgroundColor = UIColor.gray.withAlphaComponent(0.7)
-                        fluidTankViews[i].setNeedsDisplay()
-                    }
-                    if i < fluidTankImages.count {
-                        fluidTankImages[i].isHidden = true
-                    }
-                    tankLabels[i].setNeedsDisplay()
                 }
             }
 
             ui.rootView?.setNeedsLayout()
             ui.rootView?.layoutIfNeeded()
+        }
+    }
+
+    private func buildTankDisplayMapping(tank: FluidTankComponent, buildingDef: BuildingDefinition?) -> (types: [FluidType?], indices: [Int?]) {
+        let inputTypes = buildingDef?.fluidInputTypes ?? []
+        let outputTypes = buildingDef?.fluidOutputTypes ?? []
+        let expectedTypes = inputTypes + outputTypes
+        let displayTypes: [FluidType?]
+
+        if !expectedTypes.isEmpty {
+            displayTypes = expectedTypes.map { Optional($0) }
+        } else if !tank.tanks.isEmpty {
+            displayTypes = tank.tanks.map { Optional($0.type) }
+        } else {
+            displayTypes = [nil]
+        }
+
+        var usedIndices = Set<Int>()
+        var indices: [Int?] = []
+        indices.reserveCapacity(displayTypes.count)
+
+        for displayType in displayTypes {
+            guard let displayType else {
+                indices.append(nil)
+                continue
+            }
+            let matchIndex = tank.tanks.indices.first { idx in
+                !usedIndices.contains(idx) && tank.tanks[idx].type == displayType
+            }
+            if let matchIndex {
+                usedIndices.insert(matchIndex)
+                indices.append(matchIndex)
+            } else {
+                indices.append(nil)
+            }
+        }
+
+        return (displayTypes, indices)
+    }
+
+    private func displayName(for fluidType: FluidType) -> String {
+        switch fluidType {
+        case .petroleumGas:
+            return "Petroleum"
+        default:
+            return fluidType.rawValue.replacingOccurrences(of: "-", with: " ").capitalized
         }
     }
 }
