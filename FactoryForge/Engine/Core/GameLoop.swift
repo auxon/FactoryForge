@@ -365,14 +365,14 @@ final class GameLoop {
             }
         }
 
-        // Chemical plants - spawn smoke when crafting
+        // Chemical plants and oil refineries - spawn smoke when crafting
         world.forEach(AssemblerComponent.self) { entity, assembler in
             guard let position = world.get(PositionComponent.self, for: entity)?.worldPosition else { return }
             guard visibleRect.contains(position) else { return }
 
-            // Only spawn smoke for chemical plants
+            // Only spawn smoke for chemical plants and oil refineries when active
             if let buildingDef = buildingRegistry.getByTexture(world.get(SpriteComponent.self, for: entity)?.textureId ?? ""),
-               buildingDef.id == "chemical-plant",
+               (buildingDef.id == "chemical-plant" || buildingDef.id == "oil-refinery"),
                assembler.craftingProgress > 0 {
                 // Spawn smoke in the tile above the building center
                 renderer.particleRenderer.spawnSmoke(at: position + Vector2(1, 2), count: 1)
