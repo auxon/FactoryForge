@@ -664,6 +664,11 @@ final class UISystem {
         print("UISystem: openPanel completed, machineUI.isOpen = \(machineUI.isOpen)")
     }
 
+    func openPipeTankSelection(for entity: Entity) {
+        machineUI.openPipeTankSelectionOnOpen = true
+        openMachineUI(for: entity)
+    }
+
     func openChestInventory(for entity: Entity) {
         inventoryUI.enterChestOnlyMode(entity: entity)
         openPanel(.inventory)
@@ -1763,4 +1768,3 @@ class InserterConnectionDialog {
         }
     }
 }
-

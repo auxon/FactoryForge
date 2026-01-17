@@ -193,21 +193,13 @@ final class CraftingSystem: System {
         }
 
         // Check fluid inputs if we have entity and world context
-        if let entity = entity, let world = world {
-            // Get fluid tanks from the building
-            var availableFluids: [FluidStack] = []
-            if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
-                availableFluids = tankComponent.tanks
-            }
-
-            // Check fluid inputs
+        if let entity = entity, let world = world,
+           let tankComponent = world.get(FluidTankComponent.self, for: entity) {
             for fluidInput in recipe.fluidInputs {
-                var foundFluid = false
-                for tank in availableFluids {
-                    if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
-                        foundFluid = true
-                        break
-                    }
+                let indices = inputTankIndices(for: fluidInput.type, in: tankComponent)
+                let foundFluid = indices.contains { idx in
+                    tankComponent.tanks.indices.contains(idx) &&
+                        tankComponent.tanks[idx].amount >= fluidInput.amount
                 }
                 if !foundFluid {
                     return false
@@ -222,12 +214,10 @@ final class CraftingSystem: System {
         // Check fluid inputs
         if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
             for fluidInput in recipe.fluidInputs {
-                var foundFluid = false
-                for tank in tankComponent.tanks {
-                    if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
-                        foundFluid = true
-                        break
-                    }
+                let indices = inputTankIndices(for: fluidInput.type, in: tankComponent)
+                let foundFluid = indices.contains { idx in
+                    tankComponent.tanks.indices.contains(idx) &&
+                        tankComponent.tanks[idx].amount >= fluidInput.amount
                 }
                 if !foundFluid {
                     return false
@@ -241,22 +231,11 @@ final class CraftingSystem: System {
         if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
             for fluidOutput in recipe.fluidOutputs {
                 var hasSpace = false
-                for i in 0..<tankComponent.tanks.count {
-                    let tank = tankComponent.tanks[i]
-                    // Check if this tank can accept this fluid type
-                    var canAcceptFluid = false
-                    if let buildingDef = buildingRegistry.get(tankComponent.buildingId),
-                       buildingDef.type == .oilRefinery {
-                        // Oil refinery tanks can accept: crude oil, water/steam (inputs), and petroleum gas/light oil/heavy oil (outputs)
-                        let allowedTypes: [FluidType] = [.crudeOil, .water, .steam, .petroleumGas, .lightOil, .heavyOil]
-                        canAcceptFluid = allowedTypes.contains(fluidOutput.type) &&
-                                       (tank.amount == 0 || tank.type == fluidOutput.type || allowedTypes.contains(tank.type))
-                    } else {
-                        // Regular tanks: only accept same type or empty tanks
-                        canAcceptFluid = (tank.type == fluidOutput.type || tank.amount == 0)
-                    }
-
-                    if canAcceptFluid && tank.availableSpace >= fluidOutput.amount {
+                let indices = outputTankIndices(for: fluidOutput.type, in: tankComponent)
+                for idx in indices {
+                    guard tankComponent.tanks.indices.contains(idx) else { continue }
+                    let tank = tankComponent.tanks[idx]
+                    if tank.availableSpace >= fluidOutput.amount {
                         hasSpace = true
                         break
                     }
@@ -277,11 +256,13 @@ final class CraftingSystem: System {
                 // print("CraftingSystem: Need to consume \(fluidInput.amount)L of \(fluidInput.type)")
                 // Find and consume fluid from tanks
                 var consumed = false
-                for i in 0..<tankComponent.tanks.count {
-                    let tank = tankComponent.tanks[i]
+                let indices = inputTankIndices(for: fluidInput.type, in: tankComponent)
+                for idx in indices {
+                    guard tankComponent.tanks.indices.contains(idx) else { continue }
+                    let tank = tankComponent.tanks[idx]
                     // print("CraftingSystem: Tank \(i): \(tank.amount)L of \(tank.type)")
                     if tank.type == fluidInput.type && tank.amount >= fluidInput.amount {
-                        tankComponent.tanks[i].amount -= fluidInput.amount
+                        tankComponent.tanks[idx].amount -= fluidInput.amount
                         // print("CraftingSystem: Consumed \(fluidInput.amount)L of \(fluidInput.type) from tank \(i), now has \(tankComponent.tanks[i].amount)L")
                         consumed = true
                         break
@@ -303,8 +284,10 @@ final class CraftingSystem: System {
                 // print("CraftingSystem: Need to add \(fluidOutput.amount)L of \(fluidOutput.type)")
                 // Find a suitable tank for this fluid output
                 var added = false
-                for i in 0..<tankComponent.tanks.count {
-                    let tank = tankComponent.tanks[i]
+                let indices = outputTankIndices(for: fluidOutput.type, in: tankComponent)
+                for idx in indices {
+                    guard tankComponent.tanks.indices.contains(idx) else { continue }
+                    let tank = tankComponent.tanks[idx]
                     // print("CraftingSystem: Checking tank \(i): \(tank.amount)L of \(tank.type), space: \(tank.availableSpace)L")
                     // Check if this tank can accept this fluid type
                     // Tanks can only accept: same fluid type (to add more), or be empty (to accept any type)
@@ -314,17 +297,25 @@ final class CraftingSystem: System {
                         // Add fluid to this tank
                         if tank.amount == 0 {
                             // Tank is empty, set the type and add fluid
-                            tankComponent.tanks[i] = FluidStack(type: fluidOutput.type, amount: fluidOutput.amount, temperature: fluidOutput.temperature, maxAmount: tank.maxAmount)
+                            tankComponent.tanks[idx] = FluidStack(type: fluidOutput.type, amount: fluidOutput.amount, temperature: fluidOutput.temperature, maxAmount: tank.maxAmount)
                             // print("CraftingSystem: Added \(fluidOutput.amount)L of \(fluidOutput.type) to empty tank \(i)")
                         } else {
                             // Tank has fluid, add to existing amount
-                            tankComponent.tanks[i].amount += fluidOutput.amount
+                            tankComponent.tanks[idx].amount += fluidOutput.amount
                             // print("CraftingSystem: Added \(fluidOutput.amount)L of \(fluidOutput.type) to tank \(i) with existing fluid")
                         }
                         added = true
                         break
                     } else {
                         // print("CraftingSystem: Tank \(i) cannot accept - canAccept: \(canAcceptFluid), space: \(tank.availableSpace)L >= \(fluidOutput.amount)L")
+                    }
+                }
+                if !added {
+                    if buildingRegistry.get(tankComponent.buildingId)?.fluidTanks.isEmpty == true {
+                        // Create new tank for this fluid type when no tank specs exist.
+                        let newTank = FluidStack(type: fluidOutput.type, amount: fluidOutput.amount, maxAmount: tankComponent.maxCapacity)
+                        tankComponent.tanks.append(newTank)
+                        added = true
                     }
                 }
                 if !added {
@@ -345,9 +336,11 @@ final class CraftingSystem: System {
         if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
             for fluidInput in recipe.fluidInputs {
                 // Find and consume from the appropriate tank
-                for i in 0..<tankComponent.tanks.count {
-                    if tankComponent.tanks[i].type == fluidInput.type {
-                        _ = tankComponent.tanks[i].remove(amount: fluidInput.amount)
+                let indices = inputTankIndices(for: fluidInput.type, in: tankComponent)
+                for idx in indices {
+                    guard tankComponent.tanks.indices.contains(idx) else { continue }
+                    if tankComponent.tanks[idx].type == fluidInput.type {
+                        _ = tankComponent.tanks[idx].remove(amount: fluidInput.amount)
                         break
                     }
                 }
@@ -385,16 +378,18 @@ final class CraftingSystem: System {
             for fluidOutput in recipe.fluidOutputs {
                 // Find or create appropriate tank for this fluid type
                 var tankFound = false
-                for i in 0..<tankComponent.tanks.count {
-                    if tankComponent.tanks[i].type == fluidOutput.type {
+                let indices = outputTankIndices(for: fluidOutput.type, in: tankComponent)
+                for idx in indices {
+                    guard tankComponent.tanks.indices.contains(idx) else { continue }
+                    if tankComponent.tanks[idx].type == fluidOutput.type {
                         // Add to existing tank
-                        _ = tankComponent.tanks[i].add(amount: fluidOutput.amount)
+                        _ = tankComponent.tanks[idx].add(amount: fluidOutput.amount)
                         tankFound = true
                         break
                     }
                 }
 
-                if !tankFound {
+                if !tankFound && buildingRegistry.get(tankComponent.buildingId)?.fluidTanks.isEmpty == true {
                     // Create new tank for this fluid type
                     let newTank = FluidStack(type: fluidOutput.type, amount: fluidOutput.amount, maxAmount: tankComponent.maxCapacity)
                     tankComponent.tanks.append(newTank)
@@ -404,6 +399,40 @@ final class CraftingSystem: System {
         }
 
         // Inventory is saved by caller
+    }
+
+    private func inputTankIndices(for fluidType: FluidType, in tankComponent: FluidTankComponent) -> [Int] {
+        guard let buildingDef = buildingRegistry.get(tankComponent.buildingId),
+              !buildingDef.fluidTanks.isEmpty else {
+            return tankComponent.tanks.indices.filter { tankComponent.tanks[$0].type == fluidType }
+        }
+
+        return buildingDef.fluidTanks.enumerated().compactMap { index, spec in
+            guard spec.role == .input,
+                  spec.fluidType == fluidType,
+                  tankComponent.tanks.indices.contains(index) else {
+                return nil
+            }
+            return index
+        }
+    }
+
+    private func outputTankIndices(for fluidType: FluidType, in tankComponent: FluidTankComponent) -> [Int] {
+        guard let buildingDef = buildingRegistry.get(tankComponent.buildingId),
+              !buildingDef.fluidTanks.isEmpty else {
+            return tankComponent.tanks.indices.filter {
+                tankComponent.tanks[$0].type == fluidType || tankComponent.tanks[$0].amount == 0
+            }
+        }
+
+        return buildingDef.fluidTanks.enumerated().compactMap { index, spec in
+            guard spec.role == .output,
+                  spec.fluidType == fluidType,
+                  tankComponent.tanks.indices.contains(index) else {
+                return nil
+            }
+            return index
+        }
     }
 
     private func placeOutputInSlots(output: ItemStack, maxStack: Int, inventory: inout InventoryComponent, startIndex: Int, endIndex: Int) {
@@ -487,4 +516,3 @@ final class CraftingSystem: System {
         return false
     }
 }
-

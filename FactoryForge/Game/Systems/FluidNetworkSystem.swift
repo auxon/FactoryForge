@@ -895,10 +895,35 @@ final class FluidNetworkSystem: System {
             }
         }
 
+        // Require explicit tank selection for pipe <-> tank connections when tank specs exist.
+        if entity1IsPipe,
+           world.has(FluidTankComponent.self, for: entity2),
+           requiresTankSelection(for: entity2),
+           let pipe = world.get(PipeComponent.self, for: entity1),
+           pipe.tankConnections[entity2] == nil {
+            return false
+        }
+
+        if entity2IsPipe,
+           world.has(FluidTankComponent.self, for: entity1),
+           requiresTankSelection(for: entity1),
+           let pipe = world.get(PipeComponent.self, for: entity2),
+           pipe.tankConnections[entity1] == nil {
+            return false
+        }
+
         // For building-to-building connections, check if they have compatible interfaces
         // For now, allow connections between any fluid buildings (simplified)
         // TODO: Add direction-based connection rules for specific buildings
         return true
+    }
+
+    private func requiresTankSelection(for tankEntity: Entity) -> Bool {
+        guard let tank = world.get(FluidTankComponent.self, for: tankEntity),
+              let buildingDef = buildingRegistry.get(tank.buildingId) else {
+            return false
+        }
+        return !buildingDef.fluidTanks.isEmpty
     }
 
     private func dominantCardinalDirection(from delta: Vector2) -> Direction {
@@ -1743,9 +1768,15 @@ final class FluidNetworkSystem: System {
             if let pipe = world.get(PipeComponent.self, for: fromEntity) {
                 fluidType = pipe.fluidType
             } else if let tank = world.get(FluidTankComponent.self, for: fromEntity) {
-                // For tanks, we'd need to determine which fluid to transfer
-                // For simplicity, transfer the first available fluid
-                fluidType = tank.tanks.first?.type
+                if let pipe = world.get(PipeComponent.self, for: toEntity),
+                   let tankIndex = pipe.tankConnections[fromEntity],
+                   tank.tanks.indices.contains(tankIndex) {
+                    let stack = tank.tanks[tankIndex]
+                    fluidType = stack.amount > 0 ? stack.type : nil
+                } else {
+                    // For tanks without explicit connections, transfer the first available fluid.
+                    fluidType = tank.tanks.first?.type
+                }
             }
 
             guard let transferFluidType = fluidType else { continue }
@@ -1760,6 +1791,16 @@ final class FluidNetworkSystem: System {
 
     /// Transfer fluid between two entities
     private func transferFluid(from fromEntity: Entity, to toEntity: Entity, amount: Float, fluidType: FluidType) -> Float {
+        if world.has(PipeComponent.self, for: fromEntity),
+           world.has(FluidTankComponent.self, for: toEntity) {
+            return transferPipeToTank(pipeEntity: fromEntity, tankEntity: toEntity, amount: amount, fluidType: fluidType)
+        }
+
+        if world.has(FluidTankComponent.self, for: fromEntity),
+           world.has(PipeComponent.self, for: toEntity) {
+            return transferTankToPipe(tankEntity: fromEntity, pipeEntity: toEntity, amount: amount, fluidType: fluidType)
+        }
+
         // Remove from source
         let removedAmount = removeFluidFromEntity(fromEntity, amount: amount, fluidType: fluidType)
         if removedAmount <= 0 { return 0 }
@@ -1769,6 +1810,68 @@ final class FluidNetworkSystem: System {
 
 
         return addedAmount
+    }
+
+    private func transferPipeToTank(pipeEntity: Entity, tankEntity: Entity, amount: Float, fluidType: FluidType) -> Float {
+        guard let tank = world.get(FluidTankComponent.self, for: tankEntity) else { return 0 }
+
+        if requiresTankSelection(for: tankEntity) {
+            guard let pipe = world.get(PipeComponent.self, for: pipeEntity),
+                  let tankIndex = pipe.tankConnections[tankEntity],
+                  tank.tanks.indices.contains(tankIndex) else {
+                return 0
+            }
+
+            let stack = tank.tanks[tankIndex]
+            guard stack.type == fluidType else { return 0 }
+
+            let space = max(0, stack.maxAmount - stack.amount)
+            if space <= 0 { return 0 }
+
+            let requested = min(amount, space)
+            let removed = removeFluidFromPipe(pipeEntity, amount: requested, fluidType: fluidType)
+            if removed <= 0 { return 0 }
+
+            let updatedTank = tank
+            updatedTank.tanks[tankIndex].amount += removed
+            world.add(updatedTank, to: tankEntity)
+            return removed
+        }
+
+        let removed = removeFluidFromPipe(pipeEntity, amount: amount, fluidType: fluidType)
+        if removed <= 0 { return 0 }
+        return addFluidToTank(tankEntity, amount: removed, fluidType: fluidType)
+    }
+
+    private func transferTankToPipe(tankEntity: Entity, pipeEntity: Entity, amount: Float, fluidType: FluidType) -> Float {
+        guard let tank = world.get(FluidTankComponent.self, for: tankEntity) else { return 0 }
+
+        if requiresTankSelection(for: tankEntity) {
+            guard let pipe = world.get(PipeComponent.self, for: pipeEntity),
+                  let tankIndex = pipe.tankConnections[tankEntity],
+                  tank.tanks.indices.contains(tankIndex) else {
+                return 0
+            }
+
+            let stack = tank.tanks[tankIndex]
+            guard stack.type == fluidType else { return 0 }
+
+            let available = stack.amount
+            if available <= 0 { return 0 }
+
+            let requested = min(amount, available)
+            let added = addFluidToPipe(pipeEntity, amount: requested, fluidType: fluidType)
+            if added <= 0 { return 0 }
+
+            let updatedTank = tank
+            updatedTank.tanks[tankIndex].amount -= added
+            world.add(updatedTank, to: tankEntity)
+            return added
+        }
+
+        let removed = removeFluidFromTank(tankEntity, amount: amount, fluidType: fluidType)
+        if removed <= 0 { return 0 }
+        return addFluidToPipe(pipeEntity, amount: removed, fluidType: fluidType)
     }
 
     /// Remove fluid from an entity

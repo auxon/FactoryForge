@@ -189,6 +189,8 @@ final class MachineUI: UIPanel_Base {
     // Power label for generators
     private var powerLabel: UILabel?
 
+    var openPipeTankSelectionOnOpen: Bool = false
+
     // Rocket launch button for rocket silos
     private var launchButton: UIKit.UIButton?
 
@@ -314,6 +316,15 @@ final class MachineUI: UIPanel_Base {
         // Setup machine-specific UI components
         for (index, component) in machineComponents.enumerated() {
             component.setupUI(for: entity, in: self)
+        }
+
+        if openPipeTankSelectionOnOpen {
+            for component in machineComponents {
+                if let pipeComponent = component as? PipeConnectionUIComponent {
+                    pipeComponent.openTankSelection()
+                }
+            }
+            openPipeTankSelectionOnOpen = false
         }
 
         // Setup power label for generators
@@ -450,9 +461,21 @@ final class MachineUI: UIPanel_Base {
         progressBarBackground.layer.cornerRadius = 4
         progressBarFill.layer.cornerRadius = 4
 
-        // Position status label below progress bar
+        // Position status label below progress bar (or below centered input slots when used)
         if let statusLabel = progressStatusLabel {
-            statusLabel.frame = CGRect(x: barX, y: barY + barHeight + 4, width: barWidth, height: 32)
+            var labelY = barY + barHeight + 4
+            if let entity = currentEntity,
+               let gameLoop = gameLoop,
+               let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
+               shouldCenterInputSlots(for: buildingDef),
+               buildingDef.inputSlots > 0 {
+                let buttonSizePoints: CGFloat = 32
+                let spacingPoints: CGFloat = 8
+                let maxPerRow = max(1, Int((barWidth + spacingPoints) / (buttonSizePoints + spacingPoints)))
+                let rowCount = Int(ceil(Double(buildingDef.inputSlots) / Double(maxPerRow)))
+                labelY = barY + barHeight + 4 + CGFloat(rowCount) * (buttonSizePoints + spacingPoints)
+            }
+            statusLabel.frame = CGRect(x: barX, y: labelY, width: barWidth, height: 32)
         }
     }
 
@@ -563,10 +586,34 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Create input slots (left side, below fuel) - UIKit buttons
+        let useCenteredInputs = shouldCenterInputSlots(for: buildingDef)
+        var centeredStartX: CGFloat = 0
+        var centeredStartY: CGFloat = 0
+        var centeredMaxPerRow: Int = 1
+        if useCenteredInputs {
+            let L = MachineUILayout(bounds: panelBounds)
+            let pad: CGFloat = 16
+            let barX = L.recipeRegionX + pad
+            let barRight = L.recipeRegionX + L.recipeRegionWidth - pad
+            let barWidth = min(barRight - barX, 360)
+            centeredStartX = barX
+            centeredStartY = L.topBandY + 20 + 6
+            centeredMaxPerRow = max(1, Int((barWidth + spacingPoints) / (buttonSizePoints + spacingPoints)))
+        }
+
         for i in 0..<inputCount {
-            // Position relative to panel bounds - vertical column on left
-            let buttonX = panelBounds.width * 0.083  // Same X as fuel
-            let buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)  // 32.5% from top
+            let buttonX: CGFloat
+            let buttonY: CGFloat
+            if useCenteredInputs {
+                let row = i / centeredMaxPerRow
+                let col = i % centeredMaxPerRow
+                buttonX = centeredStartX + CGFloat(col) * (buttonSizePoints + spacingPoints)
+                buttonY = centeredStartY + CGFloat(row) * (buttonSizePoints + spacingPoints)
+            } else {
+                // Position relative to panel bounds - vertical column on left
+                buttonX = panelBounds.width * 0.083  // Same X as fuel
+                buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)  // 32.5% from top
+            }
 
             let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
 
@@ -628,6 +675,10 @@ final class MachineUI: UIPanel_Base {
             outputCountLabels.append(label)
             rootView.addSubview(label)
         }
+    }
+
+    private func shouldCenterInputSlots(for buildingDef: BuildingDefinition) -> Bool {
+        return buildingDef.type == .chemicalPlant
     }
 
     private func setupRecipeButtons() {

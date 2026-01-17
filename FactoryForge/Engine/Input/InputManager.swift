@@ -53,6 +53,7 @@ final class InputManager: NSObject {
     private var dragPlacedPipeEntities: Set<Entity> = []  // Pipes placed during drag
     var dragPathPreview: [IntVector2] = []  // Preview path for rendering
     var dragPathPreviewWorld: [Vector2] = []  // Preview path for pipes
+    private var pendingPipeTankSelection: Entity?
     
     // Selection rectangle
     var selectionRect: Rect?  // Selection rectangle in world coordinates (for rendering)
@@ -317,6 +318,9 @@ final class InputManager: NSObject {
                     if let placedEntity = gameLoop.world.getEntityAt(position: tilePos) {
                         selectedEntity = placedEntity
                         onEntitySelected?(placedEntity)
+                        if isPipe {
+                            promptPipeTankSelection(for: placedEntity, gameLoop: gameLoop)
+                        }
                     }
                 } else {
                     onTooltip?("Failed to place building")
@@ -466,6 +470,7 @@ final class InputManager: NSObject {
                 if buildingId.contains("pipe") {
                     dragPlacementNetworkId = gameLoop.fluidNetworkSystem.getNextNetworkId()
                     dragPlacedPipeEntities.removeAll()
+                    pendingPipeTankSelection = nil
                 }
                 return
             }
@@ -536,6 +541,9 @@ final class InputManager: NSObject {
                     if let placedEntity = gameLoop.world.getEntityAt(position: tilePos) {
                         selectedEntity = placedEntity
                         onEntitySelected?(placedEntity)
+                        if buildingDef.type == .pipe {
+                            promptPipeTankSelection(for: placedEntity, gameLoop: gameLoop)
+                        }
                     }
                 } else {
                     onTooltip?("Failed to place building")
@@ -815,6 +823,10 @@ final class InputManager: NSObject {
                     finalizePipeDragNetworkAssignment(gameLoop: gameLoop)
                 }
                 exitBuildMode()
+                if let pendingPipeTankSelection = pendingPipeTankSelection {
+                    promptPipeTankSelection(for: pendingPipeTankSelection, gameLoop: gameLoop)
+                    self.pendingPipeTankSelection = nil
+                }
             }
 
             // Handle selection rectangle end (only when not in build mode and no UI panel is open)
@@ -1993,6 +2005,9 @@ final class InputManager: NSObject {
                     gameLoop.world.add(pipe, to: placedEntity)
                     gameLoop.fluidNetworkSystem.markEntityDirty(placedEntity)
                     dragPlacedPipeEntities.insert(placedEntity)
+                    if pipeNeedsTankSelection(placedEntity, gameLoop: gameLoop) {
+                        pendingPipeTankSelection = placedEntity
+                    }
                 }
 
                 updatePipeShapeForPlacement(at: tilePos, fallbackDirection: direction, gameLoop: gameLoop)
@@ -2226,6 +2241,59 @@ final class InputManager: NSObject {
         for entity in entities {
             gameLoop.fluidNetworkSystem.markEntityDirty(entity)
         }
+    }
+
+    private func promptPipeTankSelection(for pipeEntity: Entity, gameLoop: GameLoop) {
+        guard pipeNeedsTankSelection(pipeEntity, gameLoop: gameLoop) else { return }
+        gameLoop.uiSystem?.openPipeTankSelection(for: pipeEntity)
+    }
+
+    private func pipeNeedsTankSelection(_ pipeEntity: Entity, gameLoop: GameLoop) -> Bool {
+        guard let pipe = gameLoop.world.get(PipeComponent.self, for: pipeEntity) else { return false }
+        let adjacent = adjacentTankBuildings(for: pipeEntity, gameLoop: gameLoop)
+        guard !adjacent.isEmpty else { return false }
+        return adjacent.contains { pipe.tankConnections[$0] == nil }
+    }
+
+    private func adjacentTankBuildings(for pipeEntity: Entity, gameLoop: GameLoop) -> [Entity] {
+        guard let pipePos = gameLoop.world.get(PositionComponent.self, for: pipeEntity)?.worldPosition else {
+            return []
+        }
+
+        let connectionRange: Float = 0.75
+        var result: [Entity] = []
+
+        for otherEntity in gameLoop.world.query(FluidTankComponent.self) {
+            guard let tankComponent = gameLoop.world.get(FluidTankComponent.self, for: otherEntity),
+                  let buildingDef = gameLoop.buildingRegistry.get(tankComponent.buildingId),
+                  !buildingDef.fluidTanks.isEmpty else {
+                continue
+            }
+
+            let bounds = tankBuildingBounds(for: otherEntity, gameLoop: gameLoop)
+            let nearest = nearestPoint(on: bounds, to: pipePos)
+            let delta = pipePos - nearest
+            let distance = (delta.x * delta.x + delta.y * delta.y).squareRoot()
+            if distance <= connectionRange {
+                result.append(otherEntity)
+            }
+        }
+
+        return result
+    }
+
+    private func tankBuildingBounds(for entity: Entity, gameLoop: GameLoop) -> Rect {
+        guard let pos = gameLoop.world.get(PositionComponent.self, for: entity)?.tilePosition else {
+            return Rect(x: 0, y: 0, width: 0, height: 0)
+        }
+        let size = fluidEntitySize(entity: entity, gameLoop: gameLoop)
+        return Rect(origin: pos.toVector2, size: Vector2(Float(size.width), Float(size.height)))
+    }
+
+    private func nearestPoint(on bounds: Rect, to point: Vector2) -> Vector2 {
+        let clampedX = min(max(point.x, bounds.minX), bounds.maxX)
+        let clampedY = min(max(point.y, bounds.minY), bounds.maxY)
+        return Vector2(clampedX, clampedY)
     }
 
     private func isFluidEntityOccupying(tile: IntVector2, gameLoop: GameLoop) -> Bool {

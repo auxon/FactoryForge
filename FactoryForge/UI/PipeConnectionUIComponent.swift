@@ -79,6 +79,17 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         positionLabels(in: ui)
     }
 
+    func openTankSelection() {
+        guard let ui = parentUI,
+              !adjacentBuildingsWithTanks.isEmpty else {
+            return
+        }
+
+        showingTankSelection = true
+        showTankSelectionOptions()
+        positionLabels(in: ui)
+    }
+
     func positionLabels(in ui: MachineUI) {
         guard let rootView = ui.rootView else { return }
         let panelRect = rootView.bounds
