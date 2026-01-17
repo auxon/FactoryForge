@@ -212,11 +212,13 @@ final class FluidNetworkSystem: System {
             entityAdjacencyCandidates.removeValue(forKey: entity)
         }
         #if DEBUG
-        let types = debugEntityTypes(entity)
-        if let pos = world.get(PositionComponent.self, for: entity)?.tilePosition {
-            print("FluidNetworkSystem: markEntityDirty \(entity.id) \(types) pos=\(pos) connectionsDirty=\(connectionsDirty) moved=\(moved)")
-        } else {
-            print("FluidNetworkSystem: markEntityDirty \(entity.id) \(types) pos=? connectionsDirty=\(connectionsDirty) moved=\(moved)")
+        if connectionsDirty || moved {
+            let types = debugEntityTypes(entity)
+            if let pos = world.get(PositionComponent.self, for: entity)?.tilePosition {
+                print("FluidNetworkSystem: markEntityDirty \(entity.id) \(types) pos=\(pos) connectionsDirty=\(connectionsDirty) moved=\(moved)")
+            } else {
+                print("FluidNetworkSystem: markEntityDirty \(entity.id) \(types) pos=? connectionsDirty=\(connectionsDirty) moved=\(moved)")
+            }
         }
         #endif
 
