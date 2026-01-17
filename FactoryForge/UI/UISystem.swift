@@ -244,7 +244,7 @@ final class UISystem {
             guard let self = self, let gameLoop = self.gameLoop else { return }
 
             // Set the recipe on the machine's AssemblerComponent
-            if var assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
                 assembler.recipe = recipe
                 assembler.craftingProgress = 0.0  // Reset progress
                 gameLoop.world.add(assembler, to: entity)

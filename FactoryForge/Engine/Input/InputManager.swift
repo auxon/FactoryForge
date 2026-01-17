@@ -1946,7 +1946,7 @@ final class InputManager: NSObject {
                     pipe.shape = pipeShape
                     pipe.allowedDirections = PipeComponent.allowedDirections(for: pipeShape, direction: direction)
                     gameLoop.world.add(pipe, to: placedEntity)
-                    gameLoop.fluidNetworkSystem.markEntityDirty(placedEntity)
+                    gameLoop.fluidNetworkSystem.markEntityDirty(placedEntity, connectionsDirty: true)
                 }
 
                 if isPipe {
@@ -2003,7 +2003,7 @@ final class InputManager: NSObject {
                     pipe.shape = pipeShape
                     pipe.allowedDirections = PipeComponent.allowedDirections(for: pipeShape, direction: direction)
                     gameLoop.world.add(pipe, to: placedEntity)
-                    gameLoop.fluidNetworkSystem.markEntityDirty(placedEntity)
+                    gameLoop.fluidNetworkSystem.markEntityDirty(placedEntity, connectionsDirty: true)
                     dragPlacedPipeEntities.insert(placedEntity)
                     if pipeNeedsTankSelection(placedEntity, gameLoop: gameLoop) {
                         pendingPipeTankSelection = placedEntity
@@ -2140,7 +2140,7 @@ final class InputManager: NSObject {
         pipe.shape = shapeInfo.shape
         pipe.allowedDirections = PipeComponent.allowedDirections(for: shapeInfo.shape, direction: shapeInfo.direction)
         gameLoop.world.add(pipe, to: entity)
-        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
     }
 
     private func pipeShapeAndDirection(for directions: Set<Direction>, fallbackDirection: Direction) -> (shape: PipeShape, direction: Direction) {
@@ -2239,7 +2239,7 @@ final class InputManager: NSObject {
         let entities = Array(dragPlacedPipeEntities)
         gameLoop.fluidNetworkSystem.assignNetworkId(networkId, to: entities)
         for entity in entities {
-            gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+            gameLoop.fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
         }
     }
 
@@ -2363,18 +2363,17 @@ extension InputManager: UIGestureRecognizerDelegate {
             // Check if touch is within any UI scroll view
             if let uiSystem = gameLoop.uiSystem, uiSystem.isAnyPanelOpen {
                 // Check inventory scroll view
-                if let inventoryUI = uiSystem.getInventoryUI() as? InventoryUI,
-                   let scrollView = inventoryUI.publicScrollView,
+                let inventoryUI = uiSystem.getInventoryUI()
+                if let scrollView = inventoryUI.publicScrollView,
                    scrollView.frame.contains(touchLocation) {
                     return false
                 }
 
                 // Check machine UI scroll views
-                if let machineUI = uiSystem.getMachineUI() as? MachineUI {
-                    for scrollView in machineUI.getAllScrollViews() {
-                        if scrollView.frame.contains(touchLocation) {
-                            return false
-                        }
+                let machineUI = uiSystem.getMachineUI()
+                for scrollView in machineUI.getAllScrollViews() {
+                    if scrollView.frame.contains(touchLocation) {
+                        return false
                     }
                 }
             }
@@ -2400,20 +2399,20 @@ extension InputManager: UIGestureRecognizerDelegate {
             let touchLocation = touch.location(in: view)
 
             // Check inventory scroll view
-            if let inventoryUI = uiSystem.getInventoryUI() as? InventoryUI,
-               let scrollView = inventoryUI.publicScrollView,
+            let inventoryUI = uiSystem.getInventoryUI()
+            if let scrollView = inventoryUI.publicScrollView,
                scrollView.frame.contains(touchLocation) {
                 return false
             }
 
             // Check machine UI scroll views
-            if let machineUI = uiSystem.getMachineUI() as? MachineUI {
-                for scrollView in machineUI.getAllScrollViews() {
-                    if scrollView.frame.contains(touchLocation) {
-                        return false
-                    }
+            let machineUI = uiSystem.getMachineUI()
+            for scrollView in machineUI.getAllScrollViews() {
+                if scrollView.frame.contains(touchLocation) {
+                    return false
                 }
             }
+            
         }
 
         return true

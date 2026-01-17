@@ -693,7 +693,6 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
 
             // Position button in top right corner of inventory panel
             let screenSize = self.view.bounds.size
-            let scale = Float(self.metalView.contentScaleFactor)
             let buttonWidth: CGFloat = 120
             let buttonHeight: CGFloat = 40
             let margin: CGFloat = 25

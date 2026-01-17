@@ -55,7 +55,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
         // Store current state
         if pipe.networkId == nil {
-            gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+            gameLoop.fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
             gameLoop.fluidNetworkSystem.rebuildNetworks()
         }
         currentNetworkId = gameLoop.world.get(PipeComponent.self, for: entity)?.networkId
@@ -226,7 +226,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
         // Update network info
         if pipe.networkId == nil {
-            gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+            gameLoop.fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
             gameLoop.fluidNetworkSystem.rebuildNetworks()
         }
         let refreshedNetworkId = gameLoop.world.get(PipeComponent.self, for: entity)?.networkId
@@ -436,7 +436,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         hideTankSelectionOptions()
 
         // Create tank selection options for each adjacent building
-        for (index, buildingInfo) in adjacentBuildingsWithTanks.enumerated() {
+        for (_, buildingInfo) in adjacentBuildingsWithTanks.enumerated() {
             let (buildingEntity, direction, tanks) = buildingInfo
             let tankRoles = tankRolesForBuilding(entity: buildingEntity, gameLoop: gameLoop, tankCount: tanks.count)
 
@@ -546,15 +546,15 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
             // Remove from building's connections if no other tanks are connected from this pipe
             if !pipe.tankConnections.keys.contains(where: { $0 == buildingEntity }) {
                 removeConnection(pipeEntity, from: &buildingTank.connections)
-                if var consumer = world.get(FluidConsumerComponent.self, for: buildingEntity) {
+                if let consumer = world.get(FluidConsumerComponent.self, for: buildingEntity) {
                     removeConnection(pipeEntity, from: &consumer.connections)
                     world.add(consumer, to: buildingEntity)
                 }
-                if var producer = world.get(FluidProducerComponent.self, for: buildingEntity) {
+                if let producer = world.get(FluidProducerComponent.self, for: buildingEntity) {
                     removeConnection(pipeEntity, from: &producer.connections)
                     world.add(producer, to: buildingEntity)
                 }
-                if var pump = world.get(FluidPumpComponent.self, for: buildingEntity) {
+                if let pump = world.get(FluidPumpComponent.self, for: buildingEntity) {
                     removeConnection(pipeEntity, from: &pump.connections)
                     world.add(pump, to: buildingEntity)
                 }
@@ -571,15 +571,15 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
 
             // Add to building's connections if not already connected
             addConnection(pipeEntity, to: &buildingTank.connections)
-            if var consumer = world.get(FluidConsumerComponent.self, for: buildingEntity) {
+            if let consumer = world.get(FluidConsumerComponent.self, for: buildingEntity) {
                 addConnection(pipeEntity, to: &consumer.connections)
                 world.add(consumer, to: buildingEntity)
             }
-            if var producer = world.get(FluidProducerComponent.self, for: buildingEntity) {
+            if let producer = world.get(FluidProducerComponent.self, for: buildingEntity) {
                 addConnection(pipeEntity, to: &producer.connections)
                 world.add(producer, to: buildingEntity)
             }
-            if var pump = world.get(FluidPumpComponent.self, for: buildingEntity) {
+            if let pump = world.get(FluidPumpComponent.self, for: buildingEntity) {
                 addConnection(pipeEntity, to: &pump.connections)
                 world.add(pump, to: buildingEntity)
             }
@@ -596,8 +596,8 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         syncNetworkIds(pipeEntity: pipeEntity, buildingEntity: buildingEntity, world: world, fluidNetworkSystem: fluidNetworkSystem)
 
         // Mark networks as dirty for recalculation
-        fluidNetworkSystem.markEntityDirty(pipeEntity)
-        fluidNetworkSystem.markEntityDirty(buildingEntity)
+        fluidNetworkSystem.markEntityDirty(pipeEntity, connectionsDirty: true)
+        fluidNetworkSystem.markEntityDirty(buildingEntity, connectionsDirty: true)
     }
 
     private func syncNetworkIds(pipeEntity: Entity, buildingEntity: Entity, world: World, fluidNetworkSystem: FluidNetworkSystem) {
@@ -838,14 +838,14 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         print("PipeConnectionUIComponent: Change network button tapped")
 
         // Create a new network for this pipe (split from current network)
-        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
 
         // Get a new network ID
         let newNetworkId = gameLoop.fluidNetworkSystem.getNextNetworkId()
         pipe.networkId = newNetworkId
         gameLoop.world.add(pipe, to: entity)
         gameLoop.fluidNetworkSystem.markNetworkDirty(newNetworkId)
-        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
 
         // Update UI
         currentNetworkId = newNetworkId
@@ -977,7 +977,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         if let networkId = networkId(for: entity, in: gameLoop.world) {
             return networkId
         }
-        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
         gameLoop.fluidNetworkSystem.rebuildNetworks()
         return networkId(for: entity, in: gameLoop.world)
     }
@@ -1013,7 +1013,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         pipe.fluidType = nil
         pipe.flowRate = 0
         gameLoop.world.add(pipe, to: entity)
-        gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+        gameLoop.fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
 
         updateUI(for: entity, in: ui)
     }
@@ -1062,7 +1062,7 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         }
 
         if clearedAny {
-            gameLoop.fluidNetworkSystem.markEntityDirty(entity)
+            gameLoop.fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
         }
         updateUI(for: entity, in: ui)
     }
@@ -1265,8 +1265,8 @@ class PipeConnectionUIComponent: BaseMachineUIComponent {
         }
 
         // Mark networks as dirty for recalculation
-        fluidNetworkSystem.markEntityDirty(entity)
-        fluidNetworkSystem.markEntityDirty(neighbor)
+        fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
+        fluidNetworkSystem.markEntityDirty(neighbor, connectionsDirty: true)
     }
 
 }

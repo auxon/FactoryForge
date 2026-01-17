@@ -513,7 +513,7 @@ final class GameLoop {
            buildingDef.type == .waterPump || buildingDef.type == .generator ||
            buildingDef.type == .oilRefinery || buildingDef.type == .chemicalPlant ||
            buildingDef.type == .fluidTank {
-            _fluidNetworkSystem.markEntityDirty(entity)
+            _fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
         }
 
         return true
@@ -1525,7 +1525,7 @@ final class GameLoop {
         world.add(updatedPipe, to: entity)
 
         // Ensure fluid connections reflect the new direction
-        _fluidNetworkSystem.markEntityDirty(entity)
+        _fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
 
         // Update sprite if needed (pipes might not have directional sprites)
         // For now, pipes don't have directional visual differences

@@ -250,7 +250,7 @@ final class CraftingSystem: System {
     }
 
     private func consumeFluidInputs(recipe: Recipe, entity: Entity, world: World) {
-        if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
+        if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
             // print("CraftingSystem: Consuming fluids for recipe \(recipe.id)")
             for fluidInput in recipe.fluidInputs {
                 // print("CraftingSystem: Need to consume \(fluidInput.amount)L of \(fluidInput.type)")
@@ -278,7 +278,7 @@ final class CraftingSystem: System {
 
     private func completeFluidRecipe(recipe: Recipe, buildingComponent: BuildingComponent, entity: Entity, world: World) {
         // Add fluid outputs to tanks
-        if var tankComponent = world.get(FluidTankComponent.self, for: entity) {
+        if let tankComponent = world.get(FluidTankComponent.self, for: entity) {
             // print("CraftingSystem: Adding fluid outputs for recipe \(recipe.id)")
             for fluidOutput in recipe.fluidOutputs {
                 // print("CraftingSystem: Need to add \(fluidOutput.amount)L of \(fluidOutput.type)")

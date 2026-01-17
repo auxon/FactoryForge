@@ -314,7 +314,7 @@ final class MachineUI: UIPanel_Base {
         setupSlotsForMachine(entity)
 
         // Setup machine-specific UI components
-        for (index, component) in machineComponents.enumerated() {
+        for (_, component) in machineComponents.enumerated() {
             component.setupUI(for: entity, in: self)
         }
 
@@ -1541,7 +1541,7 @@ final class MachineUI: UIPanel_Base {
 
         // Transfer fluid inputs from machine tanks (consume fluids for crafting)
         if !recipe.fluidInputs.isEmpty {
-            if var fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+            if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
                 for fluidInput in recipe.fluidInputs {
                     // Find and consume fluid from tanks
                     for i in 0..<fluidTank.tanks.count {
@@ -1589,7 +1589,7 @@ final class MachineUI: UIPanel_Base {
 
             // Add fluid outputs to machine tanks (for item recipes that also have fluid outputs)
             if !recipe.fluidOutputs.isEmpty {
-                if var fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
+                if let fluidTank = gameLoop.world.get(FluidTankComponent.self, for: entity) {
                     for fluidOutput in recipe.fluidOutputs {
                         // Find a suitable tank for this fluid output
                         for i in 0..<fluidTank.tanks.count {
@@ -2503,7 +2503,7 @@ final class MachineUI: UIPanel_Base {
         // Check if the slot has an item
         if let machineInventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
             if slotIndex < machineInventory.slots.count {
-                if let item = machineInventory.slots[slotIndex] {
+                if machineInventory.slots[slotIndex] != nil {
                     // Slot has an item - take it out
                     handleSlotTap(entity: entity, slotIndex: slotIndex, gameLoop: gameLoop)
                 } else {
