@@ -24,6 +24,13 @@ final class EnemyAISystem: System {
     private var lastEvolutionUpdate: TimeInterval = 0
     private let enemyUpdateInterval: TimeInterval = 0.1  // Update enemies every 100ms
     private let evolutionUpdateInterval: TimeInterval = 1.0  // Update evolution every second
+    private var lastRegistrationSweep: TimeInterval = 0
+    private let registrationInterval: TimeInterval = 1.0
+    private var nextTargetScanTime: [Entity: TimeInterval] = [:]
+    private let targetScanInterval: TimeInterval = 0.5
+    private let targetScanJitter: TimeInterval = 0.2
+    private var cachedAvailableEnemyTypes: [EnemyType] = []
+    private var cachedEnemyTypeTier: Int = -1
 
     /// Active biter objects for animation management
     private var activeBiters: [Entity: Biter] = [:]
@@ -96,9 +103,13 @@ final class EnemyAISystem: System {
     
     func update(deltaTime: Float) {
         let currentTime = Time.shared.totalTime
+        let currentTimeSeconds = Double(currentTime)
 
         // Register any existing enemies that don't have Biter objects
-        registerExistingEnemies()
+        if currentTimeSeconds - lastRegistrationSweep >= registrationInterval {
+            registerExistingEnemies()
+            lastRegistrationSweep = currentTimeSeconds
+        }
 
         // Clean up dead biters
         cleanupDeadBiters()
@@ -113,15 +124,18 @@ final class EnemyAISystem: System {
         updateAttackWaves(deltaTime: deltaTime)
 
         // Update enemy AI (throttled for performance)
-        if Double(currentTime) - lastEnemyUpdate > enemyUpdateInterval {
-            updateEnemies(deltaTime: deltaTime * Float(enemyUpdateInterval / (Double(currentTime) - lastEnemyUpdate)))
-            lastEnemyUpdate = Double(currentTime)
+        if currentTimeSeconds - lastEnemyUpdate > enemyUpdateInterval {
+            updateEnemies(
+                deltaTime: deltaTime * Float(enemyUpdateInterval / (currentTimeSeconds - lastEnemyUpdate)),
+                currentTimeSeconds: currentTimeSeconds
+            )
+            lastEnemyUpdate = currentTimeSeconds
         }
 
         // Update evolution (throttled for performance)
-        if Double(currentTime) - lastEvolutionUpdate > evolutionUpdateInterval {
-            updateEvolution(deltaTime: deltaTime * Float(evolutionUpdateInterval / (Double(currentTime) - lastEvolutionUpdate)))
-            lastEvolutionUpdate = Double(currentTime)
+        if currentTimeSeconds - lastEvolutionUpdate > evolutionUpdateInterval {
+            updateEvolution(deltaTime: deltaTime * Float(evolutionUpdateInterval / (currentTimeSeconds - lastEvolutionUpdate)))
+            lastEvolutionUpdate = currentTimeSeconds
         }
     }
     
@@ -189,7 +203,7 @@ final class EnemyAISystem: System {
             
             // Update spawner's available enemy types based on current evolution
             let availableTypes = getAvailableEnemyTypes()
-            if Set(spawner.enemyTypes) != Set(availableTypes) {
+            if spawner.enemyTypes != availableTypes {
                 spawner.enemyTypes = availableTypes
             }
 
@@ -278,22 +292,7 @@ final class EnemyAISystem: System {
     }
     
     private func selectEnemyType(for spawner: SpawnerComponent) -> EnemyType {
-        var availableTypes: [EnemyType] = [.smallBiter, .mediumBiter]  // Start with medium biters available
-        
-        if evolutionFactor > 0.1 {
-            availableTypes.append(.smallSpitter)
-        }
-        if evolutionFactor > 0.3 {
-            availableTypes.append(.bigBiter)
-            availableTypes.append(.mediumSpitter)
-        }
-        if evolutionFactor > 0.6 {
-            availableTypes.append(.behemothBiter)
-            availableTypes.append(.bigSpitter)
-        }
-        if evolutionFactor > 0.9 {
-            availableTypes.append(.behemothSpitter)
-        }
+        var availableTypes = getAvailableEnemyTypes()
         
         // Filter by spawner's allowed types if specified
         let allowed = Set(spawner.enemyTypes)
@@ -306,6 +305,11 @@ final class EnemyAISystem: System {
     
     /// Returns all enemy types currently available based on evolution factor
     private func getAvailableEnemyTypes() -> [EnemyType] {
+        let tier = enemyTypeTier(for: evolutionFactor)
+        if tier == cachedEnemyTypeTier {
+            return cachedAvailableEnemyTypes
+        }
+
         var availableTypes: [EnemyType] = [.smallBiter, .mediumBiter]  // Start with medium biters available
         
         if evolutionFactor > 0.1 {
@@ -323,12 +327,14 @@ final class EnemyAISystem: System {
             availableTypes.append(.behemothSpitter)
         }
         
+        cachedEnemyTypeTier = tier
+        cachedAvailableEnemyTypes = availableTypes
         return availableTypes
     }
     
     // MARK: - Enemy AI
     
-    private func updateEnemies(deltaTime: Float) {
+    private func updateEnemies(deltaTime: Float, currentTimeSeconds: TimeInterval) {
         // Collect all modifications to apply after iteration
         var enemyModifications: [(Entity, EnemyComponent)] = []
         var velocityModifications: [(Entity, VelocityComponent)] = []
@@ -345,7 +351,8 @@ final class EnemyAISystem: System {
             switch enemy.state {
             case EnemyState.idle:
                 // Look for targets
-                if let target = findTarget(for: entity, position: position, enemy: enemy) {
+                if shouldScanForTarget(entity: entity, currentTimeSeconds: currentTimeSeconds),
+                   let target = findTarget(for: entity, position: position, enemy: enemy) {
                     enemy.targetEntity = target
                     enemy.state = EnemyState.attacking
                     enemyModifications.append((entity, enemy))  // Collect for later
@@ -366,15 +373,13 @@ final class EnemyAISystem: System {
                     biter.updateAnimation(velocity: velocity.velocity)
                 }
 
-                // While wandering, frequently check for targets
-                if Float.random(in: 0...1) < 0.4 {  // 40% chance per frame to check for targets
-                    if let target = findTarget(for: entity, position: position, enemy: enemy) {
-                        enemy.targetEntity = target
-                        enemy.state = EnemyState.attacking
-                        enemy.timeSinceAttack = enemy.attackCooldown  // Allow immediate attack when switching to attacking
-                        enemyModifications.append((entity, enemy))  // Collect for later
-                        // print("EnemyAISystem: Enemy \(entity.id) found target and switching to attacking state")
-                    }
+                // While wandering, periodically check for targets
+                if shouldScanForTarget(entity: entity, currentTimeSeconds: currentTimeSeconds),
+                   let target = findTarget(for: entity, position: position, enemy: enemy) {
+                    enemy.targetEntity = target
+                    enemy.state = EnemyState.attacking
+                    enemy.timeSinceAttack = enemy.attackCooldown  // Allow immediate attack when switching to attacking
+                    enemyModifications.append((entity, enemy))  // Collect for later
                 }
 
             case EnemyState.attacking:
@@ -432,34 +437,19 @@ final class EnemyAISystem: System {
                 }
 
             case EnemyState.returning:
-                // Check if player is nearby and switch back to attacking
-                let nearbyTargets = world.getEntitiesNear(position: position.worldPosition, radius: 10.0)
                 var foundTarget: Entity?
 
-                for candidate in nearbyTargets {
-                    if world.has(EnemyComponent.self, for: candidate) { continue }
-                    if world.has(SpawnerComponent.self, for: candidate) { continue }
-                    
-                    // Skip player entity (will check separately)
-                    if candidate == player?.playerEntity { continue }
-
-                    // Only target buildings (entities with building components)
-                    let isBuilding = world.has(FurnaceComponent.self, for: candidate) ||
-                                    world.has(AssemblerComponent.self, for: candidate) ||
-                                    world.has(MinerComponent.self, for: candidate) ||
-                                    world.has(GeneratorComponent.self, for: candidate) ||
-                                    world.has(ChestComponent.self, for: candidate) ||
-                                    world.has(LabComponent.self, for: candidate) ||
-                                    world.has(TurretComponent.self, for: candidate) ||
-                                    world.has(PowerPoleComponent.self, for: candidate) ||
-                                    world.has(SolarPanelComponent.self, for: candidate) ||
-                                    world.has(AccumulatorComponent.self, for: candidate) ||
-                                    world.has(BeltComponent.self, for: candidate) ||
-                                    world.has(InserterComponent.self, for: candidate)
-
-                    if world.has(HealthComponent.self, for: candidate) && isBuilding {
-                        foundTarget = candidate
-                        break
+                if shouldScanForTarget(entity: entity, currentTimeSeconds: currentTimeSeconds) {
+                    let nearbyTargets = world.getEntitiesNear(position: position.worldPosition, radius: 10.0)
+                    for candidate in nearbyTargets {
+                        if world.has(EnemyComponent.self, for: candidate) { continue }
+                        if world.has(SpawnerComponent.self, for: candidate) { continue }
+                        if candidate == player?.playerEntity { continue }
+                        guard world.has(HealthComponent.self, for: candidate) else { continue }
+                        if isTargetableBuilding(candidate) {
+                            foundTarget = candidate
+                            break
+                        }
                     }
                 }
                 
@@ -566,9 +556,8 @@ final class EnemyAISystem: System {
         if let player = player {
             // print("EnemyAISystem: Player exists, playerEntity: \(player.playerEntity.id)")
             if let playerPos = world.get(PositionComponent.self, for: player.playerEntity) {
-            let distanceToPlayer = position.worldPosition.distance(to: playerPos.worldPosition)
-            if distanceToPlayer <= searchRadius {
-                    print("EnemyAISystem: Found player as target!")
+                let distanceToPlayer = position.worldPosition.distance(to: playerPos.worldPosition)
+                if distanceToPlayer <= searchRadius {
                     return player.playerEntity
                 }
             } else {
@@ -595,23 +584,7 @@ final class EnemyAISystem: System {
             // Must have health
             guard world.has(HealthComponent.self, for: candidate) else { continue }
             
-            // Only target buildings (entities with building components) or player
-            // Check if it's a building by looking for building-specific components
-            let isBuilding = world.has(FurnaceComponent.self, for: candidate) ||
-                            world.has(AssemblerComponent.self, for: candidate) ||
-                            world.has(MinerComponent.self, for: candidate) ||
-                            world.has(GeneratorComponent.self, for: candidate) ||
-                            world.has(ChestComponent.self, for: candidate) ||
-                            world.has(LabComponent.self, for: candidate) ||
-                            world.has(TurretComponent.self, for: candidate) ||
-                            world.has(PowerPoleComponent.self, for: candidate) ||
-                            world.has(SolarPanelComponent.self, for: candidate) ||
-                            world.has(AccumulatorComponent.self, for: candidate) ||
-                            world.has(BeltComponent.self, for: candidate) ||
-                            world.has(InserterComponent.self, for: candidate)
-            
-            // Skip if it's not a building (we only want to attack buildings and player)
-            guard isBuilding else { continue }
+            guard isTargetableBuilding(candidate) else { continue }
             
             guard let candidatePos = world.get(PositionComponent.self, for: candidate) else { continue }
             
@@ -631,10 +604,14 @@ final class EnemyAISystem: System {
         let damageDealt = health.takeDamage(enemy.damage)
         enemy.attack()
 
+        #if DEBUG
         print("Enemy \(enemy.type) attacked target \(target.id) for \(damageDealt) damage! Target health: \(health.current)/\(health.max)")
+        #endif
 
         if health.isDead {
+            #if DEBUG
             print("Target \(target.id) died from enemy attack!")
+            #endif
             world.despawnDeferred(target)
             enemy.targetEntity = nil
             enemy.state = EnemyState.idle
@@ -720,5 +697,37 @@ final class EnemyAISystem: System {
         let pollutionEvolution = totalPollutionAbsorbed * 0.00001
 
         evolutionFactor = min(1.0, (Time.shared.totalTime / (60 * 60 * 4)) * 0.5 + pollutionEvolution * 0.5)
+    }
+
+    private func enemyTypeTier(for evolution: Float) -> Int {
+        var tier = 0
+        if evolution > 0.1 { tier += 1 }
+        if evolution > 0.3 { tier += 1 }
+        if evolution > 0.6 { tier += 1 }
+        if evolution > 0.9 { tier += 1 }
+        return tier
+    }
+
+    private func shouldScanForTarget(entity: Entity, currentTimeSeconds: TimeInterval) -> Bool {
+        if let nextScan = nextTargetScanTime[entity], currentTimeSeconds < nextScan {
+            return false
+        }
+        nextTargetScanTime[entity] = currentTimeSeconds + targetScanInterval + Double.random(in: 0...targetScanJitter)
+        return true
+    }
+
+    private func isTargetableBuilding(_ entity: Entity) -> Bool {
+        return world.has(FurnaceComponent.self, for: entity) ||
+            world.has(AssemblerComponent.self, for: entity) ||
+            world.has(MinerComponent.self, for: entity) ||
+            world.has(GeneratorComponent.self, for: entity) ||
+            world.has(ChestComponent.self, for: entity) ||
+            world.has(LabComponent.self, for: entity) ||
+            world.has(TurretComponent.self, for: entity) ||
+            world.has(PowerPoleComponent.self, for: entity) ||
+            world.has(SolarPanelComponent.self, for: entity) ||
+            world.has(AccumulatorComponent.self, for: entity) ||
+            world.has(BeltComponent.self, for: entity) ||
+            world.has(InserterComponent.self, for: entity)
     }
 }
