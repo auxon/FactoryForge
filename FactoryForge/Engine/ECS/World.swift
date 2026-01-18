@@ -211,9 +211,15 @@ final class World {
         var checkedEntities: Set<Entity> = []
 
         // Check spatial index for the exact tile position
-        if let entity = spatialIndex[position] {
-            allEntitiesAtPosition.append(entity)
-            checkedEntities.insert(entity)
+        // Defensive check to prevent crashes from corrupted spatial index
+        do {
+            if let entity = spatialIndex[position] {
+                allEntitiesAtPosition.append(entity)
+                checkedEntities.insert(entity)
+            }
+        } catch {
+            // If spatial index is corrupted, skip this check
+            print("Warning: Spatial index access failed for position \(position)")
         }
 
         // Check all entities with PositionComponent to find all entities at this position

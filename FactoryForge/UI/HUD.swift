@@ -73,6 +73,9 @@ final class HUD {
     
     private var miningAnimations: [MiningAnimation] = []
 
+    // Flow puzzle widget for quick reward loops
+    // private let flowPuzzle = FlowPuzzleWidget() // TODO: Implement FlowPuzzleWidget
+
     
     init(screenSize: Vector2, gameLoop: GameLoop?, inputManager: InputManager?) {
         self.screenSize = screenSize

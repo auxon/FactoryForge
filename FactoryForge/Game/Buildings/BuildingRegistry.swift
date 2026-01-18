@@ -776,5 +776,70 @@ final class BuildingRegistry {
         )
         storageTank.fluidCapacity = 25000  // 25,000 unit capacity like Factorio
         register(storageTank)
+
+        // Unit Production Buildings
+
+        // Military Barracks - produces basic military units
+        var militaryBarracks = BuildingDefinition(
+            id: "military-barracks",
+            name: "Military Barracks",
+            type: .unitProduction,
+            width: 4,
+            height: 3,
+            maxHealth: 300,
+            cost: [
+                ItemStack(itemId: "iron-plate", count: 20),
+                ItemStack(itemId: "stone-brick", count: 10),
+                ItemStack(itemId: "electronic-circuit", count: 5)
+            ]
+        )
+        militaryBarracks.powerConsumption = 50
+        militaryBarracks.inventorySlots = 10  // For storing produced units temporarily
+        militaryBarracks.inputSlots = 0
+        militaryBarracks.outputSlots = 10
+        militaryBarracks.fuelSlots = 0
+        register(militaryBarracks)
+
+        // Fantasy Academy - produces fantasy units
+        var fantasyAcademy = BuildingDefinition(
+            id: "fantasy-academy",
+            name: "Fantasy Academy",
+            type: .unitProduction,
+            width: 4,
+            height: 3,
+            maxHealth: 350,
+            cost: [
+                ItemStack(itemId: "stone-brick", count: 20),
+                ItemStack(itemId: "iron-plate", count: 15),
+                ItemStack(itemId: "electronic-circuit", count: 10)
+            ]
+        )
+        fantasyAcademy.powerConsumption = 75
+        fantasyAcademy.inventorySlots = 8
+        fantasyAcademy.inputSlots = 0
+        fantasyAcademy.outputSlots = 8
+        fantasyAcademy.fuelSlots = 0
+        register(fantasyAcademy)
+
+        // Elemental Summoning Circle - produces elemental units
+        var elementalCircle = BuildingDefinition(
+            id: "elemental-summoning-circle",
+            name: "Elemental Summoning Circle",
+            type: .unitProduction,
+            width: 5,
+            height: 5,
+            maxHealth: 400,
+            cost: [
+                ItemStack(itemId: "stone-brick", count: 25),
+                ItemStack(itemId: "electronic-circuit", count: 15),
+                ItemStack(itemId: "advanced-circuit", count: 5)
+            ]
+        )
+        elementalCircle.powerConsumption = 100
+        elementalCircle.inventorySlots = 6
+        elementalCircle.inputSlots = 0
+        elementalCircle.outputSlots = 6
+        elementalCircle.fuelSlots = 0
+        register(elementalCircle)
     }
 }

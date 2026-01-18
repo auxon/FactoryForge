@@ -323,31 +323,31 @@ struct SpawnerComponent: Component {
 // MARK: - Projectiles
 
 /// Component for projectiles
-struct ProjectileComponent: Component {
+struct ProjectileComponent: Component, Codable {
     /// Damage on hit
     var damage: Float
-    
+
     /// Damage type
     var damageType: DamageType
-    
+
     /// Target entity
     var target: Entity?
-    
+
     /// Target position (for area damage)
     var targetPosition: Vector2?
-    
+
     /// Movement speed
     var speed: Float
-    
+
     /// Splash damage radius (0 = no splash)
     var splashRadius: Float
-    
+
     /// Lifetime remaining
     var lifetime: Float
-    
+
     /// Source entity (to prevent self-damage)
     var source: Entity?
-    
+
     init(damage: Float, damageType: DamageType = .physical, speed: Float = 20,
          splashRadius: Float = 0, lifetime: Float = 5) {
         self.damage = damage
@@ -358,6 +358,36 @@ struct ProjectileComponent: Component {
         self.splashRadius = splashRadius
         self.lifetime = lifetime
         self.source = nil
+    }
+
+    // MARK: - Codable
+
+    enum CodingKeys: String, CodingKey {
+        case damage, damageType, target, targetPosition, speed, splashRadius, lifetime, source
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        damage = try container.decode(Float.self, forKey: .damage)
+        damageType = try container.decode(DamageType.self, forKey: .damageType)
+        target = try container.decodeIfPresent(Entity.self, forKey: .target)
+        targetPosition = try container.decodeIfPresent(Vector2.self, forKey: .targetPosition)
+        speed = try container.decode(Float.self, forKey: .speed)
+        splashRadius = try container.decode(Float.self, forKey: .splashRadius)
+        lifetime = try container.decode(Float.self, forKey: .lifetime)
+        source = try container.decodeIfPresent(Entity.self, forKey: .source)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(damage, forKey: .damage)
+        try container.encode(damageType, forKey: .damageType)
+        try container.encode(target, forKey: .target)
+        try container.encode(targetPosition, forKey: .targetPosition)
+        try container.encode(speed, forKey: .speed)
+        try container.encode(splashRadius, forKey: .splashRadius)
+        try container.encode(lifetime, forKey: .lifetime)
+        try container.encode(source, forKey: .source)
     }
 }
 

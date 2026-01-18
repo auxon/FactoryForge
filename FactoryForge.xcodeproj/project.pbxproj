@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0D0816542F1C55CA00633C23 /* UnitSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0816532F1C55C900633C23 /* UnitSystem.swift */; };
+		0D0816552F1C55CA00633C23 /* UnitSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0816532F1C55C900633C23 /* UnitSystem.swift */; };
+		0D0816582F1C55EB00633C23 /* UnitDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0816562F1C55EB00633C23 /* UnitDefinitions.swift */; };
+		0D0816592F1C55EC00633C23 /* UnitDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0816562F1C55EB00633C23 /* UnitDefinitions.swift */; };
 		0D0E9B4C2F0875F400943D17 /* cancel_button.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D0E9B4B2F0875F400943D17 /* cancel_button.png */; };
 		0D0E9B522F09A79200943D17 /* clear.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D0E9B512F09A79200943D17 /* clear.png */; };
 		0D18B5502F0B6B2B006B70A5 /* build.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D18B54F2F0B6B2B006B70A5 /* build.png */; };
@@ -319,6 +323,16 @@
 		A1014008001 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014008000 /* VirtualJoystick.swift */; };
 		A1015001001 /* SaveSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1015001000 /* SaveSystem.swift */; };
 		A1015002001 /* GameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1015002000 /* GameData.swift */; };
+		A1020001010 /* Metal3DRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020001000 /* Metal3DRenderer.swift */; };
+		A1020002010 /* Camera3D.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020002000 /* Camera3D.swift */; };
+		A1020003010 /* Model3DGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020003000 /* Model3DGenerator.swift */; };
+		A1020004010 /* TerrainRenderer3D.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020004000 /* TerrainRenderer3D.swift */; };
+		A1020005010 /* ModelRenderer3D.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020005000 /* ModelRenderer3D.swift */; };
+		A1020006010 /* InputManager3D.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020006000 /* InputManager3D.swift */; };
+		A1020007010 /* UI3DSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020007000 /* UI3DSystem.swift */; };
+		A1020009010 /* Shaders3D.metal in Sources */ = {isa = PBXBuildFile; fileRef = A1020009000 /* Shaders3D.metal */; platformFilter = ios; };
+		A1020010010 /* Metal3DViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020010000 /* Metal3DViewDelegate.swift */; };
+		A1030000010 /* Engine/Network/GameNetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030000000 /* Engine/Network/GameNetworkManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -346,6 +360,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0D0816532F1C55C900633C23 /* UnitSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitSystem.swift; sourceTree = "<group>"; };
+		0D0816562F1C55EB00633C23 /* UnitDefinitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitDefinitions.swift; sourceTree = "<group>"; };
 		0D0E9B4B2F0875F400943D17 /* cancel_button.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cancel_button.png; sourceTree = "<group>"; };
 		0D0E9B512F09A79200943D17 /* clear.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = clear.png; sourceTree = "<group>"; };
 		0D18B54F2F0B6B2B006B70A5 /* build.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = build.png; sourceTree = "<group>"; };
@@ -673,6 +689,17 @@
 		A1014008000 /* VirtualJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualJoystick.swift; sourceTree = "<group>"; };
 		A1015001000 /* SaveSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveSystem.swift; sourceTree = "<group>"; };
 		A1015002000 /* GameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameData.swift; sourceTree = "<group>"; };
+		A1020001000 /* Metal3DRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metal3DRenderer.swift; sourceTree = "<group>"; };
+		A1020002000 /* Camera3D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Camera3D.swift; sourceTree = "<group>"; };
+		A1020003000 /* Model3DGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Model3DGenerator.swift; sourceTree = "<group>"; };
+		A1020004000 /* TerrainRenderer3D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerrainRenderer3D.swift; sourceTree = "<group>"; };
+		A1020005000 /* ModelRenderer3D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelRenderer3D.swift; sourceTree = "<group>"; };
+		A1020006000 /* InputManager3D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputManager3D.swift; sourceTree = "<group>"; };
+		A1020007000 /* UI3DSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UI3DSystem.swift; sourceTree = "<group>"; };
+		A1020008000 /* ShaderTypes3D.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes3D.h; sourceTree = "<group>"; };
+		A1020009000 /* Shaders3D.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders3D.metal; sourceTree = "<group>"; };
+		A1020010000 /* Metal3DViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metal3DViewDelegate.swift; sourceTree = "<group>"; };
+		A1030000000 /* Engine/Network/GameNetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactoryForge/Engine/Network/GameNetworkManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -697,6 +724,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0D0816572F1C55EB00633C23 /* Units */ = {
+			isa = PBXGroup;
+			children = (
+				0D0816562F1C55EB00633C23 /* UnitDefinitions.swift */,
+			);
+			path = Units;
+			sourceTree = "<group>";
+		};
 		0D18B56C2F0DD7DE006B70A5 /* Docs */ = {
 			isa = PBXGroup;
 			children = (
@@ -1185,6 +1220,7 @@
 				A0000200022 /* ECS */,
 				A0000200023 /* Rendering */,
 				A0000200024 /* Input */,
+				A0000200041 /* UI */,
 				A0000200025 /* Audio */,
 			);
 			path = Engine;
@@ -1216,10 +1252,16 @@
 			isa = PBXGroup;
 			children = (
 				A1004001000 /* MetalRenderer.swift */,
+				A1020001000 /* Metal3DRenderer.swift */,
+				A1020010000 /* Metal3DViewDelegate.swift */,
 				A1004002000 /* TextureAtlas.swift */,
 				A1004003000 /* TileMapRenderer.swift */,
 				A1004004000 /* SpriteRenderer.swift */,
 				A1004005000 /* ParticleRenderer.swift */,
+				A1020002000 /* Camera3D.swift */,
+				A1020003000 /* Model3DGenerator.swift */,
+				A1020004000 /* TerrainRenderer3D.swift */,
+				A1020005000 /* ModelRenderer3D.swift */,
 				A0000200027 /* Shaders */,
 			);
 			path = Rendering;
@@ -1229,6 +1271,7 @@
 			isa = PBXGroup;
 			children = (
 				A1005001000 /* InputManager.swift */,
+				A1020006000 /* InputManager3D.swift */,
 				A1005002000 /* TouchHandler.swift */,
 			);
 			path = Input;
@@ -1261,6 +1304,8 @@
 			isa = PBXGroup;
 			children = (
 				A1004006000 /* Shaders.metal */,
+				A1020008000 /* ShaderTypes3D.h */,
+				A1020009000 /* Shaders3D.metal */,
 			);
 			path = Shaders;
 			sourceTree = "<group>";
@@ -1268,6 +1313,7 @@
 		A0000200030 /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				0D0816572F1C55EB00633C23 /* Units */,
 				0DE2299B2F0230BE00BD619D /* Enemies */,
 				A0000200031 /* World */,
 				A0000200032 /* Items */,
@@ -1323,6 +1369,7 @@
 		A0000200035 /* Systems */ = {
 			isa = PBXGroup;
 			children = (
+				0D0816532F1C55C900633C23 /* UnitSystem.swift */,
 				0DC1FB732F1431A00010585F /* FluidNetworkSystem.swift */,
 				0D778B2F2F119A07003BC642 /* RocketSystem.swift */,
 				0D778B2D2F118392003BC642 /* EntityCleanupSystem.swift */,
@@ -1379,6 +1426,14 @@
 				A1014006000 /* ResearchUI.swift */,
 				A1014007000 /* MachineUI.swift */,
 				A1014008000 /* VirtualJoystick.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		A0000200041 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				A1020007000 /* UI3DSystem.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -1728,7 +1783,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0D0816552F1C55CA00633C23 /* UnitSystem.swift in Sources */,
 				0DC1FB852F1437CC0010585F /* FactoryForgeTests/FluidSystemTests.swift in Sources */,
+				0D0816592F1C55EC00633C23 /* UnitDefinitions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1780,6 +1837,7 @@
 				A1008002001 /* ItemRegistry.swift in Sources */,
 				A1009001001 /* Recipe.swift in Sources */,
 				A1009002001 /* RecipeRegistry.swift in Sources */,
+				0D0816582F1C55EB00633C23 /* UnitDefinitions.swift in Sources */,
 				A1010001001 /* Building.swift in Sources */,
 				0DE229932F0221A700BD619D /* SceneDelegate.swift in Sources */,
 				A1010002001 /* BuildingRegistry.swift in Sources */,
@@ -1789,6 +1847,17 @@
 				A1011003001 /* InserterSystem.swift in Sources */,
 				A1011004001 /* CraftingSystem.swift in Sources */,
 				A1011005001 /* PowerSystem.swift in Sources */,
+				0D0816542F1C55CA00633C23 /* UnitSystem.swift in Sources */,
+				A1020001010 /* Metal3DRenderer.swift in Sources */,
+				A1020010010 /* Metal3DViewDelegate.swift in Sources */,
+				A1030000010 /* Engine/Network/GameNetworkManager.swift in Sources */,
+				A1020002010 /* Camera3D.swift in Sources */,
+				A1020003010 /* Model3DGenerator.swift in Sources */,
+				A1020004010 /* TerrainRenderer3D.swift in Sources */,
+				A1020005010 /* ModelRenderer3D.swift in Sources */,
+				A1020006010 /* InputManager3D.swift in Sources */,
+				A1020007010 /* UI3DSystem.swift in Sources */,
+				A1020009010 /* Shaders3D.metal in Sources */,
 				A1011006001 /* ResearchSystem.swift in Sources */,
 				0D778B2E2F118392003BC642 /* EntityCleanupSystem.swift in Sources */,
 				A1011007001 /* PollutionSystem.swift in Sources */,

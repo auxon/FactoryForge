@@ -91,47 +91,72 @@ struct TreeComponent: Component {
     
 
 /// Armor/resistance component
-struct ArmorComponent: Component {
+struct ArmorComponent: Component, Codable {
     /// Flat damage reduction
     var flatReduction: Float
-    
+
     /// Percentage damage reduction (0-1)
     var percentReduction: Float
-    
+
     /// Damage type resistances
     var resistances: [DamageType: Float]
-    
+
     init(flatReduction: Float = 0, percentReduction: Float = 0, resistances: [DamageType: Float] = [:]) {
         self.flatReduction = flatReduction
         self.percentReduction = percentReduction
         self.resistances = resistances
     }
-    
+
     /// Calculates final damage after armor
     func calculateDamage(_ damage: Float, type: DamageType) -> Float {
         var finalDamage = damage
-        
+
         // Apply flat reduction
         finalDamage -= flatReduction
-        
+
         // Apply percentage reduction
         finalDamage *= (1 - percentReduction)
-        
+
         // Apply type-specific resistance
         if let resistance = resistances[type] {
             finalDamage *= (1 - resistance)
         }
-        
+
         return max(0, finalDamage)
     }
-}
 
-enum DamageType: String, Codable {
-    case physical
-    case fire
-    case explosion
-    case laser
-    case poison
-    case electric
+    // MARK: - Codable
+
+    enum CodingKeys: String, CodingKey {
+        case flatReduction, percentReduction, resistances
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        flatReduction = try container.decode(Float.self, forKey: .flatReduction)
+        percentReduction = try container.decode(Float.self, forKey: .percentReduction)
+
+        // Decode resistances dictionary
+        let resistancesData = try container.decode([String: Float].self, forKey: .resistances)
+        resistances = [:]
+        for (key, value) in resistancesData {
+            if let damageType = DamageType(rawValue: key) {
+                resistances[damageType] = value
+            }
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(flatReduction, forKey: .flatReduction)
+        try container.encode(percentReduction, forKey: .percentReduction)
+
+        // Encode resistances dictionary
+        var resistancesData: [String: Float] = [:]
+        for (key, value) in resistances {
+            resistancesData[key.rawValue] = value
+        }
+        try container.encode(resistancesData, forKey: .resistances)
+    }
 }
 

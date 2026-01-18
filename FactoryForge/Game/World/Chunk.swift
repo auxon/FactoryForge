@@ -13,7 +13,10 @@ final class Chunk {
     
     /// Tiles in this chunk
     private var tiles: [[Tile]]
-    
+
+    /// Height map for 3D terrain (0.0 = water level, higher = elevation)
+    private var heightMap: [[Float]]
+
     /// Entities in this chunk
     private var entities: Set<Entity> = []
 
@@ -35,11 +38,78 @@ final class Chunk {
     
     /// Spawner positions in this chunk (world coordinates)
     var spawnerPositions: [IntVector2] = []
+
+    // MARK: - Height Map
+
+    private func initializeHeightMap() {
+        // Generate basic height map based on biome
+        for y in 0..<Chunk.size {
+            for x in 0..<Chunk.size {
+                var height: Float = 0.0
+
+                // Base height by biome
+                switch biome {
+                case .grassland:
+                    height = 0.0 // Flat grassland
+                case .forest:
+                    height = Float.random(in: -0.2...0.3) // Slight variation
+                case .desert:
+                    height = Float.random(in: -0.1...0.2) // Sandy dunes
+                case .tundra:
+                    height = Float.random(in: 0.0...0.5) // Rolling hills
+                case .volcanic:
+                    height = Float.random(in: 0.5...2.0) // Mountainous
+                case .swamp:
+                    height = Float.random(in: -0.3...0.1) // Low-lying wetlands
+                }
+
+                // Add some noise for natural variation
+                let noise = (sin(Float(x) * 0.1) + cos(Float(y) * 0.1)) * 0.2
+                height += noise
+
+                heightMap[y][x] = height
+            }
+        }
+    }
+
+    /// Gets the height at local coordinates
+    func getHeight(localX: Int, localY: Int) -> Float {
+        guard localX >= 0 && localX < Chunk.size && localY >= 0 && localY < Chunk.size else {
+            return 0.0
+        }
+        return heightMap[localY][localX]
+    }
+
+    /// Sets the height at local coordinates
+    func setHeight(localX: Int, localY: Int, height: Float) {
+        guard localX >= 0 && localX < Chunk.size && localY >= 0 && localY < Chunk.size else {
+            return
+        }
+        heightMap[localY][localX] = height
+        isDirty = true
+    }
+
+    /// Gets the entire height map
+    func getHeightMap() -> [[Float]] {
+        return heightMap
+    }
+
+    /// Gets the 3D world position for a tile (including height)
+    func getWorldPosition(localX: Int, localY: Int) -> Vector3 {
+        let tileX = Int(coord.x) * Chunk.size + localX
+        let tileZ = Int(coord.y) * Chunk.size + localY
+        let height = getHeight(localX: localX, localY: localY)
+        return Vector3(Float(tileX), height, Float(tileZ))
+    }
     
     init(coord: ChunkCoord, biome: Biome) {
         self.coord = coord
         self.biome = biome
         self.tiles = Array(repeating: Array(repeating: Tile(type: .grass), count: Chunk.size), count: Chunk.size)
+        self.heightMap = Array(repeating: Array(repeating: 0.0, count: Chunk.size), count: Chunk.size)
+
+        // Initialize basic height map based on biome
+        initializeHeightMap()
     }
     
     // MARK: - Tile Access

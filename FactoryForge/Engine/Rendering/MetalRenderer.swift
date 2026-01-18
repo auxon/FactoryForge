@@ -56,6 +56,14 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
     var showFluidDebug: Bool = false
     var onDebugOverlayUpdate: (() -> Void)?
 
+    enum RenderMode {
+        case full
+        case uiOnly
+    }
+
+    var renderMode: RenderMode = .full
+    var shouldUpdateGameLoop: Bool = true
+
     /// Toggle fluid network debug visualization
     func toggleFluidDebug() {
         showFluidDebug.toggle()
@@ -231,7 +239,9 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         triangleCount = 0
 
         // Update game logic
-        gameLoop?.update()
+        if shouldUpdateGameLoop {
+            gameLoop?.update()
+        }
         onDebugOverlayUpdate?()
         
         // Render UI first (in case loading menu is active)
@@ -241,7 +251,7 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         }
         
         // Queue render data (tiles, sprites, etc.)
-        if let gameLoop = gameLoop {
+        if renderMode == .full, let gameLoop = gameLoop {
             gameLoop.render(renderer: self)
         }
         
@@ -264,29 +274,31 @@ final class MetalRenderer: NSObject, MTKViewDelegate {
         // Calculate view-projection matrix
         let viewProjection = camera.viewProjectionMatrix
         
-        // Render tiles
-        encoder.setRenderPipelineState(tilePipeline)
-        tileRenderer.render(encoder: encoder, viewProjection: viewProjection, camera: camera)
-        
-        // Render sprites (entities, items on belts, etc.) using UI pipeline
-        encoder.setRenderPipelineState(uiPipeline)
-        encoder.setDepthStencilState(noDepthState) // No depth for sprites
-        if let gameLoop = gameLoop {
-            spriteRenderer.render(
-                encoder: encoder,
-                viewProjection: viewProjection,
-                world: gameLoop.world,
-                chunkManager: gameLoop.chunkManager,
-                camera: camera,
-                selectedEntity: selectedEntity,
-                deltaTime: Time.shared.deltaTime,
-                showFluidDebug: showFluidDebug
-            )
+        if renderMode == .full {
+            // Render tiles
+            encoder.setRenderPipelineState(tilePipeline)
+            tileRenderer.render(encoder: encoder, viewProjection: viewProjection, camera: camera)
+
+            // Render sprites (entities, items on belts, etc.) using UI pipeline
+            encoder.setRenderPipelineState(uiPipeline)
+            encoder.setDepthStencilState(noDepthState) // No depth for sprites
+            if let gameLoop = gameLoop {
+                spriteRenderer.render(
+                    encoder: encoder,
+                    viewProjection: viewProjection,
+                    world: gameLoop.world,
+                    chunkManager: gameLoop.chunkManager,
+                    camera: camera,
+                    selectedEntity: selectedEntity,
+                    deltaTime: Time.shared.deltaTime,
+                    showFluidDebug: showFluidDebug
+                )
+            }
+
+            // Render particles
+            encoder.setRenderPipelineState(particlePipeline)
+            particleRenderer.render(encoder: encoder, viewProjection: viewProjection)
         }
-        
-        // Render particles
-        encoder.setRenderPipelineState(particlePipeline)
-        particleRenderer.render(encoder: encoder, viewProjection: viewProjection)
         
         // Render UI in screen space (disable depth testing)
         encoder.setDepthStencilState(noDepthState)

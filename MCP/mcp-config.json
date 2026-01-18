@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "factoryforge": {
+      "command": "node",
+      "args": ["dist/index.js"],
+      "cwd": "/Users/rah/FactoryForge/MCP"
+    }
+  }
+}

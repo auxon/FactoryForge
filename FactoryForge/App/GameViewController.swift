@@ -6,10 +6,17 @@ import Darwin
 @available(iOS 17.0, *)
 class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     private var metalView: MTKView!
+    private var metalView3D: MTKView?
     private var renderer: MetalRenderer!
+    private var renderer3D: Metal3DRenderer?
+    private var renderer3DDelegate: Metal3DViewDelegate?
+    private var modelRenderer3D: ModelRenderer3D?
+    private var terrainRenderer3D: TerrainRenderer3D?
     private var gameLoop: GameLoop?
     private var inputManager: InputManager?
     var uiSystem: UISystem?
+    private var is3DMode: Bool = false
+    private var viewModeToggleButton: UIKit.UIButton?
 
     // Inventory UI reference for gesture forwarding
     private weak var inventoryUI: InventoryUI?
@@ -46,6 +53,8 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         setupNotifications()
         setupTooltip()
         setupGameOverUI()
+        setupViewModeToggle()
+        applyViewMode()
 
         // Ensure splash screen is on top after all views are added
         if let splash = splashImageView {
@@ -53,7 +62,11 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         }
 
         print("View bounds: \(view.bounds), scale: \(UIScreen.main.scale)")
-        print("Metal view bounds: \(metalView.bounds)")
+        if let metalView = metalView {
+            print("Metal view bounds: \(metalView.bounds)")
+        } else {
+            print("Metal view not available (simulator)")
+        }
     }
     
     private func setupSplashScreen() {
@@ -344,9 +357,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         autoplayMenu.onCloseTapped = { [weak self] in
             self?.uiSystem?.closeAllPanels()
             // Force redraws like the loading menu
-            self?.metalView.setNeedsDisplay()
+            self?.metalView?.setNeedsDisplay()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
-                self?.metalView.setNeedsDisplay()
+                self?.metalView?.setNeedsDisplay()
             }
         }
 
@@ -369,9 +382,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         helpMenu.onCloseTapped = { [weak self] in
             self?.uiSystem?.closeAllPanels()
             // Force redraws like other menus
-            self?.metalView.setNeedsDisplay()
+            self?.metalView?.setNeedsDisplay()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
-                self?.metalView.setNeedsDisplay()
+                self?.metalView?.setNeedsDisplay()
             }
         }
 
@@ -412,9 +425,21 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     
     private func setupMetalView() {
         guard let device = MTLCreateSystemDefaultDevice() else {
-            fatalError("Metal is not supported on this device")
+            print("Metal is not supported on this device (simulator). Running in 2D mode only.")
+            // On simulator, we'll run without Metal/3D features
+            return
         }
-        
+
+        let metalView3D = MTKView(frame: view.bounds, device: device)
+        metalView3D.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        metalView3D.colorPixelFormat = .bgra8Unorm
+        metalView3D.depthStencilPixelFormat = .depth32Float
+        metalView3D.preferredFramesPerSecond = 60
+        metalView3D.clearColor = MTLClearColor(red: 0.55, green: 0.7, blue: 0.9, alpha: 1.0)
+        metalView3D.isOpaque = true
+        view.addSubview(metalView3D)
+        self.metalView3D = metalView3D
+
         metalView = MTKView(frame: view.bounds, device: device)
         metalView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         metalView.colorPixelFormat = .bgra8Unorm
@@ -426,9 +451,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     }
     
     private func setupRenderer() {
-        guard let device = metalView.device else { return }
+        guard let device = metalView?.device else { return }
         renderer = MetalRenderer(device: device, view: metalView)
-        metalView.delegate = renderer
+        metalView?.delegate = renderer
         renderer.onDebugOverlayUpdate = { [weak self] in
             guard let self else { return }
             if Thread.isMainThread {
@@ -439,6 +464,107 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
                 }
             }
         }
+
+        setup3DRenderer(device: device)
+    }
+
+    private func setup3DRenderer(device: MTLDevice) {
+        guard let metalView3D = metalView3D else { return }
+        guard let library = device.makeDefaultLibrary() else {
+            print("GameViewController: Failed to create default Metal library for 3D renderer.")
+            return
+        }
+
+        do {
+            print("GameViewController: Creating 3D renderer...")
+            let renderer3D = try Metal3DRenderer(device: device, library: library, textureAtlas: renderer.textureAtlas)
+            self.renderer3D = renderer3D
+            print("GameViewController: 3D renderer created successfully")
+
+            let camera = renderer3D.getCamera()
+            camera.mode = .orbital
+            camera.setRotation(yaw: -Float.pi / 4, pitch: -Float.pi / 6)
+            camera.setDistance(20)
+            print("GameViewController: 3D camera set up")
+
+            let delegate = Metal3DViewDelegate(renderer3D: renderer3D, camera: camera, renderer2D: renderer)
+            renderer3DDelegate = delegate
+            metalView3D.delegate = delegate
+            print("GameViewController: 3D delegate set up")
+
+            // Now that 3D renderer is set up, apply the view mode
+            applyViewMode()
+        } catch {
+            print("GameViewController: Failed to initialize 3D renderer: \(error)")
+        }
+    }
+
+    private func setup3DSystemsForGameLoop() {
+        guard let gameLoop = gameLoop,
+              let renderer3D = renderer3D,
+              let device = metalView3D?.device else {
+            print("GameViewController: Cannot set up 3D systems - missing requirements")
+            return
+        }
+
+        print("GameViewController: Setting up 3D systems for game loop")
+        modelRenderer3D = ModelRenderer3D(device: device, renderer: renderer3D, world: gameLoop.world)
+        terrainRenderer3D = TerrainRenderer3D(device: device, chunkManager: gameLoop.chunkManager)
+        renderer3DDelegate?.setGameLoop(gameLoop)
+        renderer3DDelegate?.setModelRenderer(modelRenderer3D)
+        renderer3DDelegate?.setTerrainRenderer(terrainRenderer3D)
+        print("GameViewController: 3D systems set up successfully")
+    }
+
+    private func setupViewModeToggle() {
+        let button = UIKit.UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle("2D", for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        button.backgroundColor = UIColor(white: 0.1, alpha: 0.6)
+        button.layer.cornerRadius = 12
+        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 10, bottom: 6, right: 10)
+        button.addTarget(self, action: #selector(toggleViewMode), for: .touchUpInside)
+        view.addSubview(button)
+
+        NSLayoutConstraint.activate([
+            button.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            button.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12)
+        ])
+
+        viewModeToggleButton = button
+        view.bringSubviewToFront(button)
+    }
+
+    @objc private func toggleViewMode() {
+        is3DMode.toggle()
+        applyViewMode()
+    }
+
+    private func applyViewMode() {
+        let canUse3D = (renderer3D != nil && metalView3D != nil)
+        if !canUse3D {
+            is3DMode = false
+        }
+
+        let enable3D = is3DMode && canUse3D
+        print("GameViewController: applyViewMode - enable3D: \(enable3D), canUse3D: \(canUse3D)")
+        metalView3D?.isHidden = !enable3D
+        metalView3D?.isPaused = !enable3D
+
+        renderer?.renderMode = enable3D ? .uiOnly : .full
+        renderer?.shouldUpdateGameLoop = !enable3D
+        renderer3DDelegate?.shouldUpdateGameLoop = enable3D
+
+        viewModeToggleButton?.isHidden = !canUse3D
+        viewModeToggleButton?.setTitle(enable3D ? "2D" : "3D", for: .normal)
+        if let viewModeToggleButton = viewModeToggleButton {
+            view.bringSubviewToFront(viewModeToggleButton)
+        }
+
+        metalView?.setNeedsDisplay()
+        metalView3D?.setNeedsDisplay()
     }
 
     private func updatePipeNetworkOverlay() {
@@ -817,12 +943,12 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         loadingMenu.onCloseTapped = { [weak self] in
             self?.uiSystem?.closeAllPanels()
             // Force multiple redraws to ensure HUD renders properly after menu closes
-            self?.metalView.setNeedsDisplay()
+            self?.metalView?.setNeedsDisplay()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
-                self?.metalView.setNeedsDisplay()
+                self?.metalView?.setNeedsDisplay()
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-                self?.metalView.setNeedsDisplay()
+                self?.metalView?.setNeedsDisplay()
             }
         }
 
@@ -940,6 +1066,13 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         gameLoop = GameLoop(renderer: renderer, seed: randomSeed)
         renderer.gameLoop = gameLoop
 
+        // Set up network manager for MCP communication
+        if #available(iOS 17.0, *) {
+            GameNetworkManager.shared.setGameLoop(gameLoop!)
+        }
+
+        setup3DSystemsForGameLoop()
+
         // Close all panels before updating UI system
         uiSystem?.closeAllPanels()
 
@@ -986,7 +1119,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         inputManager?.exitBuildMode()
 
         // Force immediate redraw after UI system update
-        metalView.setNeedsDisplay()
+        metalView?.setNeedsDisplay()
 
         // Inventory UI callbacks already set up before setGameLoop
 
@@ -1123,15 +1256,15 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         }
 
         // Force multiple redraws to ensure HUD renders properly after menu closes
-        metalView.setNeedsDisplay()
+        metalView?.setNeedsDisplay()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
-            self.metalView.setNeedsDisplay()
+            self.metalView?.setNeedsDisplay()
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            self.metalView.setNeedsDisplay()
+            self.metalView?.setNeedsDisplay()
         }
         // Force redraw to ensure HUD renders properly after menu closes
-        metalView.setNeedsDisplay()
+        metalView?.setNeedsDisplay()
     }
     
     private func loadGame(from slotName: String) {
@@ -1146,12 +1279,18 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Create game loop with save's seed
         gameLoop = GameLoop(renderer: renderer, seed: saveData.seed)
         renderer.gameLoop = gameLoop
-        
+
+        // Set up network manager for MCP communication
+        if #available(iOS 17.0, *) {
+            GameNetworkManager.shared.setGameLoop(gameLoop!)
+        }
+
         // Set UI system on game loop
         gameLoop?.uiSystem = uiSystem
         
         // Load save data into game loop (pass slot name so chunks load from correct directory)
         saveSystem.load(saveData: saveData, into: gameLoop!, slotName: slotName)
+        setup3DSystemsForGameLoop()
 
         // Set autosave slot - if loading an autosave, continue using it; otherwise create new autosave slot
         if slotName.hasPrefix("autosave_") {
@@ -1439,6 +1578,11 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
 
         // Reset renderer
         renderer.gameLoop = nil
+        renderer3DDelegate?.setGameLoop(nil)
+        renderer3DDelegate?.setModelRenderer(nil)
+        renderer3DDelegate?.setTerrainRenderer(nil)
+        modelRenderer3D = nil
+        terrainRenderer3D = nil
 
         // Update inputManager for menu-only mode (don't destroy it)
         inputManager?.setGameLoop(nil)
@@ -1793,7 +1937,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     }
 
     @objc private func onInventoryTap(_ gr: UITapGestureRecognizer) {
-        guard let ui = inventoryUI else { return }
+        guard let ui = inventoryUI, let metalView = metalView else { return }
 
         // Location in the Metal view's coordinate space (points)
         let pPt = gr.location(in: metalView)

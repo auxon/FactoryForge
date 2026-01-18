@@ -34,6 +34,7 @@ final class GameLoop {
     private let pollutionSystem: PollutionSystem
     private let enemyAISystem: EnemyAISystem
     private let combatSystem: CombatSystem
+    private let unitSystem: UnitSystem
     let entityCleanupSystem: EntityCleanupSystem
     let autoPlaySystem: AutoPlaySystem
     let rocketSystem: RocketSystem
@@ -105,6 +106,7 @@ final class GameLoop {
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
         combatSystem = CombatSystem(world: world, chunkManager: chunkManager)
         combatSystem.setRenderer(renderer)
+        unitSystem = UnitSystem(world: world, chunkManager: chunkManager, itemRegistry: itemRegistry)
         entityCleanupSystem = EntityCleanupSystem(world: world, chunkManager: chunkManager)
         rocketSystem = RocketSystem(world: world, itemRegistry: itemRegistry)
 
@@ -123,6 +125,7 @@ final class GameLoop {
             pollutionSystem,
             enemyAISystem,
             combatSystem,
+            unitSystem,
             rocketSystem,
             entityCleanupSystem,
             autoPlaySystem
@@ -1204,6 +1207,13 @@ final class GameLoop {
             // Storage tanks have one flexible tank that can accept any fluid type
             tankComponent.tanks.append(FluidStack(type: .water, amount: 0, temperature: 20, maxAmount: buildingDef.fluidCapacity))
             world.add(tankComponent, to: entity)
+
+        case .unitProduction:
+            world.add(UnitProductionComponent(), to: entity)
+            // Calculate inventory size based on building definition slots
+            let inventorySize = buildingDef.fuelSlots + buildingDef.inputSlots + buildingDef.outputSlots
+            world.add(InventoryComponent(slots: inventorySize, allowedItems: nil), to: entity)
+            world.add(PowerConsumerComponent(consumption: buildingDef.powerConsumption), to: entity)
         }
     }
 

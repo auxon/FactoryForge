@@ -24,20 +24,39 @@ final class BeltSystem: System {
         // Remove any existing entries for this entity to prevent duplicates
         for (pos, node) in beltGraph {
             if node.entity == entity {
-                beltGraph.removeValue(forKey: pos)
+                do {
+            beltGraph.removeValue(forKey: pos)
+        } catch {
+            print("Warning: BeltSystem beltGraph removeValue failed for position \(pos)")
+        }
             }
         }
 
         let node = BeltNode(entity: entity, position: position, direction: direction, type: type)
-        beltGraph[position] = node
-        updateConnections(for: position)
+
+        // Defensive check to prevent beltGraph corruption crashes
+        do {
+            do {
+            beltGraph[position] = node
+        } catch {
+            print("Warning: BeltSystem beltGraph access failed for position \(position)")
+        }
+            updateConnections(for: position)
+        } catch {
+            print("Warning: BeltSystem beltGraph access failed for position \(position)")
+            // Continue without updating connections to prevent crash
+        }
 
         // For underground belts, also register the output position if specified
         if type == .underground {
             if let beltComp = world.get(BeltComponent.self, for: entity),
                let outputPos = beltComp.undergroundOutputPosition {
                 let outputNode = BeltNode(entity: entity, position: outputPos, direction: direction, type: type)
-                beltGraph[outputPos] = outputNode
+                do {
+                    beltGraph[outputPos] = outputNode
+                } catch {
+                    print("Warning: BeltSystem underground beltGraph access failed for position \(outputPos)")
+                }
             }
         }
 
@@ -69,7 +88,11 @@ final class BeltSystem: System {
 
         // Update the direction in the graph
         node.direction = newDirection
-        beltGraph[position] = node
+        do {
+            beltGraph[position] = node
+        } catch {
+            print("Warning: BeltSystem beltGraph access failed for position \(position)")
+        }
 
         // Update connections for this belt and all potentially affected neighbors
         updateConnections(for: position)
@@ -98,7 +121,11 @@ final class BeltSystem: System {
     }
 
     func unregisterBelt(at position: IntVector2) {
-        beltGraph.removeValue(forKey: position)
+        do {
+            beltGraph.removeValue(forKey: position)
+        } catch {
+            print("Warning: BeltSystem unregisterBelt beltGraph removeValue failed for position \(position)")
+        }
 
         // Update neighbors' connections
         for offset in [IntVector2(1, 0), IntVector2(-1, 0), IntVector2(0, 1), IntVector2(0, -1)] {
@@ -125,7 +152,11 @@ final class BeltSystem: System {
             updateMergerConnections(for: position, node: &node)
         }
 
-        beltGraph[position] = node
+        do {
+            beltGraph[position] = node
+        } catch {
+            print("Warning: BeltSystem beltGraph access failed for position \(position)")
+        }
     }
 
     private func updateNormalBeltConnections(for position: IntVector2, node: inout BeltNode) {

@@ -5,6 +5,7 @@ import simd
 typealias Vector2 = SIMD2<Float>
 typealias Vector3 = SIMD3<Float>
 typealias Vector4 = SIMD4<Float>
+typealias Matrix3 = simd_float3x3
 typealias Matrix4 = simd_float4x4
 
 // MARK: - Vector2 Extensions
@@ -15,40 +16,92 @@ extension Vector2 {
     static let down = Vector2(0, -1)
     static let left = Vector2(-1, 0)
     static let right = Vector2(1, 0)
-    
+
     var length: Float {
         return simd_length(self)
     }
-    
+
     var lengthSquared: Float {
         return simd_length_squared(self)
     }
-    
+
     var normalized: Vector2 {
         let len = length
         return len > 0 ? self / len : .zero
     }
-    
+
     func distance(to other: Vector2) -> Float {
         return simd_distance(self, other)
     }
-    
+
     func dot(_ other: Vector2) -> Float {
         return simd_dot(self, other)
     }
-    
+
     func lerp(to other: Vector2, t: Float) -> Vector2 {
         return simd_mix(self, other, Vector2(repeating: t))
     }
-    
+
     func rotated(by angle: Float) -> Vector2 {
         let cos = cosf(angle)
         let sin = sinf(angle)
         return Vector2(x * cos - y * sin, x * sin + y * cos)
     }
-    
+
     var angle: Float {
         return atan2f(y, x)
+    }
+}
+
+// MARK: - Vector3 Extensions
+extension Vector3 {
+    static let zero = Vector3(0, 0, 0)
+    static let one = Vector3(1, 1, 1)
+    static let up = Vector3(0, 1, 0)
+    static let down = Vector3(0, -1, 0)
+    static let left = Vector3(-1, 0, 0)
+    static let right = Vector3(1, 0, 0)
+    static let forward = Vector3(0, 0, 1)
+    static let back = Vector3(0, 0, -1)
+
+    var length: Float {
+        return simd_length(self)
+    }
+
+    var lengthSquared: Float {
+        return simd_length_squared(self)
+    }
+
+    var normalized: Vector3 {
+        let len = length
+        return len > 0 ? self / len : .zero
+    }
+
+    func distance(to other: Vector3) -> Float {
+        return simd_distance(self, other)
+    }
+
+    func dot(_ other: Vector3) -> Float {
+        return simd_dot(self, other)
+    }
+
+    func cross(_ other: Vector3) -> Vector3 {
+        return simd_cross(self, other)
+    }
+
+    func lerp(to other: Vector3, t: Float) -> Vector3 {
+        return simd_mix(self, other, Vector3(repeating: t))
+    }
+}
+
+// MARK: - Float Extensions
+extension Float {
+    func lerp(to other: Float, t: Float) -> Float {
+        return self + t * (other - self)
+    }
+
+    func clamped(to range: ClosedRange<Float>) -> Float {
+        return min(max(self, range.lowerBound), range.upperBound)
     }
 }
 
@@ -128,6 +181,28 @@ extension Matrix4 {
         return Matrix4.scale(Vector3(scale.x, scale.y, 1))
     }
     
+    static func rotationX(_ angle: Float) -> Matrix4 {
+        let cos = cosf(angle)
+        let sin = sinf(angle)
+        var matrix = Matrix4.identity
+        matrix.columns.1.y = cos
+        matrix.columns.1.z = sin
+        matrix.columns.2.y = -sin
+        matrix.columns.2.z = cos
+        return matrix
+    }
+
+    static func rotationY(_ angle: Float) -> Matrix4 {
+        let cos = cosf(angle)
+        let sin = sinf(angle)
+        var matrix = Matrix4.identity
+        matrix.columns.0.x = cos
+        matrix.columns.0.z = -sin
+        matrix.columns.2.x = sin
+        matrix.columns.2.z = cos
+        return matrix
+    }
+
     static func rotationZ(_ angle: Float) -> Matrix4 {
         let cos = cosf(angle)
         let sin = sinf(angle)
@@ -138,12 +213,55 @@ extension Matrix4 {
         matrix.columns.1.y = cos
         return matrix
     }
-    
+
+    static func lookAt(eye: Vector3, center: Vector3, up: Vector3) -> Matrix4 {
+        let z = (eye - center).normalized
+        let x = up.cross(z).normalized
+        let y = z.cross(x)
+
+        var matrix = Matrix4.identity
+        matrix.columns.0.x = x.x
+        matrix.columns.0.y = y.x
+        matrix.columns.0.z = z.x
+
+        matrix.columns.1.x = x.y
+        matrix.columns.1.y = y.y
+        matrix.columns.1.z = z.y
+
+        matrix.columns.2.x = x.z
+        matrix.columns.2.y = y.z
+        matrix.columns.2.z = z.z
+
+        matrix.columns.3.x = -x.dot(eye)
+        matrix.columns.3.y = -y.dot(eye)
+        matrix.columns.3.z = -z.dot(eye)
+
+        return matrix
+    }
+
+    static func perspective(fovY: Float, aspect: Float, near: Float, far: Float) -> Matrix4 {
+        let yScale = 1 / tanf(fovY * 0.5)
+        let xScale = yScale / aspect
+        let zRange = far - near
+        let zScale = -(far + near) / zRange
+        let wzScale = -2 * far * near / zRange
+
+        var matrix = Matrix4.identity
+        matrix.columns.0.x = xScale
+        matrix.columns.1.y = yScale
+        matrix.columns.2.z = zScale
+        matrix.columns.2.w = -1
+        matrix.columns.3.z = wzScale
+        matrix.columns.3.w = 0
+
+        return matrix
+    }
+
     static func orthographic(left: Float, right: Float, bottom: Float, top: Float, near: Float, far: Float) -> Matrix4 {
         let width = right - left
         let height = top - bottom
         let depth = far - near
-        
+
         var matrix = Matrix4.identity
         matrix.columns.0.x = 2 / width
         matrix.columns.1.y = 2 / height
@@ -153,10 +271,35 @@ extension Matrix4 {
         matrix.columns.3.z = -(far + near) / depth
         return matrix
     }
-    
+
     static func * (lhs: Matrix4, rhs: Matrix4) -> Matrix4 {
         return simd_mul(lhs, rhs)
     }
+
+    static func * (lhs: Matrix4, rhs: Vector4) -> Vector4 {
+        return simd_mul(lhs, rhs)
+    }
+
+    // Matrix element access (column-major order)
+    var m11: Float { columns.0.x }
+    var m12: Float { columns.0.y }
+    var m13: Float { columns.0.z }
+    var m14: Float { columns.0.w }
+
+    var m21: Float { columns.1.x }
+    var m22: Float { columns.1.y }
+    var m23: Float { columns.1.z }
+    var m24: Float { columns.1.w }
+
+    var m31: Float { columns.2.x }
+    var m32: Float { columns.2.y }
+    var m33: Float { columns.2.z }
+    var m34: Float { columns.2.w }
+
+    var m41: Float { columns.3.x }
+    var m42: Float { columns.3.y }
+    var m43: Float { columns.3.z }
+    var m44: Float { columns.3.w }
 }
 
 // MARK: - Rectangle

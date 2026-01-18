@@ -1,4 +1,6 @@
 import UIKit
+import CoreMotion
+import CoreHaptics
 
 /// Manages all touch input for the game
 @available(iOS 17.0, *)
@@ -54,6 +56,91 @@ final class InputManager: NSObject {
     var dragPathPreview: [IntVector2] = []  // Preview path for rendering
     var dragPathPreviewWorld: [Vector2] = []  // Preview path for pipes
     private var pendingPipeTankSelection: Entity?
+
+    // MARK: - Flow State Mechanics (iPhone as Toy)
+
+    // Core Motion for device tilt and shake
+    private let motionManager = CMMotionManager()
+    private var lastAcceleration: CMAcceleration?
+    private var shakeThreshold: Double = 1.5
+    private var lastShakeTime: TimeInterval = 0
+
+    // Haptic feedback engine
+    private var hapticEngine: CHHapticEngine?
+    private var lastHapticTime: TimeInterval = 0
+    private var hapticCooldown: TimeInterval = 0.1
+
+    // Gesture combo timing
+    private var lastGestureTime: TimeInterval = 0
+    private var gestureComboThreshold: TimeInterval = 0.5
+
+    // Haptic feedback patterns
+    enum HapticPattern {
+        case lightImpact
+        case mediumImpact
+        case heavyImpact
+        case rigidImpact
+        case notification(NotificationType)
+        case continuous(TimeInterval)
+
+        enum NotificationType {
+            case success
+            case warning
+            case error
+        }
+    }
+
+    // MARK: - Unit Commands
+
+    private func issueUnitCommand(at worldPos: Vector2, tilePos: IntVector2, gameLoop: GameLoop) {
+        // Check if there's an enemy at the target location
+        let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 2.0)
+        var targetEnemy: Entity?
+
+        for enemy in nearbyEnemies {
+            if gameLoop.world.has(EnemyComponent.self, for: enemy) {
+                targetEnemy = enemy
+                break
+            }
+        }
+
+        // Issue commands to all selected units
+        for unitEntity in selectedUnits {
+            if let unit = gameLoop.world.get(UnitComponent.self, for: unitEntity) {
+                if let enemy = targetEnemy {
+                    // Attack the enemy
+                    unit.commandQueue.append(.attack(entity: enemy))
+                    print("InputManager: Issued attack command to unit \(unitEntity) targeting enemy \(enemy)")
+                } else {
+                    // Move to position
+                    unit.commandQueue.append(.move(to: tilePos))
+                    print("InputManager: Issued move command to unit \(unitEntity) to position \(tilePos)")
+                }
+                // Clear current command to start the new one
+                unit.currentCommand = nil
+            }
+        }
+    }
+
+    func selectUnit(_ entity: Entity, gameLoop: GameLoop) {
+        if gameLoop.world.has(UnitComponent.self, for: entity) {
+            // If shift is not held (or we don't have shift detection), clear previous selection
+            // For now, we'll do single unit selection
+            selectedUnits.removeAll()
+            selectedUnits.insert(entity)
+
+            selectedEntity = entity
+            onEntitySelected?(entity)
+            print("InputManager: Selected unit \(entity)")
+        }
+    }
+
+    func clearUnitSelection() {
+        selectedUnits.removeAll()
+        selectedEntity = nil
+        onEntitySelected?(nil)
+        print("InputManager: Cleared unit selection")
+    }
     
     // Selection rectangle
     var selectionRect: Rect?  // Selection rectangle in world coordinates (for rendering)
@@ -67,6 +154,11 @@ final class InputManager: NSObject {
             validateSelectedEntity()
         }
     }
+
+    // Unit selection and control
+    var selectedUnits: Set<Entity> = []  // Multiple unit selection for RTS-style control
+    var selectionBoxStart: Vector2?  // For drag selection
+    var isDragSelecting: Bool = false
 
     /// Validates that the currently selected entity is still alive
     private func validateSelectedEntity() {
@@ -89,10 +181,12 @@ final class InputManager: NSObject {
         self.view = view
         self.gameLoop = gameLoop
         self.renderer = renderer
-        
+
         super.init()
-        
+
         setupGestureRecognizers()
+        setupMotionManager()
+        setupHapticEngine()
     }
     
     func setGameLoop(_ gameLoop: GameLoop?) {
@@ -145,8 +239,83 @@ final class InputManager: NSObject {
         
         // Allow tap to work immediately without waiting for long press to fail
         // (Long press will cancel if finger moves or lifts before the duration)
+
+        // Add new flow state gestures
+        setupFlowStateGestures()
     }
-    
+
+    private func setupFlowStateGestures() {
+        guard let view = view else { return }
+
+        // Swipe gestures for quick actions
+        let swipeUp = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeUp(_:)))
+        swipeUp.direction = .up
+        swipeUp.delegate = self
+        view.addGestureRecognizer(swipeUp)
+
+        let swipeDown = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeDown(_:)))
+        swipeDown.direction = .down
+        swipeDown.delegate = self
+        view.addGestureRecognizer(swipeDown)
+
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeLeft(_:)))
+        swipeLeft.direction = .left
+        swipeLeft.delegate = self
+        view.addGestureRecognizer(swipeLeft)
+
+        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(handleSwipeRight(_:)))
+        swipeRight.direction = .right
+        swipeRight.delegate = self
+        view.addGestureRecognizer(swipeRight)
+
+        // Multi-finger taps for special actions
+        let twoFingerTap = UITapGestureRecognizer(target: self, action: #selector(handleTwoFingerTap(_:)))
+        twoFingerTap.numberOfTouchesRequired = 2
+        twoFingerTap.delegate = self
+        view.addGestureRecognizer(twoFingerTap)
+
+        let threeFingerTap = UITapGestureRecognizer(target: self, action: #selector(handleThreeFingerTap(_:)))
+        threeFingerTap.numberOfTouchesRequired = 3
+        threeFingerTap.delegate = self
+        view.addGestureRecognizer(threeFingerTap)
+    }
+
+    private func setupMotionManager() {
+        // Setup accelerometer for shake detection and tilt
+        if motionManager.isAccelerometerAvailable {
+            motionManager.accelerometerUpdateInterval = 1.0 / 60.0 // 60Hz
+            motionManager.startAccelerometerUpdates(to: .main) { [weak self] (data, error) in
+                guard let self = self, let acceleration = data?.acceleration else { return }
+                self.handleAccelerometer(data: acceleration)
+            }
+        }
+
+        // Setup gyroscope for tilt detection
+        if motionManager.isGyroAvailable {
+            motionManager.gyroUpdateInterval = 1.0 / 60.0
+            motionManager.startGyroUpdates(to: .main) { [weak self] (data, error) in
+                guard let self = self, let rotation = data?.rotationRate else { return }
+                self.handleGyroscope(data: rotation)
+            }
+        }
+    }
+
+    private func setupHapticEngine() {
+        // Create haptic engine for advanced feedback
+        do {
+            hapticEngine = try CHHapticEngine()
+            hapticEngine?.start(completionHandler: { [weak self] error in
+                if let error = error {
+                    print("InputManager: Failed to start haptic engine: \(error)")
+                } else {
+                    print("InputManager: Haptic engine started successfully")
+                }
+            })
+        } catch {
+            print("InputManager: Failed to create haptic engine: \(error)")
+        }
+    }
+
     // MARK: - Gesture Handlers
     
     @objc private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
@@ -448,8 +617,13 @@ final class InputManager: NSObject {
             }
 
             if !attacked {
-                // Try to select an entity at this position using the same logic as double tap
-                handleEntitySelection(at: screenPos, worldPos: worldPos, tilePos: tilePos, gameLoop: gameLoop)
+                // Check if we have selected units - if so, issue commands
+                if !selectedUnits.isEmpty {
+                    issueUnitCommand(at: worldPos, tilePos: tilePos, gameLoop: gameLoop)
+                } else {
+                    // Try to select an entity at this position using the same logic as double tap
+                    handleEntitySelection(at: screenPos, worldPos: worldPos, tilePos: tilePos, gameLoop: gameLoop)
+                }
             }
             
         case .placing:
@@ -625,6 +799,9 @@ final class InputManager: NSObject {
             // Reset joystick state at the start of each new touch
             isJoystickActive = false
             dragStartPosition = screenPos
+
+            // Haptic feedback for starting a pan gesture
+            playHaptic(.lightImpact)
 
             // Check if touch started in UI area FIRST (for drag gestures)
             // Store the start position for drag gestures
@@ -977,6 +1154,9 @@ final class InputManager: NSObject {
         case .began:
             isPinching = true
             startZoom = camera.zoom
+
+            // Haptic feedback for starting pinch zoom
+            playHaptic(.lightImpact)
             
         case .changed:
             let newZoom = startZoom * Float(recognizer.scale)
@@ -992,7 +1172,13 @@ final class InputManager: NSObject {
 
 
     private func selectEntity(_ entity: Entity, gameLoop: GameLoop, isDoubleTap: Bool) {
-        // Select the entity (normal behavior)
+        // Check if this is a unit - handle differently for RTS-style control
+        if gameLoop.world.has(UnitComponent.self, for: entity) {
+            selectUnit(entity, gameLoop: gameLoop)
+            return
+        }
+
+        // Select the entity (normal building/machine behavior)
         // First set InputManager's selectedEntity, then notify via callback (which updates HUD)
         // This ensures both are in sync
         selectedEntity = entity
@@ -1018,7 +1204,7 @@ final class InputManager: NSObject {
         // Get all entities at this position
         let allEntities = gameLoop.world.getAllEntitiesAt(position: tilePos)
         
-        // Filter to only interactable entities
+        // Filter to only interactable entities (buildings and units)
         let interactableEntities = allEntities.filter { entity in
             let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
             let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
@@ -1037,8 +1223,9 @@ final class InputManager: NSObject {
             let hasTurret = gameLoop.world.has(TurretComponent.self, for: entity)
             let hasRocketSilo = gameLoop.world.has(RocketSiloComponent.self, for: entity)
             let hasPipe = gameLoop.world.has(PipeComponent.self, for: entity)
+            let hasUnit = gameLoop.world.has(UnitComponent.self, for: entity)
 
-            let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter || hasFluidProducer || hasFluidConsumer || hasFluidTank || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo || hasPipe
+            let isInteractable = hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasInserter || hasFluidProducer || hasFluidConsumer || hasFluidTank || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo || hasPipe || hasUnit
 
             return isInteractable
         }
@@ -1077,9 +1264,12 @@ final class InputManager: NSObject {
             let hasTurret = gameLoop.world.has(TurretComponent.self, for: entityAtTile)
             let hasRocketSilo = gameLoop.world.has(RocketSiloComponent.self, for: entityAtTile)
             let hasPipe = gameLoop.world.has(PipeComponent.self, for: entityAtTile)
+            let hasUnit = gameLoop.world.has(UnitComponent.self, for: entityAtTile)
 
-            // Prioritize inserters explicitly (getEntityAt should already do this, but be explicit)
-            if hasInserter {
+            // Prioritize units for selection (for RTS-style control)
+            if hasUnit {
+                closestEntity = entityAtTile
+            } else if hasInserter {
                 closestEntity = entityAtTile
             } else if hasFurnace || hasAssembler || hasMiner || hasChest || hasLab || hasGenerator || hasPole || hasBelt || hasFluidProducer || hasFluidConsumer || hasFluidTank || hasAccumulator || hasSolarPanel || hasTurret || hasRocketSilo || hasPipe {
                 closestEntity = entityAtTile
@@ -1256,13 +1446,208 @@ final class InputManager: NSObject {
                     buildDirection = buildDirection.counterClockwise
                 }
                 recognizer.rotation = 0
+
+                // Haptic feedback for rotation
+                playHaptic(.lightImpact)
             }
             
         default:
             break
         }
     }
-    
+
+    // MARK: - Flow State Gesture Handlers
+
+    @objc private func handleSwipeUp(_ recognizer: UISwipeGestureRecognizer) {
+        guard let gameLoop = gameLoop else { return }
+        playHaptic(.lightImpact)
+
+        // Quick zoom in
+        if let renderer = renderer {
+            let currentZoom = renderer.camera.zoom
+            let newZoom = min(currentZoom * 1.5, renderer.camera.maxZoom)
+            renderer.camera.setZoom(newZoom, animated: true)
+        }
+    }
+
+    @objc private func handleSwipeDown(_ recognizer: UISwipeGestureRecognizer) {
+        guard let gameLoop = gameLoop else { return }
+        playHaptic(.lightImpact)
+
+        // Quick zoom out
+        if let renderer = renderer {
+            let currentZoom = renderer.camera.zoom
+            let newZoom = max(currentZoom / 1.5, renderer.camera.minZoom)
+            renderer.camera.setZoom(newZoom, animated: true)
+        }
+    }
+
+    @objc private func handleSwipeLeft(_ recognizer: UISwipeGestureRecognizer) {
+        guard let gameLoop = gameLoop else { return }
+        playHaptic(.mediumImpact)
+
+        // Cycle through selected units
+        cycleSelectedUnits()
+    }
+
+    @objc private func handleSwipeRight(_ recognizer: UISwipeGestureRecognizer) {
+        guard let gameLoop = gameLoop else { return }
+        playHaptic(.mediumImpact)
+
+        // Cycle through selected buildings
+        cycleSelectedBuildings()
+    }
+
+    @objc private func handleTwoFingerTap(_ recognizer: UITapGestureRecognizer) {
+        guard let gameLoop = gameLoop else { return }
+        playHaptic(.heavyImpact)
+
+        // Emergency stop all units
+        for unitEntity in selectedUnits {
+            if let unit = gameLoop.world.get(UnitComponent.self, for: unitEntity) {
+                unit.commandQueue.removeAll()
+                unit.currentCommand = nil
+                print("InputManager: Emergency stop issued to unit \(unitEntity)")
+            }
+        }
+
+        // Provide haptic feedback
+        playHaptic(.heavyImpact)
+    }
+
+    @objc private func handleThreeFingerTap(_ recognizer: UITapGestureRecognizer) {
+        guard gameLoop != nil else { return }
+        playHaptic(.rigidImpact)
+
+        // Pause/unpause game
+        let wasPaused = Time.shared.isPaused
+        if wasPaused {
+            Time.shared.isPaused = false
+            print("InputManager: Game resumed")
+        } else {
+            Time.shared.isPaused = true
+            print("InputManager: Game paused")
+        }
+    }
+
+    // MARK: - Motion Handlers
+
+    private func handleAccelerometer(data: CMAcceleration) {
+        let currentTime = Date().timeIntervalSince1970
+
+        // Shake detection
+        if let lastAccel = lastAcceleration {
+            let deltaX = abs(data.x - lastAccel.x)
+            let deltaY = abs(data.y - lastAccel.y)
+            let deltaZ = abs(data.z - lastAccel.z)
+
+            if (deltaX > shakeThreshold || deltaY > shakeThreshold || deltaZ > shakeThreshold) &&
+               (currentTime - lastShakeTime > 0.5) {
+                lastShakeTime = currentTime
+                handleDeviceShake()
+            }
+        }
+        lastAcceleration = data
+
+        // Subtle camera tilt based on device orientation
+        adjustCameraTilt(acceleration: data)
+    }
+
+    private func handleGyroscope(data: CMRotationRate) {
+        // Could use gyroscope for more precise tilt control
+        // For now, accelerometer is sufficient
+    }
+
+    private func handleDeviceShake() {
+        guard let gameLoop = gameLoop else { return }
+        playHaptic(.notification(.error))
+
+        // Shake to deselect all
+        selectedUnits.removeAll()
+        selectedEntity = nil
+        onEntitySelected?(nil)
+        print("InputManager: All units deselected due to shake")
+    }
+
+    private func adjustCameraTilt(acceleration: CMAcceleration) {
+        guard let renderer = renderer else { return }
+
+        // Subtle camera movement based on device tilt
+        let tiltSensitivity: Float = 0.01
+        let tiltX = Float(acceleration.x) * tiltSensitivity
+        let tiltY = Float(acceleration.y) * tiltSensitivity
+
+        // Apply small camera offset based on tilt
+        let currentPos = renderer.camera.position
+        let newPos = currentPos + Vector2(x: tiltX, y: tiltY)
+        renderer.camera.position = newPos
+    }
+
+    // MARK: - Haptic Feedback
+
+    private func playHaptic(_ pattern: HapticPattern) {
+        let currentTime = Date().timeIntervalSince1970
+        guard currentTime - lastHapticTime > hapticCooldown else { return }
+        lastHapticTime = currentTime
+
+        guard let engine = hapticEngine else { return }
+
+        do {
+            var events: [CHHapticEvent] = []
+
+            switch pattern {
+            case .lightImpact:
+                let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5)
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
+                events.append(CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0))
+
+            case .mediumImpact:
+                let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.7)
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.7)
+                events.append(CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0))
+
+            case .heavyImpact:
+                let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0)
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
+                events.append(CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0))
+
+            case .rigidImpact:
+                let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.8)
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
+                events.append(CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0))
+
+            case .notification(let type):
+                switch type {
+                case .success:
+                    let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.8)
+                    let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.8)
+                    events.append(CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0))
+                case .warning:
+                    let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.6)
+                    let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.4)
+                    events.append(CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0))
+                case .error:
+                    let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.9)
+                    let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.9)
+                    events.append(CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0))
+                    events.append(CHHapticEvent(eventType: .hapticTransient, parameters: [intensity, sharpness], relativeTime: 0.1))
+                }
+
+            case .continuous(let duration):
+                let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.6)
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.6)
+                events.append(CHHapticEvent(eventType: .hapticContinuous, parameters: [intensity, sharpness], relativeTime: 0, duration: duration))
+            }
+
+            let pattern = try CHHapticPattern(events: events, parameters: [])
+            let player = try engine.makePlayer(with: pattern)
+            try player.start(atTime: 0)
+
+        } catch {
+            print("InputManager: Failed to play haptic pattern: \(error)")
+        }
+    }
+
     // MARK: - Helper Methods
     
     func getEntityTooltipText(entity: Entity, gameLoop: GameLoop?) -> String? {
@@ -2334,6 +2719,81 @@ final class InputManager: NSObject {
         }
 
         return (1, 1)
+    }
+
+    // MARK: - Flow State Helper Methods
+
+    private func cycleSelectedUnits() {
+        guard let gameLoop = gameLoop, !selectedUnits.isEmpty else { return }
+
+        // Get all units in the world
+        var allUnits: [Entity] = []
+        gameLoop.world.forEach(UnitComponent.self) { entity, _ in
+            allUnits.append(entity)
+        }
+
+        guard !allUnits.isEmpty else { return }
+
+        // Find current selection index
+        let currentSelection = Array(selectedUnits).first
+        var currentIndex = 0
+        if let current = currentSelection {
+            currentIndex = allUnits.firstIndex(of: current) ?? 0
+        }
+
+        // Move to next unit
+        let nextIndex = (currentIndex + 1) % allUnits.count
+        let nextUnit = allUnits[nextIndex]
+
+        // Update selection
+        selectedUnits.removeAll()
+        selectedUnits.insert(nextUnit)
+        selectedEntity = nextUnit
+        onEntitySelected?(nextUnit)
+
+        print("InputManager: Cycled to unit \(nextUnit)")
+    }
+
+    private func cycleSelectedBuildings() {
+        guard let gameLoop = gameLoop else { return }
+
+        // Get all buildings in the world
+        var allBuildings: [Entity] = []
+        gameLoop.world.forEach(BuildingComponent.self) { entity, _ in
+            allBuildings.append(entity)
+        }
+
+        guard !allBuildings.isEmpty else { return }
+
+        // Find current selection index (if any building is selected)
+        var currentIndex = 0
+        if let currentEntity = selectedEntity,
+           gameLoop.world.has(BuildingComponent.self, for: currentEntity) {
+            currentIndex = allBuildings.firstIndex(of: currentEntity) ?? 0
+        }
+
+        // Move to next building
+        let nextIndex = (currentIndex + 1) % allBuildings.count
+        let nextBuilding = allBuildings[nextIndex]
+
+        // Update selection
+        selectedEntity = nextBuilding
+        onEntitySelected?(nextBuilding)
+
+        print("InputManager: Cycled to building \(nextBuilding)")
+    }
+
+    deinit {
+        // Clean up motion manager
+        motionManager.stopAccelerometerUpdates()
+        motionManager.stopGyroUpdates()
+
+        // Clean up haptic engine
+        hapticEngine?.stop(completionHandler: { error in
+            if let error = error {
+                print("InputManager: Error stopping haptic engine: \(error)")
+            }
+        })
     }
 }
 
