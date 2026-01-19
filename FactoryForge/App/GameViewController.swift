@@ -46,6 +46,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Initialize GameNetworkManager early to start HTTP server
+        _ = GameNetworkManager.shared
+
         setupMetalView()
         setupRenderer()
         setupUISystem()

@@ -1,0 +1,66 @@
+{
+  "machineType": "rocket_silo",
+  "layout": {
+    "panelWidth": 600,
+    "panelHeight": 400,
+    "backgroundColor": "#1a1a1a",
+    "borderWidth": 2,
+    "cornerRadius": 8
+  },
+  "components": [
+    {
+      "type": "slotButtons",
+      "position": {
+        "x": 20,
+        "y": 60,
+        "width": 200,
+        "height": 100
+      },
+      "properties": {
+        "inputSlots": {
+          "int": 1
+        },
+        "outputSlots": {
+          "int": 0
+        },
+        "fuelSlots": {
+          "int": 0
+        }
+      }
+    },
+    {
+      "type": "launchButton",
+      "position": {
+        "x": 250,
+        "y": 100,
+        "width": 120,
+        "height": 40
+      },
+      "properties": {
+        "title": {
+          "string": "LAUNCH"
+        },
+        "color": {
+          "string": "#FF0000"
+        }
+      }
+    },
+    {
+      "type": "progressBar",
+      "position": {
+        "x": 20,
+        "y": 180,
+        "width": 350,
+        "height": 20
+      },
+      "properties": {
+        "showPercentage": {
+          "bool": true
+        },
+        "color": {
+          "string": "#00FF00"
+        }
+      }
+    }
+  ]
+}

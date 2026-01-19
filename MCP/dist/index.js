@@ -79,7 +79,7 @@ class FactoryForgeMCPServer {
                             command: {
                                 type: 'string',
                                 description: 'The command to execute',
-                                enum: ['build', 'move', 'attack', 'research', 'pause', 'resume'],
+                                enum: ['build', 'move', 'attack', 'research', 'pause', 'resume', 'mine'],
                             },
                             parameters: {
                                 type: 'object',
@@ -154,6 +154,39 @@ class FactoryForgeMCPServer {
                         },
                     },
                 },
+                {
+                    name: 'mine',
+                    description: 'Manually mine a resource at the player\'s current location',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            resourceType: {
+                                type: 'string',
+                                description: 'Type of resource to mine (coal, iron-ore, etc.)',
+                                default: 'coal',
+                            },
+                        },
+                    },
+                },
+                {
+                    name: 'auto_mine',
+                    description: 'Automatically mine all resources within a radius around the player',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            radius: {
+                                type: 'number',
+                                description: 'Radius in tiles to mine around the player',
+                                default: 2,
+                            },
+                            maxResources: {
+                                type: 'number',
+                                description: 'Maximum number of resources to mine',
+                                default: 100,
+                            },
+                        },
+                    },
+                },
             ];
             return { tools };
         });
@@ -197,6 +230,22 @@ class FactoryForgeMCPServer {
                                 { type: 'text', text: 'Screenshot captured' },
                                 { type: 'image', data: screenshot, mimeType: `image/${format}` },
                             ],
+                        };
+                    case 'mine':
+                        const mineResult = this.gameController.executeCommand({
+                            command: 'mine',
+                            parameters: args || {}
+                        });
+                        return {
+                            content: [{ type: 'text', text: JSON.stringify(mineResult, null, 2) }],
+                        };
+                    case 'auto_mine':
+                        const autoMineResult = this.gameController.executeCommand({
+                            command: 'auto_mine',
+                            parameters: args || {}
+                        });
+                        return {
+                            content: [{ type: 'text', text: JSON.stringify(autoMineResult, null, 2) }],
                         };
                     default:
                         throw new Error(`Unknown tool: ${name}`);

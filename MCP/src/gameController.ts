@@ -35,7 +35,7 @@ export interface GameState {
 
 export class GameController {
   private gameState: GameState | null = null;
-  private wsClient: WebSocket | null = null;
+  private gameWs: WebSocket | null = null; // WebSocket connection to iPhone app
   private pendingRequests: Map<string, { resolve: Function; reject: Function }> = new Map();
   private gameHost: string;
 
@@ -43,7 +43,26 @@ export class GameController {
     this.gameHost = gameHost;
   }
 
-  // HTTP-based communication - no persistent connection needed
+  // Called when iPhone app connects via WebSocket
+  setGameConnection(ws: WebSocket) {
+    console.log('GameController: iPhone app connected');
+    this.gameWs = ws;
+
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        this.handleGameMessage(message);
+      } catch (error) {
+        console.error('Error handling game message:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      console.log('GameController: iPhone app disconnected');
+      this.gameWs = null;
+    });
+  }
+
 
   handleGameMessage(message: any) {
     if (message.type === 'game_state_update') {
@@ -66,36 +85,67 @@ export class GameController {
   }
 
   async executeCommand(command: any): Promise<any> {
-    console.log(`Executing command: ${command.command} via HTTP`);
+    console.log(`Executing command: ${command.command}`);
 
-    // Connect to iOS FactoryForge app
-    try {
-      const response = await axios.post(`http://${this.gameHost}:8083/command`, {
-        command: command.command,
-        requestId: Math.random().toString(36).substring(7),
-        parameters: command.parameters || {},
-      }, {
-        timeout: 10000, // 10 second timeout
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    // Try WebSocket first, then fall back to HTTP
+    if (this.gameWs && this.gameWs.readyState === WebSocket.OPEN) {
+      console.log('Using WebSocket connection');
+      return new Promise((resolve, reject) => {
+        const requestId = Math.random().toString(36).substring(7);
+
+        // Set up timeout
+        const timeout = setTimeout(() => {
+          this.pendingRequests.delete(requestId);
+          reject(new Error('Command timed out'));
+        }, 10000);
+
+        // Store the promise handlers
+        this.pendingRequests.set(requestId, {
+          resolve: (result: any) => {
+            clearTimeout(timeout);
+            resolve(result);
+          },
+          reject: (error: any) => {
+            clearTimeout(timeout);
+            reject(error);
+          }
+        });
+
+        // Send command via WebSocket
+        const message = {
+          type: 'execute_command',
+          command: command.command,
+          requestId: requestId,
+          parameters: command.parameters || {}
+        };
+
+        this.gameWs.send(JSON.stringify(message));
       });
+    } else {
+      // Fall back to HTTP
+      console.log('Using HTTP fallback');
+      try {
+        const response = await axios.post(`http://${this.gameHost}:8083/command`, {
+          command: command.command,
+          requestId: Math.random().toString(36).substring(7),
+          parameters: command.parameters || {},
+        }, {
+          timeout: 10000,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-      console.log('iPhone response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('iPhone connection error:', error.response?.data || error.message);
-
-      // If iPhone is not available, return a helpful error message
-      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        console.log('iPhone response:', response.data);
+        return response.data;
+      } catch (error: any) {
+        console.error('HTTP connection error:', error.response?.data || error.message);
         return {
           success: false,
-          error: `Cannot connect to FactoryForge iOS app at ${this.gameHost}:8083. Make sure the app is running on your iPhone.`,
-          details: 'Check that your iPhone is on the same network and the FactoryForge app is launched.'
+          error: `Cannot connect to FactoryForge iOS app at ${this.gameHost}:8083.`,
+          details: 'Make sure the app is running on your iPhone and on the same network.'
         };
       }
-
-      throw new Error(`Command failed: ${error.response?.data?.error || error.message}`);
     }
   }
 

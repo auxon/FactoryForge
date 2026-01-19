@@ -1,0 +1,79 @@
+[
+  {
+    "id": "oil-refinery",
+    "name": "Oil Refinery",
+    "type": "oilRefinery",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 300,
+    "cost": [
+      {"itemId": "steel-plate", "count": 15},
+      {"itemId": "iron-gear-wheel", "count": 10},
+      {"itemId": "electronic-circuit", "count": 10},
+      {"itemId": "pipe", "count": 10},
+      {"itemId": "stone-brick", "count": 10}
+    ],
+    "powerConsumption": 420,
+    "inventorySlots": 0,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 0,
+    "craftingCategory": "oil-processing",
+    "fluidCapacity": 12500
+  },
+  {
+    "id": "chemical-plant",
+    "name": "Chemical Plant",
+    "type": "chemicalPlant",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 300,
+    "cost": [
+      {"itemId": "steel-plate", "count": 5},
+      {"itemId": "iron-gear-wheel", "count": 5},
+      {"itemId": "electronic-circuit", "count": 5},
+      {"itemId": "pipe", "count": 5}
+    ],
+    "powerConsumption": 210,
+    "inventorySlots": 5,
+    "inputSlots": 3,
+    "outputSlots": 2,
+    "fuelSlots": 0,
+    "fluidCapacity": 1500
+  },
+  {
+    "id": "pipe",
+    "name": "Pipe",
+    "type": "pipe",
+    "maxHealth": 50,
+    "cost": [
+      {"itemId": "iron-plate", "count": 1}
+    ],
+    "fluidCapacity": 100
+  },
+  {
+    "id": "underground-pipe",
+    "name": "Underground Pipe",
+    "type": "pipe",
+    "maxHealth": 60,
+    "cost": [
+      {"itemId": "iron-plate", "count": 5},
+      {"itemId": "pipe", "count": 5}
+    ],
+    "fluidCapacity": 300
+  },
+  {
+    "id": "fluid-tank",
+    "name": "Fluid Tank",
+    "type": "fluidTank",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 500,
+    "cost": [
+      {"itemId": "iron-plate", "count": 20},
+      {"itemId": "steel-plate", "count": 5},
+      {"itemId": "iron-gear-wheel", "count": 3}
+    ],
+    "fluidCapacity": 25000
+  }
+]

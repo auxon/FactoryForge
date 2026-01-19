@@ -1,0 +1,21 @@
+[
+  {
+    "id": "rocket-silo",
+    "name": "Rocket Silo",
+    "type": "rocketSilo",
+    "width": 9,
+    "height": 9,
+    "maxHealth": 5000,
+    "cost": [
+      {"itemId": "steel-plate", "count": 1000},
+      {"itemId": "stone-brick", "count": 1000},
+      {"itemId": "pipe", "count": 100},
+      {"itemId": "processing-unit", "count": 200}
+    ],
+    "powerConsumption": 1000,
+    "inventorySlots": 5,
+    "inputSlots": 4,
+    "outputSlots": 0,
+    "fuelSlots": 1
+  }
+]

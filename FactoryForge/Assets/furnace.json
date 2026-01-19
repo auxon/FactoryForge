@@ -1,0 +1,49 @@
+{
+  "machineType": "furnace",
+  "layout": {
+    "panelWidth": 400,
+    "panelHeight": 300,
+    "backgroundColor": "#1a1a1a",
+    "borderWidth": 2,
+    "cornerRadius": 8
+  },
+  "components": [
+    {
+      "type": "slotButtons",
+      "position": {
+        "x": 20,
+        "y": 60,
+        "width": 150,
+        "height": 100
+      },
+      "properties": {
+        "inputSlots": {
+          "int": 1
+        },
+        "outputSlots": {
+          "int": 1
+        },
+        "fuelSlots": {
+          "int": 1
+        }
+      }
+    },
+    {
+      "type": "progressBar",
+      "position": {
+        "x": 20,
+        "y": 180,
+        "width": 150,
+        "height": 20
+      },
+      "properties": {
+        "showPercentage": {
+          "bool": true
+        },
+        "color": {
+          "string": "#FFA500"
+        }
+      }
+    }
+  ]
+}

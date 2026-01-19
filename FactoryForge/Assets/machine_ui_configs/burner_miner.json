@@ -1,0 +1,92 @@
+{
+  "machineType": "burner-mining-drill",
+  "layout": {
+    "width": 300,
+    "height": 200,
+    "backgroundColor": [0.1, 0.1, 0.1, 0.9]
+  },
+  "components": [
+    {
+      "type": "label",
+      "id": "title",
+      "position": {"x": 150, "y": 20},
+      "size": {"width": 200, "height": 30},
+      "properties": {
+        "text": "Burner Mining Drill",
+        "fontSize": 18,
+        "color": [1.0, 1.0, 1.0, 1.0],
+        "alignment": "center"
+      }
+    },
+    {
+      "type": "slot",
+      "id": "fuel_slot",
+      "position": {"x": 50, "y": 80},
+      "size": {"width": 50, "height": 50},
+      "properties": {
+        "slotType": "fuel",
+        "slotIndex": 0,
+        "backgroundColor": [0.3, 0.2, 0.1, 1.0],
+        "borderColor": [0.5, 0.4, 0.2, 1.0]
+      }
+    },
+    {
+      "type": "label",
+      "id": "fuel_label",
+      "position": {"x": 50, "y": 135},
+      "size": {"width": 50, "height": 20},
+      "properties": {
+        "text": "Fuel",
+        "fontSize": 12,
+        "color": [1.0, 1.0, 1.0, 1.0],
+        "alignment": "center"
+      }
+    },
+    {
+      "type": "slot",
+      "id": "output_slot",
+      "position": {"x": 200, "y": 80},
+      "size": {"width": 50, "height": 50},
+      "properties": {
+        "slotType": "output",
+        "slotIndex": 0,
+        "backgroundColor": [0.2, 0.2, 0.3, 1.0],
+        "borderColor": [0.4, 0.4, 0.6, 1.0]
+      }
+    },
+    {
+      "type": "label",
+      "id": "output_label",
+      "position": {"x": 200, "y": 135},
+      "size": {"width": 50, "height": 20},
+      "properties": {
+        "text": "Output",
+        "fontSize": 12,
+        "color": [1.0, 1.0, 1.0, 1.0],
+        "alignment": "center"
+      }
+    },
+    {
+      "type": "progress_bar",
+      "id": "fuel_progress",
+      "position": {"x": 50, "y": 60},
+      "size": {"width": 50, "height": 5},
+      "properties": {
+        "progressType": "fuel",
+        "backgroundColor": [0.2, 0.2, 0.2, 1.0],
+        "fillColor": [1.0, 0.6, 0.0, 1.0]
+      }
+    },
+    {
+      "type": "button",
+      "id": "close_button",
+      "position": {"x": 260, "y": 10},
+      "size": {"width": 30, "height": 30},
+      "properties": {
+        "text": "X",
+        "backgroundColor": [0.8, 0.2, 0.2, 1.0],
+        "textColor": [1.0, 1.0, 1.0, 1.0]
+      }
+    }
+  ]
+}

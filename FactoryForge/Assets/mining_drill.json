@@ -1,0 +1,49 @@
+{
+  "machineType": "mining_drill",
+  "layout": {
+    "panelWidth": 400,
+    "panelHeight": 250,
+    "backgroundColor": "#1a1a1a",
+    "borderWidth": 2,
+    "cornerRadius": 8
+  },
+  "components": [
+    {
+      "type": "slotButtons",
+      "position": {
+        "x": 20,
+        "y": 60,
+        "width": 100,
+        "height": 80
+      },
+      "properties": {
+        "inputSlots": {
+          "int": 0
+        },
+        "outputSlots": {
+          "int": 1
+        },
+        "fuelSlots": {
+          "int": 1
+        }
+      }
+    },
+    {
+      "type": "progressBar",
+      "position": {
+        "x": 140,
+        "y": 80,
+        "width": 120,
+        "height": 20
+      },
+      "properties": {
+        "showPercentage": {
+          "bool": true
+        },
+        "color": {
+          "string": "#00FF00"
+        }
+      }
+    }
+  ]
+}

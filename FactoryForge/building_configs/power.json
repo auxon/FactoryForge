@@ -1,0 +1,112 @@
+[
+  {
+    "id": "small-electric-pole",
+    "name": "Small Electric Pole",
+    "type": "powerPole",
+    "maxHealth": 100,
+    "cost": [
+      {"itemId": "wood", "count": 2},
+      {"itemId": "copper-cable", "count": 2}
+    ],
+    "wireReach": 7.5,
+    "supplyArea": 2.5
+  },
+  {
+    "id": "medium-electric-pole",
+    "name": "Medium Electric Pole",
+    "type": "powerPole",
+    "maxHealth": 100,
+    "cost": [
+      {"itemId": "steel-plate", "count": 2},
+      {"itemId": "copper-plate", "count": 2}
+    ],
+    "wireReach": 9,
+    "supplyArea": 3.5
+  },
+  {
+    "id": "big-electric-pole",
+    "name": "Big Electric Pole",
+    "type": "powerPole",
+    "width": 2,
+    "height": 2,
+    "maxHealth": 150,
+    "cost": [
+      {"itemId": "steel-plate", "count": 5},
+      {"itemId": "copper-plate", "count": 5}
+    ],
+    "wireReach": 30,
+    "supplyArea": 2
+  },
+  {
+    "id": "boiler",
+    "name": "Boiler",
+    "type": "generator",
+    "width": 2,
+    "height": 3,
+    "maxHealth": 200,
+    "cost": [
+      {"itemId": "stone-furnace", "count": 1},
+      {"itemId": "pipe", "count": 4}
+    ],
+    "fuelCategory": "chemical",
+    "fluidInputType": "water",
+    "fluidOutputType": "steam",
+    "fluidCapacity": 540,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 1
+  },
+  {
+    "id": "steam-engine",
+    "name": "Steam Engine",
+    "type": "generator",
+    "width": 3,
+    "height": 5,
+    "maxHealth": 400,
+    "cost": [
+      {"itemId": "iron-gear-wheel", "count": 8},
+      {"itemId": "iron-plate", "count": 10},
+      {"itemId": "pipe", "count": 5}
+    ],
+    "powerProduction": 900,
+    "fluidInputType": "steam",
+    "fluidCapacity": 540,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 0
+  },
+  {
+    "id": "solar-panel",
+    "name": "Solar Panel",
+    "type": "solarPanel",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 200,
+    "cost": [
+      {"itemId": "steel-plate", "count": 5},
+      {"itemId": "electronic-circuit", "count": 15},
+      {"itemId": "copper-plate", "count": 5}
+    ],
+    "powerProduction": 60,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 0
+  },
+  {
+    "id": "accumulator",
+    "name": "Accumulator",
+    "type": "accumulator",
+    "width": 2,
+    "height": 2,
+    "maxHealth": 150,
+    "cost": [
+      {"itemId": "iron-plate", "count": 2},
+      {"itemId": "battery", "count": 5}
+    ],
+    "accumulatorCapacity": 5000,
+    "accumulatorChargeRate": 300,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 0
+  }
+]

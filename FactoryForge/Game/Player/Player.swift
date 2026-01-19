@@ -11,6 +11,9 @@ final class Player {
 
     /// Player inventory
     var inventory: InventoryComponent
+
+    /// Starting items configuration (loaded from JSON)
+    private var startingItemsConfig: StartingItemsConfig?
     
     /// Player position
     var position: Vector2 {
@@ -63,6 +66,9 @@ final class Player {
         self.itemRegistry = itemRegistry
         self.entity = world.spawn()
         self.inventory = InventoryComponent(slots: 70, allowedItems: nil)
+
+        // Load starting items configuration
+        loadStartingItemsConfig()
 
         // Set up player entity
         setupPlayerEntity()
@@ -139,9 +145,17 @@ final class Player {
     }
     
     private func giveStartingItems() {
-        let startingItems = [
-            ("iron-plate", 10),  // 5 for stone furnace + 5 for burner mining drill
-        ]
+        let startingItems: [(String, Int)]
+
+        // Use JSON config if available, otherwise fallback to defaults
+        if let config = startingItemsConfig {
+            startingItems = config.startingItems.map { ($0.itemId, $0.count) }
+        } else {
+            // Fallback to hardcoded defaults
+            startingItems = [
+                ("iron-plate", 10),  // 5 for stone furnace + 5 for burner mining drill
+            ]
+        }
 
         for (itemId, count) in startingItems {
             if let itemDef = itemRegistry.get(itemId) {
@@ -150,7 +164,24 @@ final class Player {
                 inventory.add(itemId: itemId, count: count, maxStack: 100) // fallback
             }
         }
+    }
 
+    /// Load starting items configuration from bundled JSON file
+    private func loadStartingItemsConfig() {
+        if let configURL = Bundle.main.url(forResource: "starting_items", withExtension: "json") {
+            do {
+                let data = try Data(contentsOf: configURL)
+                let decoder = JSONDecoder()
+                startingItemsConfig = try decoder.decode(StartingItemsConfig.self, from: data)
+                print("Player: Loaded starting items config with \(startingItemsConfig?.startingItems.count ?? 0) items")
+            } catch {
+                print("Player: Error loading starting items config: \(error)")
+                startingItemsConfig = nil
+            }
+        } else {
+            print("Player: Starting items config file not found, using defaults")
+            startingItemsConfig = nil
+        }
     }
     
     // MARK: - Update

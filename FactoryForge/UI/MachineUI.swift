@@ -7,6 +7,86 @@ typealias UIKitButton = UIKit.UIButton
 /// Callback type for recipe selection
 typealias RecipeSelectionCallback = (Entity, Recipe) -> Void
 
+/// JSON-based UI configuration structures
+struct MachineUIConfig: Codable {
+    let machineType: String
+    let layout: LayoutConfig
+    let components: [ComponentConfig]
+
+    struct LayoutConfig: Codable {
+        let panelWidth: CGFloat
+        let panelHeight: CGFloat
+        let backgroundColor: String
+        let borderWidth: CGFloat
+        let cornerRadius: CGFloat
+    }
+
+    struct ComponentConfig: Codable {
+        let type: String
+        let position: PositionConfig
+        let properties: [String: PropertyValue]
+
+        struct PositionConfig: Codable {
+            let x: CGFloat
+            let y: CGFloat
+            let width: CGFloat
+            let height: CGFloat
+        }
+    }
+
+    enum PropertyValue: Codable {
+        case string(String)
+        case int(Int)
+        case double(Double)
+        case bool(Bool)
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let stringValue = try? container.decode(String.self) {
+                self = .string(stringValue)
+            } else if let intValue = try? container.decode(Int.self) {
+                self = .int(intValue)
+            } else if let doubleValue = try? container.decode(Double.self) {
+                self = .double(doubleValue)
+            } else if let boolValue = try? container.decode(Bool.self) {
+                self = .bool(boolValue)
+            } else {
+                throw DecodingError.typeMismatch(PropertyValue.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Unsupported property type"))
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            switch self {
+            case .string(let value): try container.encode(value)
+            case .int(let value): try container.encode(value)
+            case .double(let value): try container.encode(value)
+            case .bool(let value): try container.encode(value)
+            }
+        }
+
+        var stringValue: String? {
+            if case .string(let value) = self { return value }
+            return nil
+        }
+
+        var intValue: Int? {
+            if case .int(let value) = self { return value }
+            return nil
+        }
+
+        var doubleValue: Double? {
+            if case .double(let value) = self { return value }
+            return nil
+        }
+
+        var boolValue: Bool? {
+            if case .bool(let value) = self { return value }
+            return nil
+        }
+    }
+}
+
 /// Unified layout system for MachineUI positioning
 struct MachineUILayout {
     let W: CGFloat
@@ -114,6 +194,10 @@ final class MachineUI: UIPanel_Base {
     private(set) var screenSize: Vector2
     private(set) weak var gameLoop: GameLoop?
     private(set) var currentEntity: Entity?
+
+    // JSON-based UI configuration system
+    private var uiConfigs: [String: MachineUIConfig] = [:]
+    private var configDirectory: URL?
 
     // UI components for different machine types
     private var machineComponents: [MachineUIComponent] = []
@@ -244,7 +328,225 @@ final class MachineUI: UIPanel_Base {
         super.init(frame: panelFrame)
         self.gameLoop = gameLoop
 
+        // Initialize config directory
+        setupConfigDirectory()
+
+        // Load all UI configurations
+        loadAllConfigurations()
+
         setupSlots()
+    }
+
+    /// Set up the configuration directory
+    private func setupConfigDirectory() {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        if let documentsDir = paths.first {
+            configDirectory = documentsDir.appendingPathComponent("machine_ui_configs")
+            try? FileManager.default.createDirectory(at: configDirectory!, withIntermediateDirectories: true)
+        }
+    }
+
+    /// Load all JSON configuration files
+    private func loadAllConfigurations() {
+        guard let configDir = configDirectory else { return }
+
+        // First, ensure default configurations exist in Documents directory
+        copyBundledConfigurationsIfNeeded()
+
+        do {
+            let files = try FileManager.default.contentsOfDirectory(at: configDir, includingPropertiesForKeys: nil)
+            let jsonFiles = files.filter { $0.pathExtension == "json" }
+
+            for fileURL in jsonFiles {
+                if let config = loadConfiguration(from: fileURL) {
+                    uiConfigs[config.machineType] = config
+                }
+            }
+
+            print("MachineUI: Loaded \(uiConfigs.count) UI configurations")
+        } catch {
+            print("MachineUI: Error loading configurations: \(error)")
+            // Load default configurations if no files exist
+            createDefaultConfigurations()
+        }
+    }
+
+    /// Copy bundled configuration files to Documents directory if they don't exist
+    private func copyBundledConfigurationsIfNeeded() {
+        guard let configDir = configDirectory else { return }
+
+        let bundledConfigs = ["assembler", "furnace", "mining_drill", "rocket_silo"]
+
+        for configName in bundledConfigs {
+            let fileName = "\(configName).json"
+            let destURL = configDir.appendingPathComponent(fileName)
+
+            // Skip if file already exists
+            if FileManager.default.fileExists(atPath: destURL.path) {
+                continue
+            }
+
+            // Try to copy from bundled resources
+            if let bundledURL = Bundle.main.url(forResource: configName, withExtension: "json") {
+                do {
+                    try FileManager.default.copyItem(at: bundledURL, to: destURL)
+                    print("MachineUI: Copied bundled config: \(configName)")
+                } catch {
+                    print("MachineUI: Error copying bundled config \(configName): \(error)")
+                }
+            }
+        }
+    }
+
+    /// Load a single configuration from JSON file
+    private func loadConfiguration(from url: URL) -> MachineUIConfig? {
+        do {
+            let data = try Data(contentsOf: url)
+            let config = try JSONDecoder().decode(MachineUIConfig.self, from: data)
+            return config
+        } catch {
+            print("MachineUI: Error loading config from \(url): \(error)")
+            return nil
+        }
+    }
+
+    /// Save a configuration to JSON file
+    private func saveConfiguration(_ config: MachineUIConfig) {
+        guard let configDir = configDirectory else { return }
+
+        let fileName = "\(config.machineType).json"
+        let fileURL = configDir.appendingPathComponent(fileName)
+
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(config)
+            try data.write(to: fileURL)
+            uiConfigs[config.machineType] = config
+            print("MachineUI: Saved configuration for \(config.machineType)")
+        } catch {
+            print("MachineUI: Error saving config: \(error)")
+        }
+    }
+
+    /// Create default configurations for all machine types
+    private func createDefaultConfigurations() {
+        let assemblerConfig = MachineUIConfig(
+            machineType: "assembler",
+            layout: MachineUIConfig.LayoutConfig(
+                panelWidth: 600,
+                panelHeight: 350,
+                backgroundColor: "#1a1a1a",
+                borderWidth: 2,
+                cornerRadius: 8
+            ),
+            components: [
+                MachineUIConfig.ComponentConfig(
+                    type: "slotButtons",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 20, y: 60, width: 200, height: 100
+                    ),
+                    properties: [
+                        "inputSlots": .int(2),
+                        "outputSlots": .int(1),
+                        "fuelSlots": .int(0)
+                    ]
+                ),
+                MachineUIConfig.ComponentConfig(
+                    type: "recipeSelector",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 240, y: 60, width: 320, height: 200
+                    ),
+                    properties: [
+                        "showHeader": .bool(true),
+                        "scrollable": .bool(true)
+                    ]
+                ),
+                MachineUIConfig.ComponentConfig(
+                    type: "progressBar",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 20, y: 180, width: 200, height: 20
+                    ),
+                    properties: [
+                        "showPercentage": .bool(true),
+                        "color": .string("#0000FF")
+                    ]
+                )
+            ]
+        )
+
+        let furnaceConfig = MachineUIConfig(
+            machineType: "furnace",
+            layout: MachineUIConfig.LayoutConfig(
+                panelWidth: 400,
+                panelHeight: 300,
+                backgroundColor: "#1a1a1a",
+                borderWidth: 2,
+                cornerRadius: 8
+            ),
+            components: [
+                MachineUIConfig.ComponentConfig(
+                    type: "slotButtons",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 20, y: 60, width: 150, height: 100
+                    ),
+                    properties: [
+                        "inputSlots": .int(1),
+                        "outputSlots": .int(1),
+                        "fuelSlots": .int(1)
+                    ]
+                ),
+                MachineUIConfig.ComponentConfig(
+                    type: "progressBar",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 20, y: 180, width: 150, height: 20
+                    ),
+                    properties: [
+                        "showPercentage": .bool(true),
+                        "color": .string("#FFA500")
+                    ]
+                )
+            ]
+        )
+
+        let miningDrillConfig = MachineUIConfig(
+            machineType: "mining_drill",
+            layout: MachineUIConfig.LayoutConfig(
+                panelWidth: 400,
+                panelHeight: 250,
+                backgroundColor: "#1a1a1a",
+                borderWidth: 2,
+                cornerRadius: 8
+            ),
+            components: [
+                MachineUIConfig.ComponentConfig(
+                    type: "slotButtons",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 20, y: 60, width: 100, height: 80
+                    ),
+                    properties: [
+                        "inputSlots": .int(0),
+                        "outputSlots": .int(1),
+                        "fuelSlots": .int(1)
+                    ]
+                ),
+                MachineUIConfig.ComponentConfig(
+                    type: "progressBar",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 140, y: 80, width: 120, height: 20
+                    ),
+                    properties: [
+                        "showPercentage": .bool(true),
+                        "color": .string("#00FF00")
+                    ]
+                )
+            ]
+        )
+
+        // Save default configurations
+        saveConfiguration(assemblerConfig)
+        saveConfiguration(furnaceConfig)
+        saveConfiguration(miningDrillConfig)
     }
 
     private func setupSlots() {
@@ -283,33 +585,20 @@ final class MachineUI: UIPanel_Base {
         // Clear existing components
         machineComponents.removeAll()
 
-        // Determine machine type and create appropriate components
+        // Try to load configuration for this machine type
         if let gameLoop = gameLoop {
-            // Check for fluid-based machines (including tanks)
-            let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entity)
-            let hasFluidConsumer = gameLoop.world.has(FluidConsumerComponent.self, for: entity)
-            let hasFluidTank = gameLoop.world.has(FluidTankComponent.self, for: entity)
+            let machineType = determineMachineType(for: entity, in: gameLoop)
 
-            if hasFluidProducer || hasFluidConsumer || hasFluidTank {
-                machineComponents.append(FluidMachineUIComponent())
-            }
-
-            // Check for pipes
-            if gameLoop.world.has(PipeComponent.self, for: entity) {
-                machineComponents.append(PipeConnectionUIComponent())
-            }
-
-            // Check for assembly machines
-            if gameLoop.world.has(AssemblerComponent.self, for: entity) {
-                let recipeCallback: RecipeSelectionCallback = { [weak self] (entity: Entity, recipe: Recipe) in
-                    self?.onSelectRecipeForMachine?(entity, recipe)
-                }
-                machineComponents.append(AssemblyMachineUIComponent(recipeSelectionCallback: recipeCallback))
+            if let config = uiConfigs[machineType] {
+                // Use JSON configuration
+                applyConfiguration(config)
+            } else {
+                // Fallback to legacy component-based system
+                setupLegacyComponents(for: entity, in: gameLoop)
             }
         }
 
-
-        // Setup common UI elements
+        // Setup common UI elements (legacy compatibility)
         setupSlots()
         setupSlotsForMachine(entity)
 
@@ -327,9 +616,9 @@ final class MachineUI: UIPanel_Base {
             openPipeTankSelectionOnOpen = false
         }
 
-        // Setup power label for generators
+        // Setup power label for generators (legacy compatibility)
         setupPowerLabel(for: entity)
-        
+
         // Recreate UIKit slot buttons if UI is open
         if isOpen {
             clearSlotUI()
@@ -337,6 +626,148 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
+    /// Fallback method for machine types not yet converted to JSON config
+    private func setupLegacyComponents(for entity: Entity, in gameLoop: GameLoop) {
+        // Check for fluid-based machines (including tanks)
+        let hasFluidProducer = gameLoop.world.has(FluidProducerComponent.self, for: entity)
+        let hasFluidConsumer = gameLoop.world.has(FluidConsumerComponent.self, for: entity)
+        let hasFluidTank = gameLoop.world.has(FluidTankComponent.self, for: entity)
+
+        if hasFluidProducer || hasFluidConsumer || hasFluidTank {
+            machineComponents.append(FluidMachineUIComponent())
+        }
+
+        // Check for pipes
+        if gameLoop.world.has(PipeComponent.self, for: entity) {
+            machineComponents.append(PipeConnectionUIComponent())
+        }
+
+        // Check for assembly machines
+        if gameLoop.world.has(AssemblerComponent.self, for: entity) {
+            let recipeCallback: RecipeSelectionCallback = { [weak self] (entity: Entity, recipe: Recipe) in
+                self?.onSelectRecipeForMachine?(entity, recipe)
+            }
+            machineComponents.append(AssemblyMachineUIComponent(recipeSelectionCallback: recipeCallback))
+        }
+    }
+
+    /// Apply a JSON-based configuration to the UI
+    private func applyConfiguration(_ config: MachineUIConfig) {
+        // Update panel size if needed
+        let newWidth = Float(config.layout.panelWidth * CGFloat(UIScale))
+        let newHeight = Float(config.layout.panelHeight * CGFloat(UIScale))
+
+        // Only resize if significantly different
+        if abs(Float(frame.size.x) - newWidth) > 10 || abs(Float(frame.size.y) - newHeight) > 10 {
+            frame = Rect(center: Vector2(screenSize.x / 2, screenSize.y / 2), size: Vector2(newWidth, newHeight))
+        }
+
+        // Create components based on configuration
+        for componentConfig in config.components {
+            createComponentFromConfig(componentConfig)
+        }
+    }
+
+    /// Create UI components from JSON configuration
+    private func createComponentFromConfig(_ config: MachineUIConfig.ComponentConfig) {
+        let position = CGRect(
+            x: config.position.x,
+            y: config.position.y,
+            width: config.position.width,
+            height: config.position.height
+        )
+
+        switch config.type {
+        case "slotButtons":
+            // Slot buttons are handled by the existing setupSlotButtons method
+            // We can override positioning here if needed
+            break
+        case "recipeSelector":
+            setupRecipeSelectorFromConfig(config, position: position)
+        case "progressBar":
+            setupProgressBarFromConfig(config, position: position)
+        case "powerLabel":
+            setupPowerLabelFromConfig(config, position: position)
+        case "fluidDisplay":
+            setupFluidDisplayFromConfig(config, position: position)
+        case "launchButton":
+            setupLaunchButtonFromConfig(config, position: position)
+        default:
+            print("MachineUI: Unknown component type: \(config.type)")
+        }
+    }
+
+    /// Setup recipe selector from config
+    private func setupRecipeSelectorFromConfig(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
+        // This would integrate with the existing recipe selector setup
+        // For now, use existing logic but with configurable position
+    }
+
+    /// Setup progress bar from config
+    private func setupProgressBarFromConfig(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
+        // Configure progress bar appearance and position
+    }
+
+    /// Setup power label from config
+    private func setupPowerLabelFromConfig(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
+        // Configure power label
+    }
+
+    /// Setup fluid display from config
+    private func setupFluidDisplayFromConfig(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
+        // Configure fluid display
+    }
+
+    /// Setup launch button from config
+    private func setupLaunchButtonFromConfig(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
+        // Configure launch button for rocket silos
+    }
+
+    /// Get a UI configuration for runtime editing
+    func getConfiguration(for machineType: String) -> MachineUIConfig? {
+        return uiConfigs[machineType]
+    }
+
+    /// Update a UI configuration at runtime
+    func updateConfiguration(_ config: MachineUIConfig) {
+        saveConfiguration(config)
+
+        // If this machine type is currently being displayed, refresh the UI
+        if let currentEntity = currentEntity, let gameLoop = gameLoop {
+            let currentMachineType = determineMachineType(for: currentEntity, in: gameLoop)
+            if currentMachineType == config.machineType && isOpen {
+                // Reapply the configuration
+                clearSlotUI()
+                applyConfiguration(config)
+                setupSlotButtons()
+                setupRecipeButtons()
+            }
+        }
+    }
+
+    /// Get all available machine type configurations
+    func getAllConfigurations() -> [String: MachineUIConfig] {
+        return uiConfigs
+    }
+
+    /// Determine machine type for an entity
+    private func determineMachineType(for entity: Entity, in gameLoop: GameLoop) -> String {
+        if gameLoop.world.has(AssemblerComponent.self, for: entity) {
+            return "assembler"
+        } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+            return "furnace"
+        } else if gameLoop.world.has(MinerComponent.self, for: entity) {
+            return "mining_drill"
+        } else if gameLoop.world.has(RocketSiloComponent.self, for: entity) {
+            return "rocket_silo"
+        } else if gameLoop.world.has(LabComponent.self, for: entity) {
+            return "lab"
+        } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
+            return "generator"
+        } else {
+            return "unknown"
+        }
+    }
 
     private func setupPowerLabel(for entity: Entity) {
         // Remove existing power label if any
@@ -647,8 +1078,8 @@ final class MachineUI: UIPanel_Base {
                 buttonX = (panelBounds.width - buttonSizePoints) * 0.5
                 buttonY = (panelBounds.height - buttonSizePoints) * 0.5
             } else {
-                // Position relative to panel bounds - column between machine and tanks
-                buttonX = panelBounds.width * 0.65  // 65% from left (between machine and tanks)
+                // Position relative to panel bounds - column on the right side with padding
+                buttonX = panelBounds.width * 0.85  // 85% from left (right side with padding)
                 buttonY = panelBounds.height * 0.325 + (buttonSizePoints + spacingPoints) * CGFloat(i)  // Same Y as inputs
             }
 

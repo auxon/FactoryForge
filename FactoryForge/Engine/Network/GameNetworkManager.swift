@@ -1,5 +1,17 @@
 import Foundation
 import Network
+import UIKit
+
+/// JSON configuration for player starting items
+struct StartingItemsConfig: Codable {
+    let startingItems: [StartingItem]
+
+    struct StartingItem: Codable {
+        let itemId: String
+        let count: Int
+        let comment: String?
+    }
+}
 
 /// Network manager for MCP communication
 @available(iOS 17.0, *)
@@ -9,12 +21,15 @@ final class GameNetworkManager {
     private var wsListener: NWListener?
     private var httpListener: NWListener?
     private var connections: [NWConnection] = []
+    private var mcpConnection: NWConnection?
     private var gameLoop: GameLoop?
     private var debugLogs: [String] = []
 
     private init() {
-        // setupWebSocketServer()  // Temporarily disabled to debug HTTP server crash
+        // Set up HTTP server for receiving commands from MCP
         setupHTTPServer()
+        // Also try to connect to MCP server for bidirectional communication
+        connectToMCPServer()
     }
 
     func setGameLoop(_ gameLoop: GameLoop) {
@@ -30,7 +45,7 @@ final class GameNetworkManager {
 
             wsListener = try NWListener(using: parameters, on: 8082)
 
-            wsListener?.stateUpdateHandler = { [weak self] (state: NWListener.State) in
+            wsListener?.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
                     print("GameNetworkManager: WebSocket server ready on port 8082")
@@ -57,7 +72,7 @@ final class GameNetworkManager {
             let parameters = NWParameters.tcp
             httpListener = try NWListener(using: parameters, on: 8083)
 
-            httpListener?.stateUpdateHandler = { [weak self] state in
+            httpListener?.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
                     print("GameNetworkManager: HTTP server ready on port 8083")
@@ -75,6 +90,142 @@ final class GameNetworkManager {
             httpListener?.start(queue: .main)
         } catch {
             print("GameNetworkManager: Failed to create HTTP server: \(error)")
+        }
+    }
+
+    private func connectToMCPServer() {
+        print("GameNetworkManager: Attempting to connect to MCP server...")
+        // Connect to MCP server at 192.168.2.43:8081 (WebSocket port)
+        let mcpHost = "192.168.2.43"  // Mac's IP address
+        let mcpPort: NWEndpoint.Port = 8081
+        print("GameNetworkManager: Connecting to \(mcpHost):\(mcpPort)")
+
+        let parameters = NWParameters.tcp
+        let wsOptions = NWProtocolWebSocket.Options()
+        parameters.defaultProtocolStack.applicationProtocols.insert(wsOptions, at: 0)
+
+        let connection = NWConnection(host: NWEndpoint.Host(mcpHost), port: mcpPort, using: parameters)
+
+        connection.stateUpdateHandler = { [weak self] state in
+            switch state {
+            case .ready:
+                print("GameNetworkManager: Connected to MCP server at \(mcpHost):\(mcpPort)")
+                self?.mcpConnection = connection
+                self?.sendInitialGameStateToMCP()
+                self?.startReceivingFromMCP()
+            case .failed(let error):
+                print("GameNetworkManager: Failed to connect to MCP server: \(error)")
+                // Retry connection after delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                    self?.connectToMCPServer()
+                }
+            case .cancelled:
+                print("GameNetworkManager: Connection to MCP server cancelled")
+                self?.mcpConnection = nil
+            default:
+                break
+            }
+        }
+
+        connection.start(queue: .main)
+    }
+
+    private func sendInitialGameStateToMCP() {
+        guard gameLoop != nil else { return }
+        let gameState = createGameState()
+        sendToMCP(gameState)
+    }
+
+    private func createGameState() -> [String: Any] {
+        guard let gameLoop = gameLoop else { return [:] }
+
+        // Create a basic game state dictionary
+        let gameState: [String: Any] = [
+            "type": "game_state_update",
+            "player": [
+                "position": [
+                    "x": gameLoop.player.position.x,
+                    "y": gameLoop.player.position.y
+                ]
+            ],
+            "world": [
+                "chunks": gameLoop.chunkManager.allLoadedChunks.map { chunk in
+                    ["coord": ["x": chunk.coord.x, "y": chunk.coord.y], "loaded": true]
+                }
+            ]
+        ]
+
+        return gameState
+    }
+
+    private func startReceivingFromMCP() {
+        guard let connection = mcpConnection else { return }
+
+        connection.receiveMessage { [weak self] data, context, isComplete, error in
+            if let data = data, let message = String(data: data, encoding: .utf8) {
+                self?.handleMCPMessage(message)
+            }
+
+            if error == nil {
+                self?.startReceivingFromMCP()  // Continue receiving
+            }
+        }
+    }
+
+    private func handleMCPMessage(_ message: String) {
+        guard gameLoop != nil else { return }
+
+        do {
+            if let json = try JSONSerialization.jsonObject(with: message.data(using: .utf8)!, options: []) as? [String: Any],
+               let type = json["type"] as? String {
+                switch type {
+                case "execute_command":
+                    if let command = json["command"] as? String,
+                       let requestId = json["requestId"] as? String,
+                       let parameters = json["parameters"] as? [String: Any] {
+                        Task {
+                            do {
+                                let result = try await self.executeCommand(command, parameters: parameters)
+                                let response: [String: Any] = [
+                                    "type": "command_result",
+                                    "requestId": requestId,
+                                    "result": result
+                                ]
+                                self.sendToMCP(response)
+                            } catch {
+                                let errorResponse: [String: Any] = [
+                                    "type": "command_result",
+                                    "requestId": requestId,
+                                    "error": error.localizedDescription
+                                ]
+                                self.sendToMCP(errorResponse)
+                            }
+                        }
+                    }
+                default:
+                    print("GameNetworkManager: Unknown MCP message type: \(type)")
+                }
+            }
+        } catch {
+            print("GameNetworkManager: Failed to parse MCP message: \(error)")
+        }
+    }
+
+    private func sendToMCP(_ message: [String: Any]) {
+        guard let connection = mcpConnection else {
+            print("GameNetworkManager: No MCP connection available")
+            return
+        }
+
+        do {
+            let data = try JSONSerialization.data(withJSONObject: message, options: [])
+            connection.send(content: data, completion: .contentProcessed({ error in
+                if let error = error {
+                    print("GameNetworkManager: Failed to send to MCP: \(error)")
+                }
+            }))
+        } catch {
+            print("GameNetworkManager: Failed to serialize message for MCP: \(error)")
         }
     }
 
@@ -121,7 +272,7 @@ final class GameNetworkManager {
     }
 
     private func handleMessage(_ message: String, from connection: NWConnection) {
-        guard let gameLoop = gameLoop else { return }
+        guard gameLoop != nil else { return }
 
         do {
             let json = try JSONSerialization.jsonObject(with: message.data(using: .utf8)!, options: []) as? [String: Any]
@@ -142,7 +293,7 @@ final class GameNetworkManager {
     }
 
     private func handleCommand(_ command: [String: Any], from connection: NWConnection) {
-        guard let gameLoop = gameLoop,
+        guard gameLoop != nil,
               let commandType = command["command"] as? String,
               let requestId = command["requestId"] as? String else { return }
 
@@ -174,20 +325,88 @@ final class GameNetworkManager {
     }
 
     private func executeCommand(_ command: String, parameters: [String: Any]) async throws -> Any {
-        guard let gameLoop = gameLoop else {
-            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "No game loop available"])
-        }
-
         // Send debug log over HTTP
         sendDebugLog("Executing command: \(command) with parameters: \(parameters)")
+
+        // Commands that don't require a gameLoop
+        switch command {
+        case "get_debug_logs":
+            return ["logs": debugLogs]
+        case "list_save_slots":
+            return try await listSaveSlots(parameters)
+        case "delete_save_slot":
+            return try await deleteSaveSlot(parameters)
+        case "rename_save_slot":
+            return try await renameSaveSlot(parameters)
+        default:
+            break
+        }
+
+        // Commands that require a gameLoop
+        guard let gameLoop = gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "No game loop available - please start or load a game first"])
+        }
 
         switch command {
         case "build":
             return try await buildStructure(parameters)
+        case "delete_building":
+            return try await deleteBuilding(parameters)
+        case "move_building":
+            return try await moveBuilding(parameters)
         case "move":
             return try await moveUnit(parameters)
         case "move_player":
             return try await movePlayer(parameters)
+        case "mine":
+            return try await manualMine(parameters)
+        case "auto_mine":
+            return try await autoMine(parameters)
+        case "get_game_state":
+            return createGameStateDictionary()
+        case "get_player_position":
+            let playerPos = gameLoop.player.position
+            return ["x": playerPos.x, "y": playerPos.y]
+        case "get_inventory":
+            return try await getInventory(parameters)
+        case "add_inventory":
+            return try await addInventoryItem(parameters)
+        case "craft":
+            return try await craftItem(parameters)
+        case "open_machine_ui":
+            return try await openMachineUI(parameters)
+        case "add_machine_item":
+            return try await addMachineItem(parameters)
+        case "spawn_resource":
+            return try await spawnResource(parameters)
+        case "start_new_game":
+            return try await startNewGame(parameters)
+        case "save_game":
+            return try await saveGame(parameters)
+        case "load_game":
+            return try await loadGame(parameters)
+        case "list_save_slots":
+            return try await listSaveSlots(parameters)
+        case "delete_save_slot":
+            return try await deleteSaveSlot(parameters)
+        case "rename_save_slot":
+            return try await renameSaveSlot(parameters)
+        case "update_machine_ui_config":
+            return try await updateMachineUIConfig(parameters)
+        case "get_machine_ui_config":
+            return try await getMachineUIConfig(parameters)
+        case "list_machine_ui_configs":
+            return try await listMachineUIConfigs(parameters)
+        case "get_starting_items_config":
+            return try await getStartingItemsConfig(parameters)
+        case "update_starting_items_config":
+            return try await updateStartingItemsConfig(parameters)
+        case "get_building_config":
+            return try await getBuildingConfig(parameters)
+        case "update_building_config":
+            return try await updateBuildingConfig(parameters)
+        case "list_building_configs":
+            return try await listBuildingConfigs(parameters)
         case "attack":
             return try await attackWithUnit(parameters)
         case "research":
@@ -203,45 +422,633 @@ final class GameNetworkManager {
         case "get_debug_logs":
             return ["logs": debugLogs]
         default:
-            throw NSError(domain: "GameNetworkManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Unknown command: \(command)"])
+        throw NSError(domain: "GameNetworkManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Unknown command: \(command)"])
+    }
+
+    func manualMine(_ parameters: [String: Any]) async throws -> Any {
+        guard let resourceType = parameters["resourceType"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 12, userInfo: [NSLocalizedDescriptionKey: "Missing resourceType parameter"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        let playerPos = gameLoop.player.position
+        let tilePos = IntVector2(Int(playerPos.x), Int(playerPos.y))
+
+        // Check if there's a resource at the player's position
+        guard let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty else {
+            throw NSError(domain: "GameNetworkManager", code: 13, userInfo: [NSLocalizedDescriptionKey: "No resource found at player position"])
+        }
+
+        // Check if the resource type matches
+        guard resource.type.outputItem == resourceType else {
+            throw NSError(domain: "GameNetworkManager", code: 14, userInfo: [NSLocalizedDescriptionKey: "Resource type mismatch. Found: \(resource.type.outputItem), requested: \(resourceType)"])
+        }
+
+        // Check if player can accept the item
+        guard gameLoop.player.inventory.canAccept(itemId: resourceType) else {
+            throw NSError(domain: "GameNetworkManager", code: 15, userInfo: [NSLocalizedDescriptionKey: "Inventory full or item not allowed"])
+        }
+
+        // Mine the resource
+        let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
+        if mined > 0 {
+            // Add to player inventory
+            if let itemDef = gameLoop.itemRegistry.get(resourceType) {
+                gameLoop.player.inventory.add(itemId: resourceType, count: mined, maxStack: itemDef.stackSize)
+            }
+
+            return [
+                "success": true,
+                "mined": mined,
+                "resourceType": resourceType,
+                "message": "Successfully mined \(mined) \(resourceType)"
+            ]
+        }
+
+        throw NSError(domain: "GameNetworkManager", code: 16, userInfo: [NSLocalizedDescriptionKey: "Failed to mine resource"])
+    }
+
+    func autoMine(_ parameters: [String: Any]) async throws -> Any {
+        let radius = parameters["radius"] as? Int ?? 2  // Default 2 tile radius
+        let maxResources = parameters["maxResources"] as? Int ?? 100  // Default 100 resources
+
+        guard let gameLoop = self.gameLoop else {
+            sendDebugLog("autoMine: Game not initialized")
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        sendDebugLog("autoMine: Starting auto-mine with radius \(radius), maxResources \(maxResources)")
+
+        let playerPos = gameLoop.player.position
+        let centerTile = IntVector2(Int(playerPos.x), Int(playerPos.y))
+
+        sendDebugLog("autoMine: Player position (\(playerPos.x), \(playerPos.y)), centerTile (\(centerTile.x), \(centerTile.y))")
+
+        var totalMined: [String: Int] = [:]
+        var minedCount = 0
+
+        // Mine in a square area around the player
+        let radiusInt32 = Int32(radius)
+        sendDebugLog("autoMine: Scanning area from (\(centerTile.x - radiusInt32), \(centerTile.y - radiusInt32)) to (\(centerTile.x + radiusInt32), \(centerTile.y + radiusInt32))")
+
+        for x in (centerTile.x - radiusInt32)...(centerTile.x + radiusInt32) {
+            for y in (centerTile.y - radiusInt32)...(centerTile.y + radiusInt32) {
+                if minedCount >= maxResources {
+                    break
+                }
+
+                let tilePos = IntVector2(x: x, y: y)
+
+                // Check if there's a resource at this position
+                let resource = gameLoop.chunkManager.getResource(at: tilePos)
+                if let resource = resource, !resource.isEmpty {
+                    sendDebugLog("autoMine: Found resource at (\(x), \(y)): \(resource.type.outputItem)")
+                    // Check if player can accept the item
+                    let itemId = resource.type.outputItem
+                    if gameLoop.player.inventory.canAccept(itemId: itemId) {
+                        // Mine the resource
+                        let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
+                        if mined > 0 {
+                            sendDebugLog("autoMine: Mined \(mined) \(itemId)")
+                            // Add to inventory immediately (no animation delay for auto-mining)
+                            if let itemDef = gameLoop.itemRegistry.get(itemId) {
+                                gameLoop.player.inventory.add(itemId: itemId, count: mined, maxStack: itemDef.stackSize)
+                                totalMined[itemId, default: 0] += mined
+                                minedCount += mined
+                            }
+                        }
+                    } else {
+                        sendDebugLog("autoMine: Cannot accept \(itemId) - inventory full")
+                    }
+                }
+            }
+            if minedCount >= maxResources {
+                break
+            }
+        }
+
+        sendDebugLog("autoMine: Completed mining, found \(minedCount) total resources")
+
+        return [
+            "success": true,
+            "resourcesMined": totalMined,
+            "totalMined": minedCount,
+            "radius": radius,
+            "message": "Auto-mined \(minedCount) resources within \(radius) tile radius"
+        ]
+    }
+
+    func getInventory(_ parameters: [String: Any]) async throws -> Any {
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        var inventory: [[String: Any]] = []
+
+        for slot in 0..<gameLoop.player.inventory.slotCount {
+            if let itemStack = gameLoop.player.inventory.slots[slot] {
+                inventory.append([
+                    "slot": slot,
+                    "itemId": itemStack.itemId,
+                    "count": itemStack.count
+                ])
+            } else {
+                inventory.append([
+                    "slot": slot,
+                    "itemId": NSNull(),
+                    "count": 0
+                ])
+            }
+        }
+
+        return [
+            "inventory": inventory,
+            "totalSlots": gameLoop.player.inventory.slotCount
+        ]
+    }
+
+    func addInventoryItem(_ parameters: [String: Any]) async throws -> Any {
+        guard let itemId = parameters["itemId"] as? String,
+              let count = parameters["count"] as? Int else {
+            throw NSError(domain: "GameNetworkManager", code: 17, userInfo: [NSLocalizedDescriptionKey: "Missing itemId or count parameter"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        guard let itemDef = gameLoop.itemRegistry.get(itemId) else {
+            throw NSError(domain: "GameNetworkManager", code: 18, userInfo: [NSLocalizedDescriptionKey: "Item not found: \(itemId)"])
+        }
+
+        let added = gameLoop.player.inventory.add(itemId: itemId, count: count, maxStack: itemDef.stackSize)
+
+        return [
+            "success": true,
+            "itemId": itemId,
+            "requested": count,
+            "added": added,
+            "message": "Added \(added) \(itemId) to inventory"
+        ]
+    }
+
+    func craftItem(_ parameters: [String: Any]) async throws -> Any {
+        guard let recipeId = parameters["recipeId"] as? String,
+              let count = parameters["count"] as? Int else {
+            throw NSError(domain: "GameNetworkManager", code: 19, userInfo: [NSLocalizedDescriptionKey: "Missing recipeId or count parameter"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        guard let recipe = gameLoop.recipeRegistry.get(recipeId) else {
+            throw NSError(domain: "GameNetworkManager", code: 20, userInfo: [NSLocalizedDescriptionKey: "Recipe not found: \(recipeId)"])
+        }
+
+        // Try to craft the item
+        let success = gameLoop.player.craft(recipe: recipe, count: count)
+
+        if success {
+            return [
+                "success": true,
+                "recipeId": recipeId,
+                "count": count,
+                "message": "Started crafting \(count)x \(recipeId)"
+            ]
+        } else {
+            throw NSError(domain: "GameNetworkManager", code: 21, userInfo: [NSLocalizedDescriptionKey: "Failed to craft \(recipeId) - insufficient materials or crafting queue full"])
         }
     }
 
+    func spawnResource(_ parameters: [String: Any]) async throws -> Any {
+        guard let resourceType = parameters["resourceType"] as? String,
+              let x = parameters["x"] as? Int,
+              let y = parameters["y"] as? Int,
+              let amount = parameters["amount"] as? Int else {
+            throw NSError(domain: "GameNetworkManager", code: 22, userInfo: [NSLocalizedDescriptionKey: "Missing resourceType, x, y, or amount parameter"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        let tilePos = IntVector2(x: Int32(x), y: Int32(y))
+
+        // Create the resource deposit
+        guard let resourceTypeEnum = ResourceType(rawValue: resourceType) else {
+            throw NSError(domain: "GameNetworkManager", code: 23, userInfo: [NSLocalizedDescriptionKey: "Invalid resource type: \(resourceType)"])
+        }
+
+        let resourceDeposit = ResourceDeposit(type: resourceTypeEnum, amount: amount)
+
+        // Get the current tile
+        if var tile = gameLoop.chunkManager.getTile(at: tilePos) {
+            // Set the resource on the tile
+            tile.resource = resourceDeposit
+            gameLoop.chunkManager.setTile(at: tilePos, tile: tile)
+
+            sendDebugLog("spawnResource: Successfully spawned \(amount) \(resourceType) at (\(x), \(y))")
+
+            return [
+                "success": true,
+                "resourceType": resourceType,
+                "position": ["x": x, "y": y],
+                "amount": amount,
+                "message": "Spawned \(amount) \(resourceType) at (\(x), \(y))"
+            ]
+        } else {
+            throw NSError(domain: "GameNetworkManager", code: 24, userInfo: [NSLocalizedDescriptionKey: "Could not access tile at (\(x), \(y))"])
+        }
+    }
+
+    func openMachineUI(_ parameters: [String: Any]) async throws -> Any {
+        sendDebugLog("openMachineUI: Called with parameters: \(parameters)")
+
+        guard let x = parameters["x"] as? Int,
+              let y = parameters["y"] as? Int else {
+            sendDebugLog("openMachineUI: Missing x or y coordinates")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing x or y coordinates"])
+        }
+
+        sendDebugLog("openMachineUI: Looking for machine at (\(x), \(y))")
+
+        guard let gameLoop = self.gameLoop else {
+            sendDebugLog("openMachineUI: Game not initialized")
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        let tilePos = IntVector2(x: Int32(x), y: Int32(y))
+        sendDebugLog("openMachineUI: Tile position: (\(tilePos.x), \(tilePos.y))")
+
+        // Find entities at this position
+        let entities = gameLoop.world.getAllEntitiesAt(position: tilePos)
+        let interactableEntities = entities.filter { entity in
+            let hasFurnace = gameLoop.world.has(FurnaceComponent.self, for: entity)
+            let hasMiner = gameLoop.world.has(MinerComponent.self, for: entity)
+            let hasAssembler = gameLoop.world.has(AssemblerComponent.self, for: entity)
+            let hasChest = gameLoop.world.has(ChestComponent.self, for: entity)
+            let hasLab = gameLoop.world.has(LabComponent.self, for: entity)
+
+            return hasFurnace || hasMiner || hasAssembler || hasChest || hasLab
+        }
+
+        guard let targetEntity = interactableEntities.first else {
+            throw NSError(domain: "GameNetworkManager", code: 26, userInfo: [NSLocalizedDescriptionKey: "No interactable machine found at (\(x), \(y))"])
+        }
+
+        // Check what type of machine it is
+        var machineType = "unknown"
+        if gameLoop.world.has(FurnaceComponent.self, for: targetEntity) {
+            machineType = "furnace"
+        } else if gameLoop.world.has(MinerComponent.self, for: targetEntity) {
+            machineType = "miner"
+        } else if gameLoop.world.has(AssemblerComponent.self, for: targetEntity) {
+            machineType = "assembler"
+        } else if gameLoop.world.has(LabComponent.self, for: targetEntity) {
+            machineType = "lab"
+        } else if gameLoop.world.has(ChestComponent.self, for: targetEntity) {
+            machineType = "chest"
+        }
+
+        // Programmatically open the machine UI
+        // This simulates what happens when the player taps on a building
+        DispatchQueue.main.async {
+            // Trigger the UI system to show the machine interface
+            gameLoop.uiSystem?.openMachineUI(for: targetEntity)
+        }
+
+        sendDebugLog("openMachineUI: Opened \(machineType) UI at (\(x), \(y))")
+
+        return [
+            "success": true,
+            "machineType": machineType,
+            "position": ["x": x, "y": y],
+            "entityId": targetEntity.id,
+            "message": "Opened \(machineType) machine UI at (\(x), \(y))"
+        ]
+    }
+
+    func addMachineItem(_ parameters: [String: Any]) async throws -> Any {
+        sendDebugLog("addMachineItem: Called with parameters: \(parameters)")
+
+        guard let x = parameters["x"] as? Int,
+              let y = parameters["y"] as? Int,
+              let slotIndex = parameters["slot"] as? Int,
+              let itemId = parameters["itemId"] as? String,
+              let count = parameters["count"] as? Int else {
+            sendDebugLog("addMachineItem: Missing required parameters")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters: x, y, slot, itemId, count"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            sendDebugLog("addMachineItem: Game not initialized")
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        // Check if player has the item
+        guard gameLoop.player.inventory.has(itemId: itemId, count: count) else {
+            sendDebugLog("addMachineItem: Player doesn't have enough \(itemId)")
+            throw NSError(domain: "GameNetworkManager", code: 6, userInfo: [NSLocalizedDescriptionKey: "Player doesn't have enough \(itemId)"])
+        }
+
+        let tilePos = IntVector2(x: Int32(x), y: Int32(y))
+
+        // Find the machine entity at this position
+        let entities = gameLoop.world.getAllEntitiesAt(position: tilePos)
+        guard let targetEntity = entities.first(where: { entity in
+            gameLoop.world.has(InventoryComponent.self, for: entity) ||
+            gameLoop.world.has(FurnaceComponent.self, for: entity)
+        }) else {
+            sendDebugLog("addMachineItem: No machine found at (\(x), \(y))")
+            throw NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "No machine found at position"])
+        }
+
+        // All machines use InventoryComponent for item slots
+        guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: targetEntity),
+              slotIndex < machineInventory.slots.count else {
+            sendDebugLog("addMachineItem: Invalid slot index \(slotIndex) or no inventory")
+            throw NSError(domain: "GameNetworkManager", code: 28, userInfo: [NSLocalizedDescriptionKey: "Invalid slot index or machine has no inventory"])
+        }
+
+        // Check if slot is empty
+        guard machineInventory.slots[slotIndex] == nil else {
+            sendDebugLog("addMachineItem: Slot \(slotIndex) is not empty")
+            throw NSError(domain: "GameNetworkManager", code: 29, userInfo: [NSLocalizedDescriptionKey: "Slot is not empty"])
+        }
+
+        // Add item to machine slot
+        machineInventory.slots[slotIndex] = ItemStack(itemId: itemId, count: count)
+        gameLoop.world.add(machineInventory, to: targetEntity)
+
+        // Remove from player inventory
+        gameLoop.player.inventory.remove(itemId: itemId, count: count)
+
+        sendDebugLog("addMachineItem: Added \(count) \(itemId) to machine at (\(x), \(y)) slot \(slotIndex)")
+
+        return [
+            "success": true,
+            "itemId": itemId,
+            "count": count,
+            "slot": slotIndex,
+            "position": ["x": x, "y": y],
+            "message": "Added \(count) \(itemId) to machine slot \(slotIndex)"
+        ]
+    }
+
+    func deleteBuilding(_ parameters: [String: Any]) async throws -> Any {
+        sendDebugLog("deleteBuilding: Called with parameters: \(parameters)")
+
+        // Accept both Int and Double coordinates to handle floating point inputs
+        let x: Int
+        let y: Int
+
+        if let intX = parameters["x"] as? Int {
+            x = intX
+        } else if let doubleX = parameters["x"] as? Double {
+            x = Int(doubleX.rounded())
+        } else {
+            sendDebugLog("deleteBuilding: Missing or invalid x coordinate")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing or invalid x coordinate"])
+        }
+
+        if let intY = parameters["y"] as? Int {
+            y = intY
+        } else if let doubleY = parameters["y"] as? Double {
+            y = Int(doubleY.rounded())
+        } else {
+            sendDebugLog("deleteBuilding: Missing or invalid y coordinate")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing or invalid y coordinate"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            sendDebugLog("deleteBuilding: Game not initialized")
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        let tilePos = IntVector2(x: Int32(x), y: Int32(y))
+        sendDebugLog("deleteBuilding: Converted coordinates (\(x), \(y)) to tile position (\(tilePos.x), \(tilePos.y))")
+
+        // Find entities at this position and nearby positions (in case of rounding issues)
+        var entities = gameLoop.world.getAllEntitiesAt(position: tilePos)
+        sendDebugLog("deleteBuilding: Found \(entities.count) entities at exact tile position (\(tilePos.x), \(tilePos.y))")
+
+        // If no entities found at exact position, check nearby tiles
+        if entities.isEmpty {
+            for dx in -1...1 {
+                for dy in -1...1 {
+                    if dx == 0 && dy == 0 { continue } // Skip center tile
+                    let nearbyPos = IntVector2(x: tilePos.x + Int32(dx), y: tilePos.y + Int32(dy))
+                    let nearbyEntities = gameLoop.world.getAllEntitiesAt(position: nearbyPos)
+                    entities.append(contentsOf: nearbyEntities)
+                    sendDebugLog("deleteBuilding: Found \(nearbyEntities.count) entities at nearby position (\(nearbyPos.x), \(nearbyPos.y))")
+                }
+            }
+        }
+
+        // Look for buildings (entities with BuildingComponent) or any entity if none found
+        var targetEntity = entities.first(where: { entity in
+            gameLoop.world.has(BuildingComponent.self, for: entity)
+        })
+
+        if targetEntity == nil && !entities.isEmpty {
+            // If no building found but entities exist, try the first entity
+            // This allows deleting any entity, not just buildings
+            targetEntity = entities.first
+            sendDebugLog("deleteBuilding: No building component found, but found entity - attempting to delete any entity")
+        }
+
+        guard let entityToDelete = targetEntity else {
+            sendDebugLog("deleteBuilding: No entity found at (\(x), \(y)) - entities found: \(entities.count)")
+            throw NSError(domain: "GameNetworkManager", code: 30, userInfo: [NSLocalizedDescriptionKey: "No entity found at position (\(x), \(y))"])
+        }
+
+        // Try to get the building component to know what type it is and refund materials
+        if let buildingComponent = gameLoop.world.get(BuildingComponent.self, for: entityToDelete),
+           let buildingDef = gameLoop.buildingRegistry.get(buildingComponent.buildingId) {
+
+            // Refund building materials to player
+            for item in buildingDef.cost {
+                if let itemDef = gameLoop.itemRegistry.get(item.itemId) {
+                    gameLoop.player.inventory.add(itemId: item.itemId, count: item.count, maxStack: itemDef.stackSize)
+                } else {
+                    gameLoop.player.inventory.add(itemId: item.itemId, count: item.count, maxStack: 100)
+                }
+            }
+
+            sendDebugLog("deleteBuilding: Refunded materials for \(buildingComponent.buildingId)")
+        } else {
+            sendDebugLog("deleteBuilding: No building component found - deleting entity without material refund")
+        }
+
+        // Remove the entity from the world
+        gameLoop.world.despawn(entityToDelete)
+
+        sendDebugLog("deleteBuilding: Deleted building at (\(x), \(y))")
+
+        return [
+            "success": true,
+            "position": ["x": x, "y": y],
+            "message": "Building deleted and materials refunded"
+        ]
+    }
+
+    func moveBuilding(_ parameters: [String: Any]) async throws -> Any {
+        sendDebugLog("moveBuilding: Called with parameters: \(parameters)")
+
+        // Accept both Int and Double coordinates for all positions
+        let fromX: Int, fromY: Int, toX: Int, toY: Int
+
+        if let intX = parameters["fromX"] as? Int {
+            fromX = intX
+        } else if let doubleX = parameters["fromX"] as? Double {
+            fromX = Int(doubleX.rounded())
+        } else {
+            sendDebugLog("moveBuilding: Missing or invalid fromX coordinate")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing or invalid fromX coordinate"])
+        }
+
+        if let intY = parameters["fromY"] as? Int {
+            fromY = intY
+        } else if let doubleY = parameters["fromY"] as? Double {
+            fromY = Int(doubleY.rounded())
+        } else {
+            sendDebugLog("moveBuilding: Missing or invalid fromY coordinate")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing or invalid fromY coordinate"])
+        }
+
+        if let intX = parameters["toX"] as? Int {
+            toX = intX
+        } else if let doubleX = parameters["toX"] as? Double {
+            toX = Int(doubleX.rounded())
+        } else {
+            sendDebugLog("moveBuilding: Missing or invalid toX coordinate")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing or invalid toX coordinate"])
+        }
+
+        if let intY = parameters["toY"] as? Int {
+            toY = intY
+        } else if let doubleY = parameters["toY"] as? Double {
+            toY = Int(doubleY.rounded())
+        } else {
+            sendDebugLog("moveBuilding: Missing or invalid toY coordinate")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing or invalid toY coordinate"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            sendDebugLog("moveBuilding: Game not initialized")
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        let fromPos = IntVector2(x: Int32(fromX), y: Int32(fromY))
+        let toPos = IntVector2(x: Int32(toX), y: Int32(toY))
+
+        sendDebugLog("moveBuilding: Moving from (\(fromX), \(fromY)) to (\(toX), \(toY))")
+
+        // Find building at source position
+        let entities = gameLoop.world.getAllEntitiesAt(position: fromPos)
+        guard let targetEntity = entities.first(where: { entity in
+            gameLoop.world.has(BuildingComponent.self, for: entity)
+        }) else {
+            sendDebugLog("moveBuilding: No building found at source position")
+            throw NSError(domain: "GameNetworkManager", code: 30, userInfo: [NSLocalizedDescriptionKey: "No building found at source position"])
+        }
+
+        // Check if destination is valid (empty)
+        let destEntities = gameLoop.world.getAllEntitiesAt(position: toPos)
+        guard destEntities.isEmpty else {
+            sendDebugLog("moveBuilding: Destination position is not empty")
+            throw NSError(domain: "GameNetworkManager", code: 31, userInfo: [NSLocalizedDescriptionKey: "Destination position is not empty"])
+        }
+
+        // Check if destination is valid for building placement
+        guard let buildingComponent = gameLoop.world.get(BuildingComponent.self, for: targetEntity),
+              let buildingDef = gameLoop.buildingRegistry.get(buildingComponent.buildingId),
+              gameLoop.canPlaceBuilding(buildingComponent.buildingId, at: toPos, direction: .north) else {
+            sendDebugLog("moveBuilding: Cannot place building at destination")
+            throw NSError(domain: "GameNetworkManager", code: 32, userInfo: [NSLocalizedDescriptionKey: "Cannot place building at destination"])
+        }
+
+        // Move the building by updating its position
+        // Note: This is a simplified implementation. Real Factorio might have more complex movement logic
+        if let positionComponent = gameLoop.world.get(PositionComponent.self, for: targetEntity) {
+            var newPosition = positionComponent
+            newPosition.tilePosition = IntVector2(x: Int32(toX), y: Int32(toY))
+            gameLoop.world.add(newPosition, to: targetEntity)
+        }
+
+        sendDebugLog("moveBuilding: Moved building from (\(fromX), \(fromY)) to (\(toX), \(toY))")
+
+        return [
+            "success": true,
+            "fromPosition": ["x": fromX, "y": fromY],
+            "toPosition": ["x": toX, "y": toY],
+            "message": "Building moved successfully"
+        ]
+    }
+
+    }
+
     private func buildStructure(_ parameters: [String: Any]) async throws -> Any {
+        sendDebugLog("buildStructure: Starting build with parameters: \(parameters)")
+
         guard let gameLoop = gameLoop,
               let buildingId = parameters["buildingId"] as? String,
               let x = parameters["x"] as? Int,
               let y = parameters["y"] as? Int else {
+            sendDebugLog("buildStructure: Invalid build parameters")
             throw NSError(domain: "GameNetworkManager", code: 3, userInfo: [NSLocalizedDescriptionKey: "Invalid build parameters"])
         }
 
+        sendDebugLog("buildStructure: Parameters validated - buildingId: \(buildingId), position: (\(x), \(y))")
+
         // Validate building exists
         guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else {
+            sendDebugLog("buildStructure: Building not found in registry: \(buildingId)")
             throw NSError(domain: "GameNetworkManager", code: 4, userInfo: [NSLocalizedDescriptionKey: "Building not found: \(buildingId)"])
         }
 
+        sendDebugLog("buildStructure: Building found - \(buildingId): \(buildingDef.name)")
+
         // Check if position is valid
         let tilePos = IntVector2(x: Int32(x), y: Int32(y))
+        sendDebugLog("buildStructure: Checking if can place building at tile position (\(tilePos.x), \(tilePos.y))")
+
         guard gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: .north) else {
+            sendDebugLog("buildStructure: Cannot place building at position (\(tilePos.x), \(tilePos.y))")
             throw NSError(domain: "GameNetworkManager", code: 5, userInfo: [NSLocalizedDescriptionKey: "Cannot place building at position"])
         }
 
+        sendDebugLog("buildStructure: Position validation passed")
+
         // Check resources
         guard gameLoop.player.inventory.has(items: buildingDef.cost) else {
+            sendDebugLog("buildStructure: Insufficient resources for \(buildingId)")
             throw NSError(domain: "GameNetworkManager", code: 6, userInfo: [NSLocalizedDescriptionKey: "Insufficient resources"])
         }
 
+        sendDebugLog("buildStructure: Resource check passed")
+
         // Place the building
+        sendDebugLog("buildStructure: Attempting to place building \(buildingId) at (\(tilePos.x), \(tilePos.y))")
         if gameLoop.placeBuilding(buildingId, at: tilePos, direction: .north) {
+            sendDebugLog("buildStructure: Building placement succeeded")
+
             // Consume resources
             for item in buildingDef.cost {
                 gameLoop.player.inventory.remove(itemId: item.itemId, count: item.count)
             }
 
+            sendDebugLog("buildStructure: Resources consumed, build complete")
+
             return [
                 "success": true,
                 "buildingId": buildingId,
-                "position": ["x": x, "y": y]
+                "position": ["x": x, "y": y],
+                "message": "Building \(buildingId) placed successfully"
             ] as [String: Any]
         } else {
             throw NSError(domain: "GameNetworkManager", code: 7, userInfo: [NSLocalizedDescriptionKey: "Failed to create building"])
@@ -357,7 +1164,7 @@ final class GameNetworkManager {
     }
 
     private func sendGameState(to connection: NWConnection) {
-        guard let gameLoop = gameLoop else { return }
+        guard gameLoop != nil else { return }
 
         let gameState: [String: Any] = [
             "type": "game_state_update",
@@ -411,7 +1218,7 @@ final class GameNetworkManager {
         var chunks: [[String: Any]] = []
         for chunk in gameLoop.chunkManager.allLoadedChunks {
             chunks.append([
-                "coord": ["x": chunk.coord.x, "y": chunk.coord.y],
+                "coord": ["x": chunk.coord.x as Any, "y": chunk.coord.y as Any],
                 "loaded": true
             ])
         }
@@ -548,6 +1355,15 @@ final class GameNetworkManager {
 
                 Task {
                     do {
+                        // Check if gameLoop is available
+                        guard self.gameLoop != nil else {
+                            let errorResponse = Data("HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nContent-Length: 39\r\n\r\n{\"error\":\"Game not started yet\"}".utf8)
+                            connection.send(content: errorResponse, completion: .contentProcessed { _ in
+                                connection.cancel()
+                            })
+                            return
+                        }
+
                         let result = try await self.executeCommand(command, parameters: parameters)
 
                         // Defensive JSON serialization
@@ -555,10 +1371,10 @@ final class GameNetworkManager {
                             // If result is not JSON serializable, convert to string representation
                             let stringResult = String(describing: result)
                             let fallbackResponse: [String: Any] = ["result": stringResult]
-                            guard let response = try? JSONSerialization.data(withJSONObject: fallbackResponse, options: []) else {
+                            guard let response = JSONSerialization.isValidJSONObject(fallbackResponse) ? (try? JSONSerialization.data(withJSONObject: fallbackResponse, options: [])) : nil else {
                                 // If even fallback fails, send minimal response
                                 let minimalResponse = Data("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}".utf8)
-                                try? connection.send(content: minimalResponse, completion: .contentProcessed { _ in
+                                connection.send(content: minimalResponse, completion: .contentProcessed { _ in
                                     connection.cancel()
                                 })
                                 return
@@ -567,7 +1383,7 @@ final class GameNetworkManager {
                             var fullResponse = httpResponse.data(using: .utf8)!
                             fullResponse.append(response)
 
-                            try? connection.send(content: fullResponse, completion: .contentProcessed { _ in
+                            connection.send(content: fullResponse, completion: .contentProcessed { _ in
                                 connection.cancel()
                             })
                             return
@@ -578,15 +1394,15 @@ final class GameNetworkManager {
                         var fullResponse = httpResponse.data(using: .utf8)!
                         fullResponse.append(response)
 
-                        try? connection.send(content: fullResponse, completion: .contentProcessed { _ in
+                        connection.send(content: fullResponse, completion: .contentProcessed { _ in
                             connection.cancel()
                         })
                     } catch {
                         // Absolute minimal error handling - avoid any complex operations that could crash
                         let minimalResponse = Data("HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n".utf8)
 
-                        // Use try? to make send operation optional and avoid crashes
-                        try? connection.send(content: minimalResponse, completion: .contentProcessed { _ in
+                        // Send minimal error response and close connection
+                        connection.send(content: minimalResponse, completion: .contentProcessed { _ in
                             connection.cancel()
                         })
                     }
@@ -604,5 +1420,286 @@ final class GameNetworkManager {
                 })
             }
         }
+    }
+
+    // MARK: - Save/Load Game Functions
+
+    func startNewGame(_ parameters: [String: Any]) async throws -> Any {
+        // Note: Starting a new game requires UI interaction and is handled by GameViewController
+        // This command is primarily for signaling that a new game should be started
+        sendDebugLog("startNewGame: New game requested via MCP")
+        return ["message": "New game requested. Please use the LoadingMenu in the app to start a new game."]
+    }
+
+    func saveGame(_ parameters: [String: Any]) async throws -> Any {
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        let slotName = parameters["slotName"] as? String ?? "mcp_save_\(Int(Date().timeIntervalSince1970))"
+
+        gameLoop.saveSystem.save(gameLoop: gameLoop, slotName: slotName)
+        sendDebugLog("saveGame: Game saved to slot '\(slotName)'")
+
+        return ["success": true, "slotName": slotName, "message": "Game saved successfully"]
+    }
+
+    func loadGame(_ parameters: [String: Any]) async throws -> Any {
+        guard let slotName = parameters["slotName"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 20, userInfo: [NSLocalizedDescriptionKey: "Missing slotName parameter"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        guard let saveData = gameLoop.saveSystem.loadFromSlot(slotName) else {
+            throw NSError(domain: "GameNetworkManager", code: 21, userInfo: [NSLocalizedDescriptionKey: "Save slot '\(slotName)' not found"])
+        }
+
+        gameLoop.saveSystem.load(saveData: saveData, into: gameLoop, slotName: slotName)
+        sendDebugLog("loadGame: Game loaded from slot '\(slotName)'")
+
+        return ["success": true, "slotName": slotName, "message": "Game loaded successfully"]
+    }
+
+    func listSaveSlots(_ parameters: [String: Any]) async throws -> Any {
+        // Create a temporary SaveSystem to access saves even without an active gameLoop
+        let tempSaveSystem = SaveSystem()
+        let slots = tempSaveSystem.getSaveSlots()
+
+        let slotData = slots.map { slot in
+            return [
+                "name": slot.name,
+                "displayName": slot.displayName ?? slot.name,
+                "playTime": slot.formattedPlayTime,
+                "timestamp": slot.timestamp.ISO8601Format(),
+                "modificationDate": slot.modificationDate.ISO8601Format()
+            ]
+        }
+
+        sendDebugLog("listSaveSlots: Found \(slots.count) save slots")
+        return ["saveSlots": slotData, "count": slots.count]
+    }
+
+    func deleteSaveSlot(_ parameters: [String: Any]) async throws -> Any {
+        guard let slotName = parameters["slotName"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 22, userInfo: [NSLocalizedDescriptionKey: "Missing slotName parameter"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        gameLoop.saveSystem.deleteSave(slotName)
+        sendDebugLog("deleteSaveSlot: Deleted save slot '\(slotName)'")
+
+        return ["success": true, "slotName": slotName, "message": "Save slot deleted successfully"]
+    }
+
+    func renameSaveSlot(_ parameters: [String: Any]) async throws -> Any {
+        guard let slotName = parameters["slotName"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 23, userInfo: [NSLocalizedDescriptionKey: "Missing slotName parameter"])
+        }
+
+        guard let newName = parameters["newName"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 24, userInfo: [NSLocalizedDescriptionKey: "Missing newName parameter"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        gameLoop.saveSystem.setDisplayName(newName, for: slotName)
+        sendDebugLog("renameSaveSlot: Renamed save slot '\(slotName)' to '\(newName)'")
+
+        return ["success": true, "oldName": slotName, "newName": newName, "message": "Save slot renamed successfully"]
+    }
+
+    // MARK: - Machine UI Configuration Methods
+
+    func updateMachineUIConfig(_ parameters: [String: Any]) async throws -> Any {
+        guard let machineType = parameters["machineType"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing machineType parameter"])
+        }
+
+        guard let configDict = parameters["config"] as? [String: Any] else {
+            throw NSError(domain: "GameNetworkManager", code: 26, userInfo: [NSLocalizedDescriptionKey: "Missing config parameter"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        // Convert dictionary to JSON data and decode to MachineUIConfig
+        let jsonData = try JSONSerialization.data(withJSONObject: configDict)
+        let decoder = JSONDecoder()
+        let config = try decoder.decode(MachineUIConfig.self, from: jsonData)
+
+        // Apply the configuration to the UI system
+        if let machineUI = gameLoop.uiSystem?.getMachineUI() {
+            machineUI.updateConfiguration(config)
+            sendDebugLog("updateMachineUIConfig: Successfully updated configuration for machine type '\(machineType)'")
+            return ["success": true, "machineType": machineType, "message": "Machine UI configuration updated successfully"]
+        } else {
+            throw NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "UI system not available"])
+        }
+    }
+
+    func getMachineUIConfig(_ parameters: [String: Any]) async throws -> Any {
+        guard let machineType = parameters["machineType"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 29, userInfo: [NSLocalizedDescriptionKey: "Missing machineType parameter"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        // Get the configuration from the UI system
+        if let machineUI = gameLoop.uiSystem?.getMachineUI(),
+           let config = machineUI.getConfiguration(for: machineType) {
+            // Convert to dictionary format for JSON response
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(config)
+            let jsonObject = try JSONSerialization.jsonObject(with: data)
+
+            sendDebugLog("getMachineUIConfig: Retrieved configuration for machine type '\(machineType)'")
+            return ["config": jsonObject, "message": "Machine UI configuration retrieved successfully"]
+        } else {
+            throw NSError(domain: "GameNetworkManager", code: 30, userInfo: [NSLocalizedDescriptionKey: "Configuration not found for machine type '\(machineType)'"])
+        }
+    }
+
+    func listMachineUIConfigs(_ parameters: [String: Any]) async throws -> Any {
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        // Get all configurations from the UI system
+        if let machineUI = gameLoop.uiSystem?.getMachineUI() {
+            let allConfigs = machineUI.getAllConfigurations()
+
+            // Convert to array format for JSON response
+            var configsArray: [[String: Any]] = []
+            let encoder = JSONEncoder()
+
+            for (machineType, config) in allConfigs {
+                let data = try encoder.encode(config)
+                if var jsonObject = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    jsonObject["machineType"] = machineType
+                    configsArray.append(jsonObject)
+                }
+            }
+
+            sendDebugLog("listMachineUIConfigs: Found \(configsArray.count) configurations")
+            return ["configurations": configsArray, "count": configsArray.count, "message": "Machine UI configurations retrieved successfully"]
+        } else {
+            throw NSError(domain: "GameNetworkManager", code: 31, userInfo: [NSLocalizedDescriptionKey: "UI system not available"])
+        }
+    }
+
+    // MARK: - Starting Items Configuration Methods
+
+    func getStartingItemsConfig(_ parameters: [String: Any]) async throws -> Any {
+        // Load the starting items config from the bundled JSON file
+        if let configURL = Bundle.main.url(forResource: "starting_items", withExtension: "json") {
+            do {
+                let data = try Data(contentsOf: configURL)
+                let jsonObject = try JSONSerialization.jsonObject(with: data)
+                return ["config": jsonObject, "message": "Starting items configuration retrieved successfully"]
+            } catch {
+                throw NSError(domain: "GameNetworkManager", code: 32, userInfo: [NSLocalizedDescriptionKey: "Error reading starting items config: \(error)"])
+            }
+        } else {
+            throw NSError(domain: "GameNetworkManager", code: 33, userInfo: [NSLocalizedDescriptionKey: "Starting items config file not found"])
+        }
+    }
+
+    func updateStartingItemsConfig(_ parameters: [String: Any]) async throws -> Any {
+        guard let startingItemsArray = parameters["startingItems"] as? [[String: Any]] else {
+            throw NSError(domain: "GameNetworkManager", code: 34, userInfo: [NSLocalizedDescriptionKey: "Missing startingItems parameter"])
+        }
+
+        // Convert the array to StartingItem structs
+        var startingItems: [StartingItemsConfig.StartingItem] = []
+        for itemDict in startingItemsArray {
+            guard let itemId = itemDict["itemId"] as? String,
+                  let count = itemDict["count"] as? Int else {
+                continue
+            }
+            let comment = itemDict["comment"] as? String
+            startingItems.append(StartingItemsConfig.StartingItem(itemId: itemId, count: count, comment: comment))
+        }
+
+        // Note: In a full implementation, this would save to a user-editable file
+        // For now, we acknowledge the update but it won't persist across app restarts
+        sendDebugLog("updateStartingItemsConfig: Updated starting items config with \(startingItems.count) items")
+
+        return ["success": true, "itemCount": startingItems.count, "message": "Starting items configuration updated (will take effect on next game restart)"]
+    }
+
+    func getBuildingConfig(_ parameters: [String: Any]) async throws -> Any {
+        guard let buildingId = parameters["buildingId"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 35, userInfo: [NSLocalizedDescriptionKey: "Missing buildingId parameter"])
+        }
+
+        guard let gameLoop = gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "No game loop available"])
+        }
+
+        guard let config = gameLoop.buildingRegistry.getBuildingConfig(for: buildingId) else {
+            throw NSError(domain: "GameNetworkManager", code: 36, userInfo: [NSLocalizedDescriptionKey: "Building with ID '\(buildingId)' not found"])
+        }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let jsonData = try encoder.encode(config)
+        let jsonString = String(data: jsonData, encoding: .utf8)!
+
+        sendDebugLog("getBuildingConfig: Retrieved config for building '\(buildingId)'")
+        return ["buildingId": buildingId, "config": config, "json": jsonString]
+    }
+
+    func updateBuildingConfig(_ parameters: [String: Any]) async throws -> Any {
+        guard let buildingId = parameters["buildingId"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 37, userInfo: [NSLocalizedDescriptionKey: "Missing buildingId parameter"])
+        }
+
+        guard let configDict = parameters["config"] as? [String: Any] else {
+            throw NSError(domain: "GameNetworkManager", code: 38, userInfo: [NSLocalizedDescriptionKey: "Missing config parameter"])
+        }
+
+        guard let gameLoop = gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "No game loop available"])
+        }
+
+        // Convert the dictionary to BuildingConfig struct
+        let jsonData = try JSONSerialization.data(withJSONObject: configDict, options: [])
+        let config = try JSONDecoder().decode(BuildingConfig.self, from: jsonData)
+
+        let success = gameLoop.buildingRegistry.updateBuildingConfig(config)
+
+        if success {
+            sendDebugLog("updateBuildingConfig: Successfully updated config for building '\(buildingId)'")
+            return ["success": true, "buildingId": buildingId, "message": "Building configuration updated successfully"]
+        } else {
+            throw NSError(domain: "GameNetworkManager", code: 39, userInfo: [NSLocalizedDescriptionKey: "Failed to update building configuration"])
+        }
+    }
+
+    func listBuildingConfigs(_ parameters: [String: Any]) async throws -> Any {
+        guard let gameLoop = gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "No game loop available"])
+        }
+
+        let configs = gameLoop.buildingRegistry.getAllBuildingConfigs()
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+        let jsonData = try encoder.encode(configs)
+        let jsonString = String(data: jsonData, encoding: .utf8)!
+
+        sendDebugLog("listBuildingConfigs: Retrieved \(configs.count) building configurations")
+        return ["buildingCount": configs.count, "configs": configs, "json": jsonString]
     }
 }

@@ -1,0 +1,56 @@
+[
+  {
+    "id": "military-barracks",
+    "name": "Military Barracks",
+    "type": "unitProduction",
+    "width": 4,
+    "height": 3,
+    "maxHealth": 300,
+    "cost": [
+      {"itemId": "iron-plate", "count": 20},
+      {"itemId": "stone-brick", "count": 10},
+      {"itemId": "electronic-circuit", "count": 5}
+    ],
+    "powerConsumption": 50,
+    "inventorySlots": 10,
+    "inputSlots": 0,
+    "outputSlots": 10,
+    "fuelSlots": 0
+  },
+  {
+    "id": "fantasy-academy",
+    "name": "Fantasy Academy",
+    "type": "unitProduction",
+    "width": 4,
+    "height": 3,
+    "maxHealth": 350,
+    "cost": [
+      {"itemId": "stone-brick", "count": 20},
+      {"itemId": "iron-plate", "count": 15},
+      {"itemId": "electronic-circuit", "count": 10}
+    ],
+    "powerConsumption": 75,
+    "inventorySlots": 8,
+    "inputSlots": 0,
+    "outputSlots": 8,
+    "fuelSlots": 0
+  },
+  {
+    "id": "elemental-summoning-circle",
+    "name": "Elemental Summoning Circle",
+    "type": "unitProduction",
+    "width": 5,
+    "height": 5,
+    "maxHealth": 400,
+    "cost": [
+      {"itemId": "stone-brick", "count": 25},
+      {"itemId": "electronic-circuit", "count": 15},
+      {"itemId": "advanced-circuit", "count": 5}
+    ],
+    "powerConsumption": 100,
+    "inventorySlots": 6,
+    "inputSlots": 0,
+    "outputSlots": 6,
+    "fuelSlots": 0
+  }
+]

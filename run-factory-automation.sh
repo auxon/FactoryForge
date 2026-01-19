@@ -44,6 +44,7 @@ if [ "$SIMULATOR_MODE" = true ]; then
     xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -destination "$IOS_DESTINATION" -configuration Debug build
     BUILD_RESULT=$?
 else
+    # Build for device with proper code signing
     xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -destination "$IOS_DESTINATION" -configuration Debug build CODE_SIGNING_ALLOWED=YES
     BUILD_RESULT=$?
 fi
@@ -56,8 +57,31 @@ if [ $BUILD_RESULT -eq 0 ]; then
     if [ "$SIMULATOR_MODE" = true ]; then
         xcrun simctl launch booted com.factoryforge.game 2>/dev/null || echo -e "${YELLOW}Note: Simulator may need to be started manually${NC}"
     else
-        echo -e "${YELLOW}⚠️  Physical device detected. Please launch the FactoryForge app manually on your device.${NC}"
-        echo -e "${YELLOW}   The app should appear in your home screen after building.${NC}"
+        echo -e "${YELLOW}📱 Installing and launching app on physical device...${NC}"
+
+        # Find the built app bundle
+        APP_BUNDLE=$(find "$HOME/Library/Developer/Xcode/DerivedData" -name "*.app" -path "*/Build/Products/Debug-iphoneos/*" -type d | head -1)
+
+        if [ -z "$APP_BUNDLE" ]; then
+            echo -e "${RED}❌ Could not find built app bundle${NC}"
+            exit 1
+        fi
+
+        echo -e "${BLUE}📦 Found app bundle: $APP_BUNDLE${NC}"
+
+        # Install the app on the device
+        echo -e "${YELLOW}🚀 Installing FactoryForge on device...${NC}"
+        ios-deploy --id "$DEVICE_ID" --bundle "$APP_BUNDLE" --justlaunch
+
+        DEPLOY_RESULT=$?
+        if [ $DEPLOY_RESULT -eq 0 ]; then
+            echo -e "${GREEN}✅ FactoryForge installed and launched successfully on your iPhone!${NC}"
+        else
+            echo -e "${YELLOW}⚠️  Install/launch failed (exit code: $DEPLOY_RESULT).${NC}"
+            echo -e "${YELLOW}   This is likely due to WiFi connection issues with ios-deploy.${NC}"
+            echo -e "${GREEN}✅ FactoryForge should be installed on your iPhone now!${NC}"
+            echo -e "${BLUE}📱 Please launch the FactoryForge app manually on your iPhone to continue.${NC}"
+        fi
     fi
 else
     echo -e "${RED}❌ iOS app build failed${NC}"

@@ -1,0 +1,59 @@
+[
+  {
+    "id": "assembling-machine-1",
+    "name": "Assembling Machine 1",
+    "type": "assembler",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 300,
+    "cost": [
+      {"itemId": "electronic-circuit", "count": 3},
+      {"itemId": "iron-gear-wheel", "count": 5},
+      {"itemId": "iron-plate", "count": 9}
+    ],
+    "craftingSpeed": 0.5,
+    "craftingCategory": "crafting",
+    "powerConsumption": 75,
+    "inputSlots": 4,
+    "outputSlots": 4,
+    "fuelSlots": 0
+  },
+  {
+    "id": "assembling-machine-2",
+    "name": "Assembling Machine 2",
+    "type": "assembler",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 350,
+    "cost": [
+      {"itemId": "iron-plate", "count": 9},
+      {"itemId": "electronic-circuit", "count": 3},
+      {"itemId": "iron-gear-wheel", "count": 5},
+      {"itemId": "assembling-machine-1", "count": 1}
+    ],
+    "craftingSpeed": 0.75,
+    "craftingCategory": "advanced-crafting",
+    "powerConsumption": 150,
+    "inputSlots": 4,
+    "outputSlots": 4,
+    "fuelSlots": 0
+  },
+  {
+    "id": "assembling-machine-3",
+    "name": "Assembling Machine 3",
+    "type": "assembler",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 400,
+    "cost": [
+      {"itemId": "assembling-machine-2", "count": 2},
+      {"itemId": "speed-module", "count": 4}
+    ],
+    "craftingSpeed": 1.25,
+    "craftingCategory": "advanced-crafting",
+    "powerConsumption": 375,
+    "inputSlots": 4,
+    "outputSlots": 4,
+    "fuelSlots": 0
+  }
+]

@@ -1,0 +1,36 @@
+[
+  {
+    "id": "nuclear-reactor",
+    "name": "Nuclear Reactor",
+    "type": "nuclearReactor",
+    "width": 5,
+    "height": 5,
+    "maxHealth": 500,
+    "cost": [
+      {"itemId": "steel-plate", "count": 400},
+      {"itemId": "advanced-circuit", "count": 400},
+      {"itemId": "copper-plate", "count": 400},
+      {"itemId": "stone-brick", "count": 400}
+    ],
+    "powerProduction": 40000,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 1
+  },
+  {
+    "id": "centrifuge",
+    "name": "Centrifuge",
+    "type": "centrifuge",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 300,
+    "cost": [
+      {"itemId": "centrifuge", "count": 1}
+    ],
+    "powerConsumption": 350,
+    "inventorySlots": 4,
+    "inputSlots": 2,
+    "outputSlots": 2,
+    "fuelSlots": 0
+  }
+]

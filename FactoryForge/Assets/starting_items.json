@@ -1,0 +1,34 @@
+{
+  "startingItems": [
+    {
+      "itemId": "iron-plate",
+      "count": 50,
+      "comment": "Iron plates for basic construction"
+    },
+    {
+      "itemId": "copper-plate", 
+      "count": 50,
+      "comment": "Copper plates for electronics"
+    },
+    {
+      "itemId": "coal",
+      "count": 100,
+      "comment": "Coal for fuel and furnaces"
+    },
+    {
+      "itemId": "stone",
+      "count": 100,
+      "comment": "Stone for furnaces and walls"
+    },
+    {
+      "itemId": "iron-gear-wheel",
+      "count": 20,
+      "comment": "Gears for mechanical components"
+    },
+    {
+      "itemId": "electronic-circuit",
+      "count": 20,
+      "comment": "Circuits for advanced machines"
+    }
+  ]
+}

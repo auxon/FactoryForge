@@ -1,0 +1,66 @@
+{
+  "machineType": "assembler",
+  "layout": {
+    "panelWidth": 600,
+    "panelHeight": 350,
+    "backgroundColor": "#1a1a1a",
+    "borderWidth": 2,
+    "cornerRadius": 8
+  },
+  "components": [
+    {
+      "type": "slotButtons",
+      "position": {
+        "x": 20,
+        "y": 60,
+        "width": 200,
+        "height": 100
+      },
+      "properties": {
+        "inputSlots": {
+          "int": 2
+        },
+        "outputSlots": {
+          "int": 1
+        },
+        "fuelSlots": {
+          "int": 0
+        }
+      }
+    },
+    {
+      "type": "recipeSelector",
+      "position": {
+        "x": 240,
+        "y": 60,
+        "width": 320,
+        "height": 200
+      },
+      "properties": {
+        "showHeader": {
+          "bool": true
+        },
+        "scrollable": {
+          "bool": true
+        }
+      }
+    },
+    {
+      "type": "progressBar",
+      "position": {
+        "x": 20,
+        "y": 180,
+        "width": 200,
+        "height": 20
+      },
+      "properties": {
+        "showPercentage": {
+          "bool": true
+        },
+        "color": {
+          "string": "#0000FF"
+        }
+      }
+    }
+  ]
+}

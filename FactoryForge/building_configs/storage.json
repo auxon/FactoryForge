@@ -1,0 +1,41 @@
+[
+  {
+    "id": "wooden-chest",
+    "name": "Wooden Chest",
+    "type": "chest",
+    "maxHealth": 100,
+    "cost": [
+      {"itemId": "wood", "count": 2}
+    ],
+    "inventorySlots": 16,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 0
+  },
+  {
+    "id": "iron-chest",
+    "name": "Iron Chest",
+    "type": "chest",
+    "maxHealth": 200,
+    "cost": [
+      {"itemId": "iron-plate", "count": 8}
+    ],
+    "inventorySlots": 32,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 0
+  },
+  {
+    "id": "steel-chest",
+    "name": "Steel Chest",
+    "type": "chest",
+    "maxHealth": 350,
+    "cost": [
+      {"itemId": "steel-plate", "count": 8}
+    ],
+    "inventorySlots": 48,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 0
+  }
+]
