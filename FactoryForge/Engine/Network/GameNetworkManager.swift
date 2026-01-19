@@ -354,6 +354,10 @@ final class GameNetworkManager {
             return try await deleteBuilding(parameters)
         case "move_building":
             return try await moveBuilding(parameters)
+        case "check_tile_resources":
+            return try await checkTileResources(parameters)
+        case "build_mining_drill_on_deposit":
+            return try await buildMiningDrillOnDeposit(parameters)
         case "move":
             return try await moveUnit(parameters)
         case "move_player":
@@ -987,6 +991,152 @@ final class GameNetworkManager {
             "fromPosition": ["x": fromX, "y": fromY],
             "toPosition": ["x": toX, "y": toY],
             "message": "Building moved successfully"
+        ]
+    }
+
+    func checkTileResources(_ parameters: [String: Any]) async throws -> Any {
+        sendDebugLog("checkTileResources: Called with parameters: \(parameters)")
+
+        // Accept both Int and Double coordinates
+        let x: Int
+        let y: Int
+
+        if let intX = parameters["x"] as? Int {
+            x = intX
+        } else if let doubleX = parameters["x"] as? Double {
+            x = Int(doubleX.rounded())
+        } else {
+            sendDebugLog("checkTileResources: Missing or invalid x coordinate")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing or invalid x coordinate"])
+        }
+
+        if let intY = parameters["y"] as? Int {
+            y = intY
+        } else if let doubleY = parameters["y"] as? Double {
+            y = Int(doubleY.rounded())
+        } else {
+            sendDebugLog("checkTileResources: Missing or invalid y coordinate")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing or invalid y coordinate"])
+        }
+
+        guard let gameLoop = self.gameLoop else {
+            sendDebugLog("checkTileResources: Game not initialized")
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        let tilePos = IntVector2(x: Int32(x), y: Int32(y))
+        sendDebugLog("checkTileResources: Checking tile at (\(tilePos.x), \(tilePos.y))")
+
+        // Check if there's a resource at this position
+        let resource = gameLoop.chunkManager.getResource(at: tilePos)
+
+        if let resource = resource, !resource.isEmpty {
+            sendDebugLog("checkTileResources: Found resource: \(resource.type.outputItem), amount: \(resource.amount)")
+            return [
+                "hasResource": true,
+                "resourceType": resource.type.outputItem,
+                "amount": resource.amount,
+                "position": ["x": x, "y": y],
+                "tilePosition": ["x": tilePos.x, "y": tilePos.y]
+            ]
+        } else {
+            sendDebugLog("checkTileResources: No resource found at (\(tilePos.x), \(tilePos.y))")
+            return [
+                "hasResource": false,
+                "position": ["x": x, "y": y],
+                "tilePosition": ["x": tilePos.x, "y": tilePos.y]
+            ]
+        }
+    }
+
+    func buildMiningDrillOnDeposit(_ parameters: [String: Any]) async throws -> Any {
+        sendDebugLog("buildMiningDrillOnDeposit: Called with parameters: \(parameters)")
+
+        let resourceType = parameters["resourceType"] as? String ?? "iron-ore"
+        let searchRadius = parameters["searchRadius"] as? Int ?? 10
+        let fuelAmount = parameters["fuelAmount"] as? Int ?? 5
+
+        guard let gameLoop = self.gameLoop else {
+            sendDebugLog("buildMiningDrillOnDeposit: Game not initialized")
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        sendDebugLog("buildMiningDrillOnDeposit: Looking for \(resourceType) deposit within \(searchRadius) tiles")
+
+        let playerPos = gameLoop.player.position
+        let centerTile = IntVector2(Int(playerPos.x), Int(playerPos.y))
+
+        // Search for a resource deposit
+        let radiusInt32 = Int32(searchRadius)
+        var foundDeposit: (position: IntVector2, resource: Any)? = nil
+
+        for x in (centerTile.x - radiusInt32)...(centerTile.x + radiusInt32) {
+            for y in (centerTile.y - radiusInt32)...(centerTile.y + radiusInt32) {
+                let tilePos = IntVector2(x: x, y: y)
+
+                // Check if there's the requested resource at this position
+                let resource = gameLoop.chunkManager.getResource(at: tilePos)
+                if let resource = resource, !resource.isEmpty, resource.type.outputItem == resourceType {
+                    sendDebugLog("buildMiningDrillOnDeposit: Found \(resourceType) deposit at (\(x), \(y)) with \(resource.amount) remaining")
+
+                    // Check if there's already a building at this location
+                    let entitiesAtPos = gameLoop.world.getAllEntitiesAt(position: tilePos)
+                    let hasBuilding = entitiesAtPos.contains { entity in
+                        gameLoop.world.has(BuildingComponent.self, for: entity)
+                    }
+
+                    if !hasBuilding {
+                        sendDebugLog("buildMiningDrillOnDeposit: Location (\(x), \(y)) is clear, can place drill")
+                        foundDeposit = (tilePos, resource)
+                        break
+                    } else {
+                        sendDebugLog("buildMiningDrillOnDeposit: Location (\(x), \(y)) already has a building, skipping")
+                    }
+                }
+            }
+            if foundDeposit != nil { break }
+        }
+
+        guard let deposit = foundDeposit else {
+            sendDebugLog("buildMiningDrillOnDeposit: No \(resourceType) deposit found within \(searchRadius) tiles")
+            throw NSError(domain: "GameNetworkManager", code: 31, userInfo: [NSLocalizedDescriptionKey: "No \(resourceType) deposit found within search radius"])
+        }
+
+        // Check if we have enough resources to build the drill
+        guard gameLoop.player.inventory.has(itemId: "iron-plate", count: 5) else {
+            sendDebugLog("buildMiningDrillOnDeposit: Not enough iron plates (need 5)")
+            throw NSError(domain: "GameNetworkManager", code: 6, userInfo: [NSLocalizedDescriptionKey: "Not enough iron plates to build mining drill"])
+        }
+
+        // Build the mining drill at the deposit location
+        sendDebugLog("buildMiningDrillOnDeposit: Building burner-mining-drill at (\(deposit.position.x), \(deposit.position.y))")
+        let buildResult = gameLoop.placeBuilding("burner-mining-drill", at: deposit.position, direction: .north)
+
+        guard buildResult else {
+            sendDebugLog("buildMiningDrillOnDeposit: Failed to place mining drill")
+            throw NSError(domain: "GameNetworkManager", code: 7, userInfo: [NSLocalizedDescriptionKey: "Failed to place mining drill at deposit"])
+        }
+
+        // Fuel the mining drill
+        sendDebugLog("buildMiningDrillOnDeposit: Fueling mining drill with \(fuelAmount) wood")
+        let fuelResult = try await addMachineItem([
+            "x": Int(deposit.position.x),
+            "y": Int(deposit.position.y),
+            "slot": 0,
+            "itemId": "wood",
+            "count": fuelAmount
+        ])
+
+        sendDebugLog("buildMiningDrillOnDeposit: Successfully built and fueled mining drill on \(resourceType) deposit")
+
+        return [
+            "success": true,
+            "buildingId": "burner-mining-drill",
+            "resourceType": resourceType,
+            "position": ["x": Int(deposit.position.x), "y": Int(deposit.position.y)],
+            "fueled": true,
+            "fuelAmount": fuelAmount,
+            "message": "Mining drill built and fueled on \(resourceType) deposit"
         ]
     }
 

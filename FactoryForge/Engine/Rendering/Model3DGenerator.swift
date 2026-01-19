@@ -29,6 +29,10 @@ final class Model3DGenerator {
             return createPowerPoleModel()
         case .generator:
             return createGeneratorModel()
+        case .boiler:
+            return createFurnaceModel() // Use furnace model as placeholder for boiler
+        case .steamEngine:
+            return createGeneratorModel() // Use generator model as placeholder for steam engine
         case .solarPanel:
             return createSolarPanelModel()
         case .accumulator:

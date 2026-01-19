@@ -801,6 +801,16 @@ final class GameLoop {
                         // Inserters can be placed on top of buildings (like belts and poles)
                         continue
 
+                    case .boiler:
+                        // Boilers need to be near water sources
+                        // For now, allow placement anywhere (water connection will be checked later)
+                        break
+
+                    case .steamEngine:
+                        // Steam engines need to connect to boilers via pipes
+                        // For now, allow placement anywhere (pipe connection will be checked later)
+                        break
+
                     default:
                         break
                     }
@@ -1071,7 +1081,15 @@ final class GameLoop {
                 world.add(InventoryComponent(slots: 1, allowedItems: ItemRegistry.allowedFuel), to: entity)
                 print("GameLoop: Added fallback GeneratorComponent to entity \(entity) with powerOutput: \(powerOutput)")
             }
-            
+
+        case .boiler:
+            // Boiler logic is handled in the .generator case above
+            fallthrough
+
+        case .steamEngine:
+            // Steam engine logic is handled in the .generator case above
+            fallthrough
+
         case .solarPanel:
             world.add(SolarPanelComponent(
                 buildingId: buildingDef.id,

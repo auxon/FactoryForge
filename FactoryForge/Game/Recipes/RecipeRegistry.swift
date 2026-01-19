@@ -439,33 +439,18 @@ final class RecipeRegistry {
             order: "k1"
         ))
 
-        // Basic power generation - hand crafted
+        // Stone furnace - needed for boiler
         register(Recipe(
-            id: "boiler",
-            name: "Boiler",
-            inputs: [
-                ItemStack(itemId: "stone-furnace", count: 1),
-                ItemStack(itemId: "pipe", count: 4)
-            ],
-            outputs: [ItemStack(itemId: "boiler", count: 1)],
+            id: "stone-furnace",
+            name: "Stone Furnace",
+            inputs: [ItemStack(itemId: "iron-plate", count: 5)],
+            outputs: [ItemStack(itemId: "stone-furnace", count: 1)],
             craftTime: 0.5,
             category: .crafting,
-            order: "l"
+            order: "k"
         ))
 
-        register(Recipe(
-            id: "steam-engine",
-            name: "Steam Engine",
-            inputs: [
-                ItemStack(itemId: "iron-gear-wheel", count: 8),
-                ItemStack(itemId: "iron-plate", count: 10),
-                ItemStack(itemId: "pipe", count: 5)
-            ],
-            outputs: [ItemStack(itemId: "steam-engine", count: 1)],
-            craftTime: 0.5,
-            category: .crafting,
-            order: "l1"
-        ))
+        // Power generation buildings are now defined in BuildingRegistry
 
         // Basic mining - hand crafted
         register(Recipe(

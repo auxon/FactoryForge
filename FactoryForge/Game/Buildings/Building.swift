@@ -105,6 +105,8 @@ enum BuildingType: String, Codable, CaseIterable {
     case inserter
     case powerPole
     case generator
+    case boiler
+    case steamEngine
     case solarPanel
     case accumulator
     case lab
@@ -131,6 +133,8 @@ enum BuildingType: String, Codable, CaseIterable {
         case .inserter: return "Inserter"
         case .powerPole: return "Power Pole"
         case .generator: return "Generator"
+        case .boiler: return "Boiler"
+        case .steamEngine: return "Steam Engine"
         case .solarPanel: return "Solar Panel"
         case .accumulator: return "Accumulator"
         case .lab: return "Lab"

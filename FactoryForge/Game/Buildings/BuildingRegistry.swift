@@ -219,6 +219,8 @@ final class BuildingRegistry {
         case "inserter": buildingType = .inserter
         case "powerPole": buildingType = .powerPole
         case "generator": buildingType = .generator
+        case "boiler": buildingType = .boiler
+        case "steamEngine": buildingType = .steamEngine
         case "solarPanel": buildingType = .solarPanel
         case "accumulator": buildingType = .accumulator
         case "lab": buildingType = .lab
@@ -472,7 +474,7 @@ final class BuildingRegistry {
         case "assembler": return "assemblers"
         case "belt": return "belts"
         case "inserter": return "inserters"
-        case "powerPole", "generator", "solarPanel", "accumulator": return "power"
+        case "powerPole", "generator", "boiler", "steamEngine", "solarPanel", "accumulator": return "power"
         case "turret", "wall": return "combat"
         case "chest": return "storage"
         case "oilRefinery", "chemicalPlant", "pipe", "fluidTank": return "fluids"
@@ -493,6 +495,8 @@ final class BuildingRegistry {
         case .inserter: return "inserter"
         case .powerPole: return "powerPole"
         case .generator: return "generator"
+        case .boiler: return "boiler"
+        case .steamEngine: return "steamEngine"
         case .solarPanel: return "solarPanel"
         case .accumulator: return "accumulator"
         case .lab: return "lab"
@@ -672,6 +676,47 @@ final class BuildingRegistry {
             "inputSlots": 0,
             "outputSlots": 0,
             "fuelSlots": 0
+          },
+          {
+            "id": "boiler",
+            "name": "Boiler",
+            "type": "boiler",
+            "width": 2,
+            "height": 3,
+            "maxHealth": 200,
+            "cost": [
+              {"itemId": "iron-plate", "count": 5},
+              {"itemId": "pipe", "count": 4}
+            ],
+            "powerConsumption": 0,
+            "powerProduction": 0,
+            "inputSlots": 1,
+            "outputSlots": 0,
+            "fuelSlots": 1,
+            "fluidCapacity": 100,
+            "fluidInputType": "water",
+            "fluidOutputType": "steam"
+          },
+          {
+            "id": "steam-engine",
+            "name": "Steam Engine",
+            "type": "steamEngine",
+            "width": 3,
+            "height": 5,
+            "maxHealth": 400,
+            "cost": [
+              {"itemId": "iron-gear-wheel", "count": 8},
+              {"itemId": "iron-plate", "count": 10},
+              {"itemId": "pipe", "count": 5}
+            ],
+            "powerConsumption": 0,
+            "powerProduction": 900,
+            "inputSlots": 0,
+            "outputSlots": 0,
+            "fuelSlots": 0,
+            "fluidCapacity": 200,
+            "fluidInputType": "steam",
+            "fluidOutputType": "water"
           }
         ]
         """
