@@ -54,47 +54,92 @@ final class EnemyAISystem: System {
     /// Registers existing enemies that don't have Biter objects yet
     /// This is needed for enemies loaded from save files or created without Biter objects
     private func registerExistingEnemies() {
+        // First pass: collect entities that need component additions
+        var entitiesNeedingVelocity: [Entity] = []
+        var entitiesNeedingCollision: [Entity] = []
+        var entitiesNeedingStateUpdate: [Entity] = []
+        var entitiesNeedingEnemyUpdate: [Entity] = []
+        var entitiesToRegister: [(entity: Entity, enemy: EnemyComponent)] = []
+
         world.forEach(EnemyComponent.self) { [self] entity, enemy in
             // Skip if already registered
             guard activeBiters[entity] == nil else { return }
-            
+
             // Skip if entity doesn't have required components
             guard world.has(PositionComponent.self, for: entity) else { return }
-            
+
             print("EnemyAISystem: Registering existing enemy \(entity.id), state: \(enemy.state)")
-            
-            // Ensure enemy has all required components
+
+            // Collect entities that need components added
             if !world.has(VelocityComponent.self, for: entity) {
-                print("EnemyAISystem: Adding missing VelocityComponent to enemy \(entity.id)")
-                world.add(VelocityComponent(), to: entity)
+                entitiesNeedingVelocity.append(entity)
             }
-            
+
             if !world.has(CollisionComponent.self, for: entity) {
-                print("EnemyAISystem: Adding missing CollisionComponent to enemy \(entity.id)")
-                world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: entity)
+                entitiesNeedingCollision.append(entity)
             }
-            
-            // Ensure enemy is in a moving state (wandering or attacking)
-            // If it's idle, switch to wandering so it can move
+
+            var needsStateUpdate = false
+            var needsEnemyUpdate = false
             var updatedEnemy = enemy
+
+            // Check if enemy needs state update
             if updatedEnemy.state == .idle {
                 print("EnemyAISystem: Switching enemy \(entity.id) from idle to wandering")
                 updatedEnemy.state = .wandering
-                world.add(updatedEnemy, to: entity)
+                needsStateUpdate = true
             }
-            
+
             // Ensure enemy has proper follow distance and attack range
             if updatedEnemy.maxFollowDistance == 0 {
                 updatedEnemy.maxFollowDistance = 15.0
+                needsEnemyUpdate = true
             }
             if updatedEnemy.attackRange == 0 {
                 updatedEnemy.attackRange = 1.0
+                needsEnemyUpdate = true
             }
-            world.add(updatedEnemy, to: entity)
-            
+
+            if needsStateUpdate || needsEnemyUpdate {
+                entitiesNeedingEnemyUpdate.append(entity)
+            }
+
+            // Collect entity for registration
+            entitiesToRegister.append((entity: entity, enemy: updatedEnemy))
+        }
+
+        // Second pass: add missing components (outside of iteration)
+        for entity in entitiesNeedingVelocity {
+            print("EnemyAISystem: Adding missing VelocityComponent to enemy \(entity.id)")
+            world.add(VelocityComponent(), to: entity)
+        }
+
+        for entity in entitiesNeedingCollision {
+            print("EnemyAISystem: Adding missing CollisionComponent to enemy \(entity.id)")
+            world.add(CollisionComponent(radius: 0.4, layer: .enemy, mask: .player), to: entity)
+        }
+
+        for entity in entitiesNeedingEnemyUpdate {
+            if let enemy = world.get(EnemyComponent.self, for: entity) {
+                var updatedEnemy = enemy
+                if updatedEnemy.state == .idle {
+                    updatedEnemy.state = .wandering
+                }
+                if updatedEnemy.maxFollowDistance == 0 {
+                    updatedEnemy.maxFollowDistance = 15.0
+                }
+                if updatedEnemy.attackRange == 0 {
+                    updatedEnemy.attackRange = 1.0
+                }
+                world.add(updatedEnemy, to: entity)
+            }
+        }
+
+        // Third pass: register biters (outside of iteration)
+        for (entity, enemy) in entitiesToRegister {
             // Create Biter wrapper for existing entity (doesn't create new entity)
             let biter = Biter(world: world, existingEntity: entity)
-            
+
             // Register the biter (using the existing entity)
             activeBiters[entity] = biter
             print("EnemyAISystem: Successfully registered enemy \(entity.id) with Biter wrapper")

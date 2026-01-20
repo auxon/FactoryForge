@@ -469,7 +469,8 @@ final class BuildingRegistry {
     /// Get category string for a building configuration
     private func getCategoryForBuilding(_ config: BuildingConfig) -> String {
         switch config.type {
-        case "miner", "pumpjack", "waterPump": return "miners"
+        case "miner", "pumpjack": return "miners"
+        case "waterPump": return "fluids"
         case "furnace": return "furnaces"
         case "assembler": return "assemblers"
         case "belt": return "belts"
@@ -601,6 +602,24 @@ final class BuildingRegistry {
             "inputSlots": 4,
             "outputSlots": 4,
             "fuelSlots": 0
+          },
+          {
+            "id": "lab",
+            "name": "Lab",
+            "type": "lab",
+            "width": 3,
+            "height": 3,
+            "maxHealth": 150,
+            "cost": [
+              {"itemId": "electronic-circuit", "count": 10},
+              {"itemId": "iron-gear-wheel", "count": 10},
+              {"itemId": "transport-belt", "count": 4}
+            ],
+            "researchSpeed": 1.0,
+            "inputSlots": 2,
+            "outputSlots": 0,
+            "fuelSlots": 0,
+            "powerConsumption": 60
           }
         ]
         """
@@ -771,6 +790,22 @@ final class BuildingRegistry {
               {"itemId": "iron-plate", "count": 1}
             ],
             "fluidCapacity": 100
+          },
+          {
+            "id": "offshore-pump",
+            "name": "Offshore Pump",
+            "type": "waterPump",
+            "width": 1,
+            "height": 1,
+            "maxHealth": 80,
+            "cost": [
+              {"itemId": "electronic-circuit", "count": 2},
+              {"itemId": "pipe", "count": 1},
+              {"itemId": "iron-gear-wheel", "count": 1}
+            ],
+            "powerConsumption": 10,
+            "fluidCapacity": 50,
+            "fluidOutputType": "water"
           }
         ]
         """

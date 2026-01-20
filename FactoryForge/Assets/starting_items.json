@@ -1,4 +1,4 @@
-{
+cd /Users/rah/FactoryForge && xcodebuild -project FactoryForge.xcodeproj -scheme FactoryForge -sdk iphonesimulator -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO | tail -10{
   "startingItems": [
     {
       "itemId": "iron-plate",

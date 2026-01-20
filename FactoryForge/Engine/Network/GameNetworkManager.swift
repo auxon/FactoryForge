@@ -25,6 +25,9 @@ final class GameNetworkManager {
     private var gameLoop: GameLoop?
     private var debugLogs: [String] = []
 
+    // UI callback for triggering actions
+    var onNewGameRequested: (() -> Void)?
+
     private init() {
         // Set up HTTP server for receiving commands from MCP
         setupHTTPServer()
@@ -970,7 +973,7 @@ final class GameNetworkManager {
 
         // Check if destination is valid for building placement
         guard let buildingComponent = gameLoop.world.get(BuildingComponent.self, for: targetEntity),
-              let buildingDef = gameLoop.buildingRegistry.get(buildingComponent.buildingId),
+              gameLoop.buildingRegistry.get(buildingComponent.buildingId) != nil,
               gameLoop.canPlaceBuilding(buildingComponent.buildingId, at: toPos, direction: .north) else {
             sendDebugLog("moveBuilding: Cannot place building at destination")
             throw NSError(domain: "GameNetworkManager", code: 32, userInfo: [NSLocalizedDescriptionKey: "Cannot place building at destination"])
@@ -1041,6 +1044,22 @@ final class GameNetworkManager {
             ]
         } else {
             sendDebugLog("checkTileResources: No resource found at (\(tilePos.x), \(tilePos.y))")
+            // Check tile terrain type
+            if let tile = gameLoop.chunkManager.getTile(at: tilePos) {
+                let terrainType = tile.type
+                sendDebugLog("checkTileResources: Tile exists at (\(tilePos.x), \(tilePos.y)), terrain: \(terrainType)")
+
+                // Return terrain information for all tile types
+                return [
+                    "hasResource": false,
+                    "hasTerrain": true,
+                    "terrainType": "\(terrainType)",
+                    "position": ["x": x, "y": y],
+                    "tilePosition": ["x": tilePos.x, "y": tilePos.y]
+                ]
+            } else {
+                sendDebugLog("checkTileResources: No tile found at (\(tilePos.x), \(tilePos.y))")
+            }
             return [
                 "hasResource": false,
                 "position": ["x": x, "y": y],
@@ -1119,7 +1138,7 @@ final class GameNetworkManager {
 
         // Fuel the mining drill
         sendDebugLog("buildMiningDrillOnDeposit: Fueling mining drill with \(fuelAmount) wood")
-        let fuelResult = try await addMachineItem([
+        _ = try await addMachineItem([
             "x": Int(deposit.position.x),
             "y": Int(deposit.position.y),
             "slot": 0,
@@ -1384,7 +1403,7 @@ final class GameNetworkManager {
                 "totalFlow": 0 // TODO: Calculate total flow
             ],
             "research": [
-                "current": gameLoop.researchSystem.currentResearch?.id,
+                "current": gameLoop.researchSystem.currentResearch?.id as Any,
                 "progress": [:] // TODO: Expose research progress
             ]
         ]
@@ -1410,7 +1429,24 @@ final class GameNetworkManager {
     private func getEntityType(_ entity: Entity) -> String {
         guard let gameLoop = gameLoop else { return "unknown" }
 
-        if gameLoop.world.has(BuildingComponent.self, for: entity) {
+        // Check for specific building types first
+        if gameLoop.world.has(LabComponent.self, for: entity) {
+            return "lab"
+        } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
+            return "furnace"
+        } else if gameLoop.world.has(MinerComponent.self, for: entity) {
+            return "mining_drill"
+        } else if gameLoop.world.has(AssemblerComponent.self, for: entity) {
+            return "assembler"
+        } else if gameLoop.world.has(ChestComponent.self, for: entity) {
+            return "chest"
+        } else if gameLoop.world.has(AccumulatorComponent.self, for: entity) {
+            return "accumulator"
+        } else if gameLoop.world.has(SolarPanelComponent.self, for: entity) {
+            return "solar_panel"
+        } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
+            return "generator"
+        } else if gameLoop.world.has(BuildingComponent.self, for: entity) {
             return "building"
         } else if gameLoop.world.has(UnitComponent.self, for: entity) {
             return "unit"
@@ -1575,10 +1611,32 @@ final class GameNetworkManager {
     // MARK: - Save/Load Game Functions
 
     func startNewGame(_ parameters: [String: Any]) async throws -> Any {
-        // Note: Starting a new game requires UI interaction and is handled by GameViewController
-        // This command is primarily for signaling that a new game should be started
-        sendDebugLog("startNewGame: New game requested via MCP")
-        return ["message": "New game requested. Please use the LoadingMenu in the app to start a new game."]
+        sendDebugLog("startNewGame: Attempting to start new game via MCP")
+
+        // Check if we already have a game loop
+        if self.gameLoop != nil {
+            sendDebugLog("startNewGame: Game already exists")
+            return ["message": "Game already running", "status": "active"]
+        }
+
+        // Signal the UI to start a new game
+        sendDebugLog("startNewGame: Triggering UI callback for new game")
+        let hasCallback = onNewGameRequested != nil
+        sendDebugLog("startNewGame: Callback available: \(hasCallback)")
+
+        if hasCallback {
+            sendDebugLog("startNewGame: Calling callback...")
+            onNewGameRequested?()
+            sendDebugLog("startNewGame: Callback executed")
+        } else {
+            sendDebugLog("startNewGame: ERROR - No callback set up!")
+        }
+
+        return [
+            "message": hasCallback ? "New game callback triggered" : "No callback available - rebuild app",
+            "status": hasCallback ? "callback_triggered" : "callback_missing",
+            "callback_setup": hasCallback
+        ]
     }
 
     func saveGame(_ parameters: [String: Any]) async throws -> Any {
@@ -1686,14 +1744,30 @@ final class GameNetworkManager {
         let decoder = JSONDecoder()
         let config = try decoder.decode(MachineUIConfig.self, from: jsonData)
 
-        // Apply the configuration to the UI system
-        if let machineUI = gameLoop.uiSystem?.getMachineUI() {
-            machineUI.updateConfiguration(config)
-            sendDebugLog("updateMachineUIConfig: Successfully updated configuration for machine type '\(machineType)'")
-            return ["success": true, "machineType": machineType, "message": "Machine UI configuration updated successfully"]
-        } else {
-            throw NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "UI system not available"])
+        // Apply the configuration to the UI system (must be done on main thread)
+        let success: [String: Any] = try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "Self is nil"]))
+                    return
+                }
+
+                guard let gameLoop = self.gameLoop else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"]))
+                    return
+                }
+
+                if let machineUI = gameLoop.uiSystem?.getMachineUI() {
+                    machineUI.updateConfiguration(config)
+                    self.sendDebugLog("updateMachineUIConfig: Successfully updated configuration for machine type '\(machineType)'")
+                    continuation.resume(returning: ["success": true, "machineType": machineType, "message": "Machine UI configuration updated successfully"])
+                } else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "UI system not available"]))
+                }
+            }
         }
+
+        return success
     }
 
     func getMachineUIConfig(_ parameters: [String: Any]) async throws -> Any {

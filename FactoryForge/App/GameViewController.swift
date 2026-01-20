@@ -49,6 +49,15 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Initialize GameNetworkManager early to start HTTP server
         _ = GameNetworkManager.shared
 
+        // Setup API callback for remote game control (early setup)
+        if #available(iOS 17.0, *) {
+            print("GameViewController: Setting up early API callback for new game")
+            GameNetworkManager.shared.onNewGameRequested = { [weak self] in
+                print("GameViewController: Early API triggered new game request - starting game!")
+                self?.startNewGame()
+            }
+        }
+
         setupMetalView()
         setupRenderer()
         setupUISystem()
@@ -917,6 +926,16 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         loadingMenu.onNewGameSelected = { [weak self] in
             self?.startNewGame()
         }
+
+        // Setup API callback for remote game control
+        if #available(iOS 17.0, *) {
+            print("GameViewController: Setting up API callback for new game")
+            GameNetworkManager.shared.onNewGameRequested = { [weak self] in
+                print("GameViewController: API triggered new game request - starting game!")
+                self?.startNewGame()
+            }
+            print("GameViewController: API callback set up successfully")
+        }
         
         loadingMenu.onSaveSlotSelected = { slotName in
             // Slot selection - just for UI feedback, actual actions come from buttons
@@ -1088,6 +1107,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Update the existing UI system with the gameLoop
         uiSystem?.setGameLoop(gameLoop!)
         renderer.uiSystem = uiSystem
+
+        // Re-setup machine UI callback after setGameLoop (since it recreates the MachineUI)
+        setupMachineUICallback()
 
         // Start a new autosave session for this game
         gameLoop?.saveSystem.startNewGameSession()
@@ -1365,20 +1387,10 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
                 machineUI.updateMachine(currentEntity)
             }
         }
-        uiSystem?.getMachineUI().onAddRootView = { [weak self] (view: UIView) in
-            guard let self = self else { return }
-            // Remove if already added to avoid duplicates
-            view.removeFromSuperview()
-            self.view.insertSubview(view, aboveSubview: self.metalView)
-            self.view.bringSubviewToFront(view)
-            // Bring tooltips above the panel
-            self.view.bringSubviewToFront(self.tooltipLabel)
-            self.view.bringSubviewToFront(self.tooltipIconView)
-        }
+        setupMachineUICallback()
         uiSystem?.getMachineUI().onRemoveRootView = { (view: UIView) in
             view.removeFromSuperview()
         }
-
 
         // CraftingMenu callbacks
         uiSystem?.getCraftingMenu().onAddRootView = { [weak self] (view: UIView) in
@@ -1482,7 +1494,47 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Close any panels that were opened during loading
         uiSystem?.closeAllPanels()
     }
-    
+
+    private func setupMachineUICallback() {
+        print("GameViewController: Setting up onAddRootView callback")
+        uiSystem?.getMachineUI().onAddRootView = { [weak self] (view: UIView) in
+            guard let self = self else {
+                print("GameViewController: onAddRootView - self is nil")
+                return
+            }
+            print("GameViewController: onAddRootView called with view frame: \(view.frame)")
+
+            // Remove if already added to avoid duplicates
+            view.removeFromSuperview()
+
+            // Find the active metal view (either 2D or 3D)
+            let activeMetalView = self.metalView3D ?? self.metalView
+            guard let metalView = activeMetalView else {
+                print("GameViewController: No metal view found!")
+                return
+            }
+
+            print("GameViewController: Adding UIView above metal view: \(metalView.frame)")
+            self.view.insertSubview(view, aboveSubview: metalView)
+            self.view.bringSubviewToFront(view)
+
+            // Ensure the view has proper background (should be set by MachineUI, but ensure it's visible)
+            if view.backgroundColor == nil {
+                view.backgroundColor = UIColor(red: 0.1, green: 0.1, blue: 0.15, alpha: 0.95)
+            }
+            print("GameViewController: UIView added to hierarchy, subviews count: \(self.view.subviews.count)")
+
+            // Bring tooltips above the panel
+            if let tooltipLabel = self.tooltipLabel {
+                self.view.bringSubviewToFront(tooltipLabel)
+            }
+            if let tooltipIconView = self.tooltipIconView {
+                self.view.bringSubviewToFront(tooltipIconView)
+            }
+        }
+        print("GameViewController: onAddRootView callback setup complete")
+    }
+
     private func saveCurrentGame(to slotName: String? = nil) {
         guard let gameLoop = gameLoop else { return }
 

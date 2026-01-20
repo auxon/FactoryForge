@@ -90,7 +90,14 @@ final class World {
     
     /// Gets a component from an entity
     func get<T: Component>(_ type: T.Type, for entity: Entity) -> T? {
-        guard let store = componentStores[ObjectIdentifier(type)] as? ComponentStore<T> else {
+        let key = ObjectIdentifier(type)
+        guard let storeValue = componentStores[key] else {
+            return nil
+        }
+        guard let store = storeValue as? ComponentStore<T> else {
+            // Component store is corrupted - remove it and return nil
+            print("Warning: Component store for \(type) is corrupted, removing it")
+            componentStores.removeValue(forKey: key)
             return nil
         }
         return store.get(entity)
@@ -643,6 +650,15 @@ extension World {
             if let rocketSilo = get(RocketSiloComponent.self, for: entity) {
                 components["rocketSilo"] = try? JSONEncoder().encode(rocketSilo)
             }
+            if let unit = get(UnitComponent.self, for: entity) {
+                components["unit"] = try? JSONEncoder().encode(unit)
+            }
+            if let velocity = get(VelocityComponent.self, for: entity) {
+                components["velocity"] = try? JSONEncoder().encode(velocity)
+            }
+            if let enemy = get(EnemyComponent.self, for: entity) {
+                components["enemy"] = try? JSONEncoder().encode(enemy)
+            }
 
             // Fluid components
             if let pipe = get(PipeComponent.self, for: entity) {
@@ -790,6 +806,18 @@ extension World {
             if let rocketSiloData = entityData.components["rocketSilo"],
                let rocketSilo = try? JSONDecoder().decode(RocketSiloComponent.self, from: rocketSiloData) {
                 add(rocketSilo, to: entity)
+            }
+            if let unitData = entityData.components["unit"],
+               let unit = try? JSONDecoder().decode(UnitComponent.self, from: unitData) {
+                add(unit, to: entity)
+            }
+            if let velocityData = entityData.components["velocity"],
+               let velocity = try? JSONDecoder().decode(VelocityComponent.self, from: velocityData) {
+                add(velocity, to: entity)
+            }
+            if let enemyData = entityData.components["enemy"],
+               let enemy = try? JSONDecoder().decode(EnemyComponent.self, from: enemyData) {
+                add(enemy, to: entity)
             }
 
             // Fluid components

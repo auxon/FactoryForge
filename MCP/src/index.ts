@@ -496,6 +496,197 @@ class FactoryForgeMCPServer {
           description: 'List all building configurations',
           inputSchema: { type: 'object', properties: {}, },
         },
+        {
+          name: 'delete_building',
+          description: 'Delete a building at the specified coordinates',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              x: {
+                type: 'number',
+                description: 'X coordinate of the building to delete',
+              },
+              y: {
+                type: 'number',
+                description: 'Y coordinate of the building to delete',
+              },
+            },
+            required: ['x', 'y'],
+          },
+        },
+        {
+          name: 'move_building',
+          description: 'Move a building from one location to another',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              fromX: {
+                type: 'number',
+                description: 'Source X coordinate of the building',
+              },
+              fromY: {
+                type: 'number',
+                description: 'Source Y coordinate of the building',
+              },
+              toX: {
+                type: 'number',
+                description: 'Destination X coordinate',
+              },
+              toY: {
+                type: 'number',
+                description: 'Destination Y coordinate',
+              },
+            },
+            required: ['fromX', 'fromY', 'toX', 'toY'],
+          },
+        },
+        {
+          name: 'check_tile_resources',
+          description: 'Check what resources are available at a specific tile',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              x: {
+                type: 'number',
+                description: 'X coordinate to check',
+              },
+              y: {
+                type: 'number',
+                description: 'Y coordinate to check',
+              },
+            },
+            required: ['x', 'y'],
+          },
+        },
+        {
+          name: 'build_mining_drill_on_deposit',
+          description: 'Build a mining drill on a resource deposit at the specified coordinates',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              x: {
+                type: 'number',
+                description: 'X coordinate to build mining drill',
+              },
+              y: {
+                type: 'number',
+                description: 'Y coordinate to build mining drill',
+              },
+            },
+            required: ['x', 'y'],
+          },
+        },
+        {
+          name: 'move_player',
+          description: 'Move the player to a specific location',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              x: {
+                type: 'number',
+                description: 'X coordinate to move player to',
+              },
+              y: {
+                type: 'number',
+                description: 'Y coordinate to move player to',
+              },
+            },
+            required: ['x', 'y'],
+          },
+        },
+        {
+          name: 'get_player_position',
+          description: 'Get the current position of the player',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'get_inventory',
+          description: 'Get the player\'s current inventory',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'add_inventory',
+          description: 'Add items to the player\'s inventory',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              itemId: {
+                type: 'string',
+                description: 'ID of the item to add',
+              },
+              count: {
+                type: 'number',
+                description: 'Number of items to add',
+                default: 1,
+              },
+            },
+            required: ['itemId'],
+          },
+        },
+        {
+          name: 'craft',
+          description: 'Craft an item using available resources',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              itemId: {
+                type: 'string',
+                description: 'ID of the item to craft',
+              },
+              count: {
+                type: 'number',
+                description: 'Number of items to craft',
+                default: 1,
+              },
+            },
+            required: ['itemId'],
+          },
+        },
+        {
+          name: 'add_machine_item',
+          description: 'Add an item to a machine\'s inventory at the specified coordinates',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              x: {
+                type: 'number',
+                description: 'X coordinate of the machine',
+              },
+              y: {
+                type: 'number',
+                description: 'Y coordinate of the machine',
+              },
+              itemId: {
+                type: 'string',
+                description: 'ID of the item to add',
+              },
+              count: {
+                type: 'number',
+                description: 'Number of items to add',
+                default: 1,
+              },
+              slot: {
+                type: 'number',
+                description: 'Specific slot to add the item to (optional)',
+              },
+            },
+            required: ['x', 'y', 'itemId'],
+          },
+        },
+        {
+          name: 'get_debug_logs',
+          description: 'Get the current debug logs from the game',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
       ];
 
       return { tools };
@@ -709,6 +900,105 @@ class FactoryForgeMCPServer {
             });
             return {
               content: [{ type: 'text', text: JSON.stringify(listBuildingsResult, null, 2) }],
+            };
+
+          case 'delete_building':
+            const deleteResult = this.gameController.executeCommand({
+              command: 'delete_building',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(deleteResult, null, 2) }],
+            };
+
+          case 'move_building':
+            const moveBuildingResult = this.gameController.executeCommand({
+              command: 'move_building',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(moveBuildingResult, null, 2) }],
+            };
+
+          case 'check_tile_resources':
+            const checkTileResult = this.gameController.executeCommand({
+              command: 'check_tile_resources',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(checkTileResult, null, 2) }],
+            };
+
+          case 'build_mining_drill_on_deposit':
+            const buildDrillResult = this.gameController.executeCommand({
+              command: 'build_mining_drill_on_deposit',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(buildDrillResult, null, 2) }],
+            };
+
+          case 'move_player':
+            const movePlayerResult = this.gameController.executeCommand({
+              command: 'move_player',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(movePlayerResult, null, 2) }],
+            };
+
+          case 'get_player_position':
+            const playerPosResult = this.gameController.executeCommand({
+              command: 'get_player_position',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(playerPosResult, null, 2) }],
+            };
+
+          case 'get_inventory':
+            const inventoryResult = this.gameController.executeCommand({
+              command: 'get_inventory',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(inventoryResult, null, 2) }],
+            };
+
+          case 'add_inventory':
+            const addInventoryResult = this.gameController.executeCommand({
+              command: 'add_inventory',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(addInventoryResult, null, 2) }],
+            };
+
+          case 'craft':
+            const craftResult = this.gameController.executeCommand({
+              command: 'craft',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(craftResult, null, 2) }],
+            };
+
+          case 'add_machine_item':
+            const addMachineResult = this.gameController.executeCommand({
+              command: 'add_machine_item',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(addMachineResult, null, 2) }],
+            };
+
+          case 'get_debug_logs':
+            const debugLogsResult = this.gameController.executeCommand({
+              command: 'get_debug_logs',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(debugLogsResult, null, 2) }],
             };
 
           default:

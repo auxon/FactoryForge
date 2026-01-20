@@ -522,12 +522,13 @@ final class MachineUI: UIPanel_Base {
                 MachineUIConfig.ComponentConfig(
                     type: "slotButtons",
                     position: MachineUIConfig.ComponentConfig.PositionConfig(
-                        x: 20, y: 60, width: 100, height: 80
+                        x: 20, y: 60, width: 360, height: 120
                     ),
                     properties: [
                         "inputSlots": .int(0),
                         "outputSlots": .int(1),
-                        "fuelSlots": .int(1)
+                        "fuelSlots": .int(1),
+                        "layout": .string("fuel_left_output_center")
                     ]
                 ),
                 MachineUIConfig.ComponentConfig(
@@ -543,10 +544,57 @@ final class MachineUI: UIPanel_Base {
             ]
         )
 
+        let labConfig = MachineUIConfig(
+            machineType: "lab",
+            layout: MachineUIConfig.LayoutConfig(
+                panelWidth: 400,
+                panelHeight: 300,
+                backgroundColor: "#2a2a4a",
+                borderWidth: 2,
+                cornerRadius: 8
+            ),
+            components: [
+                MachineUIConfig.ComponentConfig(
+                    type: "headerLabel",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 20, y: 20, width: 360, height: 30
+                    ),
+                    properties: [
+                        "text": .string("Research Lab"),
+                        "fontSize": .double(18.0),
+                        "textColor": .string("#FFFFFF")
+                    ]
+                ),
+                MachineUIConfig.ComponentConfig(
+                    type: "slotButtons",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 20, y: 60, width: 360, height: 200
+                    ),
+                    properties: [
+                        "inputSlots": .int(2),
+                        "outputSlots": .int(0),
+                        "fuelSlots": .int(0)
+                    ]
+                ),
+                MachineUIConfig.ComponentConfig(
+                    type: "statusLabel",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: 20, y: 270, width: 360, height: 20
+                    ),
+                    properties: [
+                        "text": .string("Research in progress..."),
+                        "fontSize": .double(12.0),
+                        "textColor": .string("#CCCCCC")
+                    ]
+                )
+            ]
+        )
+
         // Save default configurations
         saveConfiguration(assemblerConfig)
         saveConfiguration(furnaceConfig)
         saveConfiguration(miningDrillConfig)
+        saveConfiguration(labConfig)
     }
 
     private func setupSlots() {
@@ -649,6 +697,12 @@ final class MachineUI: UIPanel_Base {
             }
             machineComponents.append(AssemblyMachineUIComponent(recipeSelectionCallback: recipeCallback))
         }
+
+        // Check for lab machines (research facilities)
+        if gameLoop.world.has(LabComponent.self, for: entity) {
+            // Labs don't need special components, just show inventory slots
+            // The slot setup will handle the input slots automatically
+        }
     }
 
     /// Apply a JSON-based configuration to the UI
@@ -679,9 +733,18 @@ final class MachineUI: UIPanel_Base {
 
         switch config.type {
         case "slotButtons":
-            // Slot buttons are handled by the existing setupSlotButtons method
-            // We can override positioning here if needed
+            // Check if custom layout is specified
+            if case let .string(layout) = config.properties["layout"], layout == "fuel_left_output_center" {
+                setupMiningDrillSlotLayout(config, position: position)
+            } else {
+                // Default slot layout
+                // Slot buttons are handled by the existing setupSlotButtons method
+            }
             break
+        case "headerLabel":
+            setupHeaderLabelFromConfig(config, position: position)
+        case "statusLabel":
+            setupStatusLabelFromConfig(config, position: position)
         case "recipeSelector":
             setupRecipeSelectorFromConfig(config, position: position)
         case "progressBar":
@@ -706,6 +769,111 @@ final class MachineUI: UIPanel_Base {
     /// Setup progress bar from config
     private func setupProgressBarFromConfig(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
         // Configure progress bar appearance and position
+    }
+
+    /// Setup header label from config
+    private func setupHeaderLabelFromConfig(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
+        let label = UILabel(frame: position)
+        label.textAlignment = .center
+        label.font = UIFont.boldSystemFont(ofSize: 18)
+
+        // Apply config properties
+        if case let .string(text) = config.properties["text"] {
+            label.text = text
+        }
+        if case let .double(fontSize) = config.properties["fontSize"] {
+            label.font = UIFont.boldSystemFont(ofSize: CGFloat(fontSize))
+        }
+        if case let .string(colorHex) = config.properties["textColor"] {
+            label.textColor = UIColor(hex: colorHex) ?? .white
+        }
+
+        rootView?.addSubview(label)
+    }
+
+    /// Setup mining drill slot layout (fuel left, output center)
+    private func setupMiningDrillSlotLayout(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
+        guard let entity = currentEntity,
+              let gameLoop = gameLoop,
+              let rootView = rootView else {
+            return
+        }
+
+        // Get building definition
+        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else {
+            return
+        }
+
+        let fuelCount = buildingDef.fuelSlots
+        let outputCount = buildingDef.outputSlots
+        let buttonSizePoints: CGFloat = 32
+        let spacingPoints: CGFloat = 8
+
+        // Fuel slots on the left
+        for i in 0..<fuelCount {
+            let buttonX = position.minX + 10 // Left side within component area
+            let buttonY = position.minY + 10 + (buttonSizePoints + spacingPoints) * CGFloat(i)
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+            button.backgroundColor = UIColor(red: 0.5, green: 0.5, blue: 0.6, alpha: 1.0) // Blue-gray for fuel
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1.0
+            button.layer.cornerRadius = 4.0
+            button.translatesAutoresizingMaskIntoConstraints = true
+
+            fuelSlotButtons.append(button)
+            button.tag = i
+            button.addTarget(self, action: #selector(fuelSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+            rootView.addSubview(button)
+
+            // Count label
+            let label = attachCountLabel(to: button)
+            fuelCountLabels.append(label)
+            rootView.addSubview(label)
+        }
+
+        // Output slots in the center
+        for i in 0..<outputCount {
+            let buttonX = position.midX - buttonSizePoints / 2 // Center horizontally
+            let buttonY = position.midY - buttonSizePoints / 2 // Center vertically
+
+            let button = UIKit.UIButton(frame: CGRect(x: buttonX, y: buttonY, width: buttonSizePoints, height: buttonSizePoints))
+            button.backgroundColor = UIColor(red: 0.3, green: 0.5, blue: 0.3, alpha: 1.0) // Green for output
+            button.layer.borderColor = UIColor.white.cgColor
+            button.layer.borderWidth = 1.0
+            button.layer.cornerRadius = 4.0
+            button.translatesAutoresizingMaskIntoConstraints = true
+
+            outputSlotButtons.append(button)
+            button.tag = i
+            button.addTarget(self, action: #selector(outputSlotTapped(_:)), for: UIControl.Event.touchUpInside)
+            rootView.addSubview(button)
+
+            // Count label
+            let label = attachCountLabel(to: button)
+            outputCountLabels.append(label)
+            rootView.addSubview(label)
+        }
+    }
+
+    /// Setup status label from config
+    private func setupStatusLabelFromConfig(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
+        let label = UILabel(frame: position)
+        label.textAlignment = .center
+        label.font = UIFont.systemFont(ofSize: 12)
+
+        // Apply config properties
+        if case let .string(text) = config.properties["text"] {
+            label.text = text
+        }
+        if case let .double(fontSize) = config.properties["fontSize"] {
+            label.font = UIFont.systemFont(ofSize: CGFloat(fontSize))
+        }
+        if case let .string(colorHex) = config.properties["textColor"] {
+            label.textColor = UIColor(hex: colorHex) ?? .gray
+        }
+
+        rootView?.addSubview(label)
     }
 
     /// Setup power label from config
@@ -875,13 +1043,21 @@ final class MachineUI: UIPanel_Base {
 
         let pad: CGFloat = 16
 
-        // Make bar span the recipe region (with padding)
-        let barX = L.recipeRegionX + pad
-        let barRight = L.recipeRegionX + L.recipeRegionWidth - pad
-        let unclampedWidth = barRight - barX
+        // For machines without recipes (like miners), position progress bar more centrally
+        var barX: CGFloat
+        var barWidth: CGFloat
 
-        // Clamp for aesthetics if panel is huge
-        let barWidth = min(unclampedWidth, 360)
+        if recipeScrollView != nil && !recipeUIButtons.isEmpty {
+            // Machine has recipes - use recipe region positioning
+            barX = L.recipeRegionX + pad
+            let barRight = L.recipeRegionX + L.recipeRegionWidth - pad
+            let unclampedWidth = barRight - barX
+            barWidth = min(unclampedWidth, 360)
+        } else {
+            // Machine has no recipes - center the progress bar
+            barWidth = min(L.W - 2 * pad, 300)
+            barX = (L.W - barWidth) / 2
+        }
 
         let barHeight: CGFloat = 20
         let barY = L.topBandY   // put it in the top band
@@ -2173,8 +2349,16 @@ final class MachineUI: UIPanel_Base {
 
         // Add root view to hierarchy (AFTER content is added to it)
         if let rootView = rootView {
-            onAddRootView?(rootView)
+            print("MachineUI: Calling onAddRootView with rootView frame: \(rootView.frame)")
+            if onAddRootView != nil {
+                print("MachineUI: onAddRootView callback is set, calling it")
+                onAddRootView?(rootView)
+                print("MachineUI: onAddRootView callback completed")
+            } else {
+                print("MachineUI: ERROR - onAddRootView callback is nil!")
+            }
         } else {
+            print("MachineUI: ERROR - rootView is nil, closing")
             close()
         }
 
@@ -3604,5 +3788,41 @@ final class MachineUI: UIPanel_Base {
         }
 
         return (1, 1)
+    }
+}
+
+// UIColor extension for hex color support
+extension UIColor {
+    convenience init?(hex: String) {
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+
+        var rgb: UInt64 = 0
+
+        guard Scanner(string: hexSanitized).scanHexInt64(&rgb) else {
+            return nil
+        }
+
+        let length = hexSanitized.count
+
+        var r: CGFloat = 0.0
+        var g: CGFloat = 0.0
+        var b: CGFloat = 0.0
+        var a: CGFloat = 1.0
+
+        if length == 6 {
+            r = CGFloat((rgb & 0xFF0000) >> 16) / 255.0
+            g = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
+            b = CGFloat(rgb & 0x0000FF) / 255.0
+        } else if length == 8 {
+            r = CGFloat((rgb & 0xFF000000) >> 24) / 255.0
+            g = CGFloat((rgb & 0x00FF0000) >> 16) / 255.0
+            b = CGFloat((rgb & 0x0000FF00) >> 8) / 255.0
+            a = CGFloat(rgb & 0x000000FF) / 255.0
+        } else {
+            return nil
+        }
+
+        self.init(red: r, green: g, blue: b, alpha: a)
     }
 }
