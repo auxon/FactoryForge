@@ -194,6 +194,7 @@ final class MachineUI: UIPanel_Base {
     private(set) var screenSize: Vector2
     private(set) weak var gameLoop: GameLoop?
     private(set) var currentEntity: Entity?
+    private var pendingEntitySetup: Entity?
 
     // JSON-based UI configuration system
     private var uiConfigs: [String: MachineUIConfig] = [:]
@@ -630,6 +631,17 @@ final class MachineUI: UIPanel_Base {
         lastInventoryEntity = nil
         lastInventorySignature = nil
 
+        // Store entity for setup when rootView is available
+        pendingEntitySetup = entity
+
+        // If UI is already open with rootView, set up immediately
+        if isOpen && rootView != nil {
+            setupComponentsForEntity(entity)
+            pendingEntitySetup = nil
+        }
+    }
+
+    private func setupComponentsForEntity(_ entity: Entity) {
         // Clear existing components
         machineComponents.removeAll()
 
@@ -667,11 +679,12 @@ final class MachineUI: UIPanel_Base {
         // Setup power label for generators (legacy compatibility)
         setupPowerLabel(for: entity)
 
-        // Recreate UIKit slot buttons if UI is open
-        if isOpen {
-            clearSlotUI()
-            setupSlotButtons()
-        }
+        // Set up UIKit slot buttons and layout
+        clearSlotUI()
+        setupSlotButtons()
+        layoutAll()
+        // Update the UI with current machine state
+        updateMachine(entity)
     }
 
     /// Fallback method for machine types not yet converted to JSON config
@@ -745,6 +758,8 @@ final class MachineUI: UIPanel_Base {
             setupHeaderLabelFromConfig(config, position: position)
         case "statusLabel":
             setupStatusLabelFromConfig(config, position: position)
+        case "label":
+            setupLabelFromConfig(config, position: position)
         case "recipeSelector":
             setupRecipeSelectorFromConfig(config, position: position)
         case "progressBar":
@@ -871,6 +886,33 @@ final class MachineUI: UIPanel_Base {
         }
         if case let .string(colorHex) = config.properties["textColor"] {
             label.textColor = UIColor(hex: colorHex) ?? .gray
+        }
+
+        rootView?.addSubview(label)
+    }
+
+    /// Setup generic label from config
+    private func setupLabelFromConfig(_ config: MachineUIConfig.ComponentConfig, position: CGRect) {
+        let label = UILabel(frame: position)
+        label.textAlignment = .center
+        label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+
+        // Apply config properties
+        if case let .string(text) = config.properties["text"] {
+            label.text = text
+        }
+        if case let .double(fontSize) = config.properties["fontSize"] {
+            label.font = UIFont.systemFont(ofSize: CGFloat(fontSize), weight: .medium)
+        }
+        if case let .string(colorHex) = config.properties["textColor"] {
+            label.textColor = UIColor(hex: colorHex) ?? .white
+        }
+        if case let .string(bgColorHex) = config.properties["backgroundColor"] {
+            if let bgColor = UIColor(hex: bgColorHex) {
+                label.backgroundColor = bgColor
+                label.layer.cornerRadius = 4
+                label.layer.masksToBounds = true
+            }
         }
 
         rootView?.addSubview(label)
@@ -2345,6 +2387,13 @@ final class MachineUI: UIPanel_Base {
             layoutAll()
             // Update the UI with current machine state
             updateMachine(currentEntity!)
+        }
+
+        // Set up components now that rootView exists
+        if let entity = pendingEntitySetup {
+            print("MachineUI: Setting up components for pending entity")
+            setupComponentsForEntity(entity)
+            pendingEntitySetup = nil
         }
 
         // Add root view to hierarchy (AFTER content is added to it)
