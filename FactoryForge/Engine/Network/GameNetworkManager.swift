@@ -98,8 +98,8 @@ final class GameNetworkManager {
 
     private func connectToMCPServer() {
         print("GameNetworkManager: Attempting to connect to MCP server...")
-        // Connect to MCP server at 192.168.2.43:8081 (WebSocket port)
-        let mcpHost = "192.168.2.43"  // Mac's IP address
+        // Connect to MCP server at localhost:8081 (WebSocket port)
+        let mcpHost = "localhost"  // Local MCP server
         let mcpPort: NWEndpoint.Port = 8081
         print("GameNetworkManager: Connecting to \(mcpHost):\(mcpPort)")
 
@@ -1739,13 +1739,11 @@ final class GameNetworkManager {
             throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
         }
 
-        // Convert dictionary to JSON data and decode to MachineUIConfig
-        let jsonData = try JSONSerialization.data(withJSONObject: configDict)
-        let decoder = JSONDecoder()
-        let config = try decoder.decode(MachineUIConfig.self, from: jsonData)
+        // Check if this is the new schema format (has $schema field)
+        let isSchemaFormat = configDict["$schema"] != nil
 
         // Apply the configuration to the UI system (must be done on main thread)
-        let success: [String: Any] = try await withCheckedThrowingContinuation { continuation in
+        let result: [String: Any] = try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else {
                     continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "Self is nil"]))
@@ -1758,16 +1756,36 @@ final class GameNetworkManager {
                 }
 
                 if let machineUI = gameLoop.uiSystem?.getMachineUI() {
-                    machineUI.updateConfiguration(config)
-                    self.sendDebugLog("updateMachineUIConfig: Successfully updated configuration for machine type '\(machineType)'")
-                    continuation.resume(returning: ["success": true, "machineType": machineType, "message": "Machine UI configuration updated successfully"])
+                    do {
+                        if isSchemaFormat {
+                            // Handle new schema format
+                            let jsonData = try JSONSerialization.data(withJSONObject: configDict)
+                            let decoder = JSONDecoder()
+                            let schema = try decoder.decode(MachineUISchema.self, from: jsonData)
+
+                            try machineUI.applySchema(schema)
+                            self.sendDebugLog("updateMachineUIConfig: Successfully applied schema for machine type '\(machineType)'")
+                            continuation.resume(returning: ["success": true, "machineType": machineType, "message": "Machine UI schema applied successfully"])
+                        } else {
+                            // Handle old flat component format
+                            let jsonData = try JSONSerialization.data(withJSONObject: configDict)
+                            let decoder = JSONDecoder()
+                            let config = try decoder.decode(MachineUIConfig.self, from: jsonData)
+
+                            machineUI.updateConfiguration(config)
+                            self.sendDebugLog("updateMachineUIConfig: Successfully updated configuration for machine type '\(machineType)'")
+                            continuation.resume(returning: ["success": true, "machineType": machineType, "message": "Machine UI configuration updated successfully"])
+                        }
+                    } catch {
+                        continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 28, userInfo: [NSLocalizedDescriptionKey: "Failed to apply configuration: \(error.localizedDescription)"]))
+                    }
                 } else {
                     continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "UI system not available"]))
                 }
             }
         }
 
-        return success
+        return result
     }
 
     func getMachineUIConfig(_ parameters: [String: Any]) async throws -> Any {

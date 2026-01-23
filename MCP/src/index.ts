@@ -161,6 +161,14 @@ class FactoryForgeMCPServer {
           },
         },
         {
+          name: 'check_game_over',
+          description: 'Check if the game is over (player has died)',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
           name: 'mine',
           description: 'Manually mine a resource at the player\'s current location',
           inputSchema: {
@@ -577,6 +585,28 @@ class FactoryForgeMCPServer {
           },
         },
         {
+          name: 'build_structure',
+          description: 'Build a structure/building at the specified coordinates',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              buildingId: {
+                type: 'string',
+                description: 'ID of the building to construct (e.g., "rocket_silo", "furnace")',
+              },
+              x: {
+                type: 'number',
+                description: 'X coordinate to build the structure',
+              },
+              y: {
+                type: 'number',
+                description: 'Y coordinate to build the structure',
+              },
+            },
+            required: ['buildingId', 'x', 'y'],
+          },
+        },
+        {
           name: 'move_player',
           description: 'Move the player to a specific location',
           inputSchema: {
@@ -687,6 +717,44 @@ class FactoryForgeMCPServer {
             properties: {},
           },
         },
+        {
+          name: 'demonstrate_schema',
+          description: 'Demonstrate the new formal MachineUI schema architecture',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'start_debug_server',
+          description: 'Start the LLDB debugging MCP server for advanced debugging control',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'find_process',
+          description: 'Find running processes by name for debugging',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              processName: {
+                type: 'string',
+                description: 'Name of the process to find',
+              },
+            },
+            required: ['processName'],
+          },
+        },
+        {
+          name: 'check_debug_setup',
+          description: 'Check if debugging environment is properly set up',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
       ];
 
       return { tools };
@@ -738,6 +806,13 @@ class FactoryForgeMCPServer {
                 { type: 'text', text: 'Screenshot captured' },
                 { type: 'image', data: screenshot, mimeType: `image/${format}` },
               ],
+            };
+
+          case 'check_game_over':
+            const gameOverStatus = this.gameController.getGameOverStatus();
+            return {
+              content: [{ type: 'text', text: JSON.stringify(gameOverStatus, null, 2) }],
+              isError: false,
             };
 
           case 'mine':
@@ -813,12 +888,12 @@ class FactoryForgeMCPServer {
             };
 
           case 'delete_save_slot':
-            const deleteResult = this.gameController.executeCommand({
+            const deleteSaveResult = this.gameController.executeCommand({
               command: 'delete_save_slot',
               parameters: args || {}
             });
             return {
-              content: [{ type: 'text', text: JSON.stringify(deleteResult, null, 2) }],
+              content: [{ type: 'text', text: JSON.stringify(deleteSaveResult, null, 2) }],
             };
 
           case 'rename_save_slot':
@@ -903,12 +978,12 @@ class FactoryForgeMCPServer {
             };
 
           case 'delete_building':
-            const deleteResult = this.gameController.executeCommand({
+            const deleteBuildingResult = this.gameController.executeCommand({
               command: 'delete_building',
               parameters: args || {}
             });
             return {
-              content: [{ type: 'text', text: JSON.stringify(deleteResult, null, 2) }],
+              content: [{ type: 'text', text: JSON.stringify(deleteBuildingResult, null, 2) }],
             };
 
           case 'move_building':
@@ -936,6 +1011,15 @@ class FactoryForgeMCPServer {
             });
             return {
               content: [{ type: 'text', text: JSON.stringify(buildDrillResult, null, 2) }],
+            };
+
+          case 'build_structure':
+            const buildStructureResult = this.gameController.executeCommand({
+              command: 'build_structure',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(buildStructureResult, null, 2) }],
             };
 
           case 'move_player':
@@ -999,6 +1083,121 @@ class FactoryForgeMCPServer {
             });
             return {
               content: [{ type: 'text', text: JSON.stringify(debugLogsResult, null, 2) }],
+            };
+
+          case 'demonstrate_schema':
+            // This is a server-side only demonstration - don't forward to iOS app
+            const { SchemaDemo } = await import('./schemaDemo');
+            const schemaDemo = new SchemaDemo(this.gameController);
+            const demoResult = await schemaDemo.demonstrateSchemaUsage();
+            return {
+              content: [{ type: 'text', text: demoResult || 'Schema demonstration completed. Check server console output.' }],
+            };
+
+          case 'start_debug_server':
+            // Start the LLDB debugging MCP server
+            const { spawn } = await import('child_process');
+            const debugProcess = spawn('bash', ['-c', 'cd ../DebugMCP && npm start'], {
+              detached: true,
+              stdio: 'ignore'
+            });
+            debugProcess.unref();
+            return {
+              content: [{ type: 'text', text: 'LLDB debugging MCP server started. Use attach_to_process tool to begin debugging.' }],
+            };
+
+          case 'find_process':
+            // Find running processes by name
+            const { spawn: spawnPs } = await import('child_process');
+            const psProcess = spawnPs('ps', ['aux'], { stdio: ['pipe', 'pipe', 'pipe'] });
+
+            let psOutput = '';
+            psProcess.stdout?.on('data', (data) => {
+              psOutput += data.toString();
+            });
+
+            await new Promise((resolve) => {
+              psProcess.on('close', resolve);
+            });
+
+            const processName = args?.processName as string;
+            const lines = psOutput.split('\n').filter(line =>
+              line.includes(processName) && !line.includes('grep')
+            );
+
+            const processes = lines.map(line => {
+              const parts = line.trim().split(/\s+/);
+              return {
+                pid: parseInt(parts[1]),
+                name: parts.slice(10).join(' ') || parts[10] || 'unknown'
+              };
+            });
+
+            return {
+              content: [{ type: 'text', text: JSON.stringify({
+                found: processes.length,
+                processes: processes
+              }, null, 2) }],
+            };
+
+          case 'check_debug_setup':
+            // Check debugging environment
+            const { spawn: spawnWhich } = await import('child_process');
+
+            const checks = {
+              lldb: false,
+              debugMcp: false,
+              factoryforgeProcess: false
+            };
+
+            // Check LLDB
+            try {
+              const lldbCheck = spawnWhich('which', ['lldb'], { stdio: 'pipe' });
+              await new Promise((resolve) => {
+                lldbCheck.on('close', (code) => {
+                  checks.lldb = code === 0;
+                  resolve(null);
+                });
+              });
+            } catch (e) {
+              checks.lldb = false;
+            }
+
+            // Check if debug MCP is running
+            try {
+              const debugCheck = spawnWhich('pgrep', ['-f', 'factoryforge-debug-mcp'], { stdio: 'pipe' });
+              await new Promise((resolve) => {
+                debugCheck.on('close', (code) => {
+                  checks.debugMcp = code === 0;
+                  resolve(null);
+                });
+              });
+            } catch (e) {
+              checks.debugMcp = false;
+            }
+
+            // Check FactoryForge process
+            try {
+              const ffCheck = spawnWhich('pgrep', ['-f', 'FactoryForge'], { stdio: 'pipe' });
+              await new Promise((resolve) => {
+                ffCheck.on('close', (code) => {
+                  checks.factoryforgeProcess = code === 0;
+                  resolve(null);
+                });
+              });
+            } catch (e) {
+              checks.factoryforgeProcess = false;
+            }
+
+            const status = {
+              lldb_available: checks.lldb,
+              debug_mcp_running: checks.debugMcp,
+              factoryforge_running: checks.factoryforgeProcess,
+              setup_complete: checks.lldb && checks.debugMcp && checks.factoryforgeProcess
+            };
+
+            return {
+              content: [{ type: 'text', text: JSON.stringify(status, null, 2) }],
             };
 
           default:

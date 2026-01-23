@@ -649,8 +649,36 @@ final class MachineUI: UIPanel_Base {
         if let gameLoop = gameLoop {
             let machineType = determineMachineType(for: entity, in: gameLoop)
 
-            if let config = uiConfigs[machineType] {
-                // Use JSON configuration
+            // Check if there's a current schema for this machine type
+            if let schema = currentSchema, schema.machineKind == machineType {
+                // Use the current schema
+                do {
+                    try applySchema(schema)
+                } catch {
+                    print("MachineUI: Error applying current schema: \(error)")
+                    // Fall back to stored config
+                    if let config = uiConfigs[machineType] {
+                        applyConfiguration(config)
+                    } else {
+                        setupLegacyComponents(for: entity, in: gameLoop)
+                    }
+                }
+            } else if let schema = loadSchema(for: machineType) {
+                // Load schema from disk and use it
+                currentSchema = schema
+                do {
+                    try applySchema(schema)
+                } catch {
+                    print("MachineUI: Error applying loaded schema: \(error)")
+                    // Fall back to stored config
+                    if let config = uiConfigs[machineType] {
+                        applyConfiguration(config)
+                    } else {
+                        setupLegacyComponents(for: entity, in: gameLoop)
+                    }
+                }
+            } else if let config = uiConfigs[machineType] {
+                // Use stored JSON configuration
                 applyConfiguration(config)
             } else {
                 // Fallback to legacy component-based system
@@ -685,6 +713,216 @@ final class MachineUI: UIPanel_Base {
         layoutAll()
         // Update the UI with current machine state
         updateMachine(entity)
+    }
+
+    // MARK: - New Formal Schema Support
+
+    /// Load and apply a formal MachineUI schema
+    func applySchema(_ schema: MachineUISchema) throws {
+        guard let rootView = rootView else {
+            throw SchemaError.rootViewNotAvailable
+        }
+
+        // Validate invariants
+        let layoutEngine = MachineUILayoutEngine(schema: schema, rootView: rootView)
+        try layoutEngine.validateInvariants()
+
+        // Clear existing content
+        clearSlotUI()
+        machineComponents.removeAll()
+
+        // Build new UI using schema
+        let builder = MachineUIBuilder(schema: schema)
+        _ = builder.build(in: rootView)
+
+        // Store schema for later reference
+        self.currentSchema = schema
+
+        // Convert schema to MachineUIConfig format and save for persistence
+        let config = convertSchemaToConfig(schema)
+        saveConfiguration(config)
+
+        // Also save the schema itself for future reference
+        saveSchema(schema)
+    }
+
+    /// Load schema from JSON file in bundle
+    func loadSchemaFromBundle(named filename: String) throws -> MachineUISchema {
+        guard let url = Bundle.main.url(forResource: filename, withExtension: "json") else {
+            throw SchemaError.schemaFileNotFound(filename)
+        }
+
+        let data = try Data(contentsOf: url)
+        let decoder = JSONDecoder()
+        return try decoder.decode(MachineUISchema.self, from: data)
+    }
+
+    // MARK: - Schema Conversion and Persistence
+
+    /// Convert a MachineUISchema to MachineUIConfig for persistence
+    private func convertSchemaToConfig(_ schema: MachineUISchema) -> MachineUIConfig {
+        // Calculate panel dimensions based on grid and layout
+        let panelWidth = CGFloat(schema.layout.grid.columns) * 80.0 + 48.0 // Rough estimate
+        let panelHeight = CGFloat(schema.layout.grid.rows) * 60.0 + 48.0 // Rough estimate
+
+        let layout = MachineUIConfig.LayoutConfig(
+            panelWidth: panelWidth,
+            panelHeight: panelHeight,
+            backgroundColor: "#1a1a1a",
+            borderWidth: 1.0,
+            cornerRadius: 8.0
+        )
+
+        var components: [MachineUIConfig.ComponentConfig] = []
+
+        // Convert groups to components
+        for group in schema.groups {
+            // Add group header as a label component
+            let headerY = CGFloat(group.anchor.gridY) * 60.0 + 8.0
+            let headerTextColor = colorForStyleRole(group.header.styleRole, palette: schema.style.palette)
+            let headerBackgroundColor = headerTextColor + "20" // Add transparency
+            let headerComponent = MachineUIConfig.ComponentConfig(
+                type: "label",
+                position: MachineUIConfig.ComponentConfig.PositionConfig(
+                    x: CGFloat(group.anchor.gridX) * 80.0 + 8.0,
+                    y: headerY,
+                    width: CGFloat(group.anchor.spanX) * 80.0 - 16.0,
+                    height: 20.0
+                ),
+                properties: [
+                    "text": .string(group.header.text),
+                    "fontSize": .double(14.0),
+                    "textColor": .string(headerTextColor),
+                    "backgroundColor": .string(headerBackgroundColor)
+                ]
+            )
+            components.append(headerComponent)
+
+            // Add slot buttons for the group
+            let slotsY = headerY + 24.0
+            for (index, slot) in group.content.slots.enumerated() {
+                let inputSlots = slot.slotKind == .item && group.role == .input ? 1 : 0
+                let outputSlots = slot.slotKind == .item && group.role == .output ? 1 : 0
+                let fuelSlots = slot.slotKind == .item && group.role == .fuel ? 1 : 0
+                let slotComponent = MachineUIConfig.ComponentConfig(
+                    type: "slotButtons",
+                    position: MachineUIConfig.ComponentConfig.PositionConfig(
+                        x: CGFloat(group.anchor.gridX) * 80.0 + 8.0,
+                        y: slotsY + CGFloat(index) * 60.0,
+                        width: CGFloat(group.anchor.spanX) * 80.0 - 16.0,
+                        height: 50.0
+                    ),
+                    properties: [
+                        "inputSlots": .int(inputSlots),
+                        "outputSlots": .int(outputSlots),
+                        "fuelSlots": .int(fuelSlots)
+                    ]
+                )
+                components.append(slotComponent)
+            }
+
+            // Add state text as a label component
+            if let stateText = group.content.stateText {
+                let stateY = slotsY + CGFloat(group.content.slots.count) * 60.0 + 8.0
+                let stateComponent = MachineUIConfig.ComponentConfig(
+                    type: "label",
+                position: MachineUIConfig.ComponentConfig.PositionConfig(
+                    x: CGFloat(group.anchor.gridX) * 80.0 + 8.0,
+                    y: stateY,
+                    width: CGFloat(group.anchor.spanX) * 80.0 - 16.0,
+                    height: 16.0
+                ),
+                    properties: [
+                        "text": .string(stateText.empty),
+                        "fontSize": .double(10.0),
+                        "textColor": .string(schema.style.palette.mutedText)
+                    ]
+                )
+                components.append(stateComponent)
+            }
+        }
+
+        // Convert process to components
+        if let process = schema.process {
+            let processY = CGFloat(process.anchor.gridY) * 60.0 + 8.0
+            // Add process label
+            let processLabelComponent = MachineUIConfig.ComponentConfig(
+                type: "label",
+                position: MachineUIConfig.ComponentConfig.PositionConfig(
+                    x: CGFloat(process.anchor.gridX) * 80.0 + 8.0,
+                    y: processY,
+                    width: CGFloat(process.anchor.spanX) * 80.0 - 16.0,
+                    height: 20.0
+                ),
+                properties: [
+                    "text": .string(process.label.text),
+                    "fontSize": .double(14.0),
+                    "textColor": .string(colorForStyleRole(.process, palette: schema.style.palette))
+                ]
+            )
+            components.append(processLabelComponent)
+
+            // Add progress bar
+            let progressY = processY + 24.0
+            let progressComponent = MachineUIConfig.ComponentConfig(
+                type: "progressBar",
+                position: MachineUIConfig.ComponentConfig.PositionConfig(
+                    x: CGFloat(process.anchor.gridX) * 80.0 + 8.0,
+                    y: progressY,
+                    width: CGFloat(process.anchor.spanX) * 80.0 - 16.0,
+                    height: 20.0
+                ),
+                properties: [
+                    "showPercentage": .bool(process.progress.showPercent),
+                    "color": .string(colorForStyleRole(.process, palette: schema.style.palette))
+                ]
+            )
+            components.append(progressComponent)
+        }
+
+        // Convert recipes to components
+        if let recipes = schema.recipes {
+            let recipesY = CGFloat(recipes.anchor.gridY) * 60.0 + 8.0
+            let recipesComponent = MachineUIConfig.ComponentConfig(
+                type: "recipeSelector",
+                position: MachineUIConfig.ComponentConfig.PositionConfig(
+                    x: CGFloat(recipes.anchor.gridX) * 80.0 + 8.0,
+                    y: recipesY,
+                    width: CGFloat(recipes.anchor.spanX) * 80.0 - 16.0,
+                    height: CGFloat(recipes.anchor.spanY) * 60.0 - 16.0
+                ),
+                properties: [
+                    "showHeader": .bool(true),
+                    "scrollable": .bool(true)
+                ]
+            )
+            components.append(recipesComponent)
+        }
+
+        return MachineUIConfig(
+            machineType: schema.machineKind,
+            layout: layout,
+            components: components
+        )
+    }
+
+    private func colorForStyleRole(_ role: Group.GroupHeader.StyleRole, palette: Style.Palette) -> String {
+        switch role {
+        case .fuel: return palette.fuel
+        case .input: return palette.input
+        case .output: return palette.output
+        case .process: return palette.process
+        case .neutral: return palette.mutedText
+        }
+    }
+
+    // MARK: - Schema State
+    private var currentSchema: MachineUISchema?
+
+    enum SchemaError: Error {
+        case rootViewNotAvailable
+        case schemaFileNotFound(String)
+        case validationFailed(String)
     }
 
     /// Fallback method for machine types not yet converted to JSON config
@@ -936,6 +1174,35 @@ final class MachineUI: UIPanel_Base {
     /// Get a UI configuration for runtime editing
     func getConfiguration(for machineType: String) -> MachineUIConfig? {
         return uiConfigs[machineType]
+    }
+
+    /// Save a schema to disk
+    private func saveSchema(_ schema: MachineUISchema) {
+        guard let configDirectory = configDirectory else { return }
+
+        do {
+            let schemaURL = configDirectory.appendingPathComponent("\(schema.machineKind)_schema.json")
+            let jsonData = try JSONEncoder().encode(schema)
+            try jsonData.write(to: schemaURL)
+            print("MachineUI: Saved schema for \(schema.machineKind)")
+        } catch {
+            print("MachineUI: Error saving schema: \(error)")
+        }
+    }
+
+    /// Load a schema from disk
+    private func loadSchema(for machineType: String) -> MachineUISchema? {
+        guard let configDirectory = configDirectory else { return nil }
+
+        do {
+            let schemaURL = configDirectory.appendingPathComponent("\(machineType)_schema.json")
+            let jsonData = try Data(contentsOf: schemaURL)
+            let schema = try JSONDecoder().decode(MachineUISchema.self, from: jsonData)
+            return schema
+        } catch {
+            // Schema file doesn't exist or can't be loaded, return nil
+            return nil
+        }
     }
 
     /// Update a UI configuration at runtime

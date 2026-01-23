@@ -11529,3 +11529,4253 @@ iPhone response: {
     }
   }
 }
+Executing command: demonstrate_schema via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: demonstrate_schema via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: demonstrate_schema via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: get_game_state via HTTP
+iPhone response: {
+  world: {
+    entities: [
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object]
+    ],
+    chunks: [
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object]
+    ]
+  },
+  performance: { fps: 60, memoryUsage: 0, entityCount: 30 },
+  systems: {
+    power: { totalGenerated: 0, totalConsumed: 0 },
+    research: { current: null, progress: {} },
+    fluid: { totalFlow: 0, networks: 0 }
+  },
+  player: {
+    research: [],
+    unlockedUnits: [ 'worker', 'soldier' ],
+    resources: { stone: 1 },
+    unlockedBuildings: [
+      'offshore-pump',       'small-electric-pole',
+      'steam-engine',        'stone-furnace',
+      'rocket-silo',         'assembling-machine-1',
+      'transport-belt',      'electric-mining-drill',
+      'burner-mining-drill', 'lab',
+      'solar-panel',         'inserter',
+      'stone-wall',          'military-barracks',
+      'pipe',                'boiler',
+      'nuclear-reactor',     'wooden-chest'
+    ]
+  }
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: connect ECONNREFUSED 192.168.2.43:8083
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: connect ECONNREFUSED 192.168.2.43:8083
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: get_game_state via HTTP
+iPhone response: {
+  performance: { entityCount: 30, fps: 60, memoryUsage: 0 },
+  player: {
+    resources: { stone: 1 },
+    unlockedUnits: [ 'worker', 'soldier' ],
+    unlockedBuildings: [
+      'solar-panel',           'stone-wall',
+      'burner-mining-drill',   'lab',
+      'transport-belt',        'wooden-chest',
+      'nuclear-reactor',       'military-barracks',
+      'electric-mining-drill', 'assembling-machine-1',
+      'boiler',                'pipe',
+      'stone-furnace',         'rocket-silo',
+      'small-electric-pole',   'steam-engine',
+      'inserter',              'offshore-pump'
+    ],
+    research: []
+  },
+  world: {
+    chunks: [
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object]
+    ],
+    entities: [
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object]
+    ]
+  },
+  systems: {
+    fluid: { totalFlow: 0, networks: 0 },
+    research: { current: null, progress: {} },
+    power: { totalGenerated: 0, totalConsumed: 0 }
+  }
+}
+Executing command: get_machine_ui_config via HTTP
+iPhone response: {
+  config: {
+    machineType: 'furnace',
+    layout: {
+      panelWidth: 500,
+      cornerRadius: 8,
+      backgroundColor: '#2a1a1a',
+      panelHeight: 350,
+      borderWidth: 2
+    },
+    components: [ [Object], [Object], [Object], [Object], [Object], [Object] ]
+  },
+  message: 'Machine UI configuration retrieved successfully'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  machineType: 'furnace',
+  success: true,
+  message: 'Machine UI configuration updated successfully'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  success: true,
+  machineType: 'furnace',
+  message: 'Machine UI schema applied successfully'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  success: true,
+  message: 'Machine UI schema applied successfully',
+  machineType: 'furnace'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  machineType: 'furnace',
+  success: true,
+  message: 'Machine UI schema applied successfully'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  success: true,
+  machineType: 'furnace',
+  message: 'Machine UI schema applied successfully'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  machineType: 'furnace',
+  success: true,
+  message: 'Machine UI schema applied successfully'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  success: true,
+  machineType: 'furnace',
+  message: 'Machine UI schema applied successfully'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  message: 'Machine UI schema applied successfully',
+  success: true,
+  machineType: 'furnace'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  success: true,
+  message: 'Machine UI schema applied successfully',
+  machineType: 'furnace'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  machineType: 'furnace',
+  message: 'Machine UI schema applied successfully',
+  success: true
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  machineType: 'furnace',
+  message: 'Machine UI schema applied successfully',
+  success: true
+}
+Executing command: get_machine_ui_config via HTTP
+iPhone response: {
+  message: 'Machine UI configuration retrieved successfully',
+  config: {
+    machineType: 'furnace',
+    layout: {
+      panelWidth: 500,
+      panelHeight: 350,
+      backgroundColor: '#2a1a1a',
+      cornerRadius: 8,
+      borderWidth: 2
+    },
+    components: [ [Object] ]
+  }
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  message: 'Machine UI schema applied successfully',
+  success: true,
+  machineType: 'furnace'
+}
+Executing command: get_game_state via HTTP
+iPhone response: {
+  systems: {
+    fluid: { totalFlow: 0, networks: 0 },
+    power: { totalGenerated: 0, totalConsumed: 0 },
+    research: { current: null, progress: {} }
+  },
+  world: {
+    entities: [
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object]
+    ],
+    chunks: [
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object]
+    ]
+  },
+  player: {
+    research: [],
+    unlockedBuildings: [
+      'burner-mining-drill',  'steam-engine',
+      'rocket-silo',          'military-barracks',
+      'lab',                  'offshore-pump',
+      'nuclear-reactor',      'electric-mining-drill',
+      'stone-wall',           'stone-furnace',
+      'assembling-machine-1', 'inserter',
+      'small-electric-pole',  'transport-belt',
+      'solar-panel',          'boiler',
+      'wooden-chest',         'pipe'
+    ],
+    resources: { stone: 1 },
+    unlockedUnits: [ 'worker', 'soldier' ]
+  },
+  performance: { fps: 60, entityCount: 30, memoryUsage: 0 }
+}
+Executing command: open_machine_ui via HTTP
+iPhone response: {
+  success: true,
+  position: { x: -2, y: 1 },
+  message: 'Opened furnace machine UI at (-2, 1)',
+  entityId: 23,
+  machineType: 'furnace'
+}
+Executing command: open_machine_ui via HTTP
+iPhone response: {
+  position: { x: -2, y: 1 },
+  entityId: 23,
+  machineType: 'furnace',
+  message: 'Opened furnace machine UI at (-2, 1)',
+  success: true
+}
+Executing command: list_machine_ui_configs via HTTP
+iPhone response: {
+  configurations: [
+    { layout: [Object], machineType: 'assembler', components: [Array] },
+    { components: [Array], machineType: 'furnace', layout: [Object] },
+    { components: [Array], machineType: 'lab', layout: [Object] },
+    {
+      layout: [Object],
+      machineType: 'mining_drill',
+      components: [Array]
+    }
+  ],
+  count: 4,
+  message: 'Machine UI configurations retrieved successfully'
+}
+Executing command: list_machine_ui_configs via HTTP
+iPhone response: {
+  message: 'Machine UI configurations retrieved successfully',
+  count: 4,
+  configurations: [
+    { components: [Array], layout: [Object], machineType: 'assembler' },
+    { machineType: 'furnace', components: [Array], layout: [Object] },
+    { layout: [Object], machineType: 'lab', components: [Array] },
+    {
+      machineType: 'mining_drill',
+      components: [Array],
+      layout: [Object]
+    }
+  ]
+}
+Executing command: open_machine_ui via HTTP
+iPhone response: {
+  entityId: 23,
+  machineType: 'furnace',
+  position: { x: -2, y: 1 },
+  success: true,
+  message: 'Opened furnace machine UI at (-2, 1)'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  message: 'Machine UI schema applied successfully',
+  success: true,
+  machineType: 'furnace'
+}
+Executing command: open_machine_ui via HTTP
+iPhone response: {
+  position: { y: 1, x: -2 },
+  message: 'Opened furnace machine UI at (-2, 1)',
+  success: true,
+  entityId: 23,
+  machineType: 'furnace'
+}
+Executing command: list_machine_ui_configs via HTTP
+iPhone response: {
+  configurations: [
+    { layout: [Object], components: [Array], machineType: 'assembler' },
+    { layout: [Object], components: [Array], machineType: 'furnace' },
+    { layout: [Object], machineType: 'lab', components: [Array] },
+    {
+      machineType: 'mining_drill',
+      components: [Array],
+      layout: [Object]
+    }
+  ],
+  count: 4,
+  message: 'Machine UI configurations retrieved successfully'
+}
+Executing command: get_machine_ui_config via HTTP
+iPhone response: {
+  config: {
+    machineType: 'furnace',
+    components: [ [Object] ],
+    layout: {
+      panelWidth: 500,
+      cornerRadius: 8,
+      backgroundColor: '#2a1a1a',
+      panelHeight: 350,
+      borderWidth: 2
+    }
+  },
+  message: 'Machine UI configuration retrieved successfully'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: connect ECONNREFUSED 192.168.2.43:8083
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: get_game_state via HTTP
+iPhone response: {
+  world: {
+    entities: [
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object]
+    ],
+    chunks: [
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object]
+    ]
+  },
+  performance: { fps: 60, entityCount: 30, memoryUsage: 0 },
+  systems: {
+    power: { totalGenerated: 0, totalConsumed: 0 },
+    research: { progress: {}, current: null },
+    fluid: { networks: 0, totalFlow: 0 }
+  },
+  player: {
+    resources: { stone: 1 },
+    unlockedUnits: [ 'worker', 'soldier' ],
+    research: [],
+    unlockedBuildings: [
+      'burner-mining-drill',   'solar-panel',
+      'small-electric-pole',   'rocket-silo',
+      'boiler',                'pipe',
+      'military-barracks',     'lab',
+      'transport-belt',        'stone-wall',
+      'electric-mining-drill', 'offshore-pump',
+      'stone-furnace',         'assembling-machine-1',
+      'inserter',              'wooden-chest',
+      'nuclear-reactor',       'steam-engine'
+    ]
+  }
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  success: true,
+  machineType: 'furnace',
+  message: 'Machine UI configuration updated successfully'
+}
+Executing command: get_game_state via HTTP
+iPhone response: {
+  player: {
+    unlockedUnits: [ 'worker', 'soldier' ],
+    research: [],
+    resources: { stone: 1 },
+    unlockedBuildings: [
+      'burner-mining-drill',   'solar-panel',
+      'small-electric-pole',   'rocket-silo',
+      'boiler',                'pipe',
+      'military-barracks',     'lab',
+      'transport-belt',        'stone-wall',
+      'electric-mining-drill', 'offshore-pump',
+      'stone-furnace',         'assembling-machine-1',
+      'inserter',              'wooden-chest',
+      'nuclear-reactor',       'steam-engine'
+    ]
+  },
+  world: {
+    chunks: [
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object]
+    ],
+    entities: [
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object]
+    ]
+  },
+  systems: {
+    research: { current: null, progress: {} },
+    power: { totalGenerated: 0, totalConsumed: 0 },
+    fluid: { totalFlow: 0, networks: 0 }
+  },
+  performance: { memoryUsage: 0, entityCount: 30, fps: 60 }
+}
+Executing command: open_machine_ui via HTTP
+iPhone response: {
+  success: true,
+  entityId: 23,
+  machineType: 'furnace',
+  message: 'Opened furnace machine UI at (-2, 1)',
+  position: { x: -2, y: 1 }
+}
+Executing command: get_machine_ui_config via HTTP
+iPhone response: {
+  message: 'Machine UI configuration retrieved successfully',
+  config: {
+    machineType: 'furnace',
+    components: [ [Object] ],
+    layout: {
+      panelWidth: 500,
+      borderWidth: 2,
+      backgroundColor: '#2a1a1a',
+      cornerRadius: 8,
+      panelHeight: 350
+    }
+  }
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  message: 'Machine UI schema applied successfully',
+  success: true,
+  machineType: 'furnace'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  message: 'Machine UI schema applied successfully',
+  success: true,
+  machineType: 'furnace'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  success: true,
+  machineType: 'furnace',
+  message: 'Machine UI schema applied successfully'
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone response: {
+  success: true,
+  machineType: 'furnace',
+  message: 'Machine UI schema applied successfully'
+}
+Executing command: open_machine_ui via HTTP
+iPhone response: {
+  entityId: 23,
+  machineType: 'furnace',
+  position: { x: -2, y: 1 },
+  success: true,
+  message: 'Opened furnace machine UI at (-2, 1)'
+}
+Executing command: get_machine_ui_config via HTTP
+iPhone response: {
+  config: {
+    machineType: 'furnace',
+    layout: {
+      cornerRadius: 8,
+      panelWidth: 1008,
+      backgroundColor: '#1a1a1a',
+      panelHeight: 528,
+      borderWidth: 1
+    },
+    components: [
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object],
+      [Object], [Object]
+    ]
+  },
+  message: 'Machine UI configuration retrieved successfully'
+}
+Executing command: check_debug_setup via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: check_debug_setup via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: get_debug_logs via HTTP
+iPhone response: {
+  logs: [
+    '[2026-01-20 22:18:23 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = "https://example.com/machineui.schema.json";\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 4;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "ore.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(insert ore)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = Ore;\n' +
+      '            };\n' +
+      '            id = ore;\n' +
+      '            role = input;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 9;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ingot,\n' +
+      '                                plate\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "output.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(idle)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = output;\n' +
+      '                text = Output;\n' +
+      '            };\n' +
+      '            id = output;\n' +
+      '            role = output;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = "machineui.furnace";\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = fill;\n' +
+      '            alignY = fill;\n' +
+      '            gridX = 1;\n' +
+      '            gridY = 5;\n' +
+      '            spanX = 10;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        grid =         {\n' +
+      '            cellSizeDp = 56;\n' +
+      '            colSpacingDp = 10;\n' +
+      '            columns = 6;\n' +
+      '            rowSpacingDp = 10;\n' +
+      '        };\n' +
+      '        mode = picker;\n' +
+      '        title = "Available Recipes";\n' +
+      '    };\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    '[2026-01-20 22:18:32 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:18:40 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = "https://example.com/machineui.schema.json";\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 6;\n' +
+      '                spanY = 4;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "test.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(test state)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = "Test Group";\n' +
+      '            };\n' +
+      '            id = test;\n' +
+      '            role = input;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = "machineui.furnace";\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    '[2026-01-20 22:18:46 +0000] Executing command: update_machine_ui_config with parameters: ["config": {\n' +
+      '    components =     (\n' +
+      '                {\n' +
+      '            position =             {\n' +
+      '                height = 25;\n' +
+      '                width = 80;\n' +
+      '                x = 20;\n' +
+      '                y = 70;\n' +
+      '            };\n' +
+      '            properties =             {\n' +
+      '                fontSize = 14;\n' +
+      '                text = "Old Style Test";\n' +
+      '                textColor = "#FFFFFF";\n' +
+      '            };\n' +
+      '            type = label;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        backgroundColor = "#2a1a1a";\n' +
+      '        borderWidth = 2;\n' +
+      '        cornerRadius = 8;\n' +
+      '        panelHeight = 350;\n' +
+      '        panelWidth = 500;\n' +
+      '    };\n' +
+      '    machineType = furnace;\n' +
+      '}, "machineType": furnace]',
+    "[2026-01-20 22:18:47 +0000] updateMachineUIConfig: Successfully updated configuration for machine type 'furnace'",
+    '[2026-01-20 22:19:11 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:19:15 +0000] Executing command: open_machine_ui with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Called with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Looking for machine at (-2, 1)',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Tile position: (-2, 1)',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Opened furnace UI at (-2, 1)',
+    '[2026-01-20 22:19:19 +0000] Executing command: get_machine_ui_config with parameters: ["machineType": furnace]',
+    "[2026-01-20 22:19:19 +0000] getMachineUIConfig: Retrieved configuration for machine type 'furnace'",
+    '[2026-01-20 22:19:29 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:29 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:35 +0000] Executing command: update_machine_ui_config with parameters: ["config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}, "machineType": furnace]',
+    "[2026-01-20 22:19:35 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:42 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:42 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:50 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 4;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "ore.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(insert ore)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = Ore;\n' +
+      '            };\n' +
+      '            id = ore;\n' +
+      '            role = input;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 9;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ingot,\n' +
+      '                                plate\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "output.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(idle)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = output;\n' +
+      '                text = Output;\n' +
+      '            };\n' +
+      '            id = output;\n' +
+      '            role = output;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = fill;\n' +
+      '            alignY = fill;\n' +
+      '            gridX = 1;\n' +
+      '            gridY = 5;\n' +
+      '            spanX = 10;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        grid =         {\n' +
+      '            cellSizeDp = 56;\n' +
+      '            colSpacingDp = 10;\n' +
+      '            columns = 6;\n' +
+      '            rowSpacingDp = 10;\n' +
+      '        };\n' +
+      '        mode = picker;\n' +
+      '        title = "Available Recipes";\n' +
+      '    };\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:50 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:54 +0000] Executing command: open_machine_ui with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Called with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Looking for machine at (-2, 1)',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Tile position: (-2, 1)',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Opened furnace UI at (-2, 1)',
+    '[2026-01-20 22:19:59 +0000] Executing command: get_machine_ui_config with parameters: ["machineType": furnace]',
+    "[2026-01-20 22:19:59 +0000] getMachineUIConfig: Retrieved configuration for machine type 'furnace'",
+    '[2026-01-20 22:23:05 +0000] Executing command: check_debug_setup with parameters: [:]',
+    '[2026-01-20 22:23:14 +0000] Executing command: check_debug_setup with parameters: [:]',
+    '[2026-01-20 22:23:35 +0000] Executing command: get_debug_logs with parameters: [:]'
+  ]
+}
+Executing command: get_game_state via HTTP
+iPhone response: {
+  systems: {
+    research: { current: null, progress: {} },
+    fluid: { networks: 0, totalFlow: 0 },
+    power: { totalGenerated: 0, totalConsumed: 0 }
+  },
+  performance: { memoryUsage: 0, fps: 60, entityCount: 33 },
+  player: {
+    unlockedBuildings: [
+      'burner-mining-drill',   'solar-panel',
+      'small-electric-pole',   'rocket-silo',
+      'boiler',                'pipe',
+      'military-barracks',     'lab',
+      'transport-belt',        'stone-wall',
+      'electric-mining-drill', 'offshore-pump',
+      'stone-furnace',         'assembling-machine-1',
+      'inserter',              'wooden-chest',
+      'nuclear-reactor',       'steam-engine'
+    ],
+    unlockedUnits: [ 'worker', 'soldier' ],
+    resources: { stone: 1 },
+    research: []
+  },
+  world: {
+    entities: [
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object],
+      [Object], [Object], [Object]
+    ],
+    chunks: [
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object], [Object], [Object], [Object],
+      [Object]
+    ]
+  }
+}
+Executing command: get_player_position via HTTP
+iPhone response: { x: 1.5, y: 1.5 }
+Executing command: get_inventory via HTTP
+iPhone response: {
+  totalSlots: 70,
+  inventory: [
+    { slot: 0, itemId: null, count: 0 },
+    { itemId: 'stone', count: 1, slot: 1 },
+    { slot: 2, itemId: null, count: 0 },
+    { slot: 3, count: 0, itemId: null },
+    { slot: 4, itemId: null, count: 0 },
+    { slot: 5, count: 0, itemId: null },
+    { slot: 6, count: 0, itemId: null },
+    { count: 0, itemId: null, slot: 7 },
+    { itemId: null, count: 0, slot: 8 },
+    { slot: 9, itemId: null, count: 0 },
+    { count: 0, slot: 10, itemId: null },
+    { count: 0, itemId: null, slot: 11 },
+    { count: 0, itemId: null, slot: 12 },
+    { itemId: null, count: 0, slot: 13 },
+    { count: 0, itemId: null, slot: 14 },
+    { slot: 15, count: 0, itemId: null },
+    { itemId: null, count: 0, slot: 16 },
+    { count: 0, slot: 17, itemId: null },
+    { itemId: null, slot: 18, count: 0 },
+    { slot: 19, count: 0, itemId: null },
+    { slot: 20, itemId: null, count: 0 },
+    { count: 0, slot: 21, itemId: null },
+    { count: 0, slot: 22, itemId: null },
+    { slot: 23, itemId: null, count: 0 },
+    { slot: 24, itemId: null, count: 0 },
+    { slot: 25, itemId: null, count: 0 },
+    { count: 0, itemId: null, slot: 26 },
+    { itemId: null, count: 0, slot: 27 },
+    { slot: 28, itemId: null, count: 0 },
+    { slot: 29, itemId: null, count: 0 },
+    { slot: 30, itemId: null, count: 0 },
+    { itemId: null, slot: 31, count: 0 },
+    { count: 0, slot: 32, itemId: null },
+    { itemId: null, slot: 33, count: 0 },
+    { count: 0, itemId: null, slot: 34 },
+    { slot: 35, itemId: null, count: 0 },
+    { itemId: null, count: 0, slot: 36 },
+    { slot: 37, itemId: null, count: 0 },
+    { slot: 38, count: 0, itemId: null },
+    { itemId: null, slot: 39, count: 0 },
+    { count: 0, itemId: null, slot: 40 },
+    { itemId: null, count: 0, slot: 41 },
+    { itemId: null, count: 0, slot: 42 },
+    { count: 0, slot: 43, itemId: null },
+    { itemId: null, slot: 44, count: 0 },
+    { slot: 45, itemId: null, count: 0 },
+    { slot: 46, count: 0, itemId: null },
+    { count: 0, slot: 47, itemId: null },
+    { itemId: null, slot: 48, count: 0 },
+    { itemId: null, count: 0, slot: 49 },
+    { count: 0, slot: 50, itemId: null },
+    { slot: 51, count: 0, itemId: null },
+    { itemId: null, count: 0, slot: 52 },
+    { count: 0, slot: 53, itemId: null },
+    { count: 0, itemId: null, slot: 54 },
+    { slot: 55, itemId: null, count: 0 },
+    { itemId: null, slot: 56, count: 0 },
+    { itemId: null, count: 0, slot: 57 },
+    { itemId: null, count: 0, slot: 58 },
+    { itemId: null, count: 0, slot: 59 },
+    { slot: 60, count: 0, itemId: null },
+    { count: 0, itemId: null, slot: 61 },
+    { itemId: null, count: 0, slot: 62 },
+    { slot: 63, itemId: null, count: 0 },
+    { count: 0, slot: 64, itemId: null },
+    { count: 0, itemId: null, slot: 65 },
+    { itemId: null, count: 0, slot: 66 },
+    { slot: 67, count: 0, itemId: null },
+    { itemId: null, slot: 68, count: 0 },
+    { itemId: null, count: 0, slot: 69 }
+  ]
+}
+Executing command: check_tile_resources via HTTP
+iPhone response: {
+  hasResource: false,
+  tilePosition: { y: 1, x: 1 },
+  terrainType: 'grass',
+  hasTerrain: true,
+  position: { x: 1, y: 1 }
+}
+Executing command: move_player via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: get_debug_logs via HTTP
+iPhone response: {
+  logs: [
+    '[2026-01-20 22:18:23 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = "https://example.com/machineui.schema.json";\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 4;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "ore.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(insert ore)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = Ore;\n' +
+      '            };\n' +
+      '            id = ore;\n' +
+      '            role = input;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 9;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ingot,\n' +
+      '                                plate\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "output.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(idle)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = output;\n' +
+      '                text = Output;\n' +
+      '            };\n' +
+      '            id = output;\n' +
+      '            role = output;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = "machineui.furnace";\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = fill;\n' +
+      '            alignY = fill;\n' +
+      '            gridX = 1;\n' +
+      '            gridY = 5;\n' +
+      '            spanX = 10;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        grid =         {\n' +
+      '            cellSizeDp = 56;\n' +
+      '            colSpacingDp = 10;\n' +
+      '            columns = 6;\n' +
+      '            rowSpacingDp = 10;\n' +
+      '        };\n' +
+      '        mode = picker;\n' +
+      '        title = "Available Recipes";\n' +
+      '    };\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    '[2026-01-20 22:18:32 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:18:40 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = "https://example.com/machineui.schema.json";\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 6;\n' +
+      '                spanY = 4;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "test.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(test state)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = "Test Group";\n' +
+      '            };\n' +
+      '            id = test;\n' +
+      '            role = input;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = "machineui.furnace";\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    '[2026-01-20 22:18:46 +0000] Executing command: update_machine_ui_config with parameters: ["config": {\n' +
+      '    components =     (\n' +
+      '                {\n' +
+      '            position =             {\n' +
+      '                height = 25;\n' +
+      '                width = 80;\n' +
+      '                x = 20;\n' +
+      '                y = 70;\n' +
+      '            };\n' +
+      '            properties =             {\n' +
+      '                fontSize = 14;\n' +
+      '                text = "Old Style Test";\n' +
+      '                textColor = "#FFFFFF";\n' +
+      '            };\n' +
+      '            type = label;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        backgroundColor = "#2a1a1a";\n' +
+      '        borderWidth = 2;\n' +
+      '        cornerRadius = 8;\n' +
+      '        panelHeight = 350;\n' +
+      '        panelWidth = 500;\n' +
+      '    };\n' +
+      '    machineType = furnace;\n' +
+      '}, "machineType": furnace]',
+    "[2026-01-20 22:18:47 +0000] updateMachineUIConfig: Successfully updated configuration for machine type 'furnace'",
+    '[2026-01-20 22:19:11 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:19:15 +0000] Executing command: open_machine_ui with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Called with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Looking for machine at (-2, 1)',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Tile position: (-2, 1)',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Opened furnace UI at (-2, 1)',
+    '[2026-01-20 22:19:19 +0000] Executing command: get_machine_ui_config with parameters: ["machineType": furnace]',
+    "[2026-01-20 22:19:19 +0000] getMachineUIConfig: Retrieved configuration for machine type 'furnace'",
+    '[2026-01-20 22:19:29 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:29 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:35 +0000] Executing command: update_machine_ui_config with parameters: ["config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}, "machineType": furnace]',
+    "[2026-01-20 22:19:35 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:42 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:42 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:50 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 4;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "ore.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(insert ore)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = Ore;\n' +
+      '            };\n' +
+      '            id = ore;\n' +
+      '            role = input;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 9;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ingot,\n' +
+      '                                plate\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "output.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(idle)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = output;\n' +
+      '                text = Output;\n' +
+      '            };\n' +
+      '            id = output;\n' +
+      '            role = output;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = fill;\n' +
+      '            alignY = fill;\n' +
+      '            gridX = 1;\n' +
+      '            gridY = 5;\n' +
+      '            spanX = 10;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        grid =         {\n' +
+      '            cellSizeDp = 56;\n' +
+      '            colSpacingDp = 10;\n' +
+      '            columns = 6;\n' +
+      '            rowSpacingDp = 10;\n' +
+      '        };\n' +
+      '        mode = picker;\n' +
+      '        title = "Available Recipes";\n' +
+      '    };\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:50 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:54 +0000] Executing command: open_machine_ui with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Called with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Looking for machine at (-2, 1)',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Tile position: (-2, 1)',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Opened furnace UI at (-2, 1)',
+    '[2026-01-20 22:19:59 +0000] Executing command: get_machine_ui_config with parameters: ["machineType": furnace]',
+    "[2026-01-20 22:19:59 +0000] getMachineUIConfig: Retrieved configuration for machine type 'furnace'",
+    '[2026-01-20 22:23:05 +0000] Executing command: check_debug_setup with parameters: [:]',
+    '[2026-01-20 22:23:14 +0000] Executing command: check_debug_setup with parameters: [:]',
+    '[2026-01-20 22:23:35 +0000] Executing command: get_debug_logs with parameters: [:]',
+    '[2026-01-20 22:23:41 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:23:43 +0000] Executing command: get_player_position with parameters: [:]',
+    '[2026-01-20 22:23:44 +0000] Executing command: get_inventory with parameters: [:]',
+    '[2026-01-20 22:23:47 +0000] Executing command: check_tile_resources with parameters: ["x": 1, "y": 1]',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: Called with parameters: ["x": 1, "y": 1]',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: Checking tile at (1, 1)',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: No resource found at (1, 1)',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: Tile exists at (1, 1), terrain: grass',
+    '[2026-01-20 22:23:49 +0000] Executing command: move_player with parameters: ["direction": north, "distance": 1]',
+    '[2026-01-20 22:23:51 +0000] Executing command: get_debug_logs with parameters: [:]'
+  ]
+}
+Executing command: pause via HTTP
+iPhone response: { status: 'paused' }
+Executing command: resume via HTTP
+iPhone response: { status: 'resumed' }
+Executing command: start_debug_server via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: get_debug_logs via HTTP
+iPhone response: {
+  logs: [
+    '[2026-01-20 22:18:23 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = "https://example.com/machineui.schema.json";\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 4;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "ore.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(insert ore)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = Ore;\n' +
+      '            };\n' +
+      '            id = ore;\n' +
+      '            role = input;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 9;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ingot,\n' +
+      '                                plate\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "output.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(idle)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = output;\n' +
+      '                text = Output;\n' +
+      '            };\n' +
+      '            id = output;\n' +
+      '            role = output;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = "machineui.furnace";\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = fill;\n' +
+      '            alignY = fill;\n' +
+      '            gridX = 1;\n' +
+      '            gridY = 5;\n' +
+      '            spanX = 10;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        grid =         {\n' +
+      '            cellSizeDp = 56;\n' +
+      '            colSpacingDp = 10;\n' +
+      '            columns = 6;\n' +
+      '            rowSpacingDp = 10;\n' +
+      '        };\n' +
+      '        mode = picker;\n' +
+      '        title = "Available Recipes";\n' +
+      '    };\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    '[2026-01-20 22:18:32 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:18:40 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = "https://example.com/machineui.schema.json";\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 6;\n' +
+      '                spanY = 4;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "test.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(test state)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = "Test Group";\n' +
+      '            };\n' +
+      '            id = test;\n' +
+      '            role = input;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = "machineui.furnace";\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    '[2026-01-20 22:18:46 +0000] Executing command: update_machine_ui_config with parameters: ["config": {\n' +
+      '    components =     (\n' +
+      '                {\n' +
+      '            position =             {\n' +
+      '                height = 25;\n' +
+      '                width = 80;\n' +
+      '                x = 20;\n' +
+      '                y = 70;\n' +
+      '            };\n' +
+      '            properties =             {\n' +
+      '                fontSize = 14;\n' +
+      '                text = "Old Style Test";\n' +
+      '                textColor = "#FFFFFF";\n' +
+      '            };\n' +
+      '            type = label;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        backgroundColor = "#2a1a1a";\n' +
+      '        borderWidth = 2;\n' +
+      '        cornerRadius = 8;\n' +
+      '        panelHeight = 350;\n' +
+      '        panelWidth = 500;\n' +
+      '    };\n' +
+      '    machineType = furnace;\n' +
+      '}, "machineType": furnace]',
+    "[2026-01-20 22:18:47 +0000] updateMachineUIConfig: Successfully updated configuration for machine type 'furnace'",
+    '[2026-01-20 22:19:11 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:19:15 +0000] Executing command: open_machine_ui with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Called with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Looking for machine at (-2, 1)',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Tile position: (-2, 1)',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Opened furnace UI at (-2, 1)',
+    '[2026-01-20 22:19:19 +0000] Executing command: get_machine_ui_config with parameters: ["machineType": furnace]',
+    "[2026-01-20 22:19:19 +0000] getMachineUIConfig: Retrieved configuration for machine type 'furnace'",
+    '[2026-01-20 22:19:29 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:29 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:35 +0000] Executing command: update_machine_ui_config with parameters: ["config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}, "machineType": furnace]',
+    "[2026-01-20 22:19:35 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:42 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:42 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:50 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 4;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "ore.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(insert ore)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = Ore;\n' +
+      '            };\n' +
+      '            id = ore;\n' +
+      '            role = input;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 9;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ingot,\n' +
+      '                                plate\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "output.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(idle)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = output;\n' +
+      '                text = Output;\n' +
+      '            };\n' +
+      '            id = output;\n' +
+      '            role = output;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = fill;\n' +
+      '            alignY = fill;\n' +
+      '            gridX = 1;\n' +
+      '            gridY = 5;\n' +
+      '            spanX = 10;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        grid =         {\n' +
+      '            cellSizeDp = 56;\n' +
+      '            colSpacingDp = 10;\n' +
+      '            columns = 6;\n' +
+      '            rowSpacingDp = 10;\n' +
+      '        };\n' +
+      '        mode = picker;\n' +
+      '        title = "Available Recipes";\n' +
+      '    };\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:50 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:54 +0000] Executing command: open_machine_ui with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Called with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Looking for machine at (-2, 1)',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Tile position: (-2, 1)',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Opened furnace UI at (-2, 1)',
+    '[2026-01-20 22:19:59 +0000] Executing command: get_machine_ui_config with parameters: ["machineType": furnace]',
+    "[2026-01-20 22:19:59 +0000] getMachineUIConfig: Retrieved configuration for machine type 'furnace'",
+    '[2026-01-20 22:23:05 +0000] Executing command: check_debug_setup with parameters: [:]',
+    '[2026-01-20 22:23:14 +0000] Executing command: check_debug_setup with parameters: [:]',
+    '[2026-01-20 22:23:35 +0000] Executing command: get_debug_logs with parameters: [:]',
+    '[2026-01-20 22:23:41 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:23:43 +0000] Executing command: get_player_position with parameters: [:]',
+    '[2026-01-20 22:23:44 +0000] Executing command: get_inventory with parameters: [:]',
+    '[2026-01-20 22:23:47 +0000] Executing command: check_tile_resources with parameters: ["x": 1, "y": 1]',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: Called with parameters: ["x": 1, "y": 1]',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: Checking tile at (1, 1)',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: No resource found at (1, 1)',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: Tile exists at (1, 1), terrain: grass',
+    '[2026-01-20 22:23:49 +0000] Executing command: move_player with parameters: ["direction": north, "distance": 1]',
+    '[2026-01-20 22:23:51 +0000] Executing command: get_debug_logs with parameters: [:]',
+    '[2026-01-20 22:23:54 +0000] Executing command: pause with parameters: [:]',
+    '[2026-01-20 22:23:54 +0000] Game paused',
+    '[2026-01-20 22:23:55 +0000] Executing command: resume with parameters: [:]',
+    '[2026-01-20 22:23:55 +0000] Game resumed',
+    '[2026-01-20 22:25:10 +0000] Executing command: start_debug_server with parameters: [:]',
+    '[2026-01-20 22:25:11 +0000] Executing command: get_debug_logs with parameters: [:]'
+  ]
+}
+Executing command: update_machine_ui_config via HTTP
+iPhone connection error: Request failed with status code 500
+Executing command: get_debug_logs via HTTP
+iPhone response: {
+  logs: [
+    '[2026-01-20 22:18:23 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = "https://example.com/machineui.schema.json";\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 4;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "ore.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(insert ore)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = Ore;\n' +
+      '            };\n' +
+      '            id = ore;\n' +
+      '            role = input;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 9;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ingot,\n' +
+      '                                plate\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "output.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(idle)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = output;\n' +
+      '                text = Output;\n' +
+      '            };\n' +
+      '            id = output;\n' +
+      '            role = output;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = "machineui.furnace";\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = fill;\n' +
+      '            alignY = fill;\n' +
+      '            gridX = 1;\n' +
+      '            gridY = 5;\n' +
+      '            spanX = 10;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        grid =         {\n' +
+      '            cellSizeDp = 56;\n' +
+      '            colSpacingDp = 10;\n' +
+      '            columns = 6;\n' +
+      '            rowSpacingDp = 10;\n' +
+      '        };\n' +
+      '        mode = picker;\n' +
+      '        title = "Available Recipes";\n' +
+      '    };\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    '[2026-01-20 22:18:32 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:18:40 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = "https://example.com/machineui.schema.json";\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 6;\n' +
+      '                spanY = 4;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "test.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(test state)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = "Test Group";\n' +
+      '            };\n' +
+      '            id = test;\n' +
+      '            role = input;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = "machineui.furnace";\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    '[2026-01-20 22:18:46 +0000] Executing command: update_machine_ui_config with parameters: ["config": {\n' +
+      '    components =     (\n' +
+      '                {\n' +
+      '            position =             {\n' +
+      '                height = 25;\n' +
+      '                width = 80;\n' +
+      '                x = 20;\n' +
+      '                y = 70;\n' +
+      '            };\n' +
+      '            properties =             {\n' +
+      '                fontSize = 14;\n' +
+      '                text = "Old Style Test";\n' +
+      '                textColor = "#FFFFFF";\n' +
+      '            };\n' +
+      '            type = label;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        backgroundColor = "#2a1a1a";\n' +
+      '        borderWidth = 2;\n' +
+      '        cornerRadius = 8;\n' +
+      '        panelHeight = 350;\n' +
+      '        panelWidth = 500;\n' +
+      '    };\n' +
+      '    machineType = furnace;\n' +
+      '}, "machineType": furnace]',
+    "[2026-01-20 22:18:47 +0000] updateMachineUIConfig: Successfully updated configuration for machine type 'furnace'",
+    '[2026-01-20 22:19:11 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:19:15 +0000] Executing command: open_machine_ui with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Called with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Looking for machine at (-2, 1)',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Tile position: (-2, 1)',
+    '[2026-01-20 22:19:15 +0000] openMachineUI: Opened furnace UI at (-2, 1)',
+    '[2026-01-20 22:19:19 +0000] Executing command: get_machine_ui_config with parameters: ["machineType": furnace]',
+    "[2026-01-20 22:19:19 +0000] getMachineUIConfig: Retrieved configuration for machine type 'furnace'",
+    '[2026-01-20 22:19:29 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:29 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:35 +0000] Executing command: update_machine_ui_config with parameters: ["config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process = "<null>";\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}, "machineType": furnace]',
+    "[2026-01-20 22:19:35 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:42 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes = "<null>";\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Test;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:42 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:50 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    "$schema" = test;\n' +
+      '    groups =     (\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 0;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                fuel\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "fuel.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(empty)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = fuel;\n' +
+      '                text = Fuel;\n' +
+      '            };\n' +
+      '            id = fuel;\n' +
+      '            role = fuel;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 4;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ore\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "ore.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(insert ore)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = input;\n' +
+      '                text = Ore;\n' +
+      '            };\n' +
+      '            id = ore;\n' +
+      '            role = input;\n' +
+      '        },\n' +
+      '                {\n' +
+      '            anchor =             {\n' +
+      '                alignX = leading;\n' +
+      '                alignY = top;\n' +
+      '                gridX = 9;\n' +
+      '                gridY = 0;\n' +
+      '                spanX = 3;\n' +
+      '                spanY = 5;\n' +
+      '            };\n' +
+      '            content =             {\n' +
+      '                slots =                 (\n' +
+      '                                        {\n' +
+      '                        accepts =                         {\n' +
+      '                            tags =                             (\n' +
+      '                                ingot,\n' +
+      '                                plate\n' +
+      '                            );\n' +
+      '                        };\n' +
+      '                        capacity =                         {\n' +
+      '                            maxStacks = 1;\n' +
+      '                        };\n' +
+      '                        id = "output.slot0";\n' +
+      '                        renders =                         {\n' +
+      '                            overlay = count;\n' +
+      '                            sizeDp = 56;\n' +
+      '                            style = square;\n' +
+      '                        };\n' +
+      '                        slotKind = item;\n' +
+      '                    }\n' +
+      '                );\n' +
+      '                stateText =                 {\n' +
+      '                    empty = "(idle)";\n' +
+      '                    mode = auto;\n' +
+      '                    nonEmpty = "";\n' +
+      '                };\n' +
+      '            };\n' +
+      '            header =             {\n' +
+      '                accessibilityLabel = "<null>";\n' +
+      '                alignment = leading;\n' +
+      '                styleRole = output;\n' +
+      '                text = Output;\n' +
+      '            };\n' +
+      '            id = output;\n' +
+      '            role = output;\n' +
+      '        }\n' +
+      '    );\n' +
+      '    id = test;\n' +
+      '    invariants =     (\n' +
+      '    );\n' +
+      '    layout =     {\n' +
+      '        flowAxis = leftToRight;\n' +
+      '        grid =         {\n' +
+      '            columns = 12;\n' +
+      '            gutterX = 12;\n' +
+      '            gutterY = 12;\n' +
+      '            rows = 8;\n' +
+      '        };\n' +
+      '        padding =         {\n' +
+      '            x = 24;\n' +
+      '            y = 24;\n' +
+      '        };\n' +
+      '        safeArea =         {\n' +
+      '            bottom = 16;\n' +
+      '            left = 16;\n' +
+      '            right = 16;\n' +
+      '            top = 16;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    machineKind = furnace;\n' +
+      '    process =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = center;\n' +
+      '            alignY = top;\n' +
+      '            gridX = 6;\n' +
+      '            gridY = 0;\n' +
+      '            spanX = 3;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        id = smelting;\n' +
+      '        label =         {\n' +
+      '            accessibilityLabel = "<null>";\n' +
+      '            alignment = center;\n' +
+      '            styleRole = process;\n' +
+      '            text = Smelting;\n' +
+      '        };\n' +
+      '        operators =         {\n' +
+      '            glyphStyleRole = muted;\n' +
+      '            showFlowGlyphs = 1;\n' +
+      '        };\n' +
+      '        progress =         {\n' +
+      '            bindTo = recipeProgress;\n' +
+      '            showPercent = 0;\n' +
+      '            style = bar;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    recipes =     {\n' +
+      '        anchor =         {\n' +
+      '            alignX = fill;\n' +
+      '            alignY = fill;\n' +
+      '            gridX = 1;\n' +
+      '            gridY = 5;\n' +
+      '            spanX = 10;\n' +
+      '            spanY = 3;\n' +
+      '        };\n' +
+      '        grid =         {\n' +
+      '            cellSizeDp = 56;\n' +
+      '            colSpacingDp = 10;\n' +
+      '            columns = 6;\n' +
+      '            rowSpacingDp = 10;\n' +
+      '        };\n' +
+      '        mode = picker;\n' +
+      '        title = "Available Recipes";\n' +
+      '    };\n' +
+      '    style =     {\n' +
+      '        chrome =         {\n' +
+      '            cornerRadiusDp = 8;\n' +
+      '            labelBackplateOpacity = "0.5";\n' +
+      '            panelOpacity = 1;\n' +
+      '        };\n' +
+      '        palette =         {\n' +
+      '            fuel = "#FFAA00";\n' +
+      '            input = "#00AAFF";\n' +
+      '            mutedText = "#CCCCCC";\n' +
+      '            output = "#00FF00";\n' +
+      '            process = "#FFA500";\n' +
+      '        };\n' +
+      '        typography =         {\n' +
+      '            bodySize = 12;\n' +
+      '            headerSize = 14;\n' +
+      '            mutedSize = 10;\n' +
+      '        };\n' +
+      '    };\n' +
+      '    title = Furnace;\n' +
+      '    version = "1.0.0";\n' +
+      '}]',
+    "[2026-01-20 22:19:50 +0000] updateMachineUIConfig: Successfully applied schema for machine type 'furnace'",
+    '[2026-01-20 22:19:54 +0000] Executing command: open_machine_ui with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Called with parameters: ["y": 1, "x": -2]',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Looking for machine at (-2, 1)',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Tile position: (-2, 1)',
+    '[2026-01-20 22:19:54 +0000] openMachineUI: Opened furnace UI at (-2, 1)',
+    '[2026-01-20 22:19:59 +0000] Executing command: get_machine_ui_config with parameters: ["machineType": furnace]',
+    "[2026-01-20 22:19:59 +0000] getMachineUIConfig: Retrieved configuration for machine type 'furnace'",
+    '[2026-01-20 22:23:05 +0000] Executing command: check_debug_setup with parameters: [:]',
+    '[2026-01-20 22:23:14 +0000] Executing command: check_debug_setup with parameters: [:]',
+    '[2026-01-20 22:23:35 +0000] Executing command: get_debug_logs with parameters: [:]',
+    '[2026-01-20 22:23:41 +0000] Executing command: get_game_state with parameters: [:]',
+    '[2026-01-20 22:23:43 +0000] Executing command: get_player_position with parameters: [:]',
+    '[2026-01-20 22:23:44 +0000] Executing command: get_inventory with parameters: [:]',
+    '[2026-01-20 22:23:47 +0000] Executing command: check_tile_resources with parameters: ["x": 1, "y": 1]',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: Called with parameters: ["x": 1, "y": 1]',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: Checking tile at (1, 1)',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: No resource found at (1, 1)',
+    '[2026-01-20 22:23:47 +0000] checkTileResources: Tile exists at (1, 1), terrain: grass',
+    '[2026-01-20 22:23:49 +0000] Executing command: move_player with parameters: ["direction": north, "distance": 1]',
+    '[2026-01-20 22:23:51 +0000] Executing command: get_debug_logs with parameters: [:]',
+    '[2026-01-20 22:23:54 +0000] Executing command: pause with parameters: [:]',
+    '[2026-01-20 22:23:54 +0000] Game paused',
+    '[2026-01-20 22:23:55 +0000] Executing command: resume with parameters: [:]',
+    '[2026-01-20 22:23:55 +0000] Game resumed',
+    '[2026-01-20 22:25:10 +0000] Executing command: start_debug_server with parameters: [:]',
+    '[2026-01-20 22:25:11 +0000] Executing command: get_debug_logs with parameters: [:]',
+    '[2026-01-20 22:25:40 +0000] Executing command: update_machine_ui_config with parameters: ["machineType": furnace, "config": {\n' +
+      '    title = "Test Breakpoint";\n' +
+      '}]',
+    '[2026-01-20 22:25:41 +0000] Executing command: get_debug_logs with parameters: [:]'
+  ]
+}

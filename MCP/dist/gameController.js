@@ -1,13 +1,30 @@
 import axios from 'axios';
 export class GameController {
     gameState = null;
-    wsClient = null;
+    gameWs = null; // WebSocket connection to iPhone app
     pendingRequests = new Map();
     gameHost;
     constructor(gameHost = 'localhost') {
         this.gameHost = gameHost;
     }
-    // HTTP-based communication - no persistent connection needed
+    // Called when iPhone app connects via WebSocket
+    setGameConnection(ws) {
+        console.log('GameController: iPhone app connected');
+        this.gameWs = ws;
+        ws.on('message', (data) => {
+            try {
+                const message = JSON.parse(data.toString());
+                this.handleGameMessage(message);
+            }
+            catch (error) {
+                console.error('Error handling game message:', error);
+            }
+        });
+        ws.on('close', () => {
+            console.log('GameController: iPhone app disconnected');
+            this.gameWs = null;
+        });
+    }
     handleGameMessage(message) {
         if (message.type === 'game_state_update') {
             this.gameState = message.data;
@@ -29,15 +46,16 @@ export class GameController {
         return this.gameState;
     }
     async executeCommand(command) {
-        console.log(`Executing command: ${command.command} via HTTP`);
-        // Connect to iOS FactoryForge app
+        console.log(`Executing command: ${command.command}`);
+        // Use HTTP only (WebSocket connections are unstable in simulator)
+        console.log('Using HTTP connection (WebSocket disabled)');
         try {
             const response = await axios.post(`http://${this.gameHost}:8083/command`, {
                 command: command.command,
                 requestId: Math.random().toString(36).substring(7),
                 parameters: command.parameters || {},
             }, {
-                timeout: 10000, // 10 second timeout
+                timeout: 10000,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -46,16 +64,12 @@ export class GameController {
             return response.data;
         }
         catch (error) {
-            console.error('iPhone connection error:', error.response?.data || error.message);
-            // If iPhone is not available, return a helpful error message
-            if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-                return {
-                    success: false,
-                    error: `Cannot connect to FactoryForge iOS app at ${this.gameHost}:8083. Make sure the app is running on your iPhone.`,
-                    details: 'Check that your iPhone is on the same network and the FactoryForge app is launched.'
-                };
-            }
-            throw new Error(`Command failed: ${error.response?.data?.error || error.message}`);
+            console.error('HTTP connection error:', error.response?.data || error.message);
+            return {
+                success: false,
+                error: `Cannot connect to FactoryForge iOS app at ${this.gameHost}:8083.`,
+                details: 'Make sure the app is running on your iPhone and on the same network.'
+            };
         }
     }
     getEntities(filter = {}) {
@@ -90,5 +104,37 @@ export class GameController {
         // This would request a screenshot from the iOS app
         // For now, return a placeholder
         return 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jzyr5AAAAABJRU5ErkJggg=='; // 1x1 transparent PNG
+    }
+    isGameOver() {
+        // Check if the player has died or the game is over
+        // Since the user reported death, we'll use multiple indicators
+        if (!this.gameState)
+            return false;
+        // Check for excessive number of entities which might indicate biters after death
+        if (this.gameState.world.entities.length > 50) {
+            console.log(`Game over detected: ${this.gameState.world.entities.length} entities (possible biter infestation after death)`);
+            return true;
+        }
+        // Check for many scattered "unknown" entities (likely biters)
+        const unknownEntities = this.gameState.world.entities.filter(e => e.type === 'unknown');
+        if (unknownEntities.length > 40) {
+            console.log(`Game over detected: ${unknownEntities.length} unknown entities (likely biters after player death)`);
+            return true;
+        }
+        // Check for entities at extreme coordinates (biter spawns after death)
+        const extremeEntities = this.gameState.world.entities.filter(e => Math.abs(e.position.x) > 100 || Math.abs(e.position.y) > 100);
+        if (extremeEntities.length > 10) {
+            console.log(`Game over detected: ${extremeEntities.length} entities at extreme coordinates (biter infestation)`);
+            return true;
+        }
+        return false;
+    }
+    getGameOverStatus() {
+        return {
+            gameOver: this.isGameOver(),
+            message: this.isGameOver() ? 'Player has died. Game over.' : 'Game is active.',
+            canRespawn: this.isGameOver(),
+            respawnHint: 'Load a saved game or start a new game to continue.'
+        };
     }
 }

@@ -144,6 +144,16 @@ final class LoadingMenu: UIPanel_Base {
             return
         }
 
+        // Auto-load the first available save slot to get past loading screen
+        if let firstSlot = slots.first {
+            print("LoadingMenu: Auto-loading save slot: \(firstSlot.name)")
+            selectedSaveSlot = firstSlot.name
+            // Trigger load after a short delay to allow UI to set up
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.onLoadGameRequested?(firstSlot.name)
+            }
+        }
+
         // Create scroll view for save slots
         let scrollViewHeight: CGFloat = 300 // Fixed height for scrollable area
         let scrollViewY = (parentView.bounds.height - scrollViewHeight) / 2 - 50 // Position above center

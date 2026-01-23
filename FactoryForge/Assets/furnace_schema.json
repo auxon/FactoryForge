@@ -1,0 +1,101 @@
+{
+  "$schema": "https://example.com/machineui.schema.json",
+  "version": "1.0.0",
+  "id": "machineui.furnace",
+  "machineKind": "furnace",
+  "title": "Furnace",
+  "layout": {
+    "flowAxis": "leftToRight",
+    "safeArea": { "top": 16, "left": 16, "bottom": 16, "right": 16 },
+    "padding": { "x": 24, "y": 24 },
+    "grid": { "columns": 12, "rows": 8, "gutterX": 12, "gutterY": 12 }
+  },
+
+  "groups": [
+    {
+      "id": "fuel",
+      "role": "fuel",
+      "header": { "text": "Fuel", "styleRole": "fuel", "alignment": "leading" },
+      "anchor": { "gridX": 0, "gridY": 0, "spanX": 3, "spanY": 5, "alignX": "leading", "alignY": "top" },
+      "content": {
+        "slots": [
+          { "id": "fuel.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": ["fuel"] }, "renders": { "sizeDp": 56, "style": "square", "overlay": "count" } }
+        ],
+        "stateText": { "mode": "auto", "empty": "(empty)", "nonEmpty": "" }
+      }
+    },
+
+    {
+      "id": "ore",
+      "role": "input",
+      "header": { "text": "Ore", "styleRole": "input", "alignment": "leading" },
+      "anchor": { "gridX": 4, "gridY": 0, "spanX": 3, "spanY": 5, "alignX": "leading", "alignY": "top" },
+      "content": {
+        "slots": [
+          { "id": "ore.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": ["ore"] }, "renders": { "sizeDp": 56, "style": "square", "overlay": "count" } }
+        ],
+        "stateText": { "mode": "auto", "empty": "(insert ore)", "nonEmpty": "" }
+      }
+    },
+
+    {
+      "id": "output",
+      "role": "output",
+      "header": { "text": "Output", "styleRole": "output", "alignment": "leading" },
+      "anchor": { "gridX": 9, "gridY": 0, "spanX": 3, "spanY": 5, "alignX": "leading", "alignY": "top" },
+      "content": {
+        "slots": [
+          { "id": "output.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": ["ingot", "plate"] }, "renders": { "sizeDp": 56, "style": "square", "overlay": "count" } }
+        ],
+        "stateText": { "mode": "auto", "empty": "(idle)", "nonEmpty": "" }
+      }
+    }
+  ],
+
+  "process": {
+    "id": "smelting",
+    "label": { "text": "Smelting", "styleRole": "process", "alignment": "center" },
+    "anchor": { "gridX": 6, "gridY": 0, "spanX": 3, "spanY": 3, "alignX": "center", "alignY": "top" },
+    "progress": { "style": "bar", "bindTo": "recipeProgress", "showPercent": false },
+    "operators": { "showFlowGlyphs": true, "glyphStyleRole": "muted" }
+  },
+
+  "recipes": {
+    "title": "Available Recipes",
+    "mode": "picker",
+    "anchor": { "gridX": 1, "gridY": 5, "spanX": 10, "spanY": 3, "alignX": "fill", "alignY": "fill" },
+    "grid": { "cellSizeDp": 56, "columns": 6, "rowSpacingDp": 10, "colSpacingDp": 10 }
+  },
+
+  "style": {
+    "palette": {
+      "fuel": "#FFAA00",
+      "input": "#00AAFF",
+      "output": "#00FF00",
+      "process": "#FFA500",
+      "mutedText": "#CCCCCC"
+    },
+    "typography": {
+      "headerSize": 14,
+      "bodySize": 12,
+      "mutedSize": 10
+    },
+    "chrome": {
+      "panelOpacity": 1.0,
+      "cornerRadiusDp": 8,
+      "labelBackplateOpacity": 0.5
+    }
+  },
+
+  "invariants": [
+    "Every GroupHeader must be a descendant of exactly one Group.",
+    "No floating labels: GroupHeader must not be sibling of Slot; it must be ancestor (container header).",
+    "Process.progress must be visually adjacent to Process.label (max distance <= 1 grid row).",
+    "All input-role groups must be placed left of process anchor when flowAxis=leftToRight.",
+    "All output-role groups must be placed right of process anchor when flowAxis=leftToRight.",
+    "Slots in the same Group must share the same leading alignment and spacing.",
+    "If operators.showFlowGlyphs=true, glyphs must use glyphStyleRole=muted and never use semantic colors.",
+    "Any progress bar must have an explicit label (Process.label.text non-empty).",
+    "Empty state text must be inside the owning Group (content.stateText), never global."
+  ]
+}

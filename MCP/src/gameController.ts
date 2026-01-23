@@ -7,6 +7,7 @@ export interface GameState {
     research: string[];
     unlockedBuildings: string[];
     unlockedUnits: string[];
+    position?: { x: number; y: number };
   };
   world: {
     entities: Array<{
@@ -87,65 +88,29 @@ export class GameController {
   async executeCommand(command: any): Promise<any> {
     console.log(`Executing command: ${command.command}`);
 
-    // Try WebSocket first, then fall back to HTTP
-    if (this.gameWs && this.gameWs.readyState === WebSocket.OPEN) {
-      console.log('Using WebSocket connection');
-      return new Promise((resolve, reject) => {
-        const requestId = Math.random().toString(36).substring(7);
-
-        // Set up timeout
-        const timeout = setTimeout(() => {
-          this.pendingRequests.delete(requestId);
-          reject(new Error('Command timed out'));
-        }, 10000);
-
-        // Store the promise handlers
-        this.pendingRequests.set(requestId, {
-          resolve: (result: any) => {
-            clearTimeout(timeout);
-            resolve(result);
-          },
-          reject: (error: any) => {
-            clearTimeout(timeout);
-            reject(error);
-          }
-        });
-
-        // Send command via WebSocket
-        const message = {
-          type: 'execute_command',
-          command: command.command,
-          requestId: requestId,
-          parameters: command.parameters || {}
-        };
-
-        this.gameWs.send(JSON.stringify(message));
+    // Use HTTP only (WebSocket connections are unstable in simulator)
+    console.log('Using HTTP connection (WebSocket disabled)');
+    try {
+      const response = await axios.post(`http://${this.gameHost}:8083/command`, {
+        command: command.command,
+        requestId: Math.random().toString(36).substring(7),
+        parameters: command.parameters || {},
+      }, {
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-    } else {
-      // Fall back to HTTP
-      console.log('Using HTTP fallback');
-      try {
-        const response = await axios.post(`http://${this.gameHost}:8083/command`, {
-          command: command.command,
-          requestId: Math.random().toString(36).substring(7),
-          parameters: command.parameters || {},
-        }, {
-          timeout: 10000,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
 
-        console.log('iPhone response:', response.data);
-        return response.data;
-      } catch (error: any) {
-        console.error('HTTP connection error:', error.response?.data || error.message);
-        return {
-          success: false,
-          error: `Cannot connect to FactoryForge iOS app at ${this.gameHost}:8083.`,
-          details: 'Make sure the app is running on your iPhone and on the same network.'
-        };
-      }
+      console.log('iPhone response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('HTTP connection error:', error.response?.data || error.message);
+      return {
+        success: false,
+        error: `Cannot connect to FactoryForge iOS app at ${this.gameHost}:8083.`,
+        details: 'Make sure the app is running on your iPhone and on the same network.'
+      };
     }
   }
 
@@ -186,9 +151,49 @@ export class GameController {
     };
   }
 
-  async takeScreenshot(format: string = 'png'): Promise<string> {
+  async   takeScreenshot(format: string = 'png'): Promise<string> {
     // This would request a screenshot from the iOS app
     // For now, return a placeholder
     return 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChAI9jzyr5AAAAABJRU5ErkJggg=='; // 1x1 transparent PNG
+  }
+
+  isGameOver(): boolean {
+    // Check if the player has died or the game is over
+    // Since the user reported death, we'll use multiple indicators
+
+    if (!this.gameState) return false;
+
+    // Check for excessive number of entities which might indicate biters after death
+    if (this.gameState.world.entities.length > 50) {
+      console.log(`Game over detected: ${this.gameState.world.entities.length} entities (possible biter infestation after death)`);
+      return true;
+    }
+
+    // Check for many scattered "unknown" entities (likely biters)
+    const unknownEntities = this.gameState.world.entities.filter(e => e.type === 'unknown');
+    if (unknownEntities.length > 40) {
+      console.log(`Game over detected: ${unknownEntities.length} unknown entities (likely biters after player death)`);
+      return true;
+    }
+
+    // Check for entities at extreme coordinates (biter spawns after death)
+    const extremeEntities = this.gameState.world.entities.filter(e =>
+      Math.abs(e.position.x) > 100 || Math.abs(e.position.y) > 100
+    );
+    if (extremeEntities.length > 10) {
+      console.log(`Game over detected: ${extremeEntities.length} entities at extreme coordinates (biter infestation)`);
+      return true;
+    }
+
+    return false;
+  }
+
+  getGameOverStatus() {
+    return {
+      gameOver: this.isGameOver(),
+      message: this.isGameOver() ? 'Player has died. Game over.' : 'Game is active.',
+      canRespawn: this.isGameOver(),
+      respawnHint: 'Load a saved game or start a new game to continue.'
+    };
   }
 }
