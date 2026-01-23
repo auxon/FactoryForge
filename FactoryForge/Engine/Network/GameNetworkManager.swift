@@ -140,15 +140,16 @@ final class GameNetworkManager {
     }
 
     private func createGameState() -> [String: Any] {
-        guard let gameLoop = gameLoop else { return [:] }
+        guard let gameLoop = gameLoop,
+              let player = gameLoop.player else { return [:] }
 
         // Create a basic game state dictionary
         let gameState: [String: Any] = [
             "type": "game_state_update",
             "player": [
                 "position": [
-                    "x": gameLoop.player.position.x,
-                    "y": gameLoop.player.position.y
+                    "x": player.position.x,
+                    "y": player.position.y
                 ]
             ],
             "world": [
@@ -372,7 +373,10 @@ final class GameNetworkManager {
         case "get_game_state":
             return createGameStateDictionary()
         case "get_player_position":
-            let playerPos = gameLoop.player.position
+            guard let player = gameLoop.player else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Player not available"])
+        }
+        let playerPos = player.position
             return ["x": playerPos.x, "y": playerPos.y]
         case "get_inventory":
             return try await getInventory(parameters)
@@ -441,7 +445,10 @@ final class GameNetworkManager {
             throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
         }
 
-        let playerPos = gameLoop.player.position
+        guard let player = gameLoop.player else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Player not available"])
+        }
+        let playerPos = player.position
         let tilePos = IntVector2(Int(playerPos.x), Int(playerPos.y))
 
         // Check if there's a resource at the player's position
@@ -455,7 +462,8 @@ final class GameNetworkManager {
         }
 
         // Check if player can accept the item
-        guard gameLoop.player.inventory.canAccept(itemId: resourceType) else {
+        guard let player = gameLoop.player,
+              player.inventory.canAccept(itemId: resourceType) else {
             throw NSError(domain: "GameNetworkManager", code: 15, userInfo: [NSLocalizedDescriptionKey: "Inventory full or item not allowed"])
         }
 
@@ -464,7 +472,7 @@ final class GameNetworkManager {
         if mined > 0 {
             // Add to player inventory
             if let itemDef = gameLoop.itemRegistry.get(resourceType) {
-                gameLoop.player.inventory.add(itemId: resourceType, count: mined, maxStack: itemDef.stackSize)
+                player.inventory.add(itemId: resourceType, count: mined, maxStack: itemDef.stackSize)
             }
 
             return [
@@ -489,7 +497,10 @@ final class GameNetworkManager {
 
         sendDebugLog("autoMine: Starting auto-mine with radius \(radius), maxResources \(maxResources)")
 
-        let playerPos = gameLoop.player.position
+        guard let player = gameLoop.player else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Player not available"])
+        }
+        let playerPos = player.position
         let centerTile = IntVector2(Int(playerPos.x), Int(playerPos.y))
 
         sendDebugLog("autoMine: Player position (\(playerPos.x), \(playerPos.y)), centerTile (\(centerTile.x), \(centerTile.y))")
@@ -515,14 +526,15 @@ final class GameNetworkManager {
                     sendDebugLog("autoMine: Found resource at (\(x), \(y)): \(resource.type.outputItem)")
                     // Check if player can accept the item
                     let itemId = resource.type.outputItem
-                    if gameLoop.player.inventory.canAccept(itemId: itemId) {
+                    if let player = gameLoop.player,
+                       player.inventory.canAccept(itemId: itemId) {
                         // Mine the resource
                         let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
                         if mined > 0 {
                             sendDebugLog("autoMine: Mined \(mined) \(itemId)")
                             // Add to inventory immediately (no animation delay for auto-mining)
                             if let itemDef = gameLoop.itemRegistry.get(itemId) {
-                                gameLoop.player.inventory.add(itemId: itemId, count: mined, maxStack: itemDef.stackSize)
+                                player.inventory.add(itemId: itemId, count: mined, maxStack: itemDef.stackSize)
                                 totalMined[itemId, default: 0] += mined
                                 minedCount += mined
                             }
@@ -555,8 +567,12 @@ final class GameNetworkManager {
 
         var inventory: [[String: Any]] = []
 
-        for slot in 0..<gameLoop.player.inventory.slotCount {
-            if let itemStack = gameLoop.player.inventory.slots[slot] {
+        guard let player = gameLoop.player else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Player not available"])
+        }
+        
+        for slot in 0..<player.inventory.slotCount {
+            if let itemStack = player.inventory.slots[slot] {
                 inventory.append([
                     "slot": slot,
                     "itemId": itemStack.itemId,
@@ -573,7 +589,7 @@ final class GameNetworkManager {
 
         return [
             "inventory": inventory,
-            "totalSlots": gameLoop.player.inventory.slotCount
+            "totalSlots": player.inventory.slotCount
         ]
     }
 
@@ -591,7 +607,10 @@ final class GameNetworkManager {
             throw NSError(domain: "GameNetworkManager", code: 18, userInfo: [NSLocalizedDescriptionKey: "Item not found: \(itemId)"])
         }
 
-        let added = gameLoop.player.inventory.add(itemId: itemId, count: count, maxStack: itemDef.stackSize)
+        guard let player = gameLoop.player else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Player not available"])
+        }
+        let added = player.inventory.add(itemId: itemId, count: count, maxStack: itemDef.stackSize)
 
         return [
             "success": true,
@@ -617,7 +636,10 @@ final class GameNetworkManager {
         }
 
         // Try to craft the item
-        let success = gameLoop.player.craft(recipe: recipe, count: count)
+        guard let player = gameLoop.player else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Player not available"])
+        }
+        let success = player.craft(recipe: recipe, count: count)
 
         if success {
             return [
@@ -757,7 +779,8 @@ final class GameNetworkManager {
         }
 
         // Check if player has the item
-        guard gameLoop.player.inventory.has(itemId: itemId, count: count) else {
+        guard let player = gameLoop.player,
+              player.inventory.has(itemId: itemId, count: count) else {
             sendDebugLog("addMachineItem: Player doesn't have enough \(itemId)")
             throw NSError(domain: "GameNetworkManager", code: 6, userInfo: [NSLocalizedDescriptionKey: "Player doesn't have enough \(itemId)"])
         }
@@ -792,7 +815,7 @@ final class GameNetworkManager {
         gameLoop.world.add(machineInventory, to: targetEntity)
 
         // Remove from player inventory
-        gameLoop.player.inventory.remove(itemId: itemId, count: count)
+        player.inventory.remove(itemId: itemId, count: count)
 
         sendDebugLog("addMachineItem: Added \(count) \(itemId) to machine at (\(x), \(y)) slot \(slotIndex)")
 
@@ -878,11 +901,13 @@ final class GameNetworkManager {
            let buildingDef = gameLoop.buildingRegistry.get(buildingComponent.buildingId) {
 
             // Refund building materials to player
-            for item in buildingDef.cost {
-                if let itemDef = gameLoop.itemRegistry.get(item.itemId) {
-                    gameLoop.player.inventory.add(itemId: item.itemId, count: item.count, maxStack: itemDef.stackSize)
-                } else {
-                    gameLoop.player.inventory.add(itemId: item.itemId, count: item.count, maxStack: 100)
+            if let player = gameLoop.player {
+                for item in buildingDef.cost {
+                    if let itemDef = gameLoop.itemRegistry.get(item.itemId) {
+                        player.inventory.add(itemId: item.itemId, count: item.count, maxStack: itemDef.stackSize)
+                    } else {
+                        player.inventory.add(itemId: item.itemId, count: item.count, maxStack: 100)
+                    }
                 }
             }
 
@@ -1082,7 +1107,10 @@ final class GameNetworkManager {
 
         sendDebugLog("buildMiningDrillOnDeposit: Looking for \(resourceType) deposit within \(searchRadius) tiles")
 
-        let playerPos = gameLoop.player.position
+        guard let player = gameLoop.player else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Player not available"])
+        }
+        let playerPos = player.position
         let centerTile = IntVector2(Int(playerPos.x), Int(playerPos.y))
 
         // Search for a resource deposit
@@ -1122,7 +1150,8 @@ final class GameNetworkManager {
         }
 
         // Check if we have enough resources to build the drill
-        guard gameLoop.player.inventory.has(itemId: "iron-plate", count: 5) else {
+        guard let player = gameLoop.player,
+              player.inventory.has(itemId: "iron-plate", count: 5) else {
             sendDebugLog("buildMiningDrillOnDeposit: Not enough iron plates (need 5)")
             throw NSError(domain: "GameNetworkManager", code: 6, userInfo: [NSLocalizedDescriptionKey: "Not enough iron plates to build mining drill"])
         }
@@ -1194,7 +1223,8 @@ final class GameNetworkManager {
         sendDebugLog("buildStructure: Position validation passed")
 
         // Check resources
-        guard gameLoop.player.inventory.has(items: buildingDef.cost) else {
+        guard let player = gameLoop.player,
+              player.inventory.has(items: buildingDef.cost) else {
             sendDebugLog("buildStructure: Insufficient resources for \(buildingId)")
             throw NSError(domain: "GameNetworkManager", code: 6, userInfo: [NSLocalizedDescriptionKey: "Insufficient resources"])
         }
@@ -1208,7 +1238,7 @@ final class GameNetworkManager {
 
             // Consume resources
             for item in buildingDef.cost {
-                gameLoop.player.inventory.remove(itemId: item.itemId, count: item.count)
+                player.inventory.remove(itemId: item.itemId, count: item.count)
             }
 
             sendDebugLog("buildStructure: Resources consumed, build complete")
@@ -1260,7 +1290,10 @@ final class GameNetworkManager {
 
         // Move the player entity directly
         let targetPos = IntVector2(x: Int32(x), y: Int32(y))
-        gameLoop.world.add(PositionComponent(tilePosition: targetPos), to: gameLoop.player.playerEntity)
+        guard let player = gameLoop.player else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Player not available"])
+        }
+        gameLoop.world.add(PositionComponent(tilePosition: targetPos), to: player.playerEntity)
 
         return [
             "status": "player_moved",
@@ -1352,7 +1385,8 @@ final class GameNetworkManager {
 
         // Player data - get inventory items
         var playerResources: [String: Int] = [:]
-        for item in gameLoop.player.inventory.getAll() {
+        guard let player = gameLoop.player else { return [:] }
+        for item in player.inventory.getAll() {
             playerResources[item.itemId] = item.count
         }
 

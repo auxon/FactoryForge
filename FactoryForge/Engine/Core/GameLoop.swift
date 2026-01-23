@@ -39,8 +39,15 @@ final class GameLoop {
     let autoPlaySystem: AutoPlaySystem
     let rocketSystem: RocketSystem
     
-    // Player
-    let player: Player
+    // Player Management
+    let playerManager: PlayerManager
+    var localPlayerId: UInt32?  // ID of the local player
+    
+    /// Computed property for backward compatibility - returns the local player
+    var player: Player? {
+        guard let localId = localPlayerId else { return nil }
+        return playerManager.getPlayer(playerId: localId)
+    }
     
     // UI state
     var uiSystem: UISystem?
@@ -91,8 +98,16 @@ final class GameLoop {
         print("GameLoop: Using seed for world generation: \(worldSeed)")
         chunkManager = ChunkManager(seed: worldSeed)
         
-        // Initialize player
-        player = Player(world: world, itemRegistry: itemRegistry)
+        // Initialize player manager
+        playerManager = PlayerManager(world: world, itemRegistry: itemRegistry)
+        
+        // Create local player (for single-player compatibility)
+        localPlayerId = playerManager.createPlayer(name: "Player", isAI: false)
+        
+        // Get player for backward compatibility
+        guard let player = playerManager.getPlayer(playerId: localPlayerId!) else {
+            fatalError("Failed to create local player")
+        }
 
         // Initialize game systems
         miningSystem = MiningSystem(world: world, chunkManager: chunkManager, itemRegistry: itemRegistry)
@@ -103,7 +118,10 @@ final class GameLoop {
         _fluidNetworkSystem = FluidNetworkSystem(world: world, buildingRegistry: buildingRegistry, itemRegistry: itemRegistry)
         researchSystem = ResearchSystem(world: world, technologyRegistry: technologyRegistry)
         pollutionSystem = PollutionSystem(world: world, chunkManager: chunkManager)
-        enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: player)
+        // EnemyAISystem will need to be updated to work with PlayerManager - for now use local player
+        // We know player exists because we just created it, so force unwrap is safe here
+        let localPlayer = playerManager.getPlayer(playerId: localPlayerId!)!
+        enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: localPlayer)
         combatSystem = CombatSystem(world: world, chunkManager: chunkManager)
         combatSystem.setRenderer(renderer)
         unitSystem = UnitSystem(world: world, chunkManager: chunkManager, itemRegistry: itemRegistry)
@@ -179,7 +197,7 @@ final class GameLoop {
         frameCount += 1
 
         // Check for player death
-        if !isPlayerDead && player.isDead {
+        if !isPlayerDead, let player = player, player.isDead {
             handlePlayerDeath()
         }
 
@@ -189,10 +207,13 @@ final class GameLoop {
         }
 
         // Update player
-        player.update(deltaTime: deltaTime)
-        syncPlayerChunkMembership()
+        if let player = player {
+            player.update(deltaTime: deltaTime)
+            syncPlayerChunkMembership()
+        }
 
         // Update chunk loading based on player position (always if no chunks are loaded)
+        guard let player = player else { return }
         let playerPos = player.position
         let shouldForceChunkUpdate = chunkManager.allLoadedChunks.isEmpty
         if shouldForceChunkUpdate {
@@ -243,8 +264,8 @@ final class GameLoop {
         // Update renderer camera to follow player (only if not manually panning and player is alive)
         if !isPlayerDead {
             let shouldFollowPlayer = inputManager?.isDragging == false
-            if shouldFollowPlayer {
-                renderer?.camera.target = player.position
+            if shouldFollowPlayer, let currentPlayer = self.player {
+                renderer?.camera.target = currentPlayer.position
             }
         }
         renderer?.camera.update(deltaTime: deltaTime)
@@ -401,7 +422,8 @@ final class GameLoop {
     }
 
     private func syncPlayerChunkMembership() {
-        guard let position = world.get(PositionComponent.self, for: player.playerEntity) else { return }
+        guard let player = player,
+              let position = world.get(PositionComponent.self, for: player.playerEntity) else { return }
 
         if let lastTile = lastPlayerTilePosition, lastTile != position.tilePosition {
             if let oldChunk = chunkManager.getChunk(at: lastTile) {
@@ -430,7 +452,8 @@ final class GameLoop {
         }
 
         // Check if player has required items
-        guard player.inventory.has(items: buildingDef.cost) else {
+        guard let player = player,
+              player.inventory.has(items: buildingDef.cost) else {
             print("GameLoop: placeInserter failed - player doesn't have required items: \(buildingDef.cost)")
             return false
         }
@@ -485,7 +508,8 @@ final class GameLoop {
         }
 
         // Check if player has required items
-        guard player.inventory.has(items: buildingDef.cost) else { return false }
+        guard let player = player,
+              player.inventory.has(items: buildingDef.cost) else { return false }
 
         // Remove items from player inventory (must reassign since InventoryComponent is a struct)
         var playerInventory = player.inventory
@@ -541,7 +565,7 @@ final class GameLoop {
     }
 
     private func spawnTreesNearPlayer(_ chunk: Chunk) {
-        let playerPos = world.get(PositionComponent.self, for: player.playerEntity)?.tilePosition ?? IntVector2(x: 0, y: 0)
+        let playerPos = player.flatMap { world.get(PositionComponent.self, for: $0.playerEntity)?.tilePosition } ?? IntVector2(x: 0, y: 0)
 
         // Spawn trees in a small radius around the player
         let nearPlayerPositions = [
@@ -1277,7 +1301,7 @@ final class GameLoop {
         // Get items to return to player
         if let inventory = world.get(InventoryComponent.self, for: entity) {
             for stack in inventory.getAll() {
-                player.inventory.add(stack)
+                player?.inventory.add(stack)
             }
         }
         
@@ -1313,7 +1337,7 @@ final class GameLoop {
             
             // Add recycled items to player inventory
             for stack in recycledItems {
-                player.inventory.add(stack)
+                player?.inventory.add(stack)
             }
         }
         
@@ -1354,7 +1378,7 @@ final class GameLoop {
         // Return items from entity's inventory to player
         if let inventory = world.get(InventoryComponent.self, for: entity) {
             for stack in inventory.getAll() {
-                player.inventory.add(stack)
+                player?.inventory.add(stack)
             }
         }
 
@@ -1414,7 +1438,7 @@ final class GameLoop {
                 
                 // Add recycled items to player inventory
                 for stack in recycledItems {
-                    player.inventory.add(stack)
+                    player?.inventory.add(stack)
                 }
             }
         }
@@ -1753,10 +1777,11 @@ final class GameLoop {
         isPlayerDead = true
 
         // Clear any ongoing crafting when player dies
-        player.cancelCrafting()
+        player?.cancelCrafting()
 
         // Hide player sprite during death
-        if var sprite = world.get(SpriteComponent.self, for: player.playerEntity) {
+        if let player = player,
+           var sprite = world.get(SpriteComponent.self, for: player.playerEntity) {
             sprite.tint = Color(r: 1.0, g: 0.3, b: 0.3, a: 0.5)  // Red tint, semi-transparent
             world.add(sprite, to: player.playerEntity)
         }
@@ -1780,17 +1805,19 @@ final class GameLoop {
         isPlayerDead = false
 
         // Reset player state for next game
-        player.heal(player.maxHealth)
-        player.position = Vector2(0, 0)
+        if let player = player {
+            player.heal(player.maxHealth)
+            player.position = Vector2(0, 0)
 
-        if var sprite = world.get(SpriteComponent.self, for: player.playerEntity) {
-            sprite.tint = .white
-            world.add(sprite, to: player.playerEntity)
-        }
+            if var sprite = world.get(SpriteComponent.self, for: player.playerEntity) {
+                sprite.tint = Color.white
+                world.add(sprite, to: player.playerEntity)
+            }
 
-        if var health = world.get(HealthComponent.self, for: player.playerEntity) {
-            health.immunityTimer = 0
-            world.add(health, to: player.playerEntity)
+            if var health = world.get(HealthComponent.self, for: player.playerEntity) {
+                health.immunityTimer = 0
+                world.add(health, to: player.playerEntity)
+            }
         }
 
         // Notify GameViewController to return to menu
@@ -1854,7 +1881,7 @@ final class GameLoop {
     /// Adds items to the player's inventory (used for IAP deliveries)
     func addItemToInventory(itemId: String, quantity: Int) {
         if let itemDef = itemRegistry.get(itemId) {
-            player.inventory.add(itemId: itemId, count: quantity, maxStack: itemDef.stackSize)
+            player?.inventory.add(itemId: itemId, count: quantity, maxStack: itemDef.stackSize)
         }
     }
 }

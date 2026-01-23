@@ -2,6 +2,7 @@ import Foundation
 
 /// The player character
 final class Player {
+    let playerId: UInt32
     private var world: World
     private var itemRegistry: ItemRegistry
     private var entity: Entity
@@ -61,7 +62,8 @@ final class Player {
     private var playerAnimationUp: SpriteAnimation?
     private var playerAnimationDown: SpriteAnimation?
     
-    init(world: World, itemRegistry: ItemRegistry) {
+    init(world: World, itemRegistry: ItemRegistry, playerId: UInt32 = 1) {
+        self.playerId = playerId
         self.world = world
         self.itemRegistry = itemRegistry
         self.entity = world.spawn()
@@ -80,6 +82,18 @@ final class Player {
         self.itemRegistry = itemRegistry
         self.entity = world.spawn()
         setupPlayerEntity()
+        
+        // Add PlayerComponent if not already added by PlayerManager
+        if world.get(PlayerComponent.self, for: entity) == nil {
+            let playerComponent = PlayerComponent(playerId: playerId, playerName: "Player \(playerId)")
+            world.add(playerComponent, to: entity)
+        }
+        
+        // Add OwnershipComponent if not already added
+        if world.get(OwnershipComponent.self, for: entity) == nil {
+            let ownership = OwnershipComponent(ownerPlayerId: playerId)
+            world.add(ownership, to: entity)
+        }
     }
     
     private func setupPlayerEntity() {
@@ -139,6 +153,18 @@ final class Player {
         world.add(HealthComponent(maxHealth: 250, immunityDuration: 0.5), to: entity)
         world.add(VelocityComponent(), to: entity)
         world.add(CollisionComponent(radius: 0.4, layer: .player, mask: [.enemy, .building]), to: entity)
+        
+        // Add PlayerComponent if not already added by PlayerManager
+        if world.get(PlayerComponent.self, for: entity) == nil {
+            let playerComponent = PlayerComponent(playerId: playerId, playerName: "Player \(playerId)")
+            world.add(playerComponent, to: entity)
+        }
+        
+        // Add OwnershipComponent if not already added
+        if world.get(OwnershipComponent.self, for: entity) == nil {
+            let ownership = OwnershipComponent(ownerPlayerId: playerId)
+            world.add(ownership, to: entity)
+        }
         
         // Give starting items
         giveStartingItems()

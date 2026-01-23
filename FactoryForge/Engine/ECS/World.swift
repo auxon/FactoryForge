@@ -677,10 +677,21 @@ extension World {
                 components["fluidPump"] = try? JSONEncoder().encode(fluidPump)
             }
             
+            // Multiplayer components
+            if let ownership = get(OwnershipComponent.self, for: entity) {
+                components["ownership"] = try? JSONEncoder().encode(ownership)
+            }
+            if let playerComp = get(PlayerComponent.self, for: entity) {
+                components["playerComponent"] = try? JSONEncoder().encode(playerComp)
+            }
+            
             // Exclude player entity from world serialization (it's saved separately in PlayerState)
             // Player entities have CollisionComponent with layer .player
+            // NOTE: In multiplayer, we may want to serialize player entities, but for now keep this behavior
             if let collision = get(CollisionComponent.self, for: entity),
-               collision.layer == .player {
+               collision.layer == .player,
+               get(PlayerComponent.self, for: entity) == nil {
+                // Only skip if it's a player collision layer but not a PlayerComponent (old single-player behavior)
                 continue  // Skip serializing player entity
             }
             
@@ -840,6 +851,16 @@ extension World {
             if let fluidPumpData = entityData.components["fluidPump"],
                let fluidPump = try? JSONDecoder().decode(FluidPumpComponent.self, from: fluidPumpData) {
                 add(fluidPump, to: entity)
+            }
+
+            // Multiplayer components
+            if let ownershipData = entityData.components["ownership"],
+               let ownership = try? JSONDecoder().decode(OwnershipComponent.self, from: ownershipData) {
+                add(ownership, to: entity)
+            }
+            if let playerCompData = entityData.components["playerComponent"],
+               let playerComp = try? JSONDecoder().decode(PlayerComponent.self, from: playerCompData) {
+                add(playerComp, to: entity)
             }
 
             if let collisionData = entityData.components["collision"],

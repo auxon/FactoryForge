@@ -423,7 +423,7 @@ final class InputManager: NSObject {
             for enemy in nearbyEnemies {
                 if gameLoop.world.has(EnemyComponent.self, for: enemy) {
                     // Try to attack the enemy directly
-                    if gameLoop.player.attackEnemy(enemy: enemy) {
+                    if let player = gameLoop.player, player.attackEnemy(enemy: enemy) {
                         attacked = true
                         break
                     }
@@ -447,9 +447,10 @@ final class InputManager: NSObject {
                 }
 
                 // Check inventory first
-                if !gameLoop.player.inventory.has(items: buildingDef.cost) {
+                guard let player = gameLoop.player else { return }
+                if !player.inventory.has(items: buildingDef.cost) {
                     // Show missing items
-                    let missingItems = buildingDef.cost.filter { !gameLoop.player.inventory.has(items: [$0]) }
+                    let missingItems = buildingDef.cost.filter { !player.inventory.has(items: [$0]) }
                     if let firstMissing = missingItems.first {
                         let itemName = gameLoop.itemRegistry.get(firstMissing.itemId)?.name ?? firstMissing.itemId
                         onTooltip?("Need \(firstMissing.count) \(itemName)")
@@ -609,7 +610,7 @@ final class InputManager: NSObject {
                 if gameLoop.world.has(EnemyComponent.self, for: enemy) {
                     // Try to attack the enemy directly by its entity ID instead of position
                     // This avoids precision issues with position conversion
-                    if gameLoop.player.attackEnemy(enemy: enemy) {
+                    if let player = gameLoop.player, player.attackEnemy(enemy: enemy) {
                         attacked = true
                         break
                     }
@@ -671,9 +672,10 @@ final class InputManager: NSObject {
                 }
 
                 // Check inventory first
-                if !gameLoop.player.inventory.has(items: buildingDef.cost) {
+                guard let player = gameLoop.player else { return }
+                if !player.inventory.has(items: buildingDef.cost) {
                     // Show missing items
-                    let missingItems = buildingDef.cost.filter { !gameLoop.player.inventory.has(items: [$0]) }
+                    let missingItems = buildingDef.cost.filter { !player.inventory.has(items: [$0]) }
                     if let firstMissing = missingItems.first {
                         let itemName = gameLoop.itemRegistry.get(firstMissing.itemId)?.name ?? firstMissing.itemId
                         onTooltip?("Need \(firstMissing.count) \(itemName)")
@@ -1349,7 +1351,8 @@ final class InputManager: NSObject {
             // No entity found at all, check for resource to mine manually
             if let resource = gameLoop.chunkManager.getResource(at: tilePos), !resource.isEmpty {
                 // Check if player can accept the item
-                if gameLoop.player.inventory.canAccept(itemId: resource.type.outputItem) {
+                guard let player = gameLoop.player else { return }
+                if player.inventory.canAccept(itemId: resource.type.outputItem) {
                     // Manual mining - mine 1 unit
                     let mined = gameLoop.chunkManager.mineResource(at: tilePos, amount: 1)
                     if mined > 0 {
@@ -1363,8 +1366,10 @@ final class InputManager: NSObject {
                         
                         // Add to player inventory (after a delay to match animation)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak gameLoop] in
-                            if let gameLoop = gameLoop, let itemDef = gameLoop.itemRegistry.get(itemId) {
-                                gameLoop.player.inventory.add(itemId: itemId, count: mined, maxStack: itemDef.stackSize)
+                            if let gameLoop = gameLoop,
+                               let player = gameLoop.player,
+                               let itemDef = gameLoop.itemRegistry.get(itemId) {
+                                player.inventory.add(itemId: itemId, count: mined, maxStack: itemDef.stackSize)
                             }
                         }
                     }
@@ -1386,9 +1391,10 @@ final class InputManager: NSObject {
             guard let buildingDef = gameLoop.buildingRegistry.get(buildingId) else { return }
 
             // Check inventory first
-            if !gameLoop.player.inventory.has(items: buildingDef.cost) {
+            guard let player = gameLoop.player else { return }
+            if !player.inventory.has(items: buildingDef.cost) {
                 // Show missing items
-                let missingItems = buildingDef.cost.filter { !gameLoop.player.inventory.has(items: [$0]) }
+                let missingItems = buildingDef.cost.filter { !player.inventory.has(items: [$0]) }
                 if let firstMissing = missingItems.first {
                     let itemName = gameLoop.itemRegistry.get(firstMissing.itemId)?.name ?? firstMissing.itemId
                     onTooltip?("Need \(firstMissing.count) \(itemName)")
@@ -2258,11 +2264,9 @@ final class InputManager: NSObject {
             }
             
             // Check if we can place here and have inventory
-            guard gameLoop.canPlaceBuilding(buildingId, at: pos, direction: .north) else {
-                continue
-            }
-            
-            guard gameLoop.player.inventory.has(items: buildingDef.cost) else {
+            guard gameLoop.canPlaceBuilding(buildingId, at: pos, direction: .north),
+                  let player = gameLoop.player,
+                  player.inventory.has(items: buildingDef.cost) else {
                 continue
             }
             
@@ -2370,7 +2374,8 @@ final class InputManager: NSObject {
             guard gameLoop.canPlaceBuilding(buildingId, at: tilePos, direction: .north) else {
                 continue
             }
-            guard gameLoop.player.inventory.has(items: gameLoop.buildingRegistry.get(buildingId)?.cost ?? []) else {
+            guard let player = gameLoop.player,
+                  player.inventory.has(items: gameLoop.buildingRegistry.get(buildingId)?.cost ?? []) else {
                 continue
             }
 

@@ -54,7 +54,7 @@ final class SaveSystem {
             version: 1,
             seed: gameLoop.chunkManager.seed,
             playTime: gameLoop.playTime,
-            playerData: gameLoop.player.getState(),
+            playerData: gameLoop.player?.getState() ?? PlayerState(position: Vector2.zero, inventory: InventoryComponent(slots: 70, allowedItems: nil), health: 100),
             worldData: gameLoop.world.serialize(),
             researchData: (findResearchSystem(in: gameLoop))?.getState() ?? ResearchState(currentResearchId: nil, progress: [:], completed: [], unlockedRecipes: []),
             timestamp: Date()
@@ -99,15 +99,22 @@ final class SaveSystem {
         removePlayerEntityFromWorld(gameLoop.world)
         
         // Recreate the player entity (since it was cleared during deserialize)
-        recreatePlayerEntity(gameLoop.player, in: gameLoop.world, itemRegistry: gameLoop.itemRegistry)
+        guard let player = gameLoop.player else {
+            print("SaveSystem: No player available to recreate")
+            return
+        }
+        
+        recreatePlayerEntity(player, in: gameLoop.world, itemRegistry: gameLoop.itemRegistry)
         
         // Load player state (position, inventory, health)
-        gameLoop.player.loadState(saveData.playerData)
+        player.loadState(saveData.playerData)
         
         // IMPORTANT: Force load chunks around player position immediately after loading entities
         // This ensures saved chunks are loaded from disk before any updates can regenerate them
         // Use forceLoadChunksAround to ensure we load from disk, not regenerate
-        gameLoop.chunkManager.forceLoadChunksAround(position: gameLoop.player.position)
+        if let player = gameLoop.player {
+            gameLoop.chunkManager.forceLoadChunksAround(position: player.position)
+        }
         
         // Also ensure chunks around all entity positions are loaded
         // Collect entity positions and load chunks for each

@@ -322,8 +322,13 @@ final class UISystem {
             return
         }
 
+        guard let player = gameLoop.player else {
+            print("❌ expandPlayerInventory: No player available")
+            return
+        }
+        
         // Increase player inventory by 8 slots
-        let currentSlots = gameLoop.player.inventory.slotCount
+        let currentSlots = player.inventory.slotCount
         let newSlots = currentSlots + 8
         print("📊 expandPlayerInventory: Expanding from \(currentSlots) to \(newSlots) slots")
 
@@ -334,15 +339,15 @@ final class UISystem {
         // Copy existing items to the new inventory
         var copiedItems = 0
         for i in 0..<min(currentSlots, newInventory.slotCount) {
-            if gameLoop.player.inventory.slots[i] != nil {
-                newInventory.slots[i] = gameLoop.player.inventory.slots[i]
+            if player.inventory.slots[i] != nil {
+                newInventory.slots[i] = player.inventory.slots[i]
                 copiedItems += 1
             }
         }
         print("📦 expandPlayerInventory: Copied \(copiedItems) item stacks to new inventory")
 
         // Update player's inventory
-        gameLoop.player.inventory = newInventory
+        player.inventory = newInventory
         print("✅ expandPlayerInventory: Player inventory updated successfully")
 
         // Autosave after upgrade

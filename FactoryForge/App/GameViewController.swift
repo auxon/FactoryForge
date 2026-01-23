@@ -1115,10 +1115,12 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         gameLoop?.saveSystem.startNewGameSession()
 
         // Load initial chunks for new game (no save slot needed for new games)
-        gameLoop?.chunkManager.update(playerPosition: gameLoop!.player.position)
+        if let gameLoop = gameLoop, let player = gameLoop.player {
+            gameLoop.chunkManager.update(playerPosition: player.position)
+        }
 
         // Reset camera to snap to new player position immediately
-        if let playerPosition = gameLoop?.player.position {
+        if let gameLoop = gameLoop, let playerPosition = gameLoop.player?.position {
             renderer.camera.position = playerPosition
             renderer.camera.target = playerPosition
             renderer.camera.zoom = 5.0  // Reset to default zoom (25% more than before)
@@ -1489,7 +1491,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         }
 
         // Update chunk manager with player position to load surrounding chunks
-        gameLoop?.chunkManager.update(playerPosition: gameLoop!.player.position)
+        if let gameLoop = gameLoop, let player = gameLoop.player {
+            gameLoop.chunkManager.update(playerPosition: player.position)
+        }
 
         // Close any panels that were opened during loading
         uiSystem?.closeAllPanels()

@@ -148,7 +148,8 @@ final class InventoryUI: UIPanel_Base {
               let itemStack = slot.item else { return }
 
         // Get player and chest inventories
-        var playerInventory = gameLoop.player.inventory
+        guard let player = gameLoop.player else { return }
+        var playerInventory = player.inventory
         guard var chestInventory = gameLoop.world.get(InventoryComponent.self, for: chestEntity) else { return }
 
         // Determine which inventory this slot belongs to
@@ -178,7 +179,7 @@ final class InventoryUI: UIPanel_Base {
             if itemsToTransfer > 0 {
                 // Remove from player
                 playerInventory.remove(itemId: itemStack.itemId, count: itemsToTransfer)
-                gameLoop.player.inventory = playerInventory
+                player.inventory = playerInventory
 
                 // Add to chest
                 let remaining: Int
@@ -230,7 +231,7 @@ final class InventoryUI: UIPanel_Base {
                     remaining = playerInventory.add(itemId: chestItemStack.itemId, count: itemsToTransfer, maxStack: 100) // fallback
                 }
                 if remaining == 0 {  // All items were added
-                    gameLoop.player.inventory = playerInventory
+                    player.inventory = playerInventory
                     AudioManager.shared.playClickSound()
                 }
             }
@@ -251,7 +252,8 @@ final class InventoryUI: UIPanel_Base {
 
         if let chestItemStack = chestInventory.slots[slotIndex] {
             // Filled chest slot - transfer to player
-            var playerInventory = gameLoop.player.inventory
+            guard let player = gameLoop.player else { return }
+            var playerInventory = player.inventory
 
             // Calculate available space in player inventory for this item
             var availableSpace = 0
@@ -285,7 +287,7 @@ final class InventoryUI: UIPanel_Base {
                     remaining = playerInventory.add(itemId: chestItemStack.itemId, count: itemsToTransfer, maxStack: 100) // fallback
                 }
                 if remaining == 0 {  // All items were added
-                    gameLoop.player.inventory = playerInventory
+                    player.inventory = playerInventory
                     AudioManager.shared.playClickSound()
                 }
             }
@@ -302,7 +304,8 @@ final class InventoryUI: UIPanel_Base {
               let itemStack = slot.item else { return }
 
         // Get player and chest inventories
-        var playerInventory = gameLoop.player.inventory
+        guard let player = gameLoop.player else { return }
+        var playerInventory = player.inventory
         guard var chestInventory = gameLoop.world.get(InventoryComponent.self, for: pendingChestEntity) else { return }
 
         // Determine if this is a player slot (should be, since we're in pending chest mode)
@@ -325,10 +328,10 @@ final class InventoryUI: UIPanel_Base {
 
         let itemsToTransfer = min(itemStack.count, availableSpace)
 
-        if itemsToTransfer > 0 {
-            // Remove from player
-            playerInventory.remove(itemId: itemStack.itemId, count: itemsToTransfer)
-            gameLoop.player.inventory = playerInventory
+            if itemsToTransfer > 0 {
+                // Remove from player
+                playerInventory.remove(itemId: itemStack.itemId, count: itemsToTransfer)
+                player.inventory = playerInventory
 
             // Add to chest
             let remaining: Int
@@ -488,7 +491,8 @@ final class InventoryUI: UIPanel_Base {
         var playerSlots: [ItemStack?] = []
         var chestSlots: [ItemStack?] = []
 
-        playerSlots = gameLoop.player.inventory.slots
+        guard let player = gameLoop.player else { return }
+        playerSlots = player.inventory.slots
 
         if let chestEntity = chestEntity, let chestInventory = gameLoop.world.get(InventoryComponent.self, for: chestEntity) {
             chestSlots = chestInventory.slots
@@ -778,9 +782,10 @@ final class InventoryUI: UIPanel_Base {
         }
 
         // Check if machine can accept this item
+        guard let player = gameLoop.player else { return }
         if machineInventory.canAccept(itemId: itemStack.itemId) {
             // Remove one item from player inventory at this slot
-            var playerInv = gameLoop.player.inventory
+            var playerInv = player.inventory
             if slot.index < playerInv.slots.count,
                var slotItem = playerInv.slots[slot.index],
                slotItem.count > 0 {
@@ -807,7 +812,7 @@ final class InventoryUI: UIPanel_Base {
                     } else {
                         playerInv.slots[slot.index] = slotItem
                     }
-                    gameLoop.player.inventory = playerInv
+                    player.inventory = playerInv
 
                     // Check if machine can accept this item
                     if !machineInventory.canAccept(itemId: slotItem.itemId) {
@@ -823,9 +828,9 @@ final class InventoryUI: UIPanel_Base {
                     // Return any items that couldn't be added back to player (shouldn't happen)
                     if remaining > 0 {
                         if let itemDef = gameLoop.itemRegistry.get(slotItem.itemId) {
-                            gameLoop.player.inventory.add(itemId: slotItem.itemId, count: remaining, maxStack: itemDef.stackSize)
+                            player.inventory.add(itemId: slotItem.itemId, count: remaining, maxStack: itemDef.stackSize)
                         } else {
-                            gameLoop.player.inventory.add(itemId: slotItem.itemId, count: remaining, maxStack: 100) // fallback
+                            player.inventory.add(itemId: slotItem.itemId, count: remaining, maxStack: 100) // fallback
                         }
                     }
 
@@ -843,10 +848,11 @@ final class InventoryUI: UIPanel_Base {
     }
 
     private func handleInventoryDrop(fromSlotIndex: Int, toSlotIndex: Int) {
-        guard let gameLoop = gameLoop else { return }
+        guard let gameLoop = gameLoop,
+              let player = gameLoop.player else { return }
 
         // Determine which inventories are involved
-        let playerSlotsCount = gameLoop.player.inventory.slots.count
+        let playerSlotsCount = player.inventory.slots.count
 
         // Check if we're in chest mode
         let isChestMode = chestEntity != nil || chestOnlyEntity != nil || pendingChestEntity != nil
@@ -861,11 +867,11 @@ final class InventoryUI: UIPanel_Base {
     }
 
     private func handlePlayerInventoryDrop(fromSlotIndex: Int, toSlotIndex: Int) {
-        guard let gameLoop = gameLoop else { return }
-        guard fromSlotIndex < gameLoop.player.inventory.slots.count,
-              toSlotIndex < gameLoop.player.inventory.slots.count else { return }
-
-        var playerInventory = gameLoop.player.inventory
+        guard let gameLoop = gameLoop,
+              let player = gameLoop.player else { return }
+        guard fromSlotIndex < player.inventory.slots.count,
+              toSlotIndex < player.inventory.slots.count else { return }
+        var playerInventory = player.inventory
 
         let sourceStack = playerInventory.slots[fromSlotIndex]
         let destStack = playerInventory.slots[toSlotIndex]
@@ -902,14 +908,14 @@ final class InventoryUI: UIPanel_Base {
             playerInventory.slots[fromSlotIndex] = destStack
         }
 
-        gameLoop.player.inventory = playerInventory
+        player.inventory = playerInventory
         AudioManager.shared.playClickSound()
     }
 
     private func handleChestInventoryDrop(fromSlotIndex: Int, toSlotIndex: Int, playerSlotsCount: Int) {
-        guard let gameLoop = gameLoop else { return }
-
-        var playerInventory = gameLoop.player.inventory
+        guard let gameLoop = gameLoop,
+              let player = gameLoop.player else { return }
+        var playerInventory = player.inventory
         var chestInventory: InventoryComponent?
 
         // Get the appropriate chest inventory
@@ -1017,7 +1023,7 @@ final class InventoryUI: UIPanel_Base {
         }
 
         // Save changes
-        gameLoop.player.inventory = playerInventory
+        player.inventory = playerInventory
 
         // Save chest changes if applicable
         if let chestEntity = chestEntity {
@@ -1070,17 +1076,15 @@ final class InventoryUI: UIPanel_Base {
     }
 
     private func handleTrashDrop(slotIndex: Int) {
-        guard let gameLoop = gameLoop else { return }
-
-        // Only allow trashing from player inventory slots (not chest inventory)
-        guard slotIndex < gameLoop.player.inventory.slots.count else { return }
-
-        var playerInventory = gameLoop.player.inventory
+        guard let gameLoop = gameLoop,
+              let player = gameLoop.player,
+              slotIndex < player.inventory.slots.count else { return }
+        var playerInventory = player.inventory
 
         // Remove the item stack from the slot
         if let itemStack = playerInventory.slots[slotIndex] {
             playerInventory.slots[slotIndex] = nil
-            gameLoop.player.inventory = playerInventory
+            player.inventory = playerInventory
 
             // Play sound effect
             AudioManager.shared.playClickSound()

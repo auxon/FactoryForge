@@ -128,7 +128,7 @@ final class BuildMenu: UIPanel_Base {
             let buttonY = startY + Float(row) * (buttonSize + buttonSpacing) + buttonSize / 2
             
             // Check if player can afford this building
-            let canAfford = gameLoop?.player.inventory.has(items: building.cost) ?? false
+            let canAfford = gameLoop?.player?.inventory.has(items: building.cost) ?? false
 
             let button = BuildingButton(
                 frame: Rect(center: Vector2(buttonX, buttonY), size: Vector2(buttonSize, buttonSize)),
@@ -157,7 +157,7 @@ final class BuildMenu: UIPanel_Base {
         setupBuildButton()
 
         // Check if player can afford this building and update button state
-        let canAfford = gameLoop?.player.inventory.has(items: building.cost) ?? false
+        let canAfford = gameLoop?.player?.inventory.has(items: building.cost) ?? false
         buildButton?.isEnabled = canAfford
         buildButton?.alpha = canAfford ? 1.0 : 0.5
     }

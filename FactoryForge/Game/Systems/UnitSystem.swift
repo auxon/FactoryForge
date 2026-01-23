@@ -50,7 +50,7 @@ final class UnitSystem: System {
         }
     }
 
-    private func spawnUnit(_ unitType: UnitType, near position: Vector2) {
+    private func spawnUnit(_ unitType: UnitType, near position: Vector2, ownerPlayerId: UInt32? = nil) {
         let entity = world.spawn()
 
         // Find a valid spawn position near the building
@@ -78,6 +78,12 @@ final class UnitSystem: System {
 
         // Add collision component
         world.add(CollisionComponent(radius: 0.4, layer: .player, mask: [.enemy, .building]), to: entity)
+        
+        // Add ownership if provided
+        if let ownerId = ownerPlayerId {
+            let ownership = OwnershipComponent(ownerPlayerId: ownerId)
+            world.add(ownership, to: entity)
+        }
 
         // Register with chunk
         if let chunk = chunkManager.getChunk(at: tilePosition) {
@@ -110,6 +116,14 @@ final class UnitSystem: System {
     }
 
     private func executeCommand(_ command: UnitCommand, for entity: Entity, unit: UnitComponent) {
+        // Check ownership - units should only accept commands from their owner
+        // For now, allow any command (will be validated by server in multiplayer)
+        // TODO: Add ownership validation when multiplayer is fully implemented
+        guard let ownership = world.get(OwnershipComponent.self, for: entity) else {
+            print("UnitSystem: Unit \(entity.id) has no ownership, skipping command")
+            return
+        }
+        
         switch command {
         case .move(let targetPosition):
             executeMoveCommand(to: targetPosition, for: entity, unit: unit)

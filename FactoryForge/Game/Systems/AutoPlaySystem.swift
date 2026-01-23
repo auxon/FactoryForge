@@ -273,7 +273,8 @@ final class AutoPlaySystem: System {
         }
 
         // Temporarily give player unlimited resources for auto-play
-        let originalInventory = gameLoop.player.inventory
+        guard let player = gameLoop.player else { return }
+        let originalInventory = player.inventory
         var unlimitedInventory = originalInventory
         // Add plenty of all required resources - use correct item IDs (with hyphens)
         unlimitedInventory.add(ItemStack(itemId: "iron-plate", count: 100))
@@ -284,13 +285,13 @@ final class AutoPlaySystem: System {
         unlimitedInventory.add(ItemStack(itemId: "processing-unit", count: 100))
         unlimitedInventory.add(ItemStack(itemId: "iron-gear-wheel", count: 100))
         unlimitedInventory.add(ItemStack(itemId: "copper-cable", count: 100))
-        gameLoop.player.inventory = unlimitedInventory
+        player.inventory = unlimitedInventory
 
         // Place the building
         let success = gameLoop.placeBuilding(type, at: actualPosition, direction: direction)
 
         // Restore original inventory (minus any costs that were actually deducted)
-        gameLoop.player.inventory = gameLoop.player.inventory
+        // Note: Inventory may have been modified by placeBuilding, so we keep the current state
 
         if success {
             print("✅ Building \(type) placed at \(actualPosition)")
@@ -358,9 +359,10 @@ final class AutoPlaySystem: System {
             let beltPos = IntVector2(x: Int32(x), y: Int32(y))
 
             // Give unlimited resources for belts
-            var unlimitedInventory = gameLoop.player.inventory
+            guard let player = gameLoop.player else { continue }
+            var unlimitedInventory = player.inventory
             unlimitedInventory.add(ItemStack(itemId: "iron_plate", count: 100))
-            gameLoop.player.inventory = unlimitedInventory
+            player.inventory = unlimitedInventory
 
             let success = gameLoop.placeBuilding("transport_belt", at: beltPos, direction: direction)
             if success {

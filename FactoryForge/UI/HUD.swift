@@ -88,9 +88,9 @@ final class HUD {
         // Connect joystick to player movement
         joystick.onDirectionChanged = { [weak gameLoop] direction in
             if direction.lengthSquared > 0.001 {
-                gameLoop?.player.setMoveDirection(direction)
+                gameLoop?.player?.setMoveDirection(direction)
             } else {
-                gameLoop?.player.stopMoving()
+                gameLoop?.player?.stopMoving()
             }
         }
 

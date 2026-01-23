@@ -1836,7 +1836,8 @@ final class MachineUI: UIPanel_Base {
             } else {
                 // Check item inputs from player inventory
                 for input in recipe.inputs {
-                    if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                    if let player = gameLoop.player,
+                       !player.inventory.has(itemId: input.itemId, count: input.count) {
                         canCraft = false
                         missingItems.append("\(input.itemId) (\(input.count))")
                     }
@@ -1903,7 +1904,8 @@ final class MachineUI: UIPanel_Base {
                     if !isFurnace {
                         // Check item inputs from player inventory
                         for input in recipe.inputs {
-                            if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                            if let player = gameLoop.player,
+                       !player.inventory.has(itemId: input.itemId, count: input.count) {
                                 canCraft = false
                                 break
                             }
@@ -2208,8 +2210,12 @@ final class MachineUI: UIPanel_Base {
         var hasOutputSpace = true
 
         // Check item inputs from player inventory
+        guard let player = gameLoop.player else {
+            canCraftFromInventory = false
+            return
+        }
         for input in recipe.inputs {
-            if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+            if !player.inventory.has(itemId: input.itemId, count: input.count) {
                 canCraftFromInventory = false
                 break
             }
@@ -2318,7 +2324,8 @@ final class MachineUI: UIPanel_Base {
             // Check item inputs from player inventory
             if !recipe.inputs.isEmpty {
                 for input in recipe.inputs {
-                    if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                    if let player = gameLoop.player,
+                       !player.inventory.has(itemId: input.itemId, count: input.count) {
                         canCraft = false
                         tooltipMessage = "Missing items: \(input.itemId) (\(input.count))"
                         break
@@ -2426,7 +2433,8 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Perform the crafting logic (transfer items/fluids and start production)
-        var playerInventory = gameLoop.player.inventory
+        guard let player = gameLoop.player else { return }
+        var playerInventory = player.inventory
 
         // Transfer item inputs from player inventory to machine input slots
         if !recipe.inputs.isEmpty {
@@ -2474,7 +2482,8 @@ final class MachineUI: UIPanel_Base {
         // For fluid-based recipes, just set the recipe and let the CraftingSystem handle timed processing
         if recipe.fluidInputs.isEmpty && recipe.fluidOutputs.isEmpty {
             // Item-based recipe - do the old instant logic
-            var playerInventory = gameLoop.player.inventory
+            guard let player = gameLoop.player else { return }
+        var playerInventory = player.inventory
 
             // Transfer item inputs from player inventory to machine input slots
             if !recipe.inputs.isEmpty {
@@ -2542,7 +2551,7 @@ final class MachineUI: UIPanel_Base {
                 }
             }
 
-            gameLoop.player.inventory = playerInventory
+            player.inventory = playerInventory
 
             // Set the recipe on the machine
             onSelectRecipeForMachine?(entity, recipe)
@@ -2777,7 +2786,8 @@ final class MachineUI: UIPanel_Base {
                     var canCraft = true
                     if let gameLoop = gameLoop {
                         for input in recipe.inputs {
-                            if !gameLoop.player.inventory.has(itemId: input.itemId, count: input.count) {
+                            if let player = gameLoop.player,
+                       !player.inventory.has(itemId: input.itemId, count: input.count) {
                                 canCraft = false
                                 break
                             }
@@ -3301,8 +3311,8 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Update button states based on craftability and crafting status
-        guard let player = gameLoop?.player,
-              let _ = gameLoop else { return }
+        guard let gameLoop = gameLoop,
+              let player = gameLoop.player else { return }
 
         for uiButton in recipeUIButtons {
             let idx = uiButton.tag
@@ -3520,7 +3530,8 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Try to add the item to player inventory
-        let remainingCount = gameLoop.player.inventory.add(itemStack)
+        guard let player = gameLoop.player else { return }
+        let remainingCount = player.inventory.add(itemStack)
 
         if remainingCount == 0 {
             // All items were successfully moved to player inventory

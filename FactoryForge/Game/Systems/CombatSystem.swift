@@ -259,6 +259,20 @@ final class CombatSystem: System {
     private func applyDamage(_ damage: Float, to entity: Entity, from source: Entity?) {
         guard var health = world.get(HealthComponent.self, for: entity) else { return }
         
+        // Check if source and target are on same team (friendly fire check)
+        if let source = source,
+           let sourceOwnership = world.get(OwnershipComponent.self, for: source),
+           let targetOwnership = world.get(OwnershipComponent.self, for: entity) {
+            
+            // Same team - check friendly fire rules
+            if let sourceTeamId = sourceOwnership.teamId,
+               let targetTeamId = targetOwnership.teamId,
+               sourceTeamId == targetTeamId {
+                // Same team - allow friendly fire for now (can be disabled later via game rules)
+                // TODO: Check game rules for friendly fire setting
+            }
+        }
+        
         // Apply armor if present
         var finalDamage = damage
         if let armor = world.get(ArmorComponent.self, for: entity) {

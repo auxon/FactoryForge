@@ -85,6 +85,23 @@ struct CollisionLayer: OptionSet, Codable {
     static let building = CollisionLayer(rawValue: 1 << 3)
     static let projectile = CollisionLayer(rawValue: 1 << 4)
     static let resource = CollisionLayer(rawValue: 1 << 5)
+    
+    // Team-based collision layers (for multiplayer)
+    static let team1 = CollisionLayer(rawValue: 1 << 6)
+    static let team2 = CollisionLayer(rawValue: 1 << 7)
+    static let team3 = CollisionLayer(rawValue: 1 << 8)
+    static let team4 = CollisionLayer(rawValue: 1 << 9)
+    static let team5 = CollisionLayer(rawValue: 1 << 10)
+    static let team6 = CollisionLayer(rawValue: 1 << 11)
+    static let team7 = CollisionLayer(rawValue: 1 << 12)
+    static let team8 = CollisionLayer(rawValue: 1 << 13)
+    
     static let all = CollisionLayer(rawValue: UInt32.max)
+    
+    /// Helper to get team layer by ID (1-8)
+    static func team(_ teamId: UInt32) -> CollisionLayer {
+        guard teamId >= 1 && teamId <= 8 else { return .none }
+        return CollisionLayer(rawValue: 1 << (5 + Int(teamId)))
+    }
 }
 
