@@ -338,6 +338,12 @@
 		A1020009010 /* Shaders3D.metal in Sources */ = {isa = PBXBuildFile; fileRef = A1020009000 /* Shaders3D.metal */; platformFilter = ios; };
 		A1020010010 /* Metal3DViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020010000 /* Metal3DViewDelegate.swift */; };
 		A1030000010 /* Engine/Network/GameNetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030000000 /* Engine/Network/GameNetworkManager.swift */; };
+		A1030001010 /* MultiplayerProtocolTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030001000 /* MultiplayerProtocolTypes.swift */; };
+		A1030002010 /* MultiplayerNetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030002000 /* MultiplayerNetworkManager.swift */; };
+		A1030003010 /* NetworkEntityMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030003000 /* NetworkEntityMapper.swift */; };
+		A1030004010 /* NetworkSyncComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030004000 /* NetworkSyncComponent.swift */; };
+		A1030005010 /* InterestManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030005000 /* InterestManager.swift */; };
+		A1030006010 /* ClientPrediction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030006000 /* ClientPrediction.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -709,7 +715,13 @@
 		A1020008000 /* ShaderTypes3D.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes3D.h; sourceTree = "<group>"; };
 		A1020009000 /* Shaders3D.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders3D.metal; sourceTree = "<group>"; };
 		A1020010000 /* Metal3DViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metal3DViewDelegate.swift; sourceTree = "<group>"; };
-		A1030000000 /* Engine/Network/GameNetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FactoryForge/Engine/Network/GameNetworkManager.swift; sourceTree = "<group>"; };
+		A1030000000 /* Engine/Network/GameNetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameNetworkManager.swift; sourceTree = "<group>"; };
+		A1030001000 /* MultiplayerProtocolTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiplayerProtocolTypes.swift; sourceTree = "<group>"; };
+		A1030002000 /* MultiplayerNetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiplayerNetworkManager.swift; sourceTree = "<group>"; };
+		A1030003000 /* NetworkEntityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkEntityMapper.swift; sourceTree = "<group>"; };
+		A1030004000 /* NetworkSyncComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSyncComponent.swift; sourceTree = "<group>"; };
+		A1030005000 /* InterestManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterestManager.swift; sourceTree = "<group>"; };
+		A1030006000 /* ClientPrediction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientPrediction.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -1230,10 +1242,24 @@
 				A0000200022 /* ECS */,
 				A0000200023 /* Rendering */,
 				A0000200024 /* Input */,
+				A0000200028 /* Network */,
 				A0000200041 /* UI */,
 				A0000200025 /* Audio */,
 			);
 			path = Engine;
+			sourceTree = "<group>";
+		};
+		A0000200028 /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				A1030000000 /* GameNetworkManager.swift */,
+				A1030001000 /* MultiplayerProtocolTypes.swift */,
+				A1030002000 /* MultiplayerNetworkManager.swift */,
+				A1030003000 /* NetworkEntityMapper.swift */,
+				A1030005000 /* InterestManager.swift */,
+				A1030006000 /* ClientPrediction.swift */,
+			);
+			path = Network;
 			sourceTree = "<group>";
 		};
 		A0000200021 /* Core */ = {
@@ -1308,6 +1334,7 @@
 				A1003007000 /* CombatComponents.swift */,
 				A1003008000 /* OwnershipComponent.swift */,
 				A1003009000 /* PlayerComponent.swift */,
+				A1030004000 /* NetworkSyncComponent.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1876,6 +1903,12 @@
 				A1020001010 /* Metal3DRenderer.swift in Sources */,
 				A1020010010 /* Metal3DViewDelegate.swift in Sources */,
 				A1030000010 /* Engine/Network/GameNetworkManager.swift in Sources */,
+				A1030001010 /* MultiplayerProtocolTypes.swift in Sources */,
+				A1030002010 /* MultiplayerNetworkManager.swift in Sources */,
+				A1030003010 /* NetworkEntityMapper.swift in Sources */,
+				A1030004010 /* NetworkSyncComponent.swift in Sources */,
+				A1030005010 /* InterestManager.swift in Sources */,
+				A1030006010 /* ClientPrediction.swift in Sources */,
 				A1020002010 /* Camera3D.swift in Sources */,
 				A1020003010 /* Model3DGenerator.swift in Sources */,
 				A1020004010 /* TerrainRenderer3D.swift in Sources */,
