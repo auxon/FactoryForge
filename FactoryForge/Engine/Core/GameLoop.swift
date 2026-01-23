@@ -71,6 +71,18 @@ final class GameLoop {
     /// When true, skip all rendering and UI updates (for dedicated server / headless mode).
     var isHeadless: Bool = false
 
+    /// World gen seed (for replay).
+    private(set) var worldSeed: UInt64 = 0
+
+    /// Replay recording. Use startReplayRecording() / stopReplayRecording().
+    let replayRecorder: ReplayRecorder
+    private(set) var isReplayRecording: Bool = false
+    /// When true, actions applied via applyPlayerAction are from replay; do not record them.
+    var isReplaying: Bool = false
+
+    /// Performance telemetry. Hook from fixed update.
+    let performanceMonitor: PerformanceMonitor
+
     // Player death state
     private(set) var isPlayerDead: Bool = false
 
@@ -99,9 +111,14 @@ final class GameLoop {
         
         // Initialize world
         world = World()
-        let worldSeed = seed ?? UInt64.random(in: 0...UInt64.max)
-        print("GameLoop: Using seed for world generation: \(worldSeed)")
-        chunkManager = ChunkManager(seed: worldSeed)
+        let s = seed ?? UInt64.random(in: 0...UInt64.max)
+        worldSeed = s
+        print("GameLoop: Using seed for world generation: \(s)")
+        chunkManager = ChunkManager(seed: s)
+
+        replayRecorder = ReplayRecorder()
+        replayRecorder.setSeed(worldSeed)
+        performanceMonitor = PerformanceMonitor()
         
         // Initialize player manager
         playerManager = PlayerManager(world: world, itemRegistry: itemRegistry)
@@ -246,6 +263,7 @@ final class GameLoop {
         var fixedUpdateCount = 0
         let maxFixedUpdates = 5  // Maximum fixed updates per frame
         while Time.shared.consumeFixedUpdate() && fixedUpdateCount < maxFixedUpdates {
+            performanceMonitor.startTick()
             let frameStart = CACurrentMediaTime()
             var systemTimings: [(String, Double)] = []
 
@@ -256,6 +274,10 @@ final class GameLoop {
                 systemTimings.append((String(describing: type(of: system)), systemElapsed))
             }
             fixedUpdateCount += 1
+
+            performanceMonitor.endTick()
+            performanceMonitor.recordEntityCount(world.entityCount)
+            performanceMonitor.sample(tick: currentTickForReplay)
 
             let frameElapsed = CACurrentMediaTime() - frameStart
             #if DEBUG
@@ -286,6 +308,50 @@ final class GameLoop {
 
         // Call update callback
         onUpdate?()
+    }
+
+    /// Tick used for replay and perf sampling (server tick when headless, else frame count).
+    private var currentTickForReplay: UInt64 {
+        isHeadless ? Time.shared.serverTick : UInt64(Time.shared.frameCount)
+    }
+
+    // MARK: - Replay
+
+    func startReplayRecording() {
+        isReplayRecording = true
+        replayRecorder.reset()
+        replayRecorder.setSeed(worldSeed)
+    }
+
+    func stopReplayRecording() -> ReplayData {
+        isReplayRecording = false
+        return replayRecorder.finish()
+    }
+
+    func recordReplaySnapshot() {
+        guard isReplayRecording else { return }
+        replayRecorder.recordSnapshot(world.serialize())
+    }
+
+    private func recordPlayerActionIfEnabled(_ action: PlayerAction, playerId: UInt32) {
+        guard isReplayRecording, !isReplaying else { return }
+        replayRecorder.record(tick: currentTickForReplay, action: action)
+    }
+
+    /// Apply a player action (e.g. from network or replay). .build records in placeBuilding; .move records here.
+    @discardableResult
+    func applyPlayerAction(_ action: PlayerAction, playerId: UInt32) -> Bool {
+        switch action {
+        case .build(let buildingId, let position, let direction):
+            return placeBuilding(buildingId, at: position, direction: direction, forPlayerId: playerId)
+        case .move(let position):
+            guard let p = playerManager.getPlayer(playerId: playerId) else { return false }
+            p.position = position.toVector2 + Vector2(0.5, 0.5)
+            recordPlayerActionIfEnabled(action, playerId: playerId)
+            return true
+        case .attack, .unitCommand:
+            return false
+        }
     }
 
     // MARK: - Time Controls (Auto-Play)
@@ -548,6 +614,7 @@ final class GameLoop {
            buildingDef.type == .fluidTank {
             _fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
         }
+        recordPlayerActionIfEnabled(.build(buildingId: buildingId, position: position, direction: direction), playerId: player.playerId)
         return true
     }
 
@@ -1806,7 +1873,7 @@ final class GameLoop {
 
     // Called when player chooses to return to menu
     func returnToMenu() {
-        // Reset death state
+        _ = stopReplayRecording()
         isPlayerDead = false
 
         // Reset player state for next game

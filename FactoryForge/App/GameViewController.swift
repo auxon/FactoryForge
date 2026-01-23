@@ -1114,6 +1114,8 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Start a new autosave session for this game
         gameLoop?.saveSystem.startNewGameSession()
 
+        gameLoop?.startReplayRecording()
+
         // Load initial chunks for new game (no save slot needed for new games)
         if let gameLoop = gameLoop, let player = gameLoop.player {
             gameLoop.chunkManager.update(playerPosition: player.position)

@@ -357,6 +357,9 @@
 		A1050006010 /* AIDefenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050006000 /* AIDefenseManager.swift */; };
 		A1050007010 /* AIOffenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050007000 /* AIOffenseManager.swift */; };
 		A1050008010 /* AIPlayerSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050008000 /* AIPlayerSystem.swift */; };
+		A1060001010 /* ReplaySystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1060001000 /* ReplaySystem.swift */; };
+		A1060002010 /* NetworkSimulator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1060002000 /* NetworkSimulator.swift */; };
+		A1060003010 /* PerformanceMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1060003000 /* PerformanceMonitor.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -748,6 +751,9 @@
 		A1050006000 /* AIDefenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDefenseManager.swift; sourceTree = "<group>"; };
 		A1050007000 /* AIOffenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIOffenseManager.swift; sourceTree = "<group>"; };
 		A1050008000 /* AIPlayerSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIPlayerSystem.swift; sourceTree = "<group>"; };
+		A1060001000 /* ReplaySystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplaySystem.swift; sourceTree = "<group>"; };
+		A1060002000 /* NetworkSimulator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSimulator.swift; sourceTree = "<group>"; };
+		A1060003000 /* PerformanceMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -1284,6 +1290,8 @@
 				A1030003000 /* NetworkEntityMapper.swift */,
 				A1030005000 /* InterestManager.swift */,
 				A1030006000 /* ClientPrediction.swift */,
+				A1060001000 /* ReplaySystem.swift */,
+				A1060002000 /* NetworkSimulator.swift */,
 			);
 			path = Network;
 			sourceTree = "<group>";
@@ -1294,6 +1302,7 @@
 				A1001001000 /* GameLoop.swift */,
 				A1001002000 /* Math.swift */,
 				A1001003000 /* Time.swift */,
+				A1060003000 /* PerformanceMonitor.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -1969,6 +1978,9 @@
 				A1050006010 /* AIDefenseManager.swift in Sources */,
 				A1050007010 /* AIOffenseManager.swift in Sources */,
 				A1050008010 /* AIPlayerSystem.swift in Sources */,
+				A1060001010 /* ReplaySystem.swift in Sources */,
+				A1060002010 /* NetworkSimulator.swift in Sources */,
+				A1060003010 /* PerformanceMonitor.swift in Sources */,
 				A1020002010 /* Camera3D.swift in Sources */,
 				A1020003010 /* Model3DGenerator.swift in Sources */,
 				A1020004010 /* TerrainRenderer3D.swift in Sources */,

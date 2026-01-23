@@ -16,6 +16,9 @@ final class MultiplayerNetworkManager {
     var onDisconnected: ((Error?) -> Void)?
     var onMessage: ((NetworkMessage) -> Void)?
 
+    /// When set, send() uses this instead of the real connection. Harness wires peer's simulator.onDelivered to handleSimulatedInbound(_:).
+    var simulatedOutbound: NetworkSimulator?
+
     // MARK: - Client: connect to server
 
     func connect(to host: String, port: UInt16) {
@@ -60,17 +63,30 @@ final class MultiplayerNetworkManager {
     // MARK: - Send / receive
 
     func send(_ message: NetworkMessage) {
-        guard let conn = connection, isConnected else { return }
         do {
             let data = try JSONEncoder().encode(message)
             var length = UInt32(data.count).bigEndian
             var payload = Data(bytes: &length, count: messageLengthPrefixBytes)
             payload.append(data)
+            if let sim = simulatedOutbound {
+                sim.send(payload)
+                return
+            }
+            guard let conn = connection, isConnected else { return }
             conn.send(content: payload, completion: .contentProcessed { [weak self] err in
                 if let e = err { self?.onDisconnected?(e) }
             })
         } catch {
             onDisconnected?(error)
+        }
+    }
+
+    /// Handle data delivered by NetworkSimulator (harness). Same length-prefix format as wire.
+    func handleSimulatedInbound(_ data: Data) {
+        queue.async { [weak self] in
+            guard let self = self else { return }
+            self.receiveBuffer.append(data)
+            self.drainReceivedMessages()
         }
     }
 
