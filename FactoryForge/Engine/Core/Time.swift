@@ -20,6 +20,16 @@ final class Time {
     /// Current frame number
     private(set) var frameCount: UInt64 = 0
     
+    /// Server tick counter for deterministic simulation (incremented each deterministic update).
+    /// Use when running headless/server without CACurrentMediaTime().
+    private(set) var serverTick: UInt64 = 0
+    
+    /// Fixed delta used in deterministic mode (default 1/60 s).
+    var deterministicDeltaTime: Float = 1.0 / 60.0
+    
+    /// When true, updateDeterministic() uses fixed delta and serverTick instead of wall clock.
+    var isDeterministic: Bool = false
+    
     /// Time scale (1.0 = normal, 0.0 = paused)
     var timeScale: Float = 1.0
     
@@ -42,7 +52,7 @@ final class Time {
         lastFrameTime = CACurrentMediaTime()
     }
     
-    /// Updates time values. Called once per frame.
+    /// Updates time values. Called once per frame (uses wall clock).
     func update() {
         let currentTime = CACurrentMediaTime()
         unscaledDeltaTime = min(Float(currentTime - lastFrameTime), maxDeltaTime)
@@ -51,6 +61,20 @@ final class Time {
         deltaTime = unscaledDeltaTime * timeScale
         totalTime += deltaTime
         frameCount += 1
+        
+        accumulator += deltaTime
+    }
+    
+    /// Deterministic update: fixed delta, no wall clock. Use for headless/server.
+    /// Call instead of update() when isDeterministic or running server loop.
+    func updateDeterministic() {
+        unscaledDeltaTime = min(deterministicDeltaTime, maxDeltaTime)
+        lastFrameTime = 0  // unused in deterministic mode
+        
+        deltaTime = unscaledDeltaTime * timeScale
+        totalTime += deltaTime
+        frameCount += 1
+        serverTick += 1
         
         accumulator += deltaTime
     }
@@ -81,6 +105,7 @@ final class Time {
         deltaTime = 0
         accumulator = 0
         frameCount = 0
+        serverTick = 0
         lastFrameTime = CACurrentMediaTime()
     }
 }

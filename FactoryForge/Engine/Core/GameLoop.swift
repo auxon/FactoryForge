@@ -67,6 +67,9 @@ final class GameLoop {
     private(set) var isRunning: Bool = true
     var playTime: TimeInterval = 0
 
+    /// When true, skip all rendering and UI updates (for dedicated server / headless mode).
+    var isHeadless: Bool = false
+
     // Player death state
     private(set) var isPlayerDead: Bool = false
 
@@ -83,8 +86,9 @@ final class GameLoop {
     private var lastProfileTime: TimeInterval = 0
     private let profileInterval: TimeInterval = 5.0  // Profile every 5 seconds
     
-    init(renderer: MetalRenderer, seed: UInt64? = nil) {
+    init(renderer: MetalRenderer?, seed: UInt64? = nil) {
         self.renderer = renderer
+        self.isHeadless = (renderer == nil)
         
         // Initialize registries
         itemRegistry = ItemRegistry()
@@ -123,7 +127,7 @@ final class GameLoop {
         let localPlayer = playerManager.getPlayer(playerId: localPlayerId!)!
         enemyAISystem = EnemyAISystem(world: world, chunkManager: chunkManager, player: localPlayer)
         combatSystem = CombatSystem(world: world, chunkManager: chunkManager)
-        combatSystem.setRenderer(renderer)
+        combatSystem.setRenderer(renderer)  // nil when headless
         unitSystem = UnitSystem(world: world, chunkManager: chunkManager, itemRegistry: itemRegistry)
         entityCleanupSystem = EntityCleanupSystem(world: world, chunkManager: chunkManager)
         rocketSystem = RocketSystem(world: world, itemRegistry: itemRegistry)
@@ -155,11 +159,11 @@ final class GameLoop {
         // Initialize UI
         uiSystem = UISystem(gameLoop: self, renderer: renderer)
 
-        // Set up crafting completion callback to notify UI
+        // Set up crafting completion callback to notify UI (skip when headless)
         craftingSystem.onCraftingCompleted = { [weak self] entity in
-            // Notify UI system to update the machine UI
+            guard let self = self, !self.isHeadless else { return }
             DispatchQueue.main.async {
-                self?.uiSystem?.updateMachineUI(for: entity)
+                self.uiSystem?.updateMachineUI(for: entity)
             }
         }
 
@@ -186,7 +190,11 @@ final class GameLoop {
     func update() {
         guard isRunning else { return }
 
-        Time.shared.update()
+        if isHeadless {
+            Time.shared.updateDeterministic()
+        } else {
+            Time.shared.update()
+        }
 
         let realDeltaTime = Time.shared.deltaTime
         let gameSpeedFloat = Float(gameSpeed)
@@ -256,19 +264,21 @@ final class GameLoop {
             #endif
         }
 
-        // Update UI (skip if game is effectively paused to save performance)
-        if gameSpeed > 0.01 {
+        // Update UI (skip if paused, or headless)
+        if gameSpeed > 0.01, !isHeadless {
             uiSystem?.update(deltaTime: deltaTime)
         }
 
-        // Update renderer camera to follow player (only if not manually panning and player is alive)
-        if !isPlayerDead {
-            let shouldFollowPlayer = inputManager?.isDragging == false
-            if shouldFollowPlayer, let currentPlayer = self.player {
-                renderer?.camera.target = currentPlayer.position
+        // Update renderer camera (skip when headless)
+        if !isHeadless {
+            if !isPlayerDead {
+                let shouldFollowPlayer = inputManager?.isDragging == false
+                if shouldFollowPlayer, let currentPlayer = self.player {
+                    renderer?.camera.target = currentPlayer.position
+                }
             }
+            renderer?.camera.update(deltaTime: deltaTime)
         }
-        renderer?.camera.update(deltaTime: deltaTime)
 
         // Call update callback
         onUpdate?()
@@ -404,8 +414,9 @@ final class GameLoop {
         }
     }
 
-    /// Render the game state
+    /// Render the game state (no-op when headless)
     func render(renderer: MetalRenderer) {
+        guard !isHeadless else { return }
         // Spawn smoke particles for active buildings
         spawnBuildingSmoke(renderer: renderer)
 
