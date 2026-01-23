@@ -38,7 +38,8 @@ final class GameLoop {
     let entityCleanupSystem: EntityCleanupSystem
     let autoPlaySystem: AutoPlaySystem
     let rocketSystem: RocketSystem
-    
+    let aiPlayerSystem: AIPlayerSystem
+
     // Player Management
     let playerManager: PlayerManager
     var localPlayerId: UInt32?  // ID of the local player
@@ -131,6 +132,7 @@ final class GameLoop {
         unitSystem = UnitSystem(world: world, chunkManager: chunkManager, itemRegistry: itemRegistry)
         entityCleanupSystem = EntityCleanupSystem(world: world, chunkManager: chunkManager)
         rocketSystem = RocketSystem(world: world, itemRegistry: itemRegistry)
+        aiPlayerSystem = AIPlayerSystem(world: world, playerManager: playerManager, chunkManager: chunkManager, buildingRegistry: buildingRegistry, itemRegistry: itemRegistry)
 
         // Auto-play system for automated testing
         autoPlaySystem = AutoPlaySystem()
@@ -146,6 +148,7 @@ final class GameLoop {
             researchSystem,
             pollutionSystem,
             enemyAISystem,
+            aiPlayerSystem,
             combatSystem,
             unitSystem,
             rocketSystem,
@@ -177,6 +180,7 @@ final class GameLoop {
 
         // Set up auto-play system reference (after all properties are initialized)
         autoPlaySystem.setGameLoop(self)
+        aiPlayerSystem.setGameLoop(self)
     }
     
     private func loadGameData() {
@@ -507,53 +511,43 @@ final class GameLoop {
     }
 
     func placeBuilding(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2 = .zero) -> Bool {
-        guard let buildingDef = buildingRegistry.get(buildingId) else {
-            return false
-        }
+        guard let player = player else { return false }
+        return placeBuilding(buildingId, at: position, direction: direction, offset: offset, for: player)
+    }
 
-        if buildingId == "oil-refinery" {
-        }
+    /// Place a building as a specific player (e.g. AI). Use for PvAI.
+    func placeBuilding(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2 = .zero, forPlayerId playerId: UInt32) -> Bool {
+        guard let player = playerManager.getPlayer(playerId: playerId) else { return false }
+        return placeBuilding(buildingId, at: position, direction: direction, offset: offset, for: player)
+    }
+
+    private func placeBuilding(_ buildingId: String, at position: IntVector2, direction: Direction, offset: Vector2, for player: Player) -> Bool {
+        guard let buildingDef = buildingRegistry.get(buildingId) else { return false }
         guard canPlaceBuilding(buildingDef, at: position) else { return false }
         if buildingDef.type == .pipe && !canPlacePipe(at: position, direction: direction, offset: offset) {
             return false
         }
+        guard player.inventory.has(items: buildingDef.cost) else { return false }
 
-        // Check if player has required items
-        guard let player = player,
-              player.inventory.has(items: buildingDef.cost) else { return false }
-
-        // Remove items from player inventory (must reassign since InventoryComponent is a struct)
         var playerInventory = player.inventory
         playerInventory.remove(items: buildingDef.cost)
         player.inventory = playerInventory
-        
-        // Create the building entity
+
         let entity = world.spawn()
-        
-        // Add position component with offset to center at tap location
         world.add(PositionComponent(tilePosition: position, direction: direction, offset: offset), to: entity)
-        
-        // Add building-specific components based on type
         addBuildingComponents(entity: entity, buildingDef: buildingDef, position: position, direction: direction)
-        
-        // Update chunk's entity list
         if let chunk = chunkManager.getChunk(at: position) {
             chunk.addEntity(entity, at: position)
         }
-        
-        // Trigger power network rebuild if needed
         if buildingDef.type == .powerPole || buildingDef.powerConsumption > 0 || buildingDef.powerProduction > 0 {
             _powerSystem.markNetworksDirty()
         }
-
-        // Trigger fluid network rebuild if it's a fluid-related building
         if buildingDef.type == .pipe || buildingDef.type == .pumpjack ||
            buildingDef.type == .waterPump || buildingDef.type == .generator ||
            buildingDef.type == .oilRefinery || buildingDef.type == .chemicalPlant ||
            buildingDef.type == .fluidTank {
             _fluidNetworkSystem.markEntityDirty(entity, connectionsDirty: true)
         }
-
         return true
     }
 

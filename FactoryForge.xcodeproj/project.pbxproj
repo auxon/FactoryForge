@@ -349,6 +349,14 @@
 		A1040003010 /* SpawnSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1040003000 /* SpawnSystem.swift */; };
 		A1040004010 /* VictorySystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1040004000 /* VictorySystem.swift */; };
 		A1040005010 /* FogOfWarSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1040005000 /* FogOfWarSystem.swift */; };
+		A1050001010 /* AIDifficultyConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050001000 /* AIDifficultyConfig.swift */; };
+		A1050002010 /* AITypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050002000 /* AITypes.swift */; };
+		A1050003010 /* AIDecisionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050003000 /* AIDecisionEngine.swift */; };
+		A1050004010 /* AIEconomyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050004000 /* AIEconomyManager.swift */; };
+		A1050005010 /* AIResearchPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050005000 /* AIResearchPlanner.swift */; };
+		A1050006010 /* AIDefenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050006000 /* AIDefenseManager.swift */; };
+		A1050007010 /* AIOffenseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050007000 /* AIOffenseManager.swift */; };
+		A1050008010 /* AIPlayerSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1050008000 /* AIPlayerSystem.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -732,6 +740,14 @@
 		A1040003000 /* SpawnSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpawnSystem.swift; sourceTree = "<group>"; };
 		A1040004000 /* VictorySystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VictorySystem.swift; sourceTree = "<group>"; };
 		A1040005000 /* FogOfWarSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FogOfWarSystem.swift; sourceTree = "<group>"; };
+		A1050001000 /* AIDifficultyConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDifficultyConfig.swift; sourceTree = "<group>"; };
+		A1050002000 /* AITypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITypes.swift; sourceTree = "<group>"; };
+		A1050003000 /* AIDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDecisionEngine.swift; sourceTree = "<group>"; };
+		A1050004000 /* AIEconomyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIEconomyManager.swift; sourceTree = "<group>"; };
+		A1050005000 /* AIResearchPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIResearchPlanner.swift; sourceTree = "<group>"; };
+		A1050006000 /* AIDefenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDefenseManager.swift; sourceTree = "<group>"; };
+		A1050007000 /* AIOffenseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIOffenseManager.swift; sourceTree = "<group>"; };
+		A1050008000 /* AIPlayerSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIPlayerSystem.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -1362,6 +1378,7 @@
 		A0000200030 /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				A0000200039 /* AI */,
 				0D0816572F1C55EB00633C23 /* Units */,
 				0DE2299B2F0230BE00BD619D /* Enemies */,
 				A0000200031 /* World */,
@@ -1374,6 +1391,21 @@
 				A0000200038 /* Multiplayer */,
 			);
 			path = Game;
+			sourceTree = "<group>";
+		};
+		A0000200039 /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				A1050001000 /* AIDifficultyConfig.swift */,
+				A1050002000 /* AITypes.swift */,
+				A1050003000 /* AIDecisionEngine.swift */,
+				A1050004000 /* AIEconomyManager.swift */,
+				A1050005000 /* AIResearchPlanner.swift */,
+				A1050006000 /* AIDefenseManager.swift */,
+				A1050007000 /* AIOffenseManager.swift */,
+				A1050008000 /* AIPlayerSystem.swift */,
+			);
+			path = AI;
 			sourceTree = "<group>";
 		};
 		A0000200031 /* World */ = {
@@ -1929,6 +1961,14 @@
 				A1040003010 /* SpawnSystem.swift in Sources */,
 				A1040004010 /* VictorySystem.swift in Sources */,
 				A1040005010 /* FogOfWarSystem.swift in Sources */,
+				A1050001010 /* AIDifficultyConfig.swift in Sources */,
+				A1050002010 /* AITypes.swift in Sources */,
+				A1050003010 /* AIDecisionEngine.swift in Sources */,
+				A1050004010 /* AIEconomyManager.swift in Sources */,
+				A1050005010 /* AIResearchPlanner.swift in Sources */,
+				A1050006010 /* AIDefenseManager.swift in Sources */,
+				A1050007010 /* AIOffenseManager.swift in Sources */,
+				A1050008010 /* AIPlayerSystem.swift in Sources */,
 				A1020002010 /* Camera3D.swift in Sources */,
 				A1020003010 /* Model3DGenerator.swift in Sources */,
 				A1020004010 /* TerrainRenderer3D.swift in Sources */,
