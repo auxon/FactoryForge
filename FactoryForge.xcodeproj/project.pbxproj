@@ -344,6 +344,11 @@
 		A1030004010 /* NetworkSyncComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030004000 /* NetworkSyncComponent.swift */; };
 		A1030005010 /* InterestManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030005000 /* InterestManager.swift */; };
 		A1030006010 /* ClientPrediction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030006000 /* ClientPrediction.swift */; };
+		A1040001010 /* MatchConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1040001000 /* MatchConfig.swift */; };
+		A1040002010 /* LobbySystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1040002000 /* LobbySystem.swift */; };
+		A1040003010 /* SpawnSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1040003000 /* SpawnSystem.swift */; };
+		A1040004010 /* VictorySystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1040004000 /* VictorySystem.swift */; };
+		A1040005010 /* FogOfWarSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1040005000 /* FogOfWarSystem.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -722,6 +727,11 @@
 		A1030004000 /* NetworkSyncComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSyncComponent.swift; sourceTree = "<group>"; };
 		A1030005000 /* InterestManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterestManager.swift; sourceTree = "<group>"; };
 		A1030006000 /* ClientPrediction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientPrediction.swift; sourceTree = "<group>"; };
+		A1040001000 /* MatchConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchConfig.swift; sourceTree = "<group>"; };
+		A1040002000 /* LobbySystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LobbySystem.swift; sourceTree = "<group>"; };
+		A1040003000 /* SpawnSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpawnSystem.swift; sourceTree = "<group>"; };
+		A1040004000 /* VictorySystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VictorySystem.swift; sourceTree = "<group>"; };
+		A1040005000 /* FogOfWarSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FogOfWarSystem.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -1448,6 +1458,11 @@
 		A0000200038 /* Multiplayer */ = {
 			isa = PBXGroup;
 			children = (
+				A1040001000 /* MatchConfig.swift */,
+				A1040002000 /* LobbySystem.swift */,
+				A1040003000 /* SpawnSystem.swift */,
+				A1040004000 /* VictorySystem.swift */,
+				A1040005000 /* FogOfWarSystem.swift */,
 				A1013002000 /* PlayerManager.swift */,
 			);
 			path = Multiplayer;
@@ -1909,6 +1924,11 @@
 				A1030004010 /* NetworkSyncComponent.swift in Sources */,
 				A1030005010 /* InterestManager.swift in Sources */,
 				A1030006010 /* ClientPrediction.swift in Sources */,
+				A1040001010 /* MatchConfig.swift in Sources */,
+				A1040002010 /* LobbySystem.swift in Sources */,
+				A1040003010 /* SpawnSystem.swift in Sources */,
+				A1040004010 /* VictorySystem.swift in Sources */,
+				A1040005010 /* FogOfWarSystem.swift in Sources */,
 				A1020002010 /* Camera3D.swift in Sources */,
 				A1020003010 /* Model3DGenerator.swift in Sources */,
 				A1020004010 /* TerrainRenderer3D.swift in Sources */,
