@@ -132,7 +132,7 @@ final class GameLoop {
         }
 
         // Initialize game systems
-        miningSystem = MiningSystem(world: world, chunkManager: chunkManager, itemRegistry: itemRegistry)
+        miningSystem = MiningSystem(world: world, chunkManager: chunkManager, itemRegistry: itemRegistry, buildingRegistry: buildingRegistry)
         beltSystem = BeltSystem(world: world)
         inserterSystem = InserterSystem(world: world, beltSystem: beltSystem, itemRegistry: itemRegistry)
         craftingSystem = CraftingSystem(world: world, recipeRegistry: recipeRegistry, itemRegistry: itemRegistry, buildingRegistry: buildingRegistry)

@@ -8,6 +8,7 @@ final class MiningSystem: System {
     private let world: World
     private let chunkManager: ChunkManager
     private let itemRegistry: ItemRegistry
+    private let buildingRegistry: BuildingRegistry
 
     // Cache for performance optimization
     private var resourceCache: [IntVector2: ResourceDeposit] = [:]
@@ -28,10 +29,11 @@ final class MiningSystem: System {
     private let minerScanInterval: TimeInterval = 0.2
     private let maxMinersPerUpdate: Int = 8
 
-    init(world: World, chunkManager: ChunkManager, itemRegistry: ItemRegistry) {
+    init(world: World, chunkManager: ChunkManager, itemRegistry: ItemRegistry, buildingRegistry: BuildingRegistry) {
         self.world = world
         self.chunkManager = chunkManager
         self.itemRegistry = itemRegistry
+        self.buildingRegistry = buildingRegistry
     }
 
     /// Called when chunks are loaded/unloaded to invalidate resource cache
@@ -139,8 +141,16 @@ final class MiningSystem: System {
 
                 updatedMiner.resourceOutput = outputItemId
 
-                // Check if output inventory has space
-                if !inventory.canAccept(itemId: outputItemId) {
+                guard let buildingDef = buildingRegistry.get(updatedMiner.buildingId) else {
+                    minerModifications.append((entity, updatedMiner))
+                    minerNextScanTime[entity] = currentTimeSeconds + minerScanInterval
+                    continue
+                }
+                let outputStart = buildingDef.fuelSlots + buildingDef.inputSlots
+                let outputEnd = outputStart + buildingDef.outputSlots
+
+                // Check if output slots have space (mined output goes to output slots only, not fuel)
+                if !minerOutputSlotsCanAccept(inventory, outputStart: outputStart, outputEnd: outputEnd, itemId: outputItemId) {
                     minerModifications.append((entity, updatedMiner))
                     minerNextScanTime[entity] = currentTimeSeconds + minerScanInterval
                     continue
@@ -169,24 +179,20 @@ final class MiningSystem: System {
                     updatedMiner.progress = 0
 
                     if let _ = targetResource {
-                        // Extract from tile resource
-                        let mined = chunkManager.mineResource(at: position.tilePosition)
+                        // Mine at resource position (may be adjacent to miner)
+                        let minePos = minerResourceTargets[entity] ?? position.tilePosition
+                        let mined = chunkManager.mineResource(at: minePos)
                         if mined > 0 {
-                            // Add to output inventory
-                            if let itemDef = itemRegistry.get(outputItemId) {
-                                inventory.add(itemId: outputItemId, count: mined, maxStack: itemDef.stackSize)
-                            }
+                            addMinedOutputToOutputSlots(&inventory, outputStart: outputStart, outputEnd: outputEnd, outputItemId: outputItemId, count: mined)
                             inventoryModifications.append((entity, inventory))
                         }
-                        updateResourceCacheAfterMining(entity: entity, minerPosition: position.tilePosition)
+                        updateResourceCacheAfterMining(entity: entity, minerPosition: minePos)
                     } else if let treeEntity = targetTree, var tree = world.get(TreeComponent.self, for: treeEntity) {
                         // Double-check tree has wood left (safety check)
                         if tree.woodYield > 0 {
                             // Harvest 1 wood from the tree
                             tree.woodYield -= 1
-                            if let itemDef = itemRegistry.get("wood") {
-                                inventory.add(itemId: "wood", count: 1, maxStack: itemDef.stackSize)
-                            }
+                            addMinedOutputToOutputSlots(&inventory, outputStart: outputStart, outputEnd: outputEnd, outputItemId: "wood", count: 1)
                             inventoryModifications.append((entity, inventory))
 
                             // Damage the tree's health
@@ -469,6 +475,41 @@ final class MiningSystem: System {
                 if minerResourceTargets[entity] == pos {
                     minerResourceTargets.removeValue(forKey: entity)
                 }
+            }
+        }
+    }
+
+    /// True if any output slot is empty or has same item with room to stack.
+    private func minerOutputSlotsCanAccept(_ inventory: InventoryComponent, outputStart: Int, outputEnd: Int, itemId: String) -> Bool {
+        if let allowed = inventory.allowedItems, !allowed.contains(itemId) { return false }
+        let end = min(outputEnd, inventory.slots.count)
+        for i in outputStart..<end {
+            guard let stack = inventory.slots[i] else { return true }
+            if stack.itemId == itemId, stack.count < stack.maxStack { return true }
+        }
+        return false
+    }
+
+    /// Add mined output only to output slots (so it doesn't stack into fuel).
+    private func addMinedOutputToOutputSlots(_ inventory: inout InventoryComponent, outputStart: Int, outputEnd: Int, outputItemId: String, count: Int) {
+        guard let itemDef = itemRegistry.get(outputItemId) else { return }
+        var remaining = count
+        let end = min(outputEnd, inventory.slots.count)
+        for i in outputStart..<end {
+            if remaining <= 0 { break }
+            if var stack = inventory.slots[i], stack.itemId == outputItemId, stack.count < stack.maxStack {
+                let toAdd = min(stack.maxStack - stack.count, remaining)
+                stack.count += toAdd
+                inventory.slots[i] = stack
+                remaining -= toAdd
+            }
+        }
+        for i in outputStart..<end {
+            if remaining <= 0 { break }
+            if inventory.slots[i] == nil {
+                let toAdd = min(itemDef.stackSize, remaining)
+                inventory.slots[i] = ItemStack(itemId: outputItemId, count: toAdd, maxStack: itemDef.stackSize)
+                remaining -= toAdd
             }
         }
     }
