@@ -65,11 +65,7 @@ final class InventoryUI: UIPanel_Base {
     private func ensureScrollViewAttached() {
         guard let sv = scrollView else { return }
         if sv.superview == nil, let callback = onAddScrollView {
-            print("InventoryUI: Ensuring scrollView attachment via callback")
             callback(sv)
-            if sv.superview == nil {
-                print("InventoryUI: ERROR - Callback was called but scrollView still not attached")
-            }
         }
     }
     private let slotsPerRow = 10
@@ -98,20 +94,8 @@ final class InventoryUI: UIPanel_Base {
         didSet {
             // Replay attachment if scrollView exists but isn't attached
             // This handles the case where setGameLoop() recreates InventoryUI after callbacks are set
-            if let sv = scrollView, sv.superview == nil {
-                if let callback = onAddScrollView {
-                    print("InventoryUI: onAddScrollView callback was set, attaching existing scrollView")
-                    callback(sv)
-                    // Verify attachment succeeded
-                    if sv.superview == nil {
-                        print("InventoryUI: ERROR - callback was called but scrollView still not attached")
-                        print("InventoryUI: This suggests the callback implementation has a bug (maybe weak self is nil?)")
-                    } else {
-                        print("InventoryUI: Successfully attached scrollView via didSet")
-                    }
-                } else {
-                    print("InventoryUI: onAddScrollView was set to nil (this should not happen)")
-                }
+            if let sv = scrollView, sv.superview == nil, let callback = onAddScrollView {
+                callback(sv)
             }
         }
     }
@@ -445,11 +429,7 @@ final class InventoryUI: UIPanel_Base {
         // Add scrollview to UI
         // Note: callback might be nil if called before installInventoryScrollCallbacks()
         // The didSet on onAddScrollView will handle attachment when callback is set later
-        if let callback = onAddScrollView {
-            callback(scrollView)
-        } else {
-            print("InventoryUI setupSlots: onAddScrollView callback is nil - scrollView will be attached when callback is set")
-        }
+        onAddScrollView?(scrollView)
         
         // Set zPosition to ensure scrollView and labels are on top
         scrollView.layer.zPosition = 10_000
@@ -545,11 +525,9 @@ final class InventoryUI: UIPanel_Base {
         
         // Sanity check: ensure scrollView is in view hierarchy
         if sv.superview == nil {
-            print("InventoryUI: scrollView exists but is NOT attached to a superview")
             ensureScrollViewAttached()
             // If still not attached, labels can't be visible
             if sv.superview == nil {
-                print("InventoryUI: Cannot update - scrollView not in view hierarchy and callback unavailable")
                 return
             }
         }
@@ -795,13 +773,8 @@ final class InventoryUI: UIPanel_Base {
         // CRITICAL: Ensure scrollView is attached to view hierarchy
         ensureScrollViewAttached()
         
-        // Debug: verify attachment
-        print("InventoryUI open: onAddScrollView is nil? \(onAddScrollView == nil)")
-        print("InventoryUI open: scrollView superview: \(String(describing: sv.superview))")
-        
         // If still not attached, we can't proceed
         guard sv.superview != nil else {
-            print("InventoryUI open: ERROR - Cannot proceed, scrollView not attached. Call installInventoryScrollCallbacks() after setGameLoop()")
             return
         }
 
@@ -825,7 +798,6 @@ final class InventoryUI: UIPanel_Base {
         // Ensure all labels are added to the scrollView and brought to front
         // Only add labels if scrollView is actually in the view hierarchy
         guard sv.superview != nil else {
-            print("InventoryUI open: Cannot add labels - scrollView not in view hierarchy")
             return
         }
         
