@@ -100,16 +100,62 @@ export class GameController {
         headers: {
           'Content-Type': 'application/json',
         },
+        responseType: 'json', // Explicitly request JSON response
+        validateStatus: (status) => status < 500, // Accept any status < 500
       });
 
-      console.log('iPhone response:', response.data);
-      return response.data;
+      // Handle response data - ensure it's an object
+      let responseData = response.data;
+      
+      // If response.data is a string, try to parse it as JSON
+      if (typeof responseData === 'string') {
+        try {
+          responseData = JSON.parse(responseData);
+        } catch (parseError) {
+          console.error('Failed to parse response as JSON:', responseData);
+          return {
+            success: false,
+            error: 'Invalid JSON response from game',
+            rawResponse: responseData.substring(0, 100) // First 100 chars for debugging
+          };
+        }
+      }
+      
+      console.log('iPhone response:', JSON.stringify(responseData, null, 2));
+      
+      // If response is empty object, log warning
+      if (responseData && typeof responseData === 'object' && Object.keys(responseData).length === 0) {
+        console.warn('Received empty response object from game - this might indicate the command was not processed');
+      }
+      
+      return responseData;
     } catch (error: any) {
       console.error('HTTP connection error:', error.response?.data || error.message);
+      
+      // If axios throws an error, try to extract useful information
+      if (error.response) {
+        // Server responded with error status
+        let errorData = error.response.data;
+        if (typeof errorData === 'string') {
+          try {
+            errorData = JSON.parse(errorData);
+          } catch {
+            // If parsing fails, return the string
+            errorData = { error: errorData };
+          }
+        }
+        return {
+          success: false,
+          error: errorData.error || error.message,
+          status: error.response.status,
+          details: errorData
+        };
+      }
+      
       return {
         success: false,
         error: `Cannot connect to FactoryForge iOS app at ${this.gameHost}:8083.`,
-        details: 'Make sure the app is running on your iPhone and on the same network.'
+        details: error.message || 'Make sure the app is running on your iPhone and on the same network.'
       };
     }
   }

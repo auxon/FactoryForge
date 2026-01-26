@@ -388,6 +388,8 @@ final class GameNetworkManager {
             return try await openMachineUI(parameters)
         case "add_machine_item":
             return try await addMachineItem(parameters)
+        case "take_machine_item":
+            return try await takeMachineItem(parameters)
         case "spawn_resource":
             return try await spawnResource(parameters)
         case "start_new_game":
@@ -425,7 +427,12 @@ final class GameNetworkManager {
         case "list_building_configs":
             return try await listBuildingConfigs(parameters)
         case "attack":
-            return try await attackWithUnit(parameters)
+            // Check if this is a player attack (has targetX/targetY) or unit attack (has unitId/targetId)
+            if parameters["targetX"] != nil || parameters["targetY"] != nil {
+                return try await attackWithPlayer(parameters)
+            } else {
+                return try await attackWithUnit(parameters)
+            }
         case "research":
             return try await startResearch(parameters)
         case "pause":
@@ -833,6 +840,109 @@ final class GameNetworkManager {
             "position": ["x": x, "y": y],
             "message": "Added \(count) \(itemId) to machine slot \(slotIndex)"
         ]
+    }
+
+    func takeMachineItem(_ parameters: [String: Any]) async throws -> Any {
+        sendDebugLog("takeMachineItem: Called with parameters: \(parameters)")
+
+        guard let x = parameters["x"] as? Int,
+              let y = parameters["y"] as? Int,
+              let slotIndex = parameters["slot"] as? Int else {
+            sendDebugLog("takeMachineItem: Missing required parameters")
+            throw NSError(domain: "GameNetworkManager", code: 25, userInfo: [NSLocalizedDescriptionKey: "Missing required parameters: x, y, slot"])
+        }
+
+        // Optional count parameter - defaults to all items in slot
+        let requestedCount = parameters["count"] as? Int
+
+        guard let gameLoop = self.gameLoop else {
+            sendDebugLog("takeMachineItem: Game not initialized")
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        guard let player = gameLoop.player else {
+            sendDebugLog("takeMachineItem: Player not found")
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Player not found"])
+        }
+
+        let tilePos = IntVector2(x: Int32(x), y: Int32(y))
+
+        // Find the machine entity at this position
+        let entities = gameLoop.world.getAllEntitiesAt(position: tilePos)
+        guard let targetEntity = entities.first(where: { entity in
+            gameLoop.world.has(InventoryComponent.self, for: entity) ||
+            gameLoop.world.has(FurnaceComponent.self, for: entity)
+        }) else {
+            sendDebugLog("takeMachineItem: No machine found at (\(x), \(y))")
+            throw NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "No machine found at position"])
+        }
+
+        // Get machine inventory
+        guard var machineInventory = gameLoop.world.get(InventoryComponent.self, for: targetEntity),
+              slotIndex < machineInventory.slots.count else {
+            sendDebugLog("takeMachineItem: Invalid slot index \(slotIndex) or no inventory")
+            throw NSError(domain: "GameNetworkManager", code: 28, userInfo: [NSLocalizedDescriptionKey: "Invalid slot index or machine has no inventory"])
+        }
+
+        // Check if slot has items
+        guard let itemStack = machineInventory.slots[slotIndex] else {
+            sendDebugLog("takeMachineItem: Slot \(slotIndex) is empty")
+            throw NSError(domain: "GameNetworkManager", code: 30, userInfo: [NSLocalizedDescriptionKey: "Slot is empty"])
+        }
+
+        // Determine how many items to take
+        let countToTake = requestedCount ?? itemStack.count
+        let actualCount = min(countToTake, itemStack.count)
+
+        // Create item stack to add to player inventory
+        let itemToTake = ItemStack(itemId: itemStack.itemId, count: actualCount, maxStack: itemStack.maxStack)
+        
+        // Try to add to player inventory
+        let remainingCount = player.inventory.add(itemToTake)
+
+        if remainingCount == 0 {
+            // All items were successfully moved to player inventory
+            if actualCount >= itemStack.count {
+                // Took all items - clear the slot
+                machineInventory.slots[slotIndex] = nil
+            } else {
+                // Took some items - update the slot
+                machineInventory.slots[slotIndex] = ItemStack(
+                    itemId: itemStack.itemId,
+                    count: itemStack.count - actualCount,
+                    maxStack: itemStack.maxStack
+                )
+            }
+            gameLoop.world.add(machineInventory, to: targetEntity)
+
+            sendDebugLog("takeMachineItem: Took \(actualCount) \(itemStack.itemId) from machine at (\(x), \(y)) slot \(slotIndex)")
+
+            return [
+                "success": true,
+                "itemId": itemStack.itemId,
+                "count": actualCount,
+                "slot": slotIndex,
+                "position": ["x": x, "y": y],
+                "message": "Took \(actualCount) \(itemStack.itemId) from machine slot \(slotIndex)"
+            ]
+        } else {
+            // Some items couldn't be moved - player inventory is full
+            // Put the items back in the machine slot
+            let itemsMoved = actualCount - remainingCount
+            if itemsMoved > 0 {
+                // Update the slot with remaining items
+                machineInventory.slots[slotIndex] = ItemStack(
+                    itemId: itemStack.itemId,
+                    count: itemStack.count - itemsMoved,
+                    maxStack: itemStack.maxStack
+                )
+                gameLoop.world.add(machineInventory, to: targetEntity)
+            }
+
+            sendDebugLog("takeMachineItem: Player inventory full - only moved \(itemsMoved) of \(actualCount) items")
+
+            throw NSError(domain: "GameNetworkManager", code: 31, userInfo: [NSLocalizedDescriptionKey: "Player inventory is full. Only moved \(itemsMoved) of \(actualCount) items."])
+        }
     }
 
     func deleteBuilding(_ parameters: [String: Any]) async throws -> Any {
@@ -1320,6 +1430,58 @@ final class GameNetworkManager {
         print("DEBUG: \(logEntry)")
     }
 
+    private func attackWithPlayer(_ parameters: [String: Any]) async throws -> Any {
+        guard let gameLoop = gameLoop,
+              let player = gameLoop.player else {
+            throw NSError(domain: "GameNetworkManager", code: 10, userInfo: [NSLocalizedDescriptionKey: "Game loop or player not available"])
+        }
+        
+        // Handle both Double and Int types for coordinates
+        var targetX: Double = 0
+        var targetY: Double = 0
+        
+        if let x = parameters["targetX"] as? Double {
+            targetX = x
+        } else if let x = parameters["targetX"] as? Int {
+            targetX = Double(x)
+        } else if let x = parameters["targetX"] as? Float {
+            targetX = Double(x)
+        } else {
+            throw NSError(domain: "GameNetworkManager", code: 10, userInfo: [NSLocalizedDescriptionKey: "Invalid targetX parameter - must be a number"])
+        }
+        
+        if let y = parameters["targetY"] as? Double {
+            targetY = y
+        } else if let y = parameters["targetY"] as? Int {
+            targetY = Double(y)
+        } else if let y = parameters["targetY"] as? Float {
+            targetY = Double(y)
+        } else {
+            throw NSError(domain: "GameNetworkManager", code: 10, userInfo: [NSLocalizedDescriptionKey: "Invalid targetY parameter - must be a number"])
+        }
+
+        let targetPosition = Vector2(Float(targetX), Float(targetY))
+        let success = player.attack(at: targetPosition)
+        
+        print("GameNetworkManager: Player attack at (\(targetX), \(targetY)) - success: \(success)")
+        
+        if success {
+            return [
+                "success": true,
+                "message": "Player attack executed successfully",
+                "targetX": targetX,
+                "targetY": targetY
+            ]
+        } else {
+            return [
+                "success": false,
+                "message": "Player attack failed - check logs for reason (no ammo, out of range, no enemy found, or on cooldown)",
+                "targetX": targetX,
+                "targetY": targetY
+            ]
+        }
+    }
+
     private func attackWithUnit(_ parameters: [String: Any]) async throws -> Any {
         guard let gameLoop = gameLoop,
               let unitIdString = parameters["unitId"] as? String,
@@ -1403,9 +1565,12 @@ final class GameNetworkManager {
             "unlockedUnits": ["worker", "soldier"] // TODO: Get from unit registry
         ]
 
-        // World entities
+        // World entities - only include entities with PositionComponent (to avoid entities without positions)
         var entities: [[String: Any]] = []
         for entity in gameLoop.world.entities {
+            // Skip entities without position (they can't be displayed or targeted)
+            guard gameLoop.world.has(PositionComponent.self, for: entity) else { continue }
+            
             var entityData: [String: Any] = [
                 "id": entity.id,
                 "type": getEntityType(entity),
@@ -1413,7 +1578,29 @@ final class GameNetworkManager {
             ]
 
             if let health = gameLoop.world.get(HealthComponent.self, for: entity) {
+                // Store both percentage and actual health values for better debugging
                 entityData["health"] = health.percentage
+                entityData["healthCurrent"] = health.current
+                entityData["healthMax"] = health.max
+                entityData["isDead"] = health.isDead
+            }
+
+            // Add enemy-specific information
+            if let enemy = gameLoop.world.get(EnemyComponent.self, for: entity) {
+                entityData["enemyType"] = enemy.type.rawValue
+                // Convert EnemyState to string
+                let stateString: String
+                switch enemy.state {
+                case .idle: stateString = "idle"
+                case .wandering: stateString = "wandering"
+                case .attacking: stateString = "attacking"
+                case .returning: stateString = "returning"
+                case .fleeing: stateString = "fleeing"
+                }
+                entityData["enemyState"] = stateString
+                if let target = enemy.targetEntity {
+                    entityData["targetEntityId"] = target.id
+                }
             }
 
             if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
@@ -1469,7 +1656,20 @@ final class GameNetworkManager {
     private func getEntityType(_ entity: Entity) -> String {
         guard let gameLoop = gameLoop else { return "unknown" }
 
-        // Check for specific building types first
+        // Check for enemies first (before buildings)
+        if gameLoop.world.has(EnemyComponent.self, for: entity) {
+            if let enemy = gameLoop.world.get(EnemyComponent.self, for: entity) {
+                return enemy.type.rawValue  // Returns "smallBiter", "mediumBiter", etc.
+            }
+            return "enemy"
+        }
+        
+        // Check for spawners
+        if gameLoop.world.has(SpawnerComponent.self, for: entity) {
+            return "spawner"
+        }
+
+        // Check for specific building types
         if gameLoop.world.has(LabComponent.self, for: entity) {
             return "lab"
         } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
@@ -1490,18 +1690,26 @@ final class GameNetworkManager {
             return "building"
         } else if gameLoop.world.has(UnitComponent.self, for: entity) {
             return "unit"
+        } else if gameLoop.world.has(ProjectileComponent.self, for: entity) {
+            return "projectile"
         }
 
         return "unknown"
     }
 
-    private func getEntityPosition(_ entity: Entity) -> [String: Int] {
+    private func getEntityPosition(_ entity: Entity) -> [String: Any] {
         guard let gameLoop = gameLoop,
-              let position = gameLoop.world.get(PositionComponent.self, for: entity)?.tilePosition else {
+              let position = gameLoop.world.get(PositionComponent.self, for: entity) else {
             return ["x": 0, "y": 0]
         }
 
-        return ["x": Int(position.x), "y": Int(position.y)]
+        // Return both tile position (for grid-based queries) and world position (for distance calculations)
+        return [
+            "x": Int(position.tilePosition.x),
+            "y": Int(position.tilePosition.y),
+            "worldX": position.worldPosition.x,
+            "worldY": position.worldPosition.y
+        ]
     }
 
     private func sendJSON(_ json: [String: Any], to connection: NWConnection) {
@@ -1576,8 +1784,10 @@ final class GameNetworkManager {
 
         do {
             if let json = try JSONSerialization.jsonObject(with: body.data(using: .utf8)!, options: []) as? [String: Any],
-               let command = json["command"] as? String,
-               let parameters = json["parameters"] as? [String: Any] {
+               let command = json["command"] as? String {
+                
+                // Parameters might be missing or nil, so handle that case
+                let parameters = json["parameters"] as? [String: Any] ?? [:]
 
                 Task {
                     do {
@@ -1590,7 +1800,9 @@ final class GameNetworkManager {
                             return
                         }
 
+                        print("GameNetworkManager: Executing command '\(command)' with parameters: \(parameters)")
                         let result = try await self.executeCommand(command, parameters: parameters)
+                        print("GameNetworkManager: Command result: \(result)")
 
                         // Defensive JSON serialization
                         guard JSONSerialization.isValidJSONObject(result) else {
@@ -1620,12 +1832,17 @@ final class GameNetworkManager {
                         var fullResponse = httpResponse.data(using: .utf8)!
                         fullResponse.append(response)
 
-                        connection.send(content: fullResponse, completion: .contentProcessed { _ in
+                        print("GameNetworkManager: Sending HTTP response with \(response.count) bytes")
+                        connection.send(content: fullResponse, completion: .contentProcessed { error in
+                            if let error = error {
+                                print("GameNetworkManager: Error sending response: \(error)")
+                            }
                             connection.cancel()
                         })
                     } catch {
                         // Return error message in response
                         let errorMessage = error.localizedDescription
+                        print("GameNetworkManager: Command execution error: \(errorMessage)")
                         let errorDict: [String: Any] = ["error": errorMessage, "success": false]
                         if let errorData = try? JSONSerialization.data(withJSONObject: errorDict, options: []) {
                             let httpResponse = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: \(errorData.count)\r\n\r\n"
@@ -1642,6 +1859,18 @@ final class GameNetworkManager {
                             })
                         }
                     }
+                }
+            } else {
+                // Invalid JSON or missing command
+                print("GameNetworkManager: Invalid request - missing command or invalid JSON")
+                let errorResponse = ["error": "Invalid request - missing command or invalid JSON"]
+                if let response = try? JSONSerialization.data(withJSONObject: errorResponse, options: []) {
+                    let httpResponse = "HTTP/1.1 400 Bad Request\r\nContent-Type: application/json\r\nContent-Length: \(response.count)\r\n\r\n"
+                    var fullResponse = httpResponse.data(using: .utf8)!
+                    fullResponse.append(response)
+                    connection.send(content: fullResponse, completion: .contentProcessed { _ in
+                        connection.cancel()
+                    })
                 }
             }
         } catch {

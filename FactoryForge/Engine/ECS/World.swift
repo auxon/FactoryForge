@@ -515,7 +515,7 @@ final class World {
         // Debug: log if we're searching but finding nothing (might indicate spatial index issue)
         if filtered.isEmpty && radius >= 5.0 {
             // Only log for larger searches to avoid spam
-            print("World.getEntitiesNear: Found \(candidates.count) candidates in rect, \(filtered.count) within radius \(radius) at \(position)")
+            // print("World.getEntitiesNear: Found \(candidates.count) candidates in rect, \(filtered.count) within radius \(radius) at \(position)")
         }
         
         return filtered

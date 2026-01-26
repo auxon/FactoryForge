@@ -124,6 +124,7 @@ final class ItemRegistry {
         register(Item(id: "big-electric-pole", name: "Big Electric Pole", stackSize: 100, category: .production, order: "p", placedAs: "big-electric-pole"))
         
         // Combat items
+        register(Item(id: "sword", name: "Sword", stackSize: 1, category: .combat, order: "a"))
         register(Item(id: "firearm-magazine", name: "Firearm Magazine", stackSize: 1000, category: .ammo, order: "a"))
         register(Item(id: "piercing-rounds-magazine", name: "Piercing Rounds Magazine", stackSize: 1000, category: .ammo, order: "b"))
         register(Item(id: "gun-turret", name: "Gun Turret", stackSize: 100, category: .combat, order: "c", placedAs: "gun-turret"))

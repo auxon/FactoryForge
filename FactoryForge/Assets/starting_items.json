@@ -64,6 +64,11 @@
       "itemId": "solid-fuel",
       "count": 10,
       "comment": "High-value fuel for boilers and furnaces"
+    },
+    {
+      "itemId": "sword",
+      "count": 1,
+      "comment": "Melee weapon for early-game combat and defense"
     }
   ]
 }

@@ -445,14 +445,18 @@ final class Player {
             return false
         }
 
-        // Check if player has ammo
+        // Check if player has weapon (sword for melee, or ammo for ranged)
+        let hasSword = inventory.has(itemId: "sword")
         let hasFirearm = inventory.has(itemId: "firearm-magazine")
         let hasPiercing = inventory.has(itemId: "piercing-rounds-magazine")
         let firearmCount = inventory.count(of: "firearm-magazine")
         let piercingCount = inventory.count(of: "piercing-rounds-magazine")
-        print("Player ammo check: firearm=\(hasFirearm) (count: \(firearmCount)), piercing=\(hasPiercing) (count: \(piercingCount))")
-        guard hasFirearm || hasPiercing else {
-            print("Player attackEnemy FAILED: no ammo")
+        print("Player weapon check: sword=\(hasSword), firearm=\(hasFirearm) (count: \(firearmCount)), piercing=\(hasPiercing) (count: \(piercingCount))")
+        
+        // Use melee if sword available, otherwise require ammo
+        let useMelee = hasSword
+        guard hasSword || hasFirearm || hasPiercing else {
+            print("Player attackEnemy FAILED: no weapon or ammo")
             return false
         }
 
@@ -468,8 +472,11 @@ final class Player {
         }
 
         let distance = playerPos.worldPosition.distance(to: enemyPos.worldPosition)
-        print("Player attackEnemy range check: distance=\(distance), range=\(attackRange)")
-        guard distance <= attackRange else {
+        // Melee range is shorter (2 tiles), ranged is 10 tiles
+        let meleeRange: Float = 2.0
+        let effectiveRange = useMelee ? meleeRange : attackRange
+        print("Player attackEnemy range check: distance=\(distance), range=\(effectiveRange) (melee: \(useMelee))")
+        guard distance <= effectiveRange else {
             print("Player attackEnemy FAILED: enemy out of range")
             return false
         }
@@ -485,50 +492,71 @@ final class Player {
             return false
         }
 
-        print("Player attackEnemy SUCCESS: attacking enemy \(enemy)")
+        print("Player attackEnemy SUCCESS: attacking enemy \(enemy) (melee: \(useMelee))")
 
-        // Consume ammo
-        if inventory.has(itemId: "piercing-rounds-magazine") {
-            inventory.remove(itemId: "piercing-rounds-magazine", count: 1)
+        if useMelee {
+            // Melee attack - direct damage, no projectile
+            print("Player attackEnemy: performing melee attack with sword")
+            let meleeDamage = playerDamage * 1.5  // Sword does 50% more damage
+            if var enemyHealth = world.get(HealthComponent.self, for: enemy) {
+                enemyHealth.current -= meleeDamage
+                if enemyHealth.current < 0 {
+                    enemyHealth.current = 0
+                }
+                world.add(enemyHealth, to: enemy)
+                print("Player attackEnemy: dealt \(meleeDamage) melee damage, enemy health now: \(enemyHealth.current)/\(enemyHealth.max)")
+            }
+            
+            // Set attack cooldown (melee is slightly faster)
+            attackCooldown = attackCooldownTime * 0.8  // 20% faster than ranged
+            print("Player attackEnemy: melee cooldown set to \(attackCooldown)")
+            
+            // Play melee sound (or reuse fire sound for now)
+            AudioManager.shared.playPlayerFireSound()
         } else {
-            inventory.remove(itemId: "firearm-magazine", count: 1)
+            // Ranged attack - consume ammo and create projectile
+            if inventory.has(itemId: "piercing-rounds-magazine") {
+                inventory.remove(itemId: "piercing-rounds-magazine", count: 1)
+            } else {
+                inventory.remove(itemId: "firearm-magazine", count: 1)
+            }
+
+            // Create projectile
+            print("Player attackEnemy: creating projectile")
+            let projectile = world.spawn()
+            let direction = (enemyPos.worldPosition - playerPos.worldPosition).normalized
+            let startPos = playerPos.worldPosition + direction * 0.5
+
+            // Set position with proper offset (not just truncated tile position)
+            let startTile = IntVector2(from: startPos)
+            let startOffset = Vector2(
+                startPos.x - floorf(startPos.x),
+                startPos.y - floorf(startPos.y)
+            )
+            world.add(PositionComponent(tilePosition: startTile, offset: startOffset), to: projectile)
+            print("Player attackEnemy: projectile position set to tile \(startTile), offset \(startOffset), worldPos: \(startPos)")
+            world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
+            world.add(VelocityComponent(velocity: direction * 30), to: projectile)
+
+            // Calculate lifetime based on distance to target (ensure projectile can reach target)
+            // Add some buffer (1.5x) to account for target movement
+            let timeToReach = distance / 30.0  // 30 is projectile speed
+            let projectileLifetime = max(5.0, timeToReach * 1.5)  // At least 5 seconds, or 1.5x time to reach
+            
+            var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30, lifetime: projectileLifetime)
+            projectileComp.target = enemy
+            projectileComp.source = entity
+            world.add(projectileComp, to: projectile)
+
+            print("Player attackEnemy: projectile created with ID \(projectile), targeting enemy \(enemy), lifetime: \(projectileLifetime)")
+
+            // Set attack cooldown
+            attackCooldown = attackCooldownTime
+            print("Player attackEnemy: cooldown set to \(attackCooldown)")
+
+            // Play sound
+            AudioManager.shared.playPlayerFireSound()
         }
-
-        // Create projectile
-        print("Player attackEnemy: creating projectile")
-        let projectile = world.spawn()
-        let direction = (enemyPos.worldPosition - playerPos.worldPosition).normalized
-        let startPos = playerPos.worldPosition + direction * 0.5
-
-        // Set position with proper offset (not just truncated tile position)
-        let startTile = IntVector2(from: startPos)
-        let startOffset = Vector2(
-            startPos.x - floorf(startPos.x),
-            startPos.y - floorf(startPos.y)
-        )
-        world.add(PositionComponent(tilePosition: startTile, offset: startOffset), to: projectile)
-        print("Player attackEnemy: projectile position set to tile \(startTile), offset \(startOffset), worldPos: \(startPos)")
-        world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
-        world.add(VelocityComponent(velocity: direction * 30), to: projectile)
-
-        // Calculate lifetime based on distance to target (ensure projectile can reach target)
-        // Add some buffer (1.5x) to account for target movement
-        let timeToReach = distance / 30.0  // 30 is projectile speed
-        let projectileLifetime = max(5.0, timeToReach * 1.5)  // At least 5 seconds, or 1.5x time to reach
-        
-        var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30, lifetime: projectileLifetime)
-        projectileComp.target = enemy
-        projectileComp.source = entity
-        world.add(projectileComp, to: projectile)
-
-        print("Player attackEnemy: projectile created with ID \(projectile), targeting enemy \(enemy), lifetime: \(projectileLifetime)")
-
-        // Set attack cooldown
-        attackCooldown = attackCooldownTime
-        print("Player attackEnemy: cooldown set to \(attackCooldown)")
-
-        // Play sound
-        AudioManager.shared.playPlayerFireSound()
 
         return true
     }
@@ -545,31 +573,52 @@ final class Player {
             return false
         }
         
-        // Check if player has ammo
+        // Check if player has weapon (sword for melee, or ammo for ranged)
+        let hasSword = inventory.has(itemId: "sword")
         let hasFirearm = inventory.has(itemId: "firearm-magazine")
         let hasPiercing = inventory.has(itemId: "piercing-rounds-magazine")
         let firearmCount = inventory.count(of: "firearm-magazine")
         let piercingCount = inventory.count(of: "piercing-rounds-magazine")
-        print("Player ammo check: firearm=\(hasFirearm) (count: \(firearmCount)), piercing=\(hasPiercing) (count: \(piercingCount))")
-        guard hasFirearm || hasPiercing else {
-            print("Player attack FAILED: no ammo")
-            return false  // No ammo
+        print("Player weapon check: sword=\(hasSword), firearm=\(hasFirearm) (count: \(firearmCount)), piercing=\(hasPiercing) (count: \(piercingCount))")
+        
+        // Use melee if sword available, otherwise require ammo
+        let useMelee = hasSword
+        guard hasSword || hasFirearm || hasPiercing else {
+            print("Player attack FAILED: no weapon or ammo")
+            return false  // No weapon or ammo
         }
         
         // Get player position
         guard let playerPos = world.get(PositionComponent.self, for: entity) else { return false }
         
-        // Check range
+        // Check range (melee is shorter range)
+        let meleeRange: Float = 2.0
+        let effectiveRange = useMelee ? meleeRange : attackRange
         let distance = playerPos.worldPosition.distance(to: targetPosition)
-        print("Player attack range check: distance=\(distance), range=\(attackRange)")
-        guard distance <= attackRange else {
+        print("Player attack range check: distance=\(distance), range=\(effectiveRange) (melee: \(useMelee))")
+        guard distance <= effectiveRange else {
             print("Player attack FAILED: target out of range")
             return false
         }
         
         // Find enemy at target position
-        let nearbyEnemies = world.getEntitiesNear(position: targetPosition, radius: 2.0)
-        print("Player attack: found \(nearbyEnemies.count) nearby entities")
+        var nearbyEnemies = world.getEntitiesNear(position: targetPosition, radius: 2.0)
+        print("Player attack: found \(nearbyEnemies.count) nearby entities via spatial query")
+        
+        // Fallback: if spatial query found nothing, directly query all enemies and check distance
+        if nearbyEnemies.isEmpty {
+            print("Player attack: spatial query found 0 entities, using fallback - querying all enemies")
+            let allEnemies = world.query(EnemyComponent.self)
+            for enemy in allEnemies {
+                guard let enemyPos = world.get(PositionComponent.self, for: enemy) else { continue }
+                let enemyDistance = targetPosition.distance(to: enemyPos.worldPosition)
+                if enemyDistance <= 2.0 {
+                    nearbyEnemies.append(enemy)
+                    print("Player attack fallback: found enemy \(enemy) at distance \(enemyDistance) from target")
+                }
+            }
+        }
+        
         var targetEnemy: Entity?
 
         for enemy in nearbyEnemies {
@@ -584,13 +633,15 @@ final class Player {
 
             if let enemyPos = world.get(PositionComponent.self, for: enemy) {
                 let enemyDistance = playerPos.worldPosition.distance(to: enemyPos.worldPosition)
+                let meleeRange: Float = 2.0
+                let effectiveRange = useMelee ? meleeRange : attackRange
                 print("Enemy \(enemy) at distance \(enemyDistance)")
-                if enemyDistance <= attackRange {
+                if enemyDistance <= effectiveRange {
                     targetEnemy = enemy
-                    print("Player attack: selected enemy \(enemy) at distance \(enemyDistance)")
+                    print("Player attack: selected enemy \(enemy) at distance \(enemyDistance) (melee: \(useMelee))")
                     break
                 } else {
-                    print("Enemy \(enemy) too far (\(enemyDistance) > \(attackRange))")
+                    print("Enemy \(enemy) too far (\(enemyDistance) > \(effectiveRange))")
                 }
             }
         }
@@ -599,58 +650,79 @@ final class Player {
             print("Player attack FAILED: no valid enemy found at target position")
             return false
         }
-        print("Player attack SUCCESS: attacking enemy \(enemy)")
+        print("Player attack SUCCESS: attacking enemy \(enemy) (melee: \(useMelee))")
         
-        // Consume ammo
-        if inventory.has(itemId: "piercing-rounds-magazine") {
-            inventory.remove(itemId: "piercing-rounds-magazine", count: 1)
+        if useMelee {
+            // Melee attack - direct damage, no projectile
+            print("Player attack: performing melee attack with sword")
+            let meleeDamage = playerDamage * 1.5  // Sword does 50% more damage
+            if var enemyHealth = world.get(HealthComponent.self, for: enemy) {
+                enemyHealth.current -= meleeDamage
+                if enemyHealth.current < 0 {
+                    enemyHealth.current = 0
+                }
+                world.add(enemyHealth, to: enemy)
+                print("Player attack: dealt \(meleeDamage) melee damage, enemy health now: \(enemyHealth.current)/\(enemyHealth.max)")
+            }
+            
+            // Set attack cooldown (melee is slightly faster)
+            attackCooldown = attackCooldownTime * 0.8  // 20% faster than ranged
+            print("Player attack: melee cooldown set to \(attackCooldown)")
+            
+            // Play melee sound (or reuse fire sound for now)
+            AudioManager.shared.playPlayerFireSound()
         } else {
-            inventory.remove(itemId: "firearm-magazine", count: 1)
+            // Ranged attack - consume ammo and create projectile
+            if inventory.has(itemId: "piercing-rounds-magazine") {
+                inventory.remove(itemId: "piercing-rounds-magazine", count: 1)
+            } else {
+                inventory.remove(itemId: "firearm-magazine", count: 1)
+            }
+            
+            // Create projectile
+            print("Player attack: creating projectile")
+            let projectile = world.spawn()
+            let direction = (targetPosition - playerPos.worldPosition).normalized
+            let startPos = playerPos.worldPosition + direction * 0.5
+
+            // Set position with proper offset (not just truncated tile position)
+            let startTile = IntVector2(from: startPos)
+            let startOffset = Vector2(
+                startPos.x - floorf(startPos.x),
+                startPos.y - floorf(startPos.y)
+            )
+            world.add(PositionComponent(tilePosition: startTile, offset: startOffset), to: projectile)
+            print("Player attack: projectile position set to tile \(startTile), offset \(startOffset), worldPos: \(startPos)")
+            world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
+            world.add(VelocityComponent(velocity: direction * 30), to: projectile)
+
+            // Calculate lifetime based on distance to target (ensure projectile can reach target)
+            // Add some buffer (1.5x) to account for target movement
+            let distanceToTarget = playerPos.worldPosition.distance(to: targetPosition)
+            let timeToReach = distanceToTarget / 30.0  // 30 is projectile speed
+            let projectileLifetime = max(5.0, timeToReach * 1.5)  // At least 5 seconds, or 1.5x time to reach
+            
+            var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30, lifetime: projectileLifetime)
+            projectileComp.target = enemy
+            projectileComp.source = entity
+            world.add(projectileComp, to: projectile)
+
+            print("Player attack: projectile created with ID \(projectile), targeting enemy \(enemy), lifetime: \(projectileLifetime)")
+            
+            // Set attack cooldown
+            attackCooldown = attackCooldownTime
+            print("Player attack: cooldown set to \(attackCooldown)")
+            
+            // Play sound
+            AudioManager.shared.playPlayerFireSound()
         }
-        
-        // Create projectile
-        print("Player attack: creating projectile")
-        let projectile = world.spawn()
-        let direction = (targetPosition - playerPos.worldPosition).normalized
-        let startPos = playerPos.worldPosition + direction * 0.5
 
-        // Set position with proper offset (not just truncated tile position)
-        let startTile = IntVector2(from: startPos)
-        let startOffset = Vector2(
-            startPos.x - floorf(startPos.x),
-            startPos.y - floorf(startPos.y)
-        )
-        world.add(PositionComponent(tilePosition: startTile, offset: startOffset), to: projectile)
-        print("Player attack: projectile position set to tile \(startTile), offset \(startOffset), worldPos: \(startPos)")
-        world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
-        world.add(VelocityComponent(velocity: direction * 30), to: projectile)
-
-        // Calculate lifetime based on distance to target (ensure projectile can reach target)
-        // Add some buffer (1.5x) to account for target movement
-        let distanceToTarget = playerPos.worldPosition.distance(to: targetPosition)
-        let timeToReach = distanceToTarget / 30.0  // 30 is projectile speed
-        let projectileLifetime = max(5.0, timeToReach * 1.5)  // At least 5 seconds, or 1.5x time to reach
-        
-        var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30, lifetime: projectileLifetime)
-        projectileComp.target = enemy
-        projectileComp.source = entity
-        world.add(projectileComp, to: projectile)
-
-        print("Player attack: projectile created with ID \(projectile), targeting enemy \(enemy), lifetime: \(projectileLifetime)")
-        
-        // Set attack cooldown
-        attackCooldown = attackCooldownTime
-        print("Player attack: cooldown set to \(attackCooldown)")
-        
-        // Play sound
-        AudioManager.shared.playPlayerFireSound()
-
-        print("Player attack successful - projectile created")
+        print("Player attack successful")
         return true
     }
     
     var canAttack: Bool {
-        return attackCooldown <= 0 && (inventory.has(itemId: "firearm-magazine") || inventory.has(itemId: "piercing-rounds-magazine"))
+        return attackCooldown <= 0 && (inventory.has(itemId: "sword") || inventory.has(itemId: "firearm-magazine") || inventory.has(itemId: "piercing-rounds-magazine"))
     }
     
     // MARK: - Animation
