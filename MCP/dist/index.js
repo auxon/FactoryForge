@@ -9,7 +9,7 @@ class FactoryForgeMCPServer {
     server;
     gameController;
     httpServer;
-    wss;
+    wss = null;
     constructor(gameHost) {
         this.gameController = new GameController(gameHost);
         // Set up HTTP server for communication with iOS app
@@ -31,14 +31,33 @@ class FactoryForgeMCPServer {
             }
         });
         // WebSocket server for real-time updates
-        this.wss = new WebSocketServer({ port: 8081, host: '0.0.0.0' });
-        this.wss.on('connection', (ws) => {
-            console.log('iOS app connected');
-            this.gameController.setGameConnection(ws);
-        });
+        try {
+            this.wss = new WebSocketServer({ port: 8081, host: '0.0.0.0' });
+            this.wss.on('connection', (ws) => {
+                console.error('iOS app connected');
+                this.gameController.setGameConnection(ws);
+            });
+            this.wss.on('error', (error) => {
+                // Ignore port already in use errors (server might already be running)
+                if (!error.message.includes('EADDRINUSE')) {
+                    console.error('WebSocket server error:', error);
+                }
+            });
+        }
+        catch (error) {
+            // If WebSocket server fails to start, continue without it
+            console.error('Failed to start WebSocket server:', error);
+            this.wss = null;
+        }
         // Start HTTP server
-        this.httpServer.listen(8080, '0.0.0.0', () => {
-            console.log('FactoryForge MCP server listening on port 8080 (HTTP) and 8081 (WebSocket) on all interfaces');
+        const httpServerInstance = this.httpServer.listen(8080, '0.0.0.0', () => {
+            console.error('FactoryForge MCP server listening on port 8080 (HTTP) and 8081 (WebSocket) on all interfaces');
+        });
+        httpServerInstance.on('error', (error) => {
+            // Ignore port already in use errors (server might already be running)
+            if (!error.message.includes('EADDRINUSE')) {
+                console.error('HTTP server error:', error);
+            }
         });
         // MCP server setup
         this.server = new Server({
@@ -307,7 +326,7 @@ class FactoryForgeMCPServer {
                 },
                 {
                     name: 'update_machine_ui_config',
-                    description: 'Update the UI configuration for a machine type at runtime',
+                    description: 'Update the UI configuration for a machine type at runtime. The machine UI panel must be open for the update to apply. Supports both schema format (with $schema field) and legacy component format. For schema format, provide the full MachineUISchema JSON with groups, process, recipes, layout, and style sections.',
                     inputSchema: {
                         type: 'object',
                         properties: {
@@ -317,7 +336,7 @@ class FactoryForgeMCPServer {
                             },
                             config: {
                                 type: 'object',
-                                description: 'New UI configuration JSON object',
+                                description: 'New UI configuration JSON object. If it contains a $schema field, it will be treated as a MachineUISchema. Otherwise, it uses the legacy component format.',
                                 properties: {
                                     machineType: { type: 'string' },
                                     layout: {
@@ -376,6 +395,43 @@ class FactoryForgeMCPServer {
                 {
                     name: 'list_machine_ui_configs',
                     description: 'List all available machine UI configurations',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {},
+                    },
+                },
+                {
+                    name: 'reload_machine_ui_schema',
+                    description: 'Reload a machine UI schema from the bundle at runtime. This allows you to iterate on schema JSON files without rebuilding the app. If machineType is provided, only that schema is reloaded. If omitted, all schemas are reloaded.',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            machineType: {
+                                type: 'string',
+                                description: 'Machine type to reload (e.g., "furnace", "assembler"). If omitted, all schemas are reloaded.',
+                                enum: ['furnace', 'assembler', 'mining_drill', 'rocket_silo', 'lab', 'generator'],
+                            },
+                        },
+                    },
+                },
+                {
+                    name: 'test_machine_ui_schema',
+                    description: 'Test a machine UI schema by loading and validating it. Returns detailed feedback including validation errors, warnings, and test results. Use this to verify schema changes before deploying.',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            machineType: {
+                                type: 'string',
+                                description: 'Machine type to test (e.g., "furnace", "assembler")',
+                                enum: ['furnace', 'assembler', 'mining_drill', 'rocket_silo', 'lab', 'generator'],
+                            },
+                        },
+                        required: ['machineType'],
+                    },
+                },
+                {
+                    name: 'get_machine_ui_state',
+                    description: 'Get the current state of MachineUI including whether it\'s open, current schema info, errors, and recent logs. Use this to understand the current UI state for debugging.',
                     inputSchema: {
                         type: 'object',
                         properties: {},
@@ -869,7 +925,7 @@ class FactoryForgeMCPServer {
                             content: [{ type: 'text', text: JSON.stringify(renameResult, null, 2) }],
                         };
                     case 'update_machine_ui_config':
-                        const updateUIResult = this.gameController.executeCommand({
+                        const updateUIResult = await this.gameController.executeCommand({
                             command: 'update_machine_ui_config',
                             parameters: args || {}
                         });
@@ -891,6 +947,30 @@ class FactoryForgeMCPServer {
                         });
                         return {
                             content: [{ type: 'text', text: JSON.stringify(listUIResult, null, 2) }],
+                        };
+                    case 'reload_machine_ui_schema':
+                        const reloadSchemaResult = this.gameController.executeCommand({
+                            command: 'reload_machine_ui_schema',
+                            parameters: args || {}
+                        });
+                        return {
+                            content: [{ type: 'text', text: JSON.stringify(reloadSchemaResult, null, 2) }],
+                        };
+                    case 'test_machine_ui_schema':
+                        const testSchemaResult = this.gameController.executeCommand({
+                            command: 'test_machine_ui_schema',
+                            parameters: args || {}
+                        });
+                        return {
+                            content: [{ type: 'text', text: JSON.stringify(testSchemaResult, null, 2) }],
+                        };
+                    case 'get_machine_ui_state':
+                        const getUIStateResult = this.gameController.executeCommand({
+                            command: 'get_machine_ui_state',
+                            parameters: args || {}
+                        });
+                        return {
+                            content: [{ type: 'text', text: JSON.stringify(getUIStateResult, null, 2) }],
                         };
                     case 'get_starting_items_config':
                         const getStartingItemsResult = this.gameController.executeCommand({
@@ -1145,11 +1225,16 @@ class FactoryForgeMCPServer {
     async start() {
         const transport = new StdioServerTransport();
         await this.server.connect(transport);
-        console.log('FactoryForge MCP server started');
+        // Use stderr for logs so they don't interfere with MCP protocol on stdout
+        console.error('FactoryForge MCP server started');
     }
 }
 // Start the server
 const gameHost = process.argv[2] || process.env.FACTORYFORGE_GAME_HOST || 'localhost';
-console.log(`Using game host: ${gameHost}`);
+// Use stderr for logs so they don't interfere with MCP protocol on stdout
+console.error(`Using game host: ${gameHost}`);
 const server = new FactoryForgeMCPServer(gameHost);
-server.start().catch(console.error);
+server.start().catch((error) => {
+    console.error('Failed to start MCP server:', error);
+    process.exit(1);
+});

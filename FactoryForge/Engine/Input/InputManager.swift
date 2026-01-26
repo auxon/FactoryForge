@@ -417,17 +417,55 @@ final class InputManager: NSObject {
         case .none:
             // Check if player is attacking an enemy (prioritize combat)
             // Use a larger radius for double taps to make it easier to hit enemies
+            if let player = gameLoop.player {
+                let playerPos = player.position
+                let distanceToTap = playerPos.distance(to: worldPos)
+                print("InputManager: Double tap at \(worldPos), player at \(playerPos), distance: \(distanceToTap)")
+            }
+            
             let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 5.0)
-            var attacked = false
-
-            for enemy in nearbyEnemies {
-                if gameLoop.world.has(EnemyComponent.self, for: enemy) {
-                    // Try to attack the enemy directly
-                    if let player = gameLoop.player, player.attackEnemy(enemy: enemy) {
-                        attacked = true
-                        break
+            print("InputManager: Double tap at \(worldPos), found \(nearbyEnemies.count) nearby entities via spatial query")
+            
+            // Also try direct enemy query as fallback (spatial index might miss moving enemies)
+            var allEnemies: [Entity] = []
+            gameLoop.world.forEach(EnemyComponent.self) { entity, _ in
+                if let enemyPos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                    let distance = enemyPos.worldPosition.distance(to: worldPos)
+                    if distance <= 5.0 {
+                        allEnemies.append(entity)
+                        print("InputManager: Found enemy \(entity.id) via direct query at distance \(distance), position: \(enemyPos.worldPosition)")
                     }
                 }
+            }
+            
+            // Combine results (use direct query if spatial query found nothing)
+            let enemiesToCheck = nearbyEnemies.isEmpty ? allEnemies : nearbyEnemies
+            print("InputManager: Checking \(enemiesToCheck.count) enemies (spatial: \(nearbyEnemies.count), direct: \(allEnemies.count))")
+            var attacked = false
+
+            for enemy in enemiesToCheck {
+                if gameLoop.world.has(EnemyComponent.self, for: enemy) {
+                    print("InputManager: Found enemy entity \(enemy.id) at tap location")
+                    // Try to attack the enemy directly
+                    if let player = gameLoop.player {
+                        print("InputManager: Attempting to attack enemy \(enemy.id) with player")
+                        if player.attackEnemy(enemy: enemy) {
+                            print("InputManager: Attack successful!")
+                            attacked = true
+                            break
+                        } else {
+                            print("InputManager: Attack failed (check logs above for reason)")
+                        }
+                    } else {
+                        print("InputManager: No player reference available")
+                    }
+                }
+            }
+            
+            if !attacked && enemiesToCheck.count > 0 {
+                print("InputManager: No valid enemy found to attack (checked \(enemiesToCheck.count) entities)")
+            } else if !attacked {
+                print("InputManager: No enemies found within 5.0 units of tap position")
             }
 
             if attacked {
@@ -603,18 +641,56 @@ final class InputManager: NSObject {
         switch buildMode {
         case .none:
             // Check if player is attacking an enemy (prioritize combat)
+            if let player = gameLoop.player {
+                let playerPos = player.position
+                let distanceToTap = playerPos.distance(to: worldPos)
+                print("InputManager: Single tap at \(worldPos), player at \(playerPos), distance: \(distanceToTap)")
+            }
+            
             let nearbyEnemies = gameLoop.world.getEntitiesNear(position: worldPos, radius: 5.0)
-            var attacked = false
-
-            for enemy in nearbyEnemies {
-                if gameLoop.world.has(EnemyComponent.self, for: enemy) {
-                    // Try to attack the enemy directly by its entity ID instead of position
-                    // This avoids precision issues with position conversion
-                    if let player = gameLoop.player, player.attackEnemy(enemy: enemy) {
-                        attacked = true
-                        break
+            print("InputManager: Single tap at \(worldPos), found \(nearbyEnemies.count) nearby entities via spatial query")
+            
+            // Also try direct enemy query as fallback (spatial index might miss moving enemies)
+            var allEnemies: [Entity] = []
+            gameLoop.world.forEach(EnemyComponent.self) { entity, _ in
+                if let enemyPos = gameLoop.world.get(PositionComponent.self, for: entity) {
+                    let distance = enemyPos.worldPosition.distance(to: worldPos)
+                    if distance <= 5.0 {
+                        allEnemies.append(entity)
+                        print("InputManager: Found enemy \(entity.id) via direct query at distance \(distance), position: \(enemyPos.worldPosition)")
                     }
                 }
+            }
+            
+            // Combine results (use direct query if spatial query found nothing)
+            let enemiesToCheck = nearbyEnemies.isEmpty ? allEnemies : nearbyEnemies
+            print("InputManager: Checking \(enemiesToCheck.count) enemies (spatial: \(nearbyEnemies.count), direct: \(allEnemies.count))")
+            var attacked = false
+
+            for enemy in enemiesToCheck {
+                if gameLoop.world.has(EnemyComponent.self, for: enemy) {
+                    print("InputManager: Found enemy entity \(enemy.id) at tap location")
+                    // Try to attack the enemy directly by its entity ID instead of position
+                    // This avoids precision issues with position conversion
+                    if let player = gameLoop.player {
+                        print("InputManager: Attempting to attack enemy \(enemy.id) with player")
+                        if player.attackEnemy(enemy: enemy) {
+                            print("InputManager: Attack successful!")
+                            attacked = true
+                            break
+                        } else {
+                            print("InputManager: Attack failed (check logs above for reason)")
+                        }
+                    } else {
+                        print("InputManager: No player reference available")
+                    }
+                }
+            }
+            
+            if !attacked && enemiesToCheck.count > 0 {
+                print("InputManager: No valid enemy found to attack (checked \(enemiesToCheck.count) entities)")
+            } else if !attacked {
+                print("InputManager: No enemies found within 5.0 units of tap position")
             }
 
             if !attacked {

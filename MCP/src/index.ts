@@ -15,7 +15,7 @@ class FactoryForgeMCPServer {
   private server: Server;
   private gameController: GameController;
   private httpServer: express.Express;
-  private wss: WebSocketServer;
+  private wss: WebSocketServer | null = null;
 
   constructor(gameHost?: string) {
     this.gameController = new GameController(gameHost);
@@ -41,16 +41,36 @@ class FactoryForgeMCPServer {
     });
 
     // WebSocket server for real-time updates
-    this.wss = new WebSocketServer({ port: 8081, host: '0.0.0.0' });
+    try {
+      this.wss = new WebSocketServer({ port: 8081, host: '0.0.0.0' });
 
-    this.wss.on('connection', (ws) => {
-      console.log('iOS app connected');
-      this.gameController.setGameConnection(ws);
-    });
+      this.wss.on('connection', (ws) => {
+        console.error('iOS app connected');
+        this.gameController.setGameConnection(ws);
+      });
+
+      this.wss.on('error', (error: Error) => {
+        // Ignore port already in use errors (server might already be running)
+        if (!error.message.includes('EADDRINUSE')) {
+          console.error('WebSocket server error:', error);
+        }
+      });
+    } catch (error) {
+      // If WebSocket server fails to start, continue without it
+      console.error('Failed to start WebSocket server:', error);
+      this.wss = null;
+    }
 
     // Start HTTP server
-    this.httpServer.listen(8080, '0.0.0.0', () => {
-      console.log('FactoryForge MCP server listening on port 8080 (HTTP) and 8081 (WebSocket) on all interfaces');
+    const httpServerInstance = this.httpServer.listen(8080, '0.0.0.0', () => {
+      console.error('FactoryForge MCP server listening on port 8080 (HTTP) and 8081 (WebSocket) on all interfaces');
+    });
+    
+    httpServerInstance.on('error', (error: any) => {
+      // Ignore port already in use errors (server might already be running)
+      if (!error.message.includes('EADDRINUSE')) {
+        console.error('HTTP server error:', error);
+      }
     });
 
     // MCP server setup
@@ -324,7 +344,7 @@ class FactoryForgeMCPServer {
         },
         {
           name: 'update_machine_ui_config',
-          description: 'Update the UI configuration for a machine type at runtime',
+          description: 'Update the UI configuration for a machine type at runtime. The machine UI panel must be open for the update to apply. Supports both schema format (with $schema field) and legacy component format. For schema format, provide the full MachineUISchema JSON with groups, process, recipes, layout, and style sections.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -334,7 +354,7 @@ class FactoryForgeMCPServer {
               },
               config: {
                 type: 'object',
-                description: 'New UI configuration JSON object',
+                description: 'New UI configuration JSON object. If it contains a $schema field, it will be treated as a MachineUISchema. Otherwise, it uses the legacy component format.',
                 properties: {
                   machineType: { type: 'string' },
                   layout: {
@@ -943,7 +963,7 @@ class FactoryForgeMCPServer {
             };
 
           case 'update_machine_ui_config':
-            const updateUIResult = this.gameController.executeCommand({
+            const updateUIResult = await this.gameController.executeCommand({
               command: 'update_machine_ui_config',
               parameters: args || {}
             });
@@ -1280,12 +1300,17 @@ class FactoryForgeMCPServer {
   async start() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.log('FactoryForge MCP server started');
+    // Use stderr for logs so they don't interfere with MCP protocol on stdout
+    console.error('FactoryForge MCP server started');
   }
 }
 
 // Start the server
 const gameHost = process.argv[2] || process.env.FACTORYFORGE_GAME_HOST || 'localhost';
-console.log(`Using game host: ${gameHost}`);
+// Use stderr for logs so they don't interfere with MCP protocol on stdout
+console.error(`Using game host: ${gameHost}`);
 const server = new FactoryForgeMCPServer(gameHost);
-server.start().catch(console.error);
+server.start().catch((error) => {
+  console.error('Failed to start MCP server:', error);
+  process.exit(1);
+});

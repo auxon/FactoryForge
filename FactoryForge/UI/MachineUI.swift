@@ -649,6 +649,8 @@ final class MachineUI: UIPanel_Base {
         var machineType: String? = nil
         if let gameLoop = gameLoop {
             machineType = determineMachineType(for: entity, in: gameLoop)
+            print("MachineUI: Determined machine type: \(machineType ?? "nil")")
+            NSLog("🔍 MachineUI: Determined machine type: %@", machineType ?? "nil")
 
             // Always reload schema from bundle to pick up changes
             // Clear cached schema first to force fresh load
@@ -660,25 +662,36 @@ final class MachineUI: UIPanel_Base {
             if let schema = loadSchema(for: machineType!) {
                 // Load schema from disk/bundle and use it
                 print("MachineUI: Found schema for \(machineType!), applying...")
+                NSLog("✅ MachineUI: Found schema for %@, rootView available: %@", machineType!, rootView != nil ? "YES" : "NO")
                 currentSchema = schema
                 do {
                     try applySchema(schema)
-                    print("MachineUI: Successfully applied schema for \(machineType!)")
+                    print("MachineUI: ✓ Successfully applied schema for \(machineType!)")
+                    NSLog("✅ MachineUI: Successfully applied schema for %@", machineType!)
                 } catch {
-                    print("MachineUI: Error applying loaded schema: \(error)")
+                    print("MachineUI: ✗ Error applying loaded schema for \(machineType!): \(error)")
+                    NSLog("❌ MachineUI: Error applying schema for %@: %@", machineType!, error.localizedDescription)
+                    print("MachineUI: Error details: \(error.localizedDescription)")
                     // Fall back to stored config
                     if let config = uiConfigs[machineType!] {
+                        print("MachineUI: Falling back to stored config for \(machineType!)")
                         applyConfiguration(config)
                     } else {
+                        print("MachineUI: Falling back to legacy components for \(machineType!)")
                         setupLegacyComponents(for: entity, in: gameLoop)
                     }
                 }
-            } else if let config = uiConfigs[machineType!] {
-                // Use stored JSON configuration
-                applyConfiguration(config)
             } else {
-                // Fallback to legacy component-based system
-                setupLegacyComponents(for: entity, in: gameLoop)
+                print("MachineUI: ✗ No schema found for \(machineType!), checking for stored config...")
+                if let config = uiConfigs[machineType!] {
+                    // Use stored JSON configuration
+                    print("MachineUI: Using stored config for \(machineType!)")
+                    applyConfiguration(config)
+                } else {
+                    // Fallback to legacy component-based system
+                    print("MachineUI: Falling back to legacy components for \(machineType!)")
+                    setupLegacyComponents(for: entity, in: gameLoop)
+                }
             }
         }
 
@@ -790,9 +803,11 @@ final class MachineUI: UIPanel_Base {
         let config = convertSchemaToConfig(schema)
         saveConfiguration(config)
 
-        // Don't save schema to config directory - always use bundle version
-        // This allows bundle updates to take effect immediately
-        // saveSchema(schema) // Disabled to prefer bundle schemas
+        // Save schema to config directory for persistence
+        // This allows live updates to persist across UI reopen
+        // Bundle schemas are still preferred on initial load, but saved schemas
+        // will be used if bundle file is not found
+        saveSchema(schema)
     }
     
     /// Connect schema-built slot buttons to their tap handlers
@@ -1292,35 +1307,55 @@ final class MachineUI: UIPanel_Base {
             let schemaURL = configDirectory.appendingPathComponent("\(schema.machineKind)_schema.json")
             let jsonData = try JSONEncoder().encode(schema)
             try jsonData.write(to: schemaURL)
-            print("MachineUI: Saved schema for \(schema.machineKind)")
+            print("MachineUI: Saved schema for \(schema.machineKind) to config directory")
         } catch {
             print("MachineUI: Error saving schema: \(error)")
         }
     }
+    
+    /// Public method to save schema directly (used by live updates)
+    func saveSchemaDirectly(_ schema: MachineUISchema) {
+        saveSchema(schema)
+    }
 
     /// Load a schema from disk or bundle
-    /// Prefers bundle over config directory to allow bundle updates to take effect
+    /// Prefers saved schema over bundle to allow live updates to persist
     private func loadSchema(for machineType: String) -> MachineUISchema? {
-        // Try to load from bundle first (allows bundle updates to override saved schemas)
-        do {
-            let schema = try loadSchemaFromBundle(named: "\(machineType)_schema")
-            print("MachineUI: Loaded schema for \(machineType) from bundle")
-            return schema
-        } catch {
-            // Bundle schema not found, try config directory (user-saved schemas)
-            if let configDirectory = configDirectory {
+        print("MachineUI: Attempting to load schema for machine type: \(machineType)")
+        NSLog("🔍 MachineUI: Attempting to load schema for machine type: %@", machineType)
+        
+        // Try to load from config directory first (allows live updates to persist)
+        if let configDirectory = configDirectory {
+            NSLog("🔍 MachineUI: configDirectory exists: %@", configDirectory.path)
+            let schemaURL = configDirectory.appendingPathComponent("\(machineType)_schema.json")
+            if FileManager.default.fileExists(atPath: schemaURL.path) {
                 do {
-                    let schemaURL = configDirectory.appendingPathComponent("\(machineType)_schema.json")
                     let jsonData = try Data(contentsOf: schemaURL)
                     let schema = try JSONDecoder().decode(MachineUISchema.self, from: jsonData)
-                    print("MachineUI: Loaded schema for \(machineType) from config directory")
+                    print("MachineUI: ✓ Loaded schema for \(machineType) from config directory (saved schema)")
                     return schema
                 } catch {
-                    print("MachineUI: No schema found for \(machineType) in bundle or config directory")
-                    return nil
+                    print("MachineUI: ✗ Error loading saved schema for \(machineType) from \(schemaURL.path): \(error)")
                 }
+            } else {
+                print("MachineUI: No saved schema found at \(schemaURL.path)")
             }
-            print("MachineUI: No schema found for \(machineType) in bundle or config directory")
+        } else {
+            print("MachineUI: configDirectory is nil, cannot check for saved schema")
+            NSLog("⚠️ MachineUI: configDirectory is nil, cannot check for saved schema")
+        }
+        
+        // Fall back to bundle if no saved schema exists
+        NSLog("🔍 MachineUI: Attempting to load from bundle: %@_schema.json", machineType)
+        do {
+            let schema = try loadSchemaFromBundle(named: "\(machineType)_schema")
+            print("MachineUI: ✓ Loaded schema for \(machineType) from bundle")
+            NSLog("✅ MachineUI: Successfully loaded schema for %@ from bundle", machineType)
+            return schema
+        } catch {
+            print("MachineUI: ✗ Failed to load schema for \(machineType) from bundle: \(error)")
+            NSLog("❌ MachineUI: Failed to load schema for %@ from bundle: %@", machineType, error.localizedDescription)
+            print("MachineUI: Will fall back to legacy UI for \(machineType)")
             return nil
         }
     }
@@ -1484,11 +1519,68 @@ final class MachineUI: UIPanel_Base {
             return "rocket_silo"
         } else if gameLoop.world.has(LabComponent.self, for: entity) {
             return "lab"
-        } else if let gen = gameLoop.world.get(GeneratorComponent.self, for: entity), gen.buildingId == "boiler" {
-            return "boiler"
-        } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
-            return "generator"
+        } else if let gen = gameLoop.world.get(GeneratorComponent.self, for: entity) {
+            // Check buildingId first for boiler
+            if gen.buildingId == "boiler" {
+                print("MachineUI: Found boiler via GeneratorComponent.buildingId")
+                NSLog("✅ MachineUI: Found boiler via GeneratorComponent.buildingId = %@", gen.buildingId)
+                return "boiler"
+            } else {
+                print("MachineUI: GeneratorComponent found but buildingId is '\(gen.buildingId)', returning 'generator'")
+                NSLog("⚠️ MachineUI: GeneratorComponent found but buildingId is '%@', returning 'generator'", gen.buildingId)
+                return "generator"
+            }
+        } else if let producer = gameLoop.world.get(FluidProducerComponent.self, for: entity) {
+            // Check for water pump
+            if producer.buildingId == "water-pump" {
+                print("MachineUI: Found water pump via FluidProducerComponent.buildingId")
+                NSLog("✅ MachineUI: Found water pump via FluidProducerComponent.buildingId = %@", producer.buildingId)
+                return "water_pump"
+            } else if producer.buildingId == "pumpjack" {
+                print("MachineUI: Found pumpjack via FluidProducerComponent.buildingId")
+                NSLog("✅ MachineUI: Found pumpjack via FluidProducerComponent.buildingId = %@", producer.buildingId)
+                return "pumpjack"
+            } else {
+                // FluidProducerComponent found but not water-pump or pumpjack
+                // Could be a boiler (which also has FluidProducerComponent for steam)
+                // Check if it's actually a boiler via GeneratorComponent or building definition
+                if let gen = gameLoop.world.get(GeneratorComponent.self, for: entity), gen.buildingId == "boiler" {
+                    print("MachineUI: Found boiler via GeneratorComponent (has FluidProducerComponent too)")
+                    NSLog("✅ MachineUI: Found boiler via GeneratorComponent (has FluidProducerComponent too)")
+                    return "boiler"
+                }
+                // Check building definition as fallback
+                if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+                    if buildingDef.id == "boiler" {
+                        print("MachineUI: Found boiler via building definition (has FluidProducerComponent)")
+                        NSLog("✅ MachineUI: Found boiler via building definition (has FluidProducerComponent)")
+                        return "boiler"
+                    } else if buildingDef.type == .waterPump {
+                        print("MachineUI: Found water pump via building definition type")
+                        NSLog("✅ MachineUI: Found water pump via building definition type")
+                        return "water_pump"
+                    }
+                }
+                print("MachineUI: FluidProducerComponent found but buildingId is '\(producer.buildingId)', returning 'unknown'")
+                NSLog("⚠️ MachineUI: FluidProducerComponent found but buildingId is '%@', returning 'unknown'", producer.buildingId)
+                return "unknown"
+            }
         } else {
+            // No GeneratorComponent or FluidProducerComponent found - check if it's a boiler via other means
+            // Try to get building definition to check building type
+            if let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+                if buildingDef.id == "boiler" {
+                    print("MachineUI: Found boiler via building definition id")
+                    NSLog("✅ MachineUI: Found boiler via building definition id = %@", buildingDef.id)
+                    return "boiler"
+                } else if buildingDef.type == .waterPump {
+                    print("MachineUI: Found water pump via building definition type")
+                    NSLog("✅ MachineUI: Found water pump via building definition type")
+                    return "water_pump"
+                }
+            }
+            print("MachineUI: No matching component found, returning 'unknown'")
+            NSLog("❌ MachineUI: No matching component found for entity, returning 'unknown'")
             return "unknown"
         }
     }
@@ -2878,25 +2970,27 @@ final class MachineUI: UIPanel_Base {
             rootView!.layer.borderWidth = 1
             rootView!.layer.borderColor = UIColor(white: 1, alpha: 0.15).cgColor
 
-            // Create progress bar views (only if not using schema)
-            // These will be hidden if schema has process
-            progressBarBackground = UIView()
-            progressBarBackground!.backgroundColor = UIColor.gray
-            progressBarBackground!.layer.cornerRadius = 4
-            rootView!.addSubview(progressBarBackground!)
+            // Only create legacy progress bar views if NOT using schema
+            // Schema-based UI will create its own progress bars
+            if currentSchema == nil {
+                progressBarBackground = UIView()
+                progressBarBackground!.backgroundColor = UIColor.gray
+                progressBarBackground!.layer.cornerRadius = 4
+                rootView!.addSubview(progressBarBackground!)
 
-            progressBarFill = UIView()
-            progressBarFill!.backgroundColor = UIColor.blue
-            progressBarFill!.layer.cornerRadius = 4
-            rootView!.addSubview(progressBarFill!)
+                progressBarFill = UIView()
+                progressBarFill!.backgroundColor = UIColor.blue
+                progressBarFill!.layer.cornerRadius = 4
+                rootView!.addSubview(progressBarFill!)
 
-            // Status label below progress bar
-            progressStatusLabel = UILabel()
-            progressStatusLabel!.font = UIFont.systemFont(ofSize: 10, weight: .medium)
-            progressStatusLabel!.textColor = .white
-            progressStatusLabel!.textAlignment = .center
-            progressStatusLabel!.text = "Ready"
-            rootView!.addSubview(progressStatusLabel!)
+                // Status label below progress bar
+                progressStatusLabel = UILabel()
+                progressStatusLabel!.font = UIFont.systemFont(ofSize: 10, weight: .medium)
+                progressStatusLabel!.textColor = .white
+                progressStatusLabel!.textAlignment = .center
+                progressStatusLabel!.text = "Ready"
+                rootView!.addSubview(progressStatusLabel!)
+            }
         }
         
         // Hide legacy progress bar if schema has process
@@ -2904,12 +2998,23 @@ final class MachineUI: UIPanel_Base {
             progressBarBackground?.isHidden = true
             progressBarFill?.isHidden = true
             progressStatusLabel?.isHidden = true
-        } else {
+        } else if currentSchema == nil {
+            // Only show legacy progress bars if not using schema
             progressBarBackground?.isHidden = false
             progressBarFill?.isHidden = false
             progressStatusLabel?.isHidden = false
         }
 
+        // Root view now exists - if we have a pending entity setup, do it now
+        // This ensures schema is applied before any legacy UI is created
+        if let entity = pendingEntitySetup {
+            setupComponentsForEntity(entity)
+            pendingEntitySetup = nil
+        } else if let entity = currentEntity, currentSchema == nil {
+            // Entity exists but schema hasn't been loaded yet - load it now
+            setupComponentsForEntity(entity)
+        }
+        
         // Root view now exists; allow components to attach UIKit subviews
         if let entity = currentEntity {
             for component in machineComponents {
@@ -2919,11 +3024,27 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Set up UIKit components
-        // Check if schema has recipes panel - if so, skip legacy recipe UI
+        // Check if we're using a schema - if so, never use legacy recipe UI
+        let isUsingSchema = currentSchema != nil
         let hasSchemaRecipes = currentSchema?.recipes != nil
         
-        if !hasSchemaRecipes {
-            // Legacy recipe UI setup
+        if isUsingSchema {
+            // Using schema - completely remove legacy recipe UI
+            recipeScrollView?.removeFromSuperview()
+            recipeScrollView = nil
+            recipeUIButtons.forEach { $0.removeFromSuperview() }
+            recipeUIButtons.removeAll()
+            recipeHeaderLabel?.removeFromSuperview()
+            recipeHeaderLabel = nil
+            noRecipeSelectedLabel?.removeFromSuperview()
+            noRecipeSelectedLabel = nil
+            
+            // Populate schema recipes panel only if schema has recipes
+            if hasSchemaRecipes, let entity = currentEntity, let gameLoop = gameLoop {
+                populateSchemaRecipesPanel(for: entity, gameLoop: gameLoop)
+            }
+        } else {
+            // Legacy recipe UI setup (only when NOT using schema)
             // Setup recipe UI for assemblers, furnaces, and fluid machines.
             if let entity = currentEntity, let gameLoop = gameLoop,
                (gameLoop.world.has(AssemblerComponent.self, for: entity) ||
@@ -2945,32 +3066,16 @@ final class MachineUI: UIPanel_Base {
                 recipeUIButtons.forEach { $0.removeFromSuperview() }
                 recipeUIButtons.removeAll()
             }
-        } else {
-            // Schema has recipes panel - completely remove legacy recipe UI
-            recipeScrollView?.removeFromSuperview()
-            recipeScrollView = nil
-            recipeUIButtons.forEach { $0.removeFromSuperview() }
-            recipeUIButtons.removeAll()
-            recipeHeaderLabel?.removeFromSuperview()
-            recipeHeaderLabel = nil
-            noRecipeSelectedLabel?.removeFromSuperview()
-            noRecipeSelectedLabel = nil
-            
-            // Populate schema recipes panel
-            if let entity = currentEntity, let gameLoop = gameLoop {
-                populateSchemaRecipesPanel(for: entity, gameLoop: gameLoop)
-            }
         }
 
         // Set up UIKit slot buttons (only if not using schema)
-        let usingSchema = currentSchema != nil
-        if !usingSchema && currentEntity != nil {
+        if !isUsingSchema && currentEntity != nil {
             clearSlotUI()
             setupSlotButtons()
             layoutAll()
             // Update the UI with current machine state
             updateMachine(currentEntity!)
-        } else if usingSchema && currentEntity != nil {
+        } else if isUsingSchema && currentEntity != nil {
             // Schema-based UI - ensure legacy views are hidden
             // Hide legacy slot buttons if they exist
             fuelSlotButtons.forEach { $0.isHidden = true }
@@ -3697,6 +3802,22 @@ final class MachineUI: UIPanel_Base {
         let rowSpacing = CGFloat(recipesConfig.grid.rowSpacingDp)
         let columns = recipesConfig.grid.columns
         
+        // Create a content view for the scrollview to hold all buttons
+        let contentView = UIView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        recipesGrid.addSubview(contentView)
+        
+        // Constrain content view to scrollview
+        contentView.topAnchor.constraint(equalTo: recipesGrid.topAnchor).isActive = true
+        contentView.leadingAnchor.constraint(equalTo: recipesGrid.leadingAnchor).isActive = true
+        contentView.trailingAnchor.constraint(equalTo: recipesGrid.trailingAnchor).isActive = true
+        contentView.bottomAnchor.constraint(equalTo: recipesGrid.bottomAnchor).isActive = true
+        contentView.widthAnchor.constraint(equalTo: recipesGrid.widthAnchor).isActive = true
+        
+        // Calculate number of rows needed
+        let numRecipes = availableRecipes.count
+        let numRows = (numRecipes + columns - 1) / columns // Ceiling division
+        
         // Create recipe buttons in grid layout
         for (index, recipe) in availableRecipes.enumerated() {
             let row = index / columns
@@ -3742,7 +3863,7 @@ final class MachineUI: UIPanel_Base {
             button.tag = index
             button.addTarget(self, action: #selector(recipeButtonTapped(_:)), for: UIControl.Event.touchUpInside)
             
-            recipesGrid.addSubview(button)
+            contentView.addSubview(button)
             
             // Set constraints
             button.widthAnchor.constraint(equalToConstant: cellSize).isActive = true
@@ -3751,28 +3872,32 @@ final class MachineUI: UIPanel_Base {
             // Position button in grid
             if row == 0 && col == 0 {
                 // First button
-                button.topAnchor.constraint(equalTo: recipesGrid.topAnchor).isActive = true
-                button.leadingAnchor.constraint(equalTo: recipesGrid.leadingAnchor).isActive = true
+                button.topAnchor.constraint(equalTo: contentView.topAnchor).isActive = true
+                button.leadingAnchor.constraint(equalTo: contentView.leadingAnchor).isActive = true
             } else if col == 0 {
                 // First column of subsequent rows
                 // Find the button in the same column of the previous row
                 let prevRowIndex = (row - 1) * columns
-                if prevRowIndex < recipesGrid.subviews.count {
-                    let prevButton = recipesGrid.subviews[prevRowIndex]
+                if prevRowIndex < contentView.subviews.count {
+                    let prevButton = contentView.subviews[prevRowIndex]
                     button.topAnchor.constraint(equalTo: prevButton.bottomAnchor, constant: rowSpacing).isActive = true
                 }
-                button.leadingAnchor.constraint(equalTo: recipesGrid.leadingAnchor).isActive = true
+                button.leadingAnchor.constraint(equalTo: contentView.leadingAnchor).isActive = true
             } else {
                 // Same row, different column
                 // Find the previous button in the same row
                 let prevColIndex = row * columns + col - 1
-                if prevColIndex < recipesGrid.subviews.count {
-                    let prevButton = recipesGrid.subviews[prevColIndex]
+                if prevColIndex < contentView.subviews.count {
+                    let prevButton = contentView.subviews[prevColIndex]
                     button.topAnchor.constraint(equalTo: prevButton.topAnchor).isActive = true
                     button.leadingAnchor.constraint(equalTo: prevButton.trailingAnchor, constant: colSpacing).isActive = true
                 }
             }
         }
+        
+        // Set content view height based on number of rows
+        let contentHeight = CGFloat(numRows) * (cellSize + rowSpacing) - rowSpacing
+        contentView.heightAnchor.constraint(equalToConstant: contentHeight).isActive = true
     }
     
     /// Update slot views with current inventory items

@@ -220,6 +220,11 @@ final class Player {
         // Update crafting
         updateCrafting(deltaTime: deltaTime)
         
+        // Update attack cooldown
+        if attackCooldown > 0 {
+            attackCooldown = max(0, attackCooldown - deltaTime)
+        }
+        
         // Update health immunity and regeneration
         if var health = world.get(HealthComponent.self, for: entity) {
             health.update(deltaTime: deltaTime)
@@ -432,11 +437,20 @@ final class Player {
     /// Returns true if attack was successful
     func attackEnemy(enemy: Entity) -> Bool {
         print("Player attackEnemy called on entity: \(enemy)")
+        print("Player attackCooldown: \(attackCooldown), canAttack: \(canAttack)")
+
+        // Check attack cooldown
+        guard attackCooldown <= 0 else {
+            print("Player attackEnemy FAILED: on cooldown (\(attackCooldown)/\(attackCooldownTime))")
+            return false
+        }
 
         // Check if player has ammo
         let hasFirearm = inventory.has(itemId: "firearm-magazine")
         let hasPiercing = inventory.has(itemId: "piercing-rounds-magazine")
-        print("Player ammo check: firearm=\(hasFirearm), piercing=\(hasPiercing)")
+        let firearmCount = inventory.count(of: "firearm-magazine")
+        let piercingCount = inventory.count(of: "piercing-rounds-magazine")
+        print("Player ammo check: firearm=\(hasFirearm) (count: \(firearmCount)), piercing=\(hasPiercing) (count: \(piercingCount))")
         guard hasFirearm || hasPiercing else {
             print("Player attackEnemy FAILED: no ammo")
             return false
@@ -486,7 +500,14 @@ final class Player {
         let direction = (enemyPos.worldPosition - playerPos.worldPosition).normalized
         let startPos = playerPos.worldPosition + direction * 0.5
 
-        world.add(PositionComponent(tilePosition: IntVector2(from: startPos)), to: projectile)
+        // Set position with proper offset (not just truncated tile position)
+        let startTile = IntVector2(from: startPos)
+        let startOffset = Vector2(
+            startPos.x - floorf(startPos.x),
+            startPos.y - floorf(startPos.y)
+        )
+        world.add(PositionComponent(tilePosition: startTile, offset: startOffset), to: projectile)
+        print("Player attackEnemy: projectile position set to tile \(startTile), offset \(startOffset), worldPos: \(startPos)")
         world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
         world.add(VelocityComponent(velocity: direction * 30), to: projectile)
 
@@ -496,6 +517,10 @@ final class Player {
         world.add(projectileComp, to: projectile)
 
         print("Player attackEnemy: projectile created with ID \(projectile), targeting enemy \(enemy)")
+
+        // Set attack cooldown
+        attackCooldown = attackCooldownTime
+        print("Player attackEnemy: cooldown set to \(attackCooldown)")
 
         // Play sound
         AudioManager.shared.playPlayerFireSound()
@@ -507,11 +532,20 @@ final class Player {
     /// Returns true if attack was successful
     func attack(at targetPosition: Vector2) -> Bool {
         print("Player attack called at position: \(targetPosition)")
+        print("Player attackCooldown: \(attackCooldown), canAttack: \(canAttack)")
+        
+        // Check attack cooldown
+        guard attackCooldown <= 0 else {
+            print("Player attack FAILED: on cooldown (\(attackCooldown)/\(attackCooldownTime))")
+            return false
+        }
         
         // Check if player has ammo
         let hasFirearm = inventory.has(itemId: "firearm-magazine")
         let hasPiercing = inventory.has(itemId: "piercing-rounds-magazine")
-        print("Player ammo check: firearm=\(hasFirearm), piercing=\(hasPiercing)")
+        let firearmCount = inventory.count(of: "firearm-magazine")
+        let piercingCount = inventory.count(of: "piercing-rounds-magazine")
+        print("Player ammo check: firearm=\(hasFirearm) (count: \(firearmCount)), piercing=\(hasPiercing) (count: \(piercingCount))")
         guard hasFirearm || hasPiercing else {
             print("Player attack FAILED: no ammo")
             return false  // No ammo
@@ -575,7 +609,14 @@ final class Player {
         let direction = (targetPosition - playerPos.worldPosition).normalized
         let startPos = playerPos.worldPosition + direction * 0.5
 
-        world.add(PositionComponent(tilePosition: IntVector2(from: startPos)), to: projectile)
+        // Set position with proper offset (not just truncated tile position)
+        let startTile = IntVector2(from: startPos)
+        let startOffset = Vector2(
+            startPos.x - floorf(startPos.x),
+            startPos.y - floorf(startPos.y)
+        )
+        world.add(PositionComponent(tilePosition: startTile, offset: startOffset), to: projectile)
+        print("Player attack: projectile position set to tile \(startTile), offset \(startOffset), worldPos: \(startPos)")
         world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
         world.add(VelocityComponent(velocity: direction * 30), to: projectile)
 
@@ -585,6 +626,10 @@ final class Player {
         world.add(projectileComp, to: projectile)
 
         print("Player attack: projectile created with ID \(projectile), targeting enemy \(enemy)")
+        
+        // Set attack cooldown
+        attackCooldown = attackCooldownTime
+        print("Player attack: cooldown set to \(attackCooldown)")
         
         // Play sound
         AudioManager.shared.playPlayerFireSound()

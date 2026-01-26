@@ -1624,13 +1624,23 @@ final class GameNetworkManager {
                             connection.cancel()
                         })
                     } catch {
-                        // Absolute minimal error handling - avoid any complex operations that could crash
-                        let minimalResponse = Data("HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n".utf8)
-
-                        // Send minimal error response and close connection
-                        connection.send(content: minimalResponse, completion: .contentProcessed { _ in
-                            connection.cancel()
-                        })
+                        // Return error message in response
+                        let errorMessage = error.localizedDescription
+                        let errorDict: [String: Any] = ["error": errorMessage, "success": false]
+                        if let errorData = try? JSONSerialization.data(withJSONObject: errorDict, options: []) {
+                            let httpResponse = "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: \(errorData.count)\r\n\r\n"
+                            var fullResponse = httpResponse.data(using: .utf8)!
+                            fullResponse.append(errorData)
+                            connection.send(content: fullResponse, completion: .contentProcessed { _ in
+                                connection.cancel()
+                            })
+                        } else {
+                            // Fallback to minimal response if JSON serialization fails
+                            let minimalResponse = Data("HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n".utf8)
+                            connection.send(content: minimalResponse, completion: .contentProcessed { _ in
+                                connection.cancel()
+                            })
+                        }
                     }
                 }
             }
@@ -1796,12 +1806,28 @@ final class GameNetworkManager {
                 }
 
                 if let machineUI = gameLoop.uiSystem?.getMachineUI() {
+                    // Check if machine UI is open and has rootView
+                    guard machineUI.isOpen, machineUI.rootView != nil else {
+                        continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 29, userInfo: [NSLocalizedDescriptionKey: "Machine UI must be open to apply schema updates. Please open the machine UI panel first."]))
+                        return
+                    }
+                    
                     do {
                         if isSchemaFormat {
                             // Handle new schema format
-                            let jsonData = try JSONSerialization.data(withJSONObject: configDict)
+                            self.sendDebugLog("updateMachineUIConfig: Attempting to serialize configDict for schema format")
+                            let jsonData = try JSONSerialization.data(withJSONObject: configDict, options: [])
+                            self.sendDebugLog("updateMachineUIConfig: Serialized to JSON data, size: \(jsonData.count) bytes")
+                            
+                            // Log the JSON string for debugging
+                            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                                self.sendDebugLog("updateMachineUIConfig: JSON string (first 500 chars): \(String(jsonString.prefix(500)))")
+                            }
+                            
                             let decoder = JSONDecoder()
+                            decoder.keyDecodingStrategy = .convertFromSnakeCase
                             let schema = try decoder.decode(MachineUISchema.self, from: jsonData)
+                            self.sendDebugLog("updateMachineUIConfig: Successfully decoded schema with \(schema.groups.count) groups")
 
                             try machineUI.applySchema(schema)
                             self.sendDebugLog("updateMachineUIConfig: Successfully applied schema for machine type '\(machineType)'")
@@ -1817,6 +1843,22 @@ final class GameNetworkManager {
                             continuation.resume(returning: ["success": true, "machineType": machineType, "message": "Machine UI configuration updated successfully"])
                         }
                     } catch {
+                        let errorDetails = "\(error.localizedDescription). Error type: \(type(of: error)). Underlying error: \(error)"
+                        self.sendDebugLog("updateMachineUIConfig: Error details: \(errorDetails)")
+                        if let decodingError = error as? DecodingError {
+                            switch decodingError {
+                            case .dataCorrupted(let context):
+                                self.sendDebugLog("updateMachineUIConfig: Data corrupted: \(context.debugDescription)")
+                            case .keyNotFound(let key, let context):
+                                self.sendDebugLog("updateMachineUIConfig: Key '\(key.stringValue)' not found: \(context.debugDescription)")
+                            case .typeMismatch(let type, let context):
+                                self.sendDebugLog("updateMachineUIConfig: Type mismatch for \(type): \(context.debugDescription)")
+                            case .valueNotFound(let type, let context):
+                                self.sendDebugLog("updateMachineUIConfig: Value not found for \(type): \(context.debugDescription)")
+                            @unknown default:
+                                self.sendDebugLog("updateMachineUIConfig: Unknown decoding error")
+                            }
+                        }
                         continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 28, userInfo: [NSLocalizedDescriptionKey: "Failed to apply configuration: \(error.localizedDescription)"]))
                     }
                 } else {

@@ -16,7 +16,7 @@
       "id": "input",
       "role": "input",
       "header": { "text": "Input", "styleRole": "input", "alignment": "leading" },
-      "anchor": { "gridX": 0, "gridY": 1, "spanX": 3, "spanY": 3, "alignX": "leading", "alignY": "top" },
+      "anchor": { "gridX": 0, "gridY": 0, "spanX": 3, "spanY": 3, "alignX": "leading", "alignY": "top" },
       "content": {
         "slots": [
           { "id": "input.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": [] }, "renders": { "sizeDp": 48, "style": "square", "overlay": "count" } },
@@ -32,7 +32,7 @@
       "id": "output",
       "role": "output",
       "header": { "text": "Output", "styleRole": "output", "alignment": "leading" },
-      "anchor": { "gridX": 9, "gridY": 1, "spanX": 3, "spanY": 3, "alignX": "leading", "alignY": "top" },
+      "anchor": { "gridX": 7, "gridY": 0, "spanX": 3, "spanY": 3, "alignX": "leading", "alignY": "top" },
       "content": {
         "slots": [
           { "id": "output.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": [] }, "renders": { "sizeDp": 48, "style": "square", "overlay": "count" } },
@@ -48,7 +48,7 @@
   "process": {
     "id": "crafting",
     "label": { "text": "Crafting", "styleRole": "process", "alignment": "center" },
-    "anchor": { "gridX": 4, "gridY": 1, "spanX": 5, "spanY": 3, "alignX": "fill", "alignY": "fill" },
+    "anchor": { "gridX": 3, "gridY": 0, "spanX": 4, "spanY": 3, "alignX": "fill", "alignY": "fill" },
     "progress": { "style": "bar", "bindTo": "recipeProgress", "showPercent": false },
     "operators": { "showFlowGlyphs": false, "glyphStyleRole": "muted" }
   },
@@ -56,7 +56,7 @@
   "recipes": {
     "title": "Available Recipes",
     "mode": "picker",
-    "anchor": { "gridX": 1, "gridY": 4, "spanX": 10, "spanY": 3, "alignX": "fill", "alignY": "fill" },
+    "anchor": { "gridX": 0, "gridY": 3, "spanX": 10, "spanY": 4, "alignX": "fill", "alignY": "fill" },
     "grid": { "cellSizeDp": 48, "columns": 6, "rowSpacingDp": 8, "colSpacingDp": 8 }
   },
 

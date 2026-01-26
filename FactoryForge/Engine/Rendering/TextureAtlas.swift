@@ -196,6 +196,7 @@ final class TextureAtlas {
             ("oil_refinery", nil),
             ("chemical_plant", nil),
             ("water_pump", nil),
+            ("offshore_pump", nil),
             ("fluid_tank", nil),
             
             // Items - Raw Materials (wood handled with fallback logic above)

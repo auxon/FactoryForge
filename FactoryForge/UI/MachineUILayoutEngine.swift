@@ -294,7 +294,7 @@ struct SchemaUIReferences {
     
     // Recipes panel references
     var recipesContainer: UIView?
-    var recipesGrid: UIView?
+    var recipesGrid: UIScrollView?
 }
 
 // MARK: - Layout Builder
@@ -580,7 +580,7 @@ class MachineUIBuilder {
         return (container, progressBar, label, stateLabel)
     }
 
-    private func buildRecipesPanel(_ recipes: RecipesPanel, style: Style) -> (UIView, UIView) {
+    private func buildRecipesPanel(_ recipes: RecipesPanel, style: Style) -> (UIView, UIScrollView) {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
         container.backgroundColor = UIColor(hex: "#2a2a2a")?.withAlphaComponent(0.5)
@@ -602,9 +602,14 @@ class MachineUIBuilder {
         headerLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8).isActive = true
         headerLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8).isActive = true
 
-        // Create a simple grid of recipe placeholders
-        let recipesGrid = UIView()
+        // Create a scrollview for recipe buttons
+        let recipesGrid = UIScrollView()
         recipesGrid.translatesAutoresizingMaskIntoConstraints = false
+        recipesGrid.showsVerticalScrollIndicator = true
+        recipesGrid.showsHorizontalScrollIndicator = false
+        recipesGrid.isScrollEnabled = true
+        recipesGrid.alwaysBounceVertical = false
+        recipesGrid.clipsToBounds = true
         container.addSubview(recipesGrid)
 
         recipesGrid.topAnchor.constraint(equalTo: headerLabel.bottomAnchor, constant: 8).isActive = true

@@ -167,11 +167,11 @@ final class CombatSystem: System {
         // print("CombatSystem: updating projectiles")
         world.forEach(ProjectileComponent.self) { [self] entity, projectile in
             // print("CombatSystem: processing projectile \(entity)")
-            print("Updating projectile \(entity), lifetime: \(projectile.lifetime)")
             var proj = projectile
             proj.lifetime -= deltaTime
             
             if proj.lifetime <= 0 {
+                print("Projectile \(entity) expired (lifetime reached 0), target was: \(proj.target?.id ?? 0)")
                 if let position = world.get(PositionComponent.self, for: entity),
                    let chunk = chunkManager.getChunk(at: position.tilePosition) {
                     chunk.removeEntity(entity)
@@ -230,28 +230,39 @@ final class CombatSystem: System {
                     }
                     world.despawnDeferred(entity)
                     return
+                } else {
+                    // Debug: log when projectile is tracking target but not close enough
+                    if proj.lifetime > 4.5 {  // Only log early in lifetime to avoid spam
+                        print("Projectile \(entity) tracking target \(target), distance: \(distance), lifetime: \(proj.lifetime)")
+                    }
                 }
+            } else if proj.target != nil {
+                // Target was set but no longer exists or has no position
+                print("Projectile \(entity) lost target (target entity exists: \(proj.target != nil), has position: \(world.get(PositionComponent.self, for: proj.target!) != nil))")
             }
             
             // Check for collision with any valid target
             let nearbyEntities = world.getEntitiesNear(position: position.worldPosition, radius: 0.5)
+            if !nearbyEntities.isEmpty && proj.target == nil {
+                print("Projectile \(entity) found \(nearbyEntities.count) nearby entities (no specific target)")
+            }
             for nearbyEntity in nearbyEntities {
                 guard nearbyEntity != proj.source else { continue }
 
                 // Determine if this entity is a valid target for this projectile
                 let isValidTarget = isValidProjectileTarget(nearbyEntity, for: proj)
-                guard isValidTarget else { continue }
+                if isValidTarget {
+                    print("CombatSystem: Projectile \(entity) hit entity \(nearbyEntity) for \(proj.damage) damage")
+                    applyDamage(proj.damage, to: nearbyEntity, from: proj.source)
 
-                // print("CombatSystem: Projectile \(entity) hit entity \(nearbyEntity) for \(proj.damage) damage")
-                applyDamage(proj.damage, to: nearbyEntity, from: proj.source)
+                    // Apply splash damage
+                    if proj.splashRadius > 0 {
+                        applySplashDamage(proj.damage * 0.5, at: position.worldPosition, radius: proj.splashRadius, source: proj.source)
+                    }
 
-                // Apply splash damage
-                if proj.splashRadius > 0 {
-                    applySplashDamage(proj.damage * 0.5, at: position.worldPosition, radius: proj.splashRadius, source: proj.source)
+                    world.despawnDeferred(entity)
+                    return
                 }
-
-                world.despawnDeferred(entity)
-                return
             }
         }
     }

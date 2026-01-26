@@ -158,6 +158,7 @@
 		0D7D83182F1951C8001CA74A /* PipeConnectionUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7D83172F1951C8001CA74A /* PipeConnectionUIComponent.swift */; };
 		0D7D831A2F1951FA001CA74A /* AssemblyMachineUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7D83192F1951FA001CA74A /* AssemblyMachineUIComponent.swift */; };
 		0D841AD62F0F2FE600F499B6 /* wall.png in Resources */ = {isa = PBXBuildFile; fileRef = 0D841AD52F0F2FE600F499B6 /* wall.png */; };
+		0DAAD8412F270A570011FD36 /* offshore_pump.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DAAD8402F270A570011FD36 /* offshore_pump.png */; };
 		0DBFB55F2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */; };
 		0DC1FB702F13217A0010585F /* low_density_structure.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DC1FB6F2F13217A0010585F /* low_density_structure.png */; };
 		0DC1FB722F1431500010585F /* FluidData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC1FB712F1431500010585F /* FluidData.swift */; };
@@ -216,15 +217,16 @@
 		0DFBFF652F25601F005489BF /* starting_items.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF632F25601E005489BF /* starting_items.json */; };
 		0DFBFF662F25601F005489BF /* assembler.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5B2F25601E005489BF /* assembler.json */; };
 		0DFBFF672F25601F005489BF /* furnace_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5E2F25601E005489BF /* furnace_schema.json */; };
-		0DFBFF702F25601F005489BF /* mining_drill_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */; };
-		0DFBFF712F25601F005489BF /* assembler_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF6F2F25601E005489BF /* assembler_schema.json */; };
-		0DFBFF722F25601F005489BF /* boiler_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF732F25601E005489BF /* boiler_schema.json */; };
 		0DFBFF682F25601F005489BF /* rocket_silo.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF622F25601E005489BF /* rocket_silo.json */; };
 		0DFBFF692F25601F005489BF /* cross_pipe.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5C2F25601E005489BF /* cross_pipe.png */; };
 		0DFBFF6A2F25601F005489BF /* mining_drill.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF612F25601E005489BF /* mining_drill.json */; };
 		0DFBFF6B2F25601F005489BF /* furnace.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5D2F25601E005489BF /* furnace.json */; };
 		0DFBFF6C2F25601F005489BF /* burner_miner.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5F2F25601E005489BF /* burner_miner.json */; };
 		0DFBFF6D2F25601F005489BF /* tee_pipe.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF642F25601E005489BF /* tee_pipe.png */; };
+		0DFBFF702F25601F005489BF /* mining_drill_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */; };
+		0DFBFF712F25601F005489BF /* assembler_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF6F2F25601E005489BF /* assembler_schema.json */; };
+		0DFBFF722F25601F005489BF /* boiler_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF732F25601E005489BF /* boiler_schema.json */; };
+		0DFBFF752F25601F005489BF /* water_pump_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF742F25601F005489BF /* water_pump_schema.json */; };
 		0DFF59A82F02C08F00A8699D /* bullet_left.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A52F02C08F00A8699D /* bullet_left.png */; };
 		0DFF59A92F02C08F00A8699D /* bullet_right.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A62F02C08F00A8699D /* bullet_right.png */; };
 		0DFF59AA2F02C08F00A8699D /* bullet_down.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A42F02C08F00A8699D /* bullet_down.png */; };
@@ -560,6 +562,7 @@
 		0D7D83172F1951C8001CA74A /* PipeConnectionUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipeConnectionUIComponent.swift; sourceTree = "<group>"; };
 		0D7D83192F1951FA001CA74A /* AssemblyMachineUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssemblyMachineUIComponent.swift; sourceTree = "<group>"; };
 		0D841AD52F0F2FE600F499B6 /* wall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = wall.png; sourceTree = "<group>"; };
+		0DAAD8402F270A570011FD36 /* offshore_pump.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = offshore_pump.png; sourceTree = "<group>"; };
 		0DBFB55E2F0F02D90053ED96 /* FactoryForge Storekit Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FactoryForge Storekit Configuration.storekit"; sourceTree = "<group>"; };
 		0DC1FB6F2F13217A0010585F /* low_density_structure.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = low_density_structure.png; sourceTree = "<group>"; };
 		0DC1FB712F1431500010585F /* FluidData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FluidData.swift; sourceTree = "<group>"; };
@@ -623,12 +626,13 @@
 		0DFBFF5E2F25601E005489BF /* furnace_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = furnace_schema.json; sourceTree = "<group>"; };
 		0DFBFF5F2F25601E005489BF /* burner_miner.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = burner_miner.json; sourceTree = "<group>"; };
 		0DFBFF612F25601E005489BF /* mining_drill.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = mining_drill.json; sourceTree = "<group>"; };
-		0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = mining_drill_schema.json; sourceTree = "<group>"; };
-		0DFBFF6F2F25601E005489BF /* assembler_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = assembler_schema.json; sourceTree = "<group>"; };
-		0DFBFF732F25601E005489BF /* boiler_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = boiler_schema.json; sourceTree = "<group>"; };
 		0DFBFF622F25601E005489BF /* rocket_silo.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = rocket_silo.json; sourceTree = "<group>"; };
 		0DFBFF632F25601E005489BF /* starting_items.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = starting_items.json; sourceTree = "<group>"; };
 		0DFBFF642F25601E005489BF /* tee_pipe.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = tee_pipe.png; sourceTree = "<group>"; };
+		0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = mining_drill_schema.json; sourceTree = "<group>"; };
+		0DFBFF6F2F25601E005489BF /* assembler_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = assembler_schema.json; sourceTree = "<group>"; };
+		0DFBFF732F25601E005489BF /* boiler_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = boiler_schema.json; sourceTree = "<group>"; };
+		0DFBFF742F25601F005489BF /* water_pump_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = water_pump_schema.json; sourceTree = "<group>"; };
 		0DFF59A42F02C08F00A8699D /* bullet_down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_down.png; sourceTree = "<group>"; };
 		0DFF59A52F02C08F00A8699D /* bullet_left.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_left.png; sourceTree = "<group>"; };
 		0DFF59A62F02C08F00A8699D /* bullet_right.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_right.png; sourceTree = "<group>"; };
@@ -847,6 +851,7 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DAAD8402F270A570011FD36 /* offshore_pump.png */,
 				0DFBFF5B2F25601E005489BF /* assembler.json */,
 				0DFBFF5C2F25601E005489BF /* cross_pipe.png */,
 				0DFBFF5D2F25601E005489BF /* furnace.json */,
@@ -856,6 +861,7 @@
 				0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */,
 				0DFBFF6F2F25601E005489BF /* assembler_schema.json */,
 				0DFBFF732F25601E005489BF /* boiler_schema.json */,
+				0DFBFF742F25601F005489BF /* water_pump_schema.json */,
 				0DFBFF622F25601E005489BF /* rocket_silo.json */,
 				0DFBFF632F25601E005489BF /* starting_items.json */,
 				0DFBFF642F25601E005489BF /* tee_pipe.png */,
@@ -1804,6 +1810,7 @@
 				0DFBFF702F25601F005489BF /* mining_drill_schema.json in Resources */,
 				0DFBFF712F25601F005489BF /* assembler_schema.json in Resources */,
 				0DFBFF722F25601F005489BF /* boiler_schema.json in Resources */,
+				0DFBFF752F25601F005489BF /* water_pump_schema.json in Resources */,
 				0DFBFF682F25601F005489BF /* rocket_silo.json in Resources */,
 				0DFBFF692F25601F005489BF /* cross_pipe.png in Resources */,
 				0DFBFF6A2F25601F005489BF /* mining_drill.json in Resources */,
@@ -1845,6 +1852,7 @@
 				0D6FDC482EFDE1B500576EC3 /* building_placeholder.png in Resources */,
 				0D3A37242F060B2B00941686 /* inserter_input_button.png in Resources */,
 				0D3A37252F060B2B00941686 /* inserter_cancel_button.png in Resources */,
+				0DAAD8412F270A570011FD36 /* offshore_pump.png in Resources */,
 				0D3A37262F060B2B00941686 /* inserter_output_button.png in Resources */,
 				0DFF59FC2F02CAD900A8699D /* transport_belt_west_007.png in Resources */,
 				0DFF59FD2F02CAD900A8699D /* transport_belt_west_014.png in Resources */,

@@ -506,10 +506,19 @@ final class World {
         let rect = Rect(center: position, size: Vector2(repeating: radius * 2))
         let candidates = getEntitiesIn(rect: rect)
         
-        return candidates.filter { entity in
+        let filtered = candidates.filter { entity in
             guard let pos = get(PositionComponent.self, for: entity) else { return false }
-            return pos.worldPosition.distance(to: position) <= radius
+            let distance = pos.worldPosition.distance(to: position)
+            return distance <= radius
         }
+        
+        // Debug: log if we're searching but finding nothing (might indicate spatial index issue)
+        if filtered.isEmpty && radius >= 5.0 {
+            // Only log for larger searches to avoid spam
+            print("World.getEntitiesNear: Found \(candidates.count) candidates in rect, \(filtered.count) within radius \(radius) at \(position)")
+        }
+        
+        return filtered
     }
     
     /// Checks if a position would collide with any entities
