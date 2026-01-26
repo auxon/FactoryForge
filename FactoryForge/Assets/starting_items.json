@@ -2,18 +2,18 @@
   "startingItems": [
     {
       "itemId": "iron-plate",
-      "count": 50,
-      "comment": "Iron plates for basic construction"
+      "count": 80,
+      "comment": "Iron plates for basic construction and assembler recipes"
     },
     {
       "itemId": "copper-plate",
-      "count": 50,
-      "comment": "Copper plates for electronics"
+      "count": 80,
+      "comment": "Copper plates for electronics and assembler recipes"
     },
     {
       "itemId": "coal",
-      "count": 100,
-      "comment": "Coal for fuel and furnaces"
+      "count": 150,
+      "comment": "Coal for fuel, furnaces, and boilers"
     },
     {
       "itemId": "stone",
@@ -22,18 +22,48 @@
     },
     {
       "itemId": "iron-gear-wheel",
-      "count": 20,
-      "comment": "Gears for mechanical components"
+      "count": 30,
+      "comment": "Gears for mechanical components and assembler recipes"
     },
     {
       "itemId": "electronic-circuit",
-      "count": 20,
-      "comment": "Circuits for advanced machines"
+      "count": 30,
+      "comment": "Circuits for advanced machines and assembler recipes"
     },
     {
       "itemId": "firearm-magazine",
       "count": 50,
       "comment": "Ammunition for early-game biter defense"
+    },
+    {
+      "itemId": "wood",
+      "count": 50,
+      "comment": "Fuel for boilers and burner miners; assembler recipes"
+    },
+    {
+      "itemId": "copper-cable",
+      "count": 50,
+      "comment": "Assembler input for electronic-circuit, small electric pole, etc."
+    },
+    {
+      "itemId": "pipe",
+      "count": 30,
+      "comment": "Boiler/lab building cost; assembler recipes"
+    },
+    {
+      "itemId": "transport-belt",
+      "count": 20,
+      "comment": "Assembler recipes and belt upgrades"
+    },
+    {
+      "itemId": "stone-brick",
+      "count": 30,
+      "comment": "Furnace output; building costs and assembler recipes"
+    },
+    {
+      "itemId": "solid-fuel",
+      "count": 10,
+      "comment": "High-value fuel for boilers and furnaces"
     }
   ]
 }

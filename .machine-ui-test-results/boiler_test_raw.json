@@ -1,0 +1,1 @@
+{"machineType":"boiler","groupCount":2,"success":true,"warnings":["Schema has no recipes defined (may be intentional)"],"schemaVersion":"1.0.0","schemaFound":true,"errors":[],"schemaTitle":"Boiler","validationResults":["All invariants validated successfully"],"validationPassed":true}

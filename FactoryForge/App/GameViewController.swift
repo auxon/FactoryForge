@@ -775,6 +775,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         return label
     }
 
+    /// Install callbacks for InventoryUI scroll view.
+    /// CRITICAL: Must be called AFTER setGameLoop() because setGameLoop() recreates the InventoryUI instance.
+    /// If called before setGameLoop(), the callback will be set on the old instance which gets discarded.
     private func installInventoryScrollCallbacks() {
         uiSystem?.getInventoryUI().onAddScrollView = { [weak self] (sv: ClearScrollView) in
             guard let self else { return }
@@ -1104,12 +1107,12 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Re-setup UI callbacks BEFORE updating UI system (to avoid recreation issues)
         setupResearchUICallbacks()
 
-        // Inventory UI scrollview callbacks
-        installInventoryScrollCallbacks()
-
-        // Update the existing UI system with the gameLoop
+        // Update the existing UI system with the gameLoop (this recreates UI components)
         uiSystem?.setGameLoop(gameLoop!)
         renderer.uiSystem = uiSystem
+
+        // CRITICAL: Install inventory scroll callbacks AFTER setGameLoop (since it recreates InventoryUI)
+        installInventoryScrollCallbacks()
 
         // Re-setup machine UI callback after setGameLoop (since it recreates the MachineUI)
         setupMachineUICallback()
@@ -1342,12 +1345,12 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         setupResearchUICallbacks()
         setupHUDBuildingCallbacks()
 
-        // Inventory UI scrollview callbacks
-        installInventoryScrollCallbacks()
-
         // Update UI system with game loop (this recreates UI components)
         uiSystem?.setGameLoop(gameLoop!)
         renderer.uiSystem = uiSystem
+
+        // CRITICAL: Install inventory scroll callbacks AFTER setGameLoop (since it recreates InventoryUI)
+        installInventoryScrollCallbacks()
 
         // Re-wire UI callbacks after setGameLoop recreated components
         setupResearchUICallbacks()
@@ -1366,8 +1369,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Close loading menu
         uiSystem?.closeAllPanels()
 
-        // Inventory UI scrollview callbacks (reapply after setGameLoop may have recreated UI)
-        installInventoryScrollCallbacks()
+        // Note: installInventoryScrollCallbacks() was already called after setGameLoop() above
 
         // MachineUI now uses a single rootView - no additional callbacks needed
         uiSystem?.getMachineUI().onSelectRecipeForMachine = { [weak self] (entity: Entity, recipe: Recipe) -> Void in

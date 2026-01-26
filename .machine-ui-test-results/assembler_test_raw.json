@@ -1,1 +1,1 @@
-{"success":false,"errors":["Schema file not found: assembler_schema.json"],"validationResults":[],"machineType":"assembler","warnings":[],"schemaFound":false}
+{"success":true,"errors":[],"machineType":"assembler","warnings":[],"groupCount":2,"validationPassed":true,"schemaVersion":"1.0.0","validationResults":["All invariants validated successfully"],"schemaTitle":"Assembling Machine","schemaFound":true}

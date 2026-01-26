@@ -60,6 +60,18 @@ final class InventoryUI: UIPanel_Base {
             setupSlots()
         }
     }
+    
+    // Force attachment of scrollView if callback is available
+    private func ensureScrollViewAttached() {
+        guard let sv = scrollView else { return }
+        if sv.superview == nil, let callback = onAddScrollView {
+            print("InventoryUI: Ensuring scrollView attachment via callback")
+            callback(sv)
+            if sv.superview == nil {
+                print("InventoryUI: ERROR - Callback was called but scrollView still not attached")
+            }
+        }
+    }
     private let slotsPerRow = 10
     private let maxSlots = 200  // Maximum slots for player inventory (supports expansion)
     private let screenSize: Vector2
@@ -82,7 +94,27 @@ final class InventoryUI: UIPanel_Base {
     private var totalSlots = 70
 
     // Callbacks for managing UIKit components
-    var onAddScrollView: ((ClearScrollView) -> Void)?
+    var onAddScrollView: ((ClearScrollView) -> Void)? {
+        didSet {
+            // Replay attachment if scrollView exists but isn't attached
+            // This handles the case where setGameLoop() recreates InventoryUI after callbacks are set
+            if let sv = scrollView, sv.superview == nil {
+                if let callback = onAddScrollView {
+                    print("InventoryUI: onAddScrollView callback was set, attaching existing scrollView")
+                    callback(sv)
+                    // Verify attachment succeeded
+                    if sv.superview == nil {
+                        print("InventoryUI: ERROR - callback was called but scrollView still not attached")
+                        print("InventoryUI: This suggests the callback implementation has a bug (maybe weak self is nil?)")
+                    } else {
+                        print("InventoryUI: Successfully attached scrollView via didSet")
+                    }
+                } else {
+                    print("InventoryUI: onAddScrollView was set to nil (this should not happen)")
+                }
+            }
+        }
+    }
     var onRemoveScrollView: ((ClearScrollView) -> Void)?
     var onAddPlaceBuildingButton: ((UIView) -> Void)?
     var onRemovePlaceBuildingButton: ((UIView) -> Void)?
@@ -390,6 +422,7 @@ final class InventoryUI: UIPanel_Base {
         scrollView.isScrollEnabled = true
         scrollView.alwaysBounceVertical = true
         scrollView.delaysContentTouches = false
+        scrollView.canCancelContentTouches = true  // Allow cancellation so taps can be handled
 
         // Make scrollView transparent so Metal slots show through
         scrollView.backgroundColor = .clear
@@ -410,21 +443,41 @@ final class InventoryUI: UIPanel_Base {
         }
 
         // Add scrollview to UI
-        onAddScrollView?(scrollView)
+        // Note: callback might be nil if called before installInventoryScrollCallbacks()
+        // The didSet on onAddScrollView will handle attachment when callback is set later
+        if let callback = onAddScrollView {
+            callback(scrollView)
+        } else {
+            print("InventoryUI setupSlots: onAddScrollView callback is nil - scrollView will be attached when callback is set")
+        }
+        
+        // Set zPosition to ensure scrollView and labels are on top
+        scrollView.layer.zPosition = 10_000
+        
+        // Add count labels to scrollView (only if scrollView is/will be in view hierarchy)
+        // Ensure labels don't interfere with touch handling
+        for label in countLabels {
+            label.isUserInteractionEnabled = false
+            label.isOpaque = false
+            label.layer.zPosition = 10_001
+            scrollView.addSubview(label)
+        }
     }
 
     private func setupCountLabels() {
         for _ in 0..<maxSlots {
             let label = UILabel()
-            label.font = UIFont.systemFont(ofSize: 10, weight: UIFont.Weight.bold)
+            label.font = UIFont.systemFont(ofSize: 12, weight: UIFont.Weight.bold)  // Increased font size for visibility
             label.textColor = UIColor.white
             label.textAlignment = NSTextAlignment.right
-            label.backgroundColor = .clear
-            label.layer.cornerRadius = 2
+            label.backgroundColor = UIColor(white: 0.0, alpha: 0.7)  // More opaque background for better visibility
+            label.layer.cornerRadius = 3
             label.layer.masksToBounds = true
             label.translatesAutoresizingMaskIntoConstraints = true
             label.text = ""
             label.isHidden = true
+            label.alpha = 1.0
+            label.isOpaque = false
 
             // ✅ critical: don't let labels steal touches
             label.isUserInteractionEnabled = false
@@ -487,6 +540,20 @@ final class InventoryUI: UIPanel_Base {
     override func update(deltaTime: Float) {
         guard isOpen, let gameLoop = gameLoop else { return }
 
+        // --- constants (compute once per update) ---
+        guard let sv = scrollView else { return }
+        
+        // Sanity check: ensure scrollView is in view hierarchy
+        if sv.superview == nil {
+            print("InventoryUI: scrollView exists but is NOT attached to a superview")
+            ensureScrollViewAttached()
+            // If still not attached, labels can't be visible
+            if sv.superview == nil {
+                print("InventoryUI: Cannot update - scrollView not in view hierarchy and callback unavailable")
+                return
+            }
+        }
+
         // Determine which inventories to show
         var playerSlots: [ItemStack?] = []
         var chestSlots: [ItemStack?] = []
@@ -516,8 +583,6 @@ final class InventoryUI: UIPanel_Base {
             self.totalSlots = playerInventorySize
         }
 
-        // --- constants (compute once per update) ---
-        guard let sv = scrollView else { return }
         let scale = gameLoop.renderer?.view?.contentScaleFactor ?? UIScreen.main.scale
 
         // Define slot geometry in *points* (UIKit space)
@@ -577,25 +642,30 @@ final class InventoryUI: UIPanel_Base {
             // ---- label ----
             let label = countLabels[index]
 
-            // Label size/inset in *points* (proportional to slot size)
-            let labelWPt: CGFloat = slotSizePt * 0.65  // proportional to slot
-            let labelHPt: CGFloat = slotSizePt * 0.40  // proportional to slot
-            let insetPt:  CGFloat = slotSizePt * 0.10  // proportional inset
+            // Label size in *points* (UIKit coordinates, same as slotSizePt)
+            // Ensure minimum readable size
+            let labelWPt: CGFloat = max(slotSizePt * 0.6, 20)  // At least 20 points wide
+            let labelHPt: CGFloat = max(slotSizePt * 0.35, 14)  // At least 14 points tall
+            let insetPt: CGFloat = slotSizePt * 0.05  // Small inset from edge
 
-            // Bottom-right inside the slot, in *points*
-            let labelXPt = (slotCenterXPt + slotSizePt * 0.5) - labelWPt - insetPt
-            let labelYPt = (slotCenterYPt + slotSizePt * 0.5) - labelHPt - insetPt
+            // Calculate slot bounds in points (scrollView content coordinates)
+            let slotLeftPt = slotCenterXPt - slotSizePt * 0.5
+            let slotTopPt = slotCenterYPt - slotSizePt * 0.5
+            let slotRightPt = slotCenterXPt + slotSizePt * 0.5
+            let slotBottomPt = slotCenterYPt + slotSizePt * 0.5
 
+            // Position label in bottom-right corner of slot, in *points* (UIKit coordinates)
+            let labelXPt = slotRightPt - labelWPt - insetPt
+            let labelYPt = slotBottomPt - labelHPt - insetPt
+
+            // Set label frame in scrollView content coordinates (points)
             label.frame = CGRect(x: labelXPt, y: labelYPt, width: labelWPt, height: labelHPt)
 
-            // Check if label is visible within scroll view bounds
-            let labelRect = label.frame
-            let viewportRect = sv.bounds  // in scrollView's content coordinate system (points)
-            let isVisible = viewportRect.intersects(labelRect)
-
-            if let item = slot.item, item.count > 1, isVisible {
+            // Show label if item count > 1
+            if let item = slot.item, item.count > 1 {
                 label.text = "\(item.count)"
                 label.isHidden = false
+                label.alpha = 1.0
             } else {
                 label.text = ""
                 label.isHidden = true
@@ -721,6 +791,19 @@ final class InventoryUI: UIPanel_Base {
         }
 
         guard let sv = scrollView else { return }
+        
+        // CRITICAL: Ensure scrollView is attached to view hierarchy
+        ensureScrollViewAttached()
+        
+        // Debug: verify attachment
+        print("InventoryUI open: onAddScrollView is nil? \(onAddScrollView == nil)")
+        print("InventoryUI open: scrollView superview: \(String(describing: sv.superview))")
+        
+        // If still not attached, we can't proceed
+        guard sv.superview != nil else {
+            print("InventoryUI open: ERROR - Cannot proceed, scrollView not attached. Call installInventoryScrollCallbacks() after setGameLoop()")
+            return
+        }
 
         // Reposition scrollview using actual screen bounds in points
         let screenBounds = UIScreen.main.bounds
@@ -739,12 +822,23 @@ final class InventoryUI: UIPanel_Base {
             height: scrollViewHeightPt
         )
 
-        // If any labels were previously added somewhere else, yank them back.
+        // Ensure all labels are added to the scrollView and brought to front
+        // Only add labels if scrollView is actually in the view hierarchy
+        guard sv.superview != nil else {
+            print("InventoryUI open: Cannot add labels - scrollView not in view hierarchy")
+            return
+        }
+        
         for label in countLabels {
-            if label.superview !== sv {
+            if label.superview != nil && label.superview !== sv {
                 label.removeFromSuperview()
+            }
+            if label.superview == nil {
                 sv.addSubview(label)
             }
+            // Ensure labels are on top
+            label.layer.zPosition = 10_001
+            sv.bringSubviewToFront(label)
         }
     }
 

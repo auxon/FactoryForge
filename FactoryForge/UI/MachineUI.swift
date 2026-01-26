@@ -1484,6 +1484,8 @@ final class MachineUI: UIPanel_Base {
             return "rocket_silo"
         } else if gameLoop.world.has(LabComponent.self, for: entity) {
             return "lab"
+        } else if let gen = gameLoop.world.get(GeneratorComponent.self, for: entity), gen.buildingId == "boiler" {
+            return "boiler"
         } else if gameLoop.world.has(GeneratorComponent.self, for: entity) {
             return "generator"
         } else {
@@ -3916,6 +3918,8 @@ final class MachineUI: UIPanel_Base {
             progress = assembler.craftingProgress
         } else if let pumpjack = gameLoop.world.get(PumpjackComponent.self, for: entity) {
             progress = pumpjack.progress
+        } else if let gen = gameLoop.world.get(GeneratorComponent.self, for: entity), gen.buildingId == "boiler" {
+            progress = gen.burnProgress
         }
         
         // Clamp progress to valid range
@@ -3984,6 +3988,19 @@ final class MachineUI: UIPanel_Base {
         }
         if gameLoop.world.get(PumpjackComponent.self, for: entity) != nil {
             return progress > 0 ? "Working" : "Idle"
+        }
+        if let gen = gameLoop.world.get(GeneratorComponent.self, for: entity), gen.buildingId == "boiler" {
+            if progress > 0 { return "Heating" }
+            guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
+                  let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else {
+                return "Idle"
+            }
+            let fuelSlots = buildingDef.fuelSlots
+            let hasFuel = gen.fuelRemaining > 0 || (0..<min(fuelSlots, inventory.slots.count)).contains { i in
+                guard let s = inventory.slots[i] else { return false }
+                return ["coal", "wood", "solid-fuel"].contains(s.itemId)
+            }
+            return hasFuel ? "Ready" : "No fuel"
         }
         return "Idle"
     }

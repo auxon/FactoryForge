@@ -1,9 +1,9 @@
-# MachineUI Schema Test Feedback: furnace
+# MachineUI Schema Test Feedback: boiler
 
 ## Test Results
 
-**Timestamp:** 2026-01-26 00:05:57 UTC
-**Machine Type:** furnace
+**Timestamp:** 2026-01-26 00:05:48 UTC
+**Machine Type:** boiler
 
 ### Status
 - **Success:** true
@@ -12,14 +12,16 @@
 
 ### Schema Information
 - **Version:** 1.0.0
-- **Title:** Furnace
-- **Group Count:** 3
+- **Title:** Boiler
+- **Group Count:** 2
 
 ### Errors
 No errors
 
 ### Warnings
-No warnings
+```
+Schema has no recipes defined (may be intentional)
+```
 
 ### Validation Results
 ```
@@ -31,7 +33,7 @@ All invariants validated successfully
 - ✅ Schema is valid and ready for deployment
 
 ## Schema File Location
-`FactoryForge/Assets/furnace_schema.json`
+`FactoryForge/Assets/boiler_schema.json`
 
 ---
 *This report was generated automatically by the MachineUI schema testing system.*

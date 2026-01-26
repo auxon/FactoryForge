@@ -1,15 +1,14 @@
 {
   "$schema": "https://example.com/machineui.schema.json",
   "version": "1.0.0",
-  "id": "machineui.mining_drill",
-  "machineKind": "mining_drill",
-  "title": "Burner Mining Drill",
-
+  "id": "machineui.boiler",
+  "machineKind": "boiler",
+  "title": "Boiler",
   "layout": {
     "flowAxis": "leftToRight",
     "safeArea": { "top": 16, "left": 16, "bottom": 16, "right": 16 },
     "padding": { "x": 24, "y": 24 },
-    "grid": { "columns": 12, "rows": 6, "gutterX": 8, "gutterY": 12 }
+    "grid": { "columns": 12, "rows": 8, "gutterX": 8, "gutterY": 12 }
   },
 
   "groups": [
@@ -27,24 +26,24 @@
     },
 
     {
-      "id": "output",
-      "role": "output",
-      "header": { "text": "Output", "styleRole": "output", "alignment": "leading" },
-      "anchor": { "gridX": 8, "gridY": 1, "spanX": 2, "spanY": 3, "alignX": "leading", "alignY": "top" },
+      "id": "water",
+      "role": "input",
+      "header": { "text": "Water", "styleRole": "input", "alignment": "leading" },
+      "anchor": { "gridX": 2, "gridY": 1, "spanX": 2, "spanY": 3, "alignX": "leading", "alignY": "top" },
       "content": {
         "slots": [
-          { "id": "output.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": ["ore", "stone", "coal"] }, "renders": { "sizeDp": 56, "style": "square", "overlay": "count" } }
+          { "id": "water.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": [] }, "renders": { "sizeDp": 56, "style": "square", "overlay": "count" } }
         ],
-        "stateText": { "mode": "auto", "empty": "(idle)", "nonEmpty": "" }
+        "stateText": { "mode": "auto", "empty": "(fluid input)", "nonEmpty": "" }
       }
     }
   ],
 
   "process": {
-    "id": "mining",
-    "label": { "text": "Mining", "styleRole": "process", "alignment": "center" },
-    "anchor": { "gridX": 4, "gridY": 1, "spanX": 4, "spanY": 3, "alignX": "fill", "alignY": "fill" },
-    "progress": { "style": "bar", "bindTo": "recipeProgress", "showPercent": false },
+    "id": "heating",
+    "label": { "text": "Heating", "styleRole": "process", "alignment": "center" },
+    "anchor": { "gridX": 4, "gridY": 1, "spanX": 6, "spanY": 3, "alignX": "fill", "alignY": "fill" },
+    "progress": { "style": "bar", "bindTo": "fuelBurn", "showPercent": false },
     "operators": { "showFlowGlyphs": false, "glyphStyleRole": "muted" }
   },
 

@@ -217,6 +217,8 @@
 		0DFBFF662F25601F005489BF /* assembler.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5B2F25601E005489BF /* assembler.json */; };
 		0DFBFF672F25601F005489BF /* furnace_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5E2F25601E005489BF /* furnace_schema.json */; };
 		0DFBFF702F25601F005489BF /* mining_drill_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */; };
+		0DFBFF712F25601F005489BF /* assembler_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF6F2F25601E005489BF /* assembler_schema.json */; };
+		0DFBFF722F25601F005489BF /* boiler_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF732F25601E005489BF /* boiler_schema.json */; };
 		0DFBFF682F25601F005489BF /* rocket_silo.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF622F25601E005489BF /* rocket_silo.json */; };
 		0DFBFF692F25601F005489BF /* cross_pipe.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5C2F25601E005489BF /* cross_pipe.png */; };
 		0DFBFF6A2F25601F005489BF /* mining_drill.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF612F25601E005489BF /* mining_drill.json */; };
@@ -622,6 +624,8 @@
 		0DFBFF5F2F25601E005489BF /* burner_miner.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = burner_miner.json; sourceTree = "<group>"; };
 		0DFBFF612F25601E005489BF /* mining_drill.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = mining_drill.json; sourceTree = "<group>"; };
 		0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = mining_drill_schema.json; sourceTree = "<group>"; };
+		0DFBFF6F2F25601E005489BF /* assembler_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = assembler_schema.json; sourceTree = "<group>"; };
+		0DFBFF732F25601E005489BF /* boiler_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = boiler_schema.json; sourceTree = "<group>"; };
 		0DFBFF622F25601E005489BF /* rocket_silo.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = rocket_silo.json; sourceTree = "<group>"; };
 		0DFBFF632F25601E005489BF /* starting_items.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = starting_items.json; sourceTree = "<group>"; };
 		0DFBFF642F25601E005489BF /* tee_pipe.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = tee_pipe.png; sourceTree = "<group>"; };
@@ -850,6 +854,8 @@
 				0DFBFF602F25601E005489BF /* machine_ui_configs */,
 				0DFBFF612F25601E005489BF /* mining_drill.json */,
 				0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */,
+				0DFBFF6F2F25601E005489BF /* assembler_schema.json */,
+				0DFBFF732F25601E005489BF /* boiler_schema.json */,
 				0DFBFF622F25601E005489BF /* rocket_silo.json */,
 				0DFBFF632F25601E005489BF /* starting_items.json */,
 				0DFBFF642F25601E005489BF /* tee_pipe.png */,
@@ -1796,6 +1802,8 @@
 				0DFBFF662F25601F005489BF /* assembler.json in Resources */,
 				0DFBFF672F25601F005489BF /* furnace_schema.json in Resources */,
 				0DFBFF702F25601F005489BF /* mining_drill_schema.json in Resources */,
+				0DFBFF712F25601F005489BF /* assembler_schema.json in Resources */,
+				0DFBFF722F25601F005489BF /* boiler_schema.json in Resources */,
 				0DFBFF682F25601F005489BF /* rocket_silo.json in Resources */,
 				0DFBFF692F25601F005489BF /* cross_pipe.png in Resources */,
 				0DFBFF6A2F25601F005489BF /* mining_drill.json in Resources */,
