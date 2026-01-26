@@ -183,6 +183,26 @@ final class CombatSystem: System {
             guard var position = world.get(PositionComponent.self, for: entity),
                   let velocity = world.get(VelocityComponent.self, for: entity) else { return }
             
+            // Simple check: if projectile has been alive for a while and target is still very far, despawn
+            // This prevents projectiles from chasing targets across the entire map
+            // Projectiles at speed 30 can travel ~150 units in 5 seconds
+            // If we're past 3 seconds and target is still >200 units away, give up
+            let maxReasonableDistance: Float = 200.0
+            if proj.lifetime < 2.0 {  // Less than 2 seconds left
+                if let target = proj.target,
+                   let targetPos = world.get(PositionComponent.self, for: target) {
+                    let distanceToTarget = position.worldPosition.distance(to: targetPos.worldPosition)
+                    if distanceToTarget > maxReasonableDistance {
+                        print("Projectile \(entity) target too far (\(distanceToTarget) > \(maxReasonableDistance)) with low lifetime, despawning")
+                        if let chunk = chunkManager.getChunk(at: position.tilePosition) {
+                            chunk.removeEntity(entity)
+                        }
+                        world.despawnDeferred(entity)
+                        return
+                    }
+                }
+            }
+            
             // Move projectile
             let oldTilePos = position.tilePosition
             position.offset = position.offset + velocity.velocity * deltaTime
@@ -217,9 +237,39 @@ final class CombatSystem: System {
             }
             
             // Check for collision with target
-            if let target = proj.target,
-               let targetPos = world.get(PositionComponent.self, for: target) {
+            if let target = proj.target {
+                // Check if target is still valid (alive and has position)
+                guard world.isAlive(target),
+                      let targetHealth = world.get(HealthComponent.self, for: target),
+                      !targetHealth.isDead,
+                      let targetPos = world.get(PositionComponent.self, for: target) else {
+                    // Target is dead or invalid, despawn projectile
+                    print("Projectile \(entity) target \(target) is dead or invalid, despawning")
+                    if let position = world.get(PositionComponent.self, for: entity),
+                       let chunk = chunkManager.getChunk(at: position.tilePosition) {
+                        chunk.removeEntity(entity)
+                    }
+                    world.despawnDeferred(entity)
+                    return
+                }
+                
                 let distance = position.worldPosition.distance(to: targetPos.worldPosition)
+                
+                // Check if target is too far away (beyond reasonable travel distance)
+                // Projectile speed is 30 units/sec, so in 5 seconds it can travel 150 units
+                // If target is more than 200 units away and we're past half lifetime, give up
+                let maxReasonableDistance: Float = 200.0
+                if distance > maxReasonableDistance && proj.lifetime < 2.5 {
+                    // Only log if distance is extremely far to avoid spam
+                    if distance > 1000.0 {
+                        print("Projectile \(entity) target \(target) extremely far (\(distance) > \(maxReasonableDistance)), despawning")
+                    }
+                    if let chunk = chunkManager.getChunk(at: position.tilePosition) {
+                        chunk.removeEntity(entity)
+                    }
+                    world.despawnDeferred(entity)
+                    return
+                }
                 
                 if distance < 0.5 {
                     // Hit target
@@ -230,15 +280,18 @@ final class CombatSystem: System {
                     }
                     world.despawnDeferred(entity)
                     return
-                } else {
-                    // Debug: log when projectile is tracking target but not close enough
-                    if proj.lifetime > 4.5 {  // Only log early in lifetime to avoid spam
-                        print("Projectile \(entity) tracking target \(target), distance: \(distance), lifetime: \(proj.lifetime)")
-                    }
                 }
-            } else if proj.target != nil {
-                // Target was set but no longer exists or has no position
-                print("Projectile \(entity) lost target (target entity exists: \(proj.target != nil), has position: \(world.get(PositionComponent.self, for: proj.target!) != nil))")
+            } else {
+                // No target - despawn after a short time if no nearby targets
+                // This handles projectiles that lost their target
+                if proj.lifetime < 1.0 {
+                    // Silently despawn projectiles without targets (reduces log spam)
+                    if let chunk = chunkManager.getChunk(at: position.tilePosition) {
+                        chunk.removeEntity(entity)
+                    }
+                    world.despawnDeferred(entity)
+                    return
+                }
             }
             
             // Check for collision with any valid target

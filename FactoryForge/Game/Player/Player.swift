@@ -511,12 +511,17 @@ final class Player {
         world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
         world.add(VelocityComponent(velocity: direction * 30), to: projectile)
 
-        var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30)
+        // Calculate lifetime based on distance to target (ensure projectile can reach target)
+        // Add some buffer (1.5x) to account for target movement
+        let timeToReach = distance / 30.0  // 30 is projectile speed
+        let projectileLifetime = max(5.0, timeToReach * 1.5)  // At least 5 seconds, or 1.5x time to reach
+        
+        var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30, lifetime: projectileLifetime)
         projectileComp.target = enemy
         projectileComp.source = entity
         world.add(projectileComp, to: projectile)
 
-        print("Player attackEnemy: projectile created with ID \(projectile), targeting enemy \(enemy)")
+        print("Player attackEnemy: projectile created with ID \(projectile), targeting enemy \(enemy), lifetime: \(projectileLifetime)")
 
         // Set attack cooldown
         attackCooldown = attackCooldownTime
@@ -620,12 +625,18 @@ final class Player {
         world.add(SpriteComponent(textureId: getBulletSprite(for: direction), size: Vector2(0.2, 0.2), layer: .projectile, centered: true), to: projectile)
         world.add(VelocityComponent(velocity: direction * 30), to: projectile)
 
-        var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30)
+        // Calculate lifetime based on distance to target (ensure projectile can reach target)
+        // Add some buffer (1.5x) to account for target movement
+        let distanceToTarget = playerPos.worldPosition.distance(to: targetPosition)
+        let timeToReach = distanceToTarget / 30.0  // 30 is projectile speed
+        let projectileLifetime = max(5.0, timeToReach * 1.5)  // At least 5 seconds, or 1.5x time to reach
+        
+        var projectileComp = ProjectileComponent(damage: playerDamage, speed: 30, lifetime: projectileLifetime)
         projectileComp.target = enemy
         projectileComp.source = entity
         world.add(projectileComp, to: projectile)
 
-        print("Player attack: projectile created with ID \(projectile), targeting enemy \(enemy)")
+        print("Player attack: projectile created with ID \(projectile), targeting enemy \(enemy), lifetime: \(projectileLifetime)")
         
         // Set attack cooldown
         attackCooldown = attackCooldownTime
