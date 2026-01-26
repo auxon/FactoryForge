@@ -408,6 +408,12 @@ final class GameNetworkManager {
             return try await getMachineUIConfig(parameters)
         case "list_machine_ui_configs":
             return try await listMachineUIConfigs(parameters)
+        case "reload_machine_ui_schema":
+            return try await reloadMachineUISchema(parameters)
+        case "test_machine_ui_schema":
+            return try await testMachineUISchema(parameters)
+        case "get_machine_ui_state":
+            return try await getMachineUIState(parameters)
         case "get_starting_items_config":
             return try await getStartingItemsConfig(parameters)
         case "update_starting_items_config":
@@ -1872,6 +1878,123 @@ final class GameNetworkManager {
         } else {
             throw NSError(domain: "GameNetworkManager", code: 31, userInfo: [NSLocalizedDescriptionKey: "UI system not available"])
         }
+    }
+
+    func reloadMachineUISchema(_ parameters: [String: Any]) async throws -> Any {
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        let machineType = parameters["machineType"] as? String
+
+        // Reload schema (must be done on main thread)
+        let result: [String: Any] = try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "Self is nil"]))
+                    return
+                }
+
+                guard let gameLoop = self.gameLoop else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"]))
+                    return
+                }
+
+                if let machineUI = gameLoop.uiSystem?.getMachineUI() {
+                    do {
+                        try machineUI.reloadSchema(for: machineType)
+                        let message = machineType != nil 
+                            ? "Reloaded schema for machine type '\(machineType!)'"
+                            : "Reloaded all machine UI schemas"
+                        self.sendDebugLog("reloadMachineUISchema: \(message)")
+                        continuation.resume(returning: [
+                            "success": true,
+                            "machineType": machineType ?? "all",
+                            "message": message
+                        ])
+                    } catch {
+                        continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 32, userInfo: [NSLocalizedDescriptionKey: "Failed to reload schema: \(error.localizedDescription)"]))
+                    }
+                } else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "UI system not available"]))
+                }
+            }
+        }
+
+        return result
+    }
+
+    func testMachineUISchema(_ parameters: [String: Any]) async throws -> Any {
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        guard let machineType = parameters["machineType"] as? String else {
+            throw NSError(domain: "GameNetworkManager", code: 33, userInfo: [NSLocalizedDescriptionKey: "Missing machineType parameter"])
+        }
+
+        // Test schema (must be done on main thread)
+        let result: [String: Any] = try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "Self is nil"]))
+                    return
+                }
+
+                guard let gameLoop = self.gameLoop else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"]))
+                    return
+                }
+
+                if let machineUI = gameLoop.uiSystem?.getMachineUI() {
+                    let testResult = machineUI.testSchema(for: machineType)
+                    self.sendDebugLog("testMachineUISchema: Tested schema for \(machineType) - success: \(testResult["success"] as? Bool ?? false)")
+                    continuation.resume(returning: testResult)
+                } else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "UI system not available"]))
+                }
+            }
+        }
+
+        return result
+    }
+
+    func getMachineUIState(_ parameters: [String: Any]) async throws -> Any {
+        guard let gameLoop = self.gameLoop else {
+            throw NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"])
+        }
+
+        // Get state (must be done on main thread)
+        let result: [String: Any] = try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "Self is nil"]))
+                    return
+                }
+
+                guard let gameLoop = self.gameLoop else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "Game not initialized"]))
+                    return
+                }
+
+                if let machineUI = gameLoop.uiSystem?.getMachineUI() {
+                    var state = machineUI.getState()
+                    
+                    // Add recent debug logs related to MachineUI
+                    let recentLogs = self.debugLogs.suffix(20).filter { log in
+                        log.contains("MachineUI") || log.contains("schema") || log.contains("Schema")
+                    }
+                    state["recentLogs"] = Array(recentLogs)
+                    
+                    self.sendDebugLog("getMachineUIState: Retrieved state for MachineUI")
+                    continuation.resume(returning: state)
+                } else {
+                    continuation.resume(throwing: NSError(domain: "GameNetworkManager", code: 27, userInfo: [NSLocalizedDescriptionKey: "UI system not available"]))
+                }
+            }
+        }
+
+        return result
     }
 
     // MARK: - Starting Items Configuration Methods

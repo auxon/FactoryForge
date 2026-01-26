@@ -15,9 +15,6 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     private var gameLoop: GameLoop?
     private var inputManager: InputManager?
     var uiSystem: UISystem?
-    private var is3DMode: Bool = false
-    private var viewModeToggleButton: UIKit.UIButton?
-
     // Inventory UI reference for gesture forwarding
     private weak var inventoryUI: InventoryUI?
     
@@ -42,6 +39,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
     // Splash screen
     private var splashImageView: UIImageView!
     private var splashTimer: Timer?
+
+    /// When set, startNewGame runs PvAI (spawn human + AI) before chunks/camera.
+    private var pendingPvAIDifficulty: AIDifficulty?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -65,10 +65,9 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         setupNotifications()
         setupTooltip()
         setupGameOverUI()
-        setupViewModeToggle()
         applyViewMode()
 
-        // Ensure splash screen is on top after all views are added
+        // Ensure splash screen on top after all views are added
         if let splash = splashImageView {
             view.bringSubviewToFront(splash)
         }
@@ -407,6 +406,41 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         helpMenu.open()
     }
 
+    private func showLobbyMenu() {
+        guard let uiSystem = uiSystem else { return }
+
+        uiSystem.openPanel(.lobbyMenu)
+
+        let lobbyMenu = uiSystem.getLobbyMenu()
+        lobbyMenu.onBackTapped = { [weak self] in
+            guard let self = self else { return }
+            self.uiSystem?.closeAllPanels()
+            self.uiSystem?.openPanel(.loadingMenu)
+            self.uiSystem?.getLoadingMenu().setupLabels(in: self.view)
+            self.uiSystem?.getLoadingMenu().bringActionButtonsToFront()
+            self.metalView?.setNeedsDisplay()
+        }
+
+        lobbyMenu.setMatchStartHandler { [weak self] config, participants in
+            self?.startMatchFromLobby(config: config, participants: participants)
+        }
+
+        lobbyMenu.setupLabels(in: view)
+    }
+
+    private func startMatchFromLobby(config: MatchConfig, participants: [LobbySlot]) {
+        // Close lobby and start match (PvP flow)
+        uiSystem?.closeAllPanels()
+        // TODO: Create GameLoop from config, spawn players via SpawnSystem, support multiple players.
+        // For now, start a simple 1v1 vs AI game using PvAI flow.
+        startPvAIGame()
+    }
+
+    private func startPvAIGame() {
+        pendingPvAIDifficulty = .medium
+        startNewGame()
+    }
+
     private func showDocumentViewer(documentName: String) {
         guard let uiSystem = uiSystem else { return }
 
@@ -528,53 +562,13 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         print("GameViewController: 3D systems set up successfully")
     }
 
-    private func setupViewModeToggle() {
-        let button = UIKit.UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle("2D", for: .normal)
-        button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
-        button.backgroundColor = UIColor(white: 0.1, alpha: 0.6)
-        button.layer.cornerRadius = 12
-        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 10, bottom: 6, right: 10)
-        button.addTarget(self, action: #selector(toggleViewMode), for: .touchUpInside)
-        view.addSubview(button)
-
-        NSLayoutConstraint.activate([
-            button.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            button.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12)
-        ])
-
-        viewModeToggleButton = button
-        view.bringSubviewToFront(button)
-    }
-
-    @objc private func toggleViewMode() {
-        is3DMode.toggle()
-        applyViewMode()
-    }
-
+    /// Ensure 2D mode is active (3D view hidden, 2D renderer does full game rendering).
     private func applyViewMode() {
-        let canUse3D = (renderer3D != nil && metalView3D != nil)
-        if !canUse3D {
-            is3DMode = false
-        }
-
-        let enable3D = is3DMode && canUse3D
-        print("GameViewController: applyViewMode - enable3D: \(enable3D), canUse3D: \(canUse3D)")
-        metalView3D?.isHidden = !enable3D
-        metalView3D?.isPaused = !enable3D
-
-        renderer?.renderMode = enable3D ? .uiOnly : .full
-        renderer?.shouldUpdateGameLoop = !enable3D
-        renderer3DDelegate?.shouldUpdateGameLoop = enable3D
-
-        viewModeToggleButton?.isHidden = !canUse3D
-        viewModeToggleButton?.setTitle(enable3D ? "2D" : "3D", for: .normal)
-        if let viewModeToggleButton = viewModeToggleButton {
-            view.bringSubviewToFront(viewModeToggleButton)
-        }
-
+        metalView3D?.isHidden = true
+        metalView3D?.isPaused = true
+        renderer?.renderMode = .full
+        renderer?.shouldUpdateGameLoop = true
+        renderer3DDelegate?.shouldUpdateGameLoop = false
         metalView?.setNeedsDisplay()
         metalView3D?.setNeedsDisplay()
     }
@@ -982,8 +976,17 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
             self?.showHelpMenu()
         }
 
+        loadingMenu.onPvAISelected = { [weak self] in
+            self?.startPvAIGame()
+        }
+
+        loadingMenu.onPvPSelected = { [weak self] in
+            self?.showLobbyMenu()
+        }
+
         // Setup UILabel overlays for save slot information
         loadingMenu.setupLabels(in: view)
+        loadingMenu.bringActionButtonsToFront()
 
         // Note: ResearchUI.setupLabels is called later in startNewGame/loadGame after gameLoop is created
 
@@ -1115,6 +1118,12 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         gameLoop?.saveSystem.startNewGameSession()
 
         gameLoop?.startReplayRecording()
+
+        // PvAI: spawn human + AI before loading chunks / camera
+        if let difficulty = pendingPvAIDifficulty {
+            pendingPvAIDifficulty = nil
+            gameLoop?.startPvAMatch(difficulty: difficulty)
+        }
 
         // Load initial chunks for new game (no save slot needed for new games)
         if let gameLoop = gameLoop, let player = gameLoop.player {
@@ -1374,9 +1383,11 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
                 inventoryUI.onMachineInputCompleted = { [weak self] in
                     guard let self = self else { return }
                     print("GameViewController: Machine input completed, reopening machine UI")
-                    // Reopen machine UI after inventory input is completed
-                    self.uiSystem?.openPanel(.machine)
-                    print("GameViewController: Called openPanel(.machine)")
+                    // Reopen via openMachineUI(for:) so setEntity + setupComponentsForEntity run.
+                    // openPanel(.machine) alone would leave currentSchema nil (cleared on close)
+                    // and we'd fall back to legacy layout.
+                    self.uiSystem?.openMachineUI(for: entity)
+                    print("GameViewController: Called openMachineUI(for: entity)")
                 }
                 self.uiSystem?.openPanel(.inventory)
             } else {
@@ -1659,6 +1670,7 @@ class GameViewController: UIViewController, UIGestureRecognizerDelegate {
         // Setup UIKit labels for the loading menu (needed when reopening after game)
         let loadingMenu = uiSystem?.getLoadingMenu()
         loadingMenu?.setupLabels(in: view)
+        loadingMenu?.bringActionButtonsToFront()
     }
     
     private func setupInput() {

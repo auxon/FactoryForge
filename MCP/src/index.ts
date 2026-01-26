@@ -399,6 +399,43 @@ class FactoryForgeMCPServer {
           },
         },
         {
+          name: 'reload_machine_ui_schema',
+          description: 'Reload a machine UI schema from the bundle at runtime. This allows you to iterate on schema JSON files without rebuilding the app. If machineType is provided, only that schema is reloaded. If omitted, all schemas are reloaded.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              machineType: {
+                type: 'string',
+                description: 'Machine type to reload (e.g., "furnace", "assembler"). If omitted, all schemas are reloaded.',
+                enum: ['furnace', 'assembler', 'mining_drill', 'rocket_silo', 'lab', 'generator'],
+              },
+            },
+          },
+        },
+        {
+          name: 'test_machine_ui_schema',
+          description: 'Test a machine UI schema by loading and validating it. Returns detailed feedback including validation errors, warnings, and test results. Use this to verify schema changes before deploying.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              machineType: {
+                type: 'string',
+                description: 'Machine type to test (e.g., "furnace", "assembler")',
+                enum: ['furnace', 'assembler', 'mining_drill', 'rocket_silo', 'lab', 'generator'],
+              },
+            },
+            required: ['machineType'],
+          },
+        },
+        {
+          name: 'get_machine_ui_state',
+          description: 'Get the current state of MachineUI including whether it\'s open, current schema info, errors, and recent logs. Use this to understand the current UI state for debugging.',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
           name: 'get_starting_items_config',
           description: 'Get the current starting items configuration',
           inputSchema: {
@@ -930,6 +967,33 @@ class FactoryForgeMCPServer {
             });
             return {
               content: [{ type: 'text', text: JSON.stringify(listUIResult, null, 2) }],
+            };
+
+          case 'reload_machine_ui_schema':
+            const reloadSchemaResult = this.gameController.executeCommand({
+              command: 'reload_machine_ui_schema',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(reloadSchemaResult, null, 2) }],
+            };
+
+          case 'test_machine_ui_schema':
+            const testSchemaResult = this.gameController.executeCommand({
+              command: 'test_machine_ui_schema',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(testSchemaResult, null, 2) }],
+            };
+
+          case 'get_machine_ui_state':
+            const getUIStateResult = this.gameController.executeCommand({
+              command: 'get_machine_ui_state',
+              parameters: args || {}
+            });
+            return {
+              content: [{ type: 'text', text: JSON.stringify(getUIStateResult, null, 2) }],
             };
 
           case 'get_starting_items_config':

@@ -1,4 +1,4 @@
-cd /Users/rah/FactoryForge && xcodebuild -project FactoryForge.xcodeproj -scheme FactoryForge -sdk iphonesimulator -configuration Debug CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO | tail -10{
+{
   "startingItems": [
     {
       "itemId": "iron-plate",
@@ -6,7 +6,7 @@ cd /Users/rah/FactoryForge && xcodebuild -project FactoryForge.xcodeproj -scheme
       "comment": "Iron plates for basic construction"
     },
     {
-      "itemId": "copper-plate", 
+      "itemId": "copper-plate",
       "count": 50,
       "comment": "Copper plates for electronics"
     },
@@ -29,6 +29,11 @@ cd /Users/rah/FactoryForge && xcodebuild -project FactoryForge.xcodeproj -scheme
       "itemId": "electronic-circuit",
       "count": 20,
       "comment": "Circuits for advanced machines"
+    },
+    {
+      "itemId": "firearm-magazine",
+      "count": 50,
+      "comment": "Ammunition for early-game biter defense"
     }
   ]
 }

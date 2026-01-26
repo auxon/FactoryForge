@@ -224,3 +224,84 @@ This gives you multiple levels of debugging:
 - **Application logs** - High-level game events and state
 - **LLDB debugging** - Low-level code inspection and control
 - **Network monitoring** - Communication between components
+
+## Fast Iteration on MachineUI Schemas
+
+The debugging system includes a hot-reload feature for MachineUI schemas, allowing you to iterate on UI layouts without rebuilding the app.
+
+### Quick Start
+
+1. **Edit a schema file** (e.g., `FactoryForge/Assets/furnace_schema.json`)
+2. **Rebuild the app** (schemas are loaded from the bundle)
+3. **Reload the schema at runtime** using the MCP tool:
+
+```javascript
+// Reload a specific schema
+reload_machine_ui_schema({ machineType: "furnace" })
+
+// Or reload all schemas
+reload_machine_ui_schema({})
+```
+
+### Workflow
+
+1. **Make changes** to a schema JSON file (e.g., `furnace_schema.json`)
+2. **Rebuild the app** in Xcode (Cmd+B) - this updates the bundle
+3. **Open the machine UI** in-game (or use `open_machine_ui` command)
+4. **Reload the schema** using the MCP tool - the UI will refresh immediately
+
+### Example: Iterating on Furnace UI
+
+```javascript
+// 1. Open the furnace UI
+open_machine_ui({ x: 10, y: 10 })
+
+// 2. Edit FactoryForge/Assets/furnace_schema.json
+// (change colors, layout, slot positions, etc.)
+
+// 3. Rebuild in Xcode (Cmd+B)
+
+// 4. Reload the schema
+reload_machine_ui_schema({ machineType: "furnace" })
+
+// The UI will immediately reflect your changes!
+```
+
+### Available Machine Types
+
+- `furnace` - Furnace machines
+- `assembler` - Assembly machines
+- `mining_drill` - Mining drills
+- `rocket_silo` - Rocket silos
+- `lab` - Research labs
+- `generator` - Power generators
+
+### Tips
+
+- **Keep the machine UI open** while iterating - it will refresh automatically when you reload
+- **Use `update_machine_ui_config`** to push schema changes directly without rebuilding (for testing)
+- **Check debug logs** to see schema loading messages: `get_debug_logs()`
+- **Schema files** are in `FactoryForge/Assets/*_schema.json`
+
+### Automated Testing and LLM-Driven Fixes
+
+For automated testing and LLM-driven fix workflows, see `MACHINE_UI_AUTOMATED_TESTING.md`.
+
+**Quick commands:**
+```bash
+# Test a schema
+./test-machine-ui-schema.sh test furnace
+
+# Generate fix prompt for LLM
+python3 automate-machine-ui-fixes.py fix furnace
+
+# Verify a fix
+python3 automate-machine-ui-fixes.py verify furnace
+```
+
+The automated system:
+- Tests schemas and captures errors
+- Generates LLM-friendly feedback reports
+- Provides structured fix prompts
+- Automatically verifies fixes
+- Reloads schemas in the running app

@@ -23,23 +23,37 @@ class MachineUILayoutEngine {
     }
 
     private func setupGridGuides() {
+        // Calculate available width and height using constraints (not bounds)
+        let availableWidth = rootView.widthAnchor
+        let availableHeight = rootView.heightAnchor
+        
         // Create column guides
         for i in 0..<schema.layout.grid.columns {
             let guide = UILayoutGuide()
             rootView.addLayoutGuide(guide)
             columnGuides.append(guide)
 
-            // Position guide horizontally
-            let multiplier = CGFloat(i) / CGFloat(schema.layout.grid.columns)
-            guide.leadingAnchor.constraint(
-                equalTo: rootView.leadingAnchor,
-                constant: schema.layout.safeArea.left + schema.layout.padding.x + (multiplier * (rootView.bounds.width - schema.layout.safeArea.left - schema.layout.safeArea.right - 2 * schema.layout.padding.x))
-            ).isActive = true
+            // Position guide horizontally using constraints
+            if i == 0 {
+                // First column starts after safe area and padding
+                guide.leadingAnchor.constraint(
+                    equalTo: rootView.leadingAnchor,
+                    constant: schema.layout.safeArea.left + schema.layout.padding.x
+                ).isActive = true
+            } else {
+                // Subsequent columns follow the previous one with gutter spacing
+                let prevGuide = columnGuides[i - 1]
+                guide.leadingAnchor.constraint(
+                    equalTo: prevGuide.trailingAnchor,
+                    constant: CGFloat(schema.layout.grid.gutterX)
+                ).isActive = true
+            }
 
+            // Each column gets equal width (accounting for gutters)
             guide.widthAnchor.constraint(
-                equalTo: rootView.widthAnchor,
+                equalTo: availableWidth,
                 multiplier: 1.0 / CGFloat(schema.layout.grid.columns),
-                constant: -CGFloat(schema.layout.grid.gutterX)
+                constant: -(CGFloat(schema.layout.grid.gutterX) * (CGFloat(schema.layout.grid.columns - 1) / CGFloat(schema.layout.grid.columns)))
             ).isActive = true
         }
 
@@ -49,17 +63,27 @@ class MachineUILayoutEngine {
             rootView.addLayoutGuide(guide)
             rowGuides.append(guide)
 
-            // Position guide vertically
-            let multiplier = CGFloat(i) / CGFloat(schema.layout.grid.rows)
-            guide.topAnchor.constraint(
-                equalTo: rootView.topAnchor,
-                constant: schema.layout.safeArea.top + schema.layout.padding.y + (multiplier * (rootView.bounds.height - schema.layout.safeArea.top - schema.layout.safeArea.bottom - 2 * schema.layout.padding.y))
-            ).isActive = true
+            // Position guide vertically using constraints
+            if i == 0 {
+                // First row starts after safe area and padding
+                guide.topAnchor.constraint(
+                    equalTo: rootView.topAnchor,
+                    constant: schema.layout.safeArea.top + schema.layout.padding.y
+                ).isActive = true
+            } else {
+                // Subsequent rows follow the previous one with gutter spacing
+                let prevGuide = rowGuides[i - 1]
+                guide.topAnchor.constraint(
+                    equalTo: prevGuide.bottomAnchor,
+                    constant: CGFloat(schema.layout.grid.gutterY)
+                ).isActive = true
+            }
 
+            // Each row gets equal height (accounting for gutters)
             guide.heightAnchor.constraint(
-                equalTo: rootView.heightAnchor,
+                equalTo: availableHeight,
                 multiplier: 1.0 / CGFloat(schema.layout.grid.rows),
-                constant: -CGFloat(schema.layout.grid.gutterY)
+                constant: -(CGFloat(schema.layout.grid.gutterY) * (CGFloat(schema.layout.grid.rows - 1) / CGFloat(schema.layout.grid.rows)))
             ).isActive = true
         }
     }
@@ -68,20 +92,59 @@ class MachineUILayoutEngine {
         // Position container using anchor
         let anchor = group.anchor
 
-        // Leading edge
-        let leadingGuide = columnGuides[anchor.gridX]
-        containerView.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor).isActive = true
-
         // Top edge
         let topGuide = rowGuides[anchor.gridY]
         containerView.topAnchor.constraint(equalTo: topGuide.topAnchor).isActive = true
 
         // Width (span multiple columns)
         if anchor.spanX > 1 {
+            // Spanning multiple columns
+            let leadingGuide = columnGuides[anchor.gridX]
             let trailingGuide = columnGuides[anchor.gridX + anchor.spanX - 1]
-            containerView.trailingAnchor.constraint(equalTo: trailingGuide.trailingAnchor).isActive = true
+            
+            // Handle horizontal alignment for spanning elements
+            switch anchor.alignX {
+            case .center:
+                // Center the container within the span
+                let spanCenterGuide = UILayoutGuide()
+                rootView.addLayoutGuide(spanCenterGuide)
+                spanCenterGuide.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor).isActive = true
+                spanCenterGuide.trailingAnchor.constraint(equalTo: trailingGuide.trailingAnchor).isActive = true
+                containerView.centerXAnchor.constraint(equalTo: spanCenterGuide.centerXAnchor).isActive = true
+                // Width should be less than or equal to span width to allow centering
+                containerView.widthAnchor.constraint(lessThanOrEqualTo: spanCenterGuide.widthAnchor).isActive = true
+                // Set a preferred width (~0.9× span width per spec)
+                containerView.widthAnchor.constraint(equalTo: spanCenterGuide.widthAnchor, multiplier: 0.9).priority = UILayoutPriority(750)
+            case .leading:
+                containerView.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor).isActive = true
+                containerView.trailingAnchor.constraint(equalTo: trailingGuide.trailingAnchor).isActive = true
+            case .trailing:
+                containerView.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor).isActive = true
+                containerView.trailingAnchor.constraint(equalTo: trailingGuide.trailingAnchor).isActive = true
+            case .fill:
+                containerView.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor).isActive = true
+                containerView.trailingAnchor.constraint(equalTo: trailingGuide.trailingAnchor).isActive = true
+            default:
+                containerView.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor).isActive = true
+                containerView.trailingAnchor.constraint(equalTo: trailingGuide.trailingAnchor).isActive = true
+            }
         } else {
-            containerView.widthAnchor.constraint(equalTo: leadingGuide.widthAnchor).isActive = true
+            // Single column - handle alignment
+            let leadingGuide = columnGuides[anchor.gridX]
+            switch anchor.alignX {
+            case .leading, .fill:
+                containerView.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor).isActive = true
+                containerView.widthAnchor.constraint(equalTo: leadingGuide.widthAnchor).isActive = true
+            case .center:
+                containerView.centerXAnchor.constraint(equalTo: leadingGuide.centerXAnchor).isActive = true
+                containerView.widthAnchor.constraint(equalTo: leadingGuide.widthAnchor).isActive = true
+            case .trailing:
+                containerView.trailingAnchor.constraint(equalTo: leadingGuide.trailingAnchor).isActive = true
+                containerView.widthAnchor.constraint(equalTo: leadingGuide.widthAnchor).isActive = true
+            default:
+                containerView.leadingAnchor.constraint(equalTo: leadingGuide.leadingAnchor).isActive = true
+                containerView.widthAnchor.constraint(equalTo: leadingGuide.widthAnchor).isActive = true
+            }
         }
 
         // Height (span multiple rows)
@@ -92,29 +155,47 @@ class MachineUILayoutEngine {
             containerView.heightAnchor.constraint(equalTo: topGuide.heightAnchor).isActive = true
         }
 
-        // Apply alignment within spanned area
-        applyAnchorAlignment(anchor, to: containerView)
+        // Apply vertical alignment for single-row items
+        if anchor.spanY == 1 && anchor.spanX == 1 {
+            applyAnchorAlignment(anchor, to: containerView)
+        }
     }
 
     private func applyAnchorAlignment(_ anchor: Anchor, to view: UIView) {
         // Horizontal alignment
         switch anchor.alignX {
         case .leading:
-            // Already positioned at leading edge
+            // Already positioned at leading edge by layoutGroup
             break
         case .center:
             // Center within spanned columns
+            // Only add centerX constraint if we're not already constrained by leading/trailing
+            // When spanning, leading/trailing are already set, so we need to center within that span
             if anchor.spanX > 1 {
+                // Create a container guide that spans the columns, then center within it
                 let startGuide = columnGuides[anchor.gridX]
-                _ = columnGuides[anchor.gridX + anchor.spanX - 1] // endGuide not used in simplified centering
-                view.centerXAnchor.constraint(equalTo: startGuide.centerXAnchor).isActive = true
-                // Note: This is simplified - real centering would need more complex logic
+                let endGuide = columnGuides[anchor.gridX + anchor.spanX - 1]
+                // Center between start and end guides
+                view.centerXAnchor.constraint(equalTo: startGuide.leadingAnchor, constant: (endGuide.trailingAnchor.constraint(equalTo: startGuide.leadingAnchor).constant) / 2).isActive = false
+                // Better approach: center relative to the midpoint of the span
+                let midX = NSLayoutConstraint(item: view, attribute: .centerX, relatedBy: .equal, toItem: startGuide, attribute: .leading, multiplier: 1.0, constant: 0)
+                midX.isActive = false
+                // Actually, when spanning, the view already fills the span. For center alignment with span,
+                // we should remove the leading/trailing constraints and use centerX + width instead.
+                // But that's complex. For now, just don't add centerX when spanning - the view already fills correctly.
+                // The alignment is more about content within the view, not the view itself.
+            } else {
+                // Single column - center within it
+                let guide = columnGuides[anchor.gridX]
+                view.centerXAnchor.constraint(equalTo: guide.centerXAnchor).isActive = true
             }
         case .trailing:
-            if anchor.spanX > 1 {
-                let endGuide = columnGuides[anchor.gridX + anchor.spanX - 1]
-                view.trailingAnchor.constraint(equalTo: endGuide.trailingAnchor).isActive = true
+            // When spanning, trailing is already set. For single column, adjust.
+            if anchor.spanX == 1 {
+                let guide = columnGuides[anchor.gridX]
+                view.trailingAnchor.constraint(equalTo: guide.trailingAnchor).isActive = true
             }
+            // For span > 1, trailing is already set by layoutGroup
         case .fill:
             // Already fills the span
             break
@@ -128,16 +209,19 @@ class MachineUILayoutEngine {
             // Already positioned at top edge
             break
         case .center:
-            if anchor.spanY > 1 {
-                let startGuide = rowGuides[anchor.gridY]
-                _ = rowGuides[anchor.gridY + anchor.spanY - 1] // endGuide not used in simplified centering
-                view.centerYAnchor.constraint(equalTo: startGuide.centerYAnchor).isActive = true
+            // Only center if not spanning (when spanning, top/bottom are already set)
+            if anchor.spanY == 1 {
+                let guide = rowGuides[anchor.gridY]
+                view.centerYAnchor.constraint(equalTo: guide.centerYAnchor).isActive = true
             }
+            // For span > 1, top/bottom are already set by layoutGroup
         case .bottom:
-            if anchor.spanY > 1 {
-                let endGuide = rowGuides[anchor.gridY + anchor.spanY - 1]
-                view.bottomAnchor.constraint(equalTo: endGuide.bottomAnchor).isActive = true
+            // When spanning, bottom is already set. For single row, adjust.
+            if anchor.spanY == 1 {
+                let guide = rowGuides[anchor.gridY]
+                view.bottomAnchor.constraint(equalTo: guide.bottomAnchor).isActive = true
             }
+            // For span > 1, bottom is already set by layoutGroup
         case .fill:
             // Already fills the span
             break
@@ -196,15 +280,33 @@ class MachineUILayoutEngine {
     }
 }
 
+// MARK: - Schema UI References
+struct SchemaUIReferences {
+    // Group references: groupId -> (container, slotViews, stateLabel)
+    var groupViews: [String: (container: UIView, slotViews: [UIView], stateLabel: UILabel?)] = [:]
+    
+    // Process references
+    var processContainer: UIView?
+    var processProgressBar: UIProgressView?
+    var processLabel: UILabel?
+    /// State label: idle / working / blocked (no fuel, no ore, etc.)
+    var processStateLabel: UILabel?
+    
+    // Recipes panel references
+    var recipesContainer: UIView?
+    var recipesGrid: UIView?
+}
+
 // MARK: - Layout Builder
 class MachineUIBuilder {
     private let schema: MachineUISchema
+    var references = SchemaUIReferences()
 
     init(schema: MachineUISchema) {
         self.schema = schema
     }
 
-    func build(in rootView: UIView) -> UIView {
+    func build(in rootView: UIView) -> SchemaUIReferences {
         let layoutEngine = MachineUILayoutEngine(schema: schema, rootView: rootView)
 
         // Validate invariants first
@@ -212,14 +314,17 @@ class MachineUIBuilder {
 
         // Build groups
         for group in schema.groups {
-            let groupContainer = buildGroup(group, style: schema.style)
+            let (groupContainer, slotViews, stateLabel) = buildGroup(group, style: schema.style)
             rootView.addSubview(groupContainer)
             layoutEngine.layoutGroup(group, containerView: groupContainer)
+            
+            // Store references
+            references.groupViews[group.id] = (groupContainer, slotViews, stateLabel)
         }
 
         // Build process if present
         if let process = schema.process {
-            let processContainer = buildProcess(process, style: schema.style)
+            let (processContainer, processProgressBar, processLabel, processStateLabel) = buildProcess(process, style: schema.style)
             rootView.addSubview(processContainer)
             layoutEngine.layoutGroup(Group(
                 id: process.id,
@@ -229,11 +334,16 @@ class MachineUIBuilder {
                 content: Group.GroupContent(slots: [], stateText: nil as StateText?),
                 chrome: nil
             ), containerView: processContainer)
+            
+            references.processContainer = processContainer
+            references.processProgressBar = processProgressBar
+            references.processLabel = processLabel
+            references.processStateLabel = processStateLabel
         }
 
         // Build recipes panel if present
         if let recipes = schema.recipes {
-            let recipesContainer = buildRecipesPanel(recipes, style: schema.style)
+            let (recipesContainer, recipesGrid) = buildRecipesPanel(recipes, style: schema.style)
             rootView.addSubview(recipesContainer)
             layoutEngine.layoutGroup(Group(
                 id: "recipes",
@@ -243,20 +353,26 @@ class MachineUIBuilder {
                 content: Group.GroupContent(slots: [], stateText: nil as StateText?),
                 chrome: nil
             ), containerView: recipesContainer)
+            
+            // Store references
+            references.recipesContainer = recipesContainer
+            references.recipesGrid = recipesGrid
         }
 
-        return rootView
+        return references
     }
 
-    private func buildGroup(_ group: Group, style: Style) -> UIView {
+    private func buildGroup(_ group: Group, style: Style) -> (UIView, [UIView], UILabel?) {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
 
         // Apply chrome styling - make containers visually distinct
-        container.backgroundColor = UIColor(hex: "#1a1a1a")?.withAlphaComponent(0.3) // Subtle background
-        container.layer.borderWidth = 1.0
-        container.layer.borderColor = UIColor(hex: "#333333")?.cgColor
+        // Use more visible background for debugging
+        container.backgroundColor = UIColor(hex: "#1a1a1a")?.withAlphaComponent(0.6) // More visible background
+        container.layer.borderWidth = 2.0 // Thicker border for visibility
+        container.layer.borderColor = UIColor(hex: "#666666")?.cgColor // Lighter border
         container.layer.cornerRadius = 6.0
+        container.isHidden = false // Ensure visible
 
         // Apply custom chrome if specified
         if let chrome = group.chrome {
@@ -281,7 +397,7 @@ class MachineUIBuilder {
         headerLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -4).isActive = true
 
         // Build slots container
-        let slotsContainer = buildSlotsContainer(group.content.slots, style: style)
+        let (slotsContainer, slotViews) = buildSlotsContainer(group.content.slots, style: style)
         container.addSubview(slotsContainer)
 
         // Position slots below header
@@ -290,21 +406,22 @@ class MachineUIBuilder {
         slotsContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -4).isActive = true
 
         // Build and add state text if present
+        var stateLabel: UILabel? = nil
         if let stateText = group.content.stateText {
-            let stateLabel = buildStateLabel(stateText, style: style)
-            container.addSubview(stateLabel)
+            stateLabel = buildStateLabel(stateText, style: style)
+            container.addSubview(stateLabel!)
 
             // Position state text below slots
-            stateLabel.topAnchor.constraint(equalTo: slotsContainer.bottomAnchor, constant: 4).isActive = true
-            stateLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4).isActive = true
-            stateLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -4).isActive = true
-            stateLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4).isActive = true
+            stateLabel!.topAnchor.constraint(equalTo: slotsContainer.bottomAnchor, constant: 4).isActive = true
+            stateLabel!.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4).isActive = true
+            stateLabel!.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -4).isActive = true
+            stateLabel!.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4).isActive = true
         } else {
             // No state text, constrain slots to bottom
             slotsContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4).isActive = true
         }
 
-        return container
+        return (container, slotViews, stateLabel)
     }
 
     private func buildHeaderLabel(_ header: Group.GroupHeader, style: Style) -> UILabel {
@@ -336,62 +453,134 @@ class MachineUIBuilder {
         return label
     }
 
-    private func buildSlotsContainer(_ slots: [Slot], style: Style) -> UIView {
+    private func buildSlotsContainer(_ slots: [Slot], style: Style) -> (UIStackView, [UIView]) {
         let container = UIStackView()
         container.translatesAutoresizingMaskIntoConstraints = false
         container.axis = .horizontal
         container.spacing = 8
-        container.distribution = .fillEqually
+        // Use .fill instead of .fillEqually to respect slot intrinsic sizes
+        container.distribution = .fill
+        container.alignment = .center
 
+        var slotViews: [UIView] = []
         for slot in slots {
             let slotView = buildSlotView(slot, style: style)
             container.addArrangedSubview(slotView)
+            slotViews.append(slotView)
         }
 
-        return container
+        return (container, slotViews)
     }
 
     private func buildSlotView(_ slot: Slot, style: Style) -> UIView {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = .gray // Placeholder
-        view.layer.borderWidth = 1
-        view.layer.borderColor = UIColor.black.cgColor
+        // Create a button for the slot (similar to legacy slot buttons)
+        let button = UIKit.UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.backgroundColor = UIColor(red: 0.3, green: 0.3, blue: 0.4, alpha: 1.0)
+        button.layer.borderWidth = 1.0
+        button.layer.borderColor = UIColor.white.cgColor
+        button.layer.cornerRadius = 4.0
 
         // Size based on renders.sizeDp
-        view.widthAnchor.constraint(equalToConstant: CGFloat(slot.renders.sizeDp)).isActive = true
-        view.heightAnchor.constraint(equalToConstant: CGFloat(slot.renders.sizeDp)).isActive = true
+        // Use lower priority so it can shrink if container is too small
+        let widthConstraint = button.widthAnchor.constraint(equalToConstant: CGFloat(slot.renders.sizeDp))
+        widthConstraint.priority = UILayoutPriority(750) // Below required (1000) but high enough to be preferred
+        widthConstraint.isActive = true
+        
+        let heightConstraint = button.heightAnchor.constraint(equalToConstant: CGFloat(slot.renders.sizeDp))
+        heightConstraint.isActive = true
 
-        return view
+        // Add count label overlay if specified
+        if slot.renders.overlay == .count {
+            let countLabel = UILabel()
+            countLabel.translatesAutoresizingMaskIntoConstraints = false
+            countLabel.font = UIFont.systemFont(ofSize: 10, weight: .bold)
+            countLabel.textColor = .white
+            countLabel.textAlignment = .right
+            countLabel.backgroundColor = .clear
+            countLabel.text = ""
+            countLabel.isHidden = true
+            countLabel.tag = 999 // Tag to identify count labels
+            button.addSubview(countLabel)
+            
+            // Position in bottom-right corner
+            countLabel.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -2).isActive = true
+            countLabel.bottomAnchor.constraint(equalTo: button.bottomAnchor, constant: -2).isActive = true
+            
+            // Store slot ID for reference
+            button.accessibilityIdentifier = "slot_\(slot.id)"
+        }
+
+        return button
     }
 
-    private func buildProcess(_ process: Process, style: Style) -> UIView {
+    private func buildProcess(_ process: Process, style: Style) -> (UIView, UIProgressView, UILabel, UILabel) {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
+        container.clipsToBounds = false
+        // Process is a first-class entity: distinct background and border so it reads as "the smelting step"
+        container.backgroundColor = UIColor(hex: "#1a1a1a")?.withAlphaComponent(0.55)
+        container.layer.borderWidth = 1.5
+        container.layer.borderColor = (UIColor(hex: colorForStyleRole(.process, palette: style.palette))?.withAlphaComponent(0.8) ?? UIColor.orange).cgColor
+        container.layer.cornerRadius = 6.0
+        container.isHidden = false
 
-        // Build process label
+        // Process name label (e.g. "Smelting")
         let label = buildHeaderLabel(process.label, style: style)
+        label.setContentCompressionResistancePriority(.required, for: .vertical)
+        label.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         container.addSubview(label)
 
-        // Build progress bar
-        let progressBar = UIProgressView(progressViewStyle: .bar)
+        // Progress bar
+        let progressBar = UIProgressView(progressViewStyle: .default)
         progressBar.translatesAutoresizingMaskIntoConstraints = false
         progressBar.progressTintColor = UIColor(hex: colorForStyleRole(.process, palette: style.palette))
+        progressBar.trackTintColor = UIColor(hex: "#444444")
+        progressBar.progress = 0.0
+        progressBar.layer.cornerRadius = 4.0
+        progressBar.clipsToBounds = true
         container.addSubview(progressBar)
 
-        // Layout vertically
-        label.topAnchor.constraint(equalTo: container.topAnchor).isActive = true
+        let barHeight: CGFloat = (process.anchor.spanY >= 2) ? 40 : 28
+        progressBar.heightAnchor.constraint(equalToConstant: barHeight).isActive = true
+        progressBar.transform = CGAffineTransform.identity
+
+        // State label: idle / working / blocked (updated at runtime)
+        let stateLabel = UILabel()
+        stateLabel.translatesAutoresizingMaskIntoConstraints = false
+        stateLabel.text = "Idle"
+        stateLabel.font = .systemFont(ofSize: CGFloat(style.typography.bodySize), weight: .regular)
+        stateLabel.textColor = UIColor(hex: style.palette.mutedText)
+        stateLabel.textAlignment = .center
+        stateLabel.numberOfLines = 1
+        stateLabel.setContentCompressionResistancePriority(.required, for: .vertical)
+        stateLabel.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+        container.addSubview(stateLabel)
+
+        // Layout: name | 12pt | progress | 8pt | state | 12pt bottom
+        label.topAnchor.constraint(equalTo: container.topAnchor, constant: 10).isActive = true
         label.centerXAnchor.constraint(equalTo: container.centerXAnchor).isActive = true
+        label.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 8).isActive = true
+        label.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -8).isActive = true
 
-        progressBar.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 8).isActive = true
-        progressBar.leadingAnchor.constraint(equalTo: container.leadingAnchor).isActive = true
-        progressBar.trailingAnchor.constraint(equalTo: container.trailingAnchor).isActive = true
-        progressBar.bottomAnchor.constraint(equalTo: container.bottomAnchor).isActive = true
+        progressBar.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 10).isActive = true
+        progressBar.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12).isActive = true
+        progressBar.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12).isActive = true
 
-        return container
+        stateLabel.topAnchor.constraint(equalTo: progressBar.bottomAnchor, constant: 8).isActive = true
+        stateLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8).isActive = true
+        stateLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8).isActive = true
+        stateLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10).isActive = true
+
+        // Ensure process never collapses below label + bar + state (label ~20pt, gaps 10+10+8, bar 40, state ~16, bottom 10)
+        let minHeight = container.heightAnchor.constraint(greaterThanOrEqualToConstant: 104)
+        minHeight.priority = UILayoutPriority(999)
+        minHeight.isActive = true
+
+        return (container, progressBar, label, stateLabel)
     }
 
-    private func buildRecipesPanel(_ recipes: RecipesPanel, style: Style) -> UIView {
+    private func buildRecipesPanel(_ recipes: RecipesPanel, style: Style) -> (UIView, UIView) {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
         container.backgroundColor = UIColor(hex: "#2a2a2a")?.withAlphaComponent(0.5)
@@ -456,7 +645,7 @@ class MachineUIBuilder {
             }
         }
 
-        return container
+        return (container, recipesGrid)
     }
 
     private func colorForStyleRole(_ role: Group.GroupHeader.StyleRole, palette: Style.Palette) -> String {

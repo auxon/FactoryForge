@@ -21,6 +21,9 @@ final class LoadingMenu: UIPanel_Base {
     private var loadButtonLabel: UILabel?
     private var renameButtonLabel: UILabel?
     private var deleteButtonLabel: UILabel?
+    private var pvaiButtonLabel: UILabel?
+    private var pvpButtonLabel: UILabel?
+    private var multiplayerSectionLabel: UILabel?
 
     // Selected save slot
     private var selectedSaveSlot: String?
@@ -34,6 +37,8 @@ final class LoadingMenu: UIPanel_Base {
     var onAutoplayTapped: (() -> Void)? // Called when autoplay button is tapped
     var onHelpTapped: (() -> Void)? // Called when help button is tapped
     var onCloseTapped: (() -> Void)? // Called when close button (X) is tapped
+    var onPvAISelected: (() -> Void)? // Called when Play vs AI is tapped
+    var onPvPSelected: (() -> Void)? // Called when Play vs Players (lobby) is tapped
     
     init(screenSize: Vector2) {
         self.saveSystem = SaveSystem()
@@ -139,20 +144,20 @@ final class LoadingMenu: UIPanel_Base {
         setupActionButtons(hasScrollView: !slots.isEmpty)
 
         if slots.isEmpty {
-            // Setup help button label even when no slots
             setupHelpButtonLabel()
+            bringPvAIandPvPToFront()
             return
         }
 
         // Do not auto-load: wait for player to tap New, or select a slot and tap Load.
 
-        // Create scroll view for save slots
-        let scrollViewHeight: CGFloat = 300 // Fixed height for scrollable area
-        let scrollViewY = (parentView.bounds.height - scrollViewHeight) / 2 - 50 // Position above center
+        // Create scroll view for save slots (shorter to leave room for action buttons + PvAI/PvP below)
+        let scrollViewHeight: CGFloat = 180
+        let scrollViewTop: CGFloat = 80
         let scrollViewFrame = CGRect(
-            x: parentView.bounds.width * 0.1, // 10% margin on sides
-            y: scrollViewY,
-            width: parentView.bounds.width * 0.8, // 80% width
+            x: parentView.bounds.width * 0.1,
+            y: scrollViewTop,
+            width: parentView.bounds.width * 0.8,
             height: scrollViewHeight
         )
 
@@ -202,11 +207,9 @@ final class LoadingMenu: UIPanel_Base {
 
         scrollView.isHidden = !isOpen
 
-        // Reposition action buttons below the scroll view now that it exists
         repositionActionButtons()
-
-        // Setup help button label
         setupHelpButtonLabel()
+        bringPvAIandPvPToFront()
     }
 
     private func setupActionButtons(hasScrollView: Bool) {
@@ -219,13 +222,12 @@ final class LoadingMenu: UIPanel_Base {
         // Position buttons based on whether scroll view will exist
         let buttonsY: CGFloat
         if hasScrollView {
-            // Position below where scroll view will be (temporary positioning)
-            let scrollViewHeight: CGFloat = 300
-            let scrollViewY = (parentView.bounds.height - scrollViewHeight) / 2 - 50
-            buttonsY = scrollViewY + scrollViewHeight + 10 // Below scroll view with spacing
+            let scrollViewHeight: CGFloat = 180
+            let scrollViewTop: CGFloat = 80
+            let gapBelowScroll: CGFloat = 16
+            buttonsY = scrollViewTop + scrollViewHeight + gapBelowScroll
         } else {
-            // Center the buttons vertically when no scroll view exists
-            buttonsY = parentView.bounds.height / 2 + 50
+            buttonsY = parentView.bounds.height / 2 - 60
         }
 
         // New button
@@ -273,8 +275,51 @@ final class LoadingMenu: UIPanel_Base {
         let deleteTap = UITapGestureRecognizer(target: self, action: #selector(deleteButtonTapped))
         deleteButtonLabel?.addGestureRecognizer(deleteTap)
 
+        // Second row: Multiplayer section + PvAI and PvP
+        let row2Spacing: CGFloat = 12
+        let row2Y = buttonsY + buttonHeight + row2Spacing
+        let sectionLabel = UILabel(frame: CGRect(x: parentView.bounds.width * 0.1, y: row2Y - 20, width: 120, height: 18))
+        sectionLabel.text = "Multiplayer"
+        sectionLabel.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+        sectionLabel.textColor = UIColor(white: 0.7, alpha: 1)
+        sectionLabel.backgroundColor = .clear
+        parentView.addSubview(sectionLabel)
+        multiplayerSectionLabel = sectionLabel
+
+        let pvaiWidth: CGFloat = 100
+        let pvpWidth: CGFloat = 100
+        pvaiButtonLabel = createActionButton(
+            title: "Play vs AI",
+            frame: CGRect(x: parentView.bounds.width * 0.1, y: row2Y, width: pvaiWidth, height: buttonHeight),
+            parentView: parentView
+        )
+        let pvaiTap = UITapGestureRecognizer(target: self, action: #selector(pvaiButtonTapped))
+        pvaiButtonLabel?.addGestureRecognizer(pvaiTap)
+
+        pvpButtonLabel = createActionButton(
+            title: "PvP Lobby",
+            frame: CGRect(x: parentView.bounds.width * 0.1 + pvaiWidth + buttonSpacing, y: row2Y, width: pvpWidth, height: buttonHeight),
+            parentView: parentView
+        )
+        let pvpTap = UITapGestureRecognizer(target: self, action: #selector(pvpButtonTapped))
+        pvpButtonLabel?.addGestureRecognizer(pvpTap)
+
         // Initially disable action buttons (no selection)
         updateActionButtonStates()
+        bringPvAIandPvPToFront()
+    }
+
+    /// Ensures PvAI and PvP buttons are above scroll view / other overlays so they stay visible.
+    private func bringPvAIandPvPToFront() {
+        guard let parent = parentView else { return }
+        if let section = multiplayerSectionLabel { parent.bringSubviewToFront(section) }
+        if let pvai = pvaiButtonLabel { parent.bringSubviewToFront(pvai) }
+        if let pvp = pvpButtonLabel { parent.bringSubviewToFront(pvp) }
+    }
+
+    /// Call after setupLabels(in:) to ensure PvAI/PvP are above metal view and other UI.
+    func bringActionButtonsToFront() {
+        bringPvAIandPvPToFront()
     }
 
     private func repositionActionButtons() {
@@ -283,7 +328,8 @@ final class LoadingMenu: UIPanel_Base {
         let buttonHeight: CGFloat = 40
         let buttonWidth: CGFloat = 80
         let buttonSpacing: CGFloat = 20
-        let buttonsY = scrollView.frame.maxY + 60 // Position below scroll view with adequate spacing
+        let gapBelowScroll: CGFloat = 16
+        let buttonsY = scrollView.frame.maxY + gapBelowScroll
 
         // Update positions of existing buttons
         if let newButton = newButtonLabel {
@@ -300,6 +346,19 @@ final class LoadingMenu: UIPanel_Base {
         }
         if let deleteButton = deleteButtonLabel {
             deleteButton.frame = CGRect(x: parentView.bounds.width * 0.1 + (buttonWidth + buttonSpacing) * 4, y: buttonsY, width: buttonWidth, height: buttonHeight)
+        }
+        let row2Spacing: CGFloat = 12
+        let row2Y = buttonsY + buttonHeight + row2Spacing
+        let pvaiWidth: CGFloat = 100
+        let pvpWidth: CGFloat = 100
+        if let section = multiplayerSectionLabel {
+            section.frame = CGRect(x: parentView.bounds.width * 0.1, y: row2Y - 20, width: 120, height: 18)
+        }
+        if let pvaiButton = pvaiButtonLabel {
+            pvaiButton.frame = CGRect(x: parentView.bounds.width * 0.1, y: row2Y, width: pvaiWidth, height: buttonHeight)
+        }
+        if let pvpButton = pvpButtonLabel {
+            pvpButton.frame = CGRect(x: parentView.bounds.width * 0.1 + pvaiWidth + buttonSpacing, y: row2Y, width: pvpWidth, height: buttonHeight)
         }
     }
 
@@ -390,6 +449,16 @@ final class LoadingMenu: UIPanel_Base {
         onDeleteSlotRequested?(selectedSlot)
     }
 
+    @objc private func pvaiButtonTapped() {
+        AudioManager.shared.playClickSound()
+        onPvAISelected?()
+    }
+
+    @objc private func pvpButtonTapped() {
+        AudioManager.shared.playClickSound()
+        onPvPSelected?()
+    }
+
     private func removeSaveSlotLabels() {
         // Remove scroll view and all its subviews
         scrollView?.removeFromSuperview()
@@ -402,12 +471,18 @@ final class LoadingMenu: UIPanel_Base {
         loadButtonLabel?.removeFromSuperview()
         renameButtonLabel?.removeFromSuperview()
         deleteButtonLabel?.removeFromSuperview()
+        pvaiButtonLabel?.removeFromSuperview()
+        pvpButtonLabel?.removeFromSuperview()
+        multiplayerSectionLabel?.removeFromSuperview()
 
         newButtonLabel = nil
         saveButtonLabel = nil
         loadButtonLabel = nil
         renameButtonLabel = nil
         deleteButtonLabel = nil
+        pvaiButtonLabel = nil
+        pvpButtonLabel = nil
+        multiplayerSectionLabel = nil
 
         // Also remove help button label
         helpButtonLabel?.removeFromSuperview()
@@ -483,12 +558,18 @@ final class LoadingMenu: UIPanel_Base {
         loadButtonLabel?.removeFromSuperview()
         renameButtonLabel?.removeFromSuperview()
         deleteButtonLabel?.removeFromSuperview()
+        pvaiButtonLabel?.removeFromSuperview()
+        pvpButtonLabel?.removeFromSuperview()
+        multiplayerSectionLabel?.removeFromSuperview()
 
         newButtonLabel = nil
         saveButtonLabel = nil
         loadButtonLabel = nil
         renameButtonLabel = nil
         deleteButtonLabel = nil
+        pvaiButtonLabel = nil
+        pvpButtonLabel = nil
+        multiplayerSectionLabel = nil
 
         // Clear selection
         selectedSaveSlot = nil

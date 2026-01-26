@@ -39,6 +39,7 @@ final class GameLoop {
     let autoPlaySystem: AutoPlaySystem
     let rocketSystem: RocketSystem
     let aiPlayerSystem: AIPlayerSystem
+    private let spawnSystem: SpawnSystem
 
     // Player Management
     let playerManager: PlayerManager
@@ -150,6 +151,7 @@ final class GameLoop {
         entityCleanupSystem = EntityCleanupSystem(world: world, chunkManager: chunkManager)
         rocketSystem = RocketSystem(world: world, itemRegistry: itemRegistry)
         aiPlayerSystem = AIPlayerSystem(world: world, playerManager: playerManager, chunkManager: chunkManager, buildingRegistry: buildingRegistry, itemRegistry: itemRegistry)
+        spawnSystem = SpawnSystem(world: world, playerManager: playerManager, chunkManager: chunkManager, itemRegistry: itemRegistry)
 
         // Auto-play system for automated testing
         autoPlaySystem = AutoPlaySystem()
@@ -326,6 +328,20 @@ final class GameLoop {
     func stopReplayRecording() -> ReplayData {
         isReplayRecording = false
         return replayRecorder.finish()
+    }
+
+    /// PvAI: Create AI player, register with AIPlayerSystem, spawn human + AI at separate points.
+    /// Call after GameLoop is created and before using player position for chunks/camera.
+    func startPvAMatch(difficulty: AIDifficulty = .medium) {
+        guard let humanId = localPlayerId else { return }
+        let aiId = playerManager.createPlayer(name: "AI", isAI: true, aiDifficulty: difficulty)
+        aiPlayerSystem.registerAIPlayer(aiId)
+
+        var config = MatchConfig(maxPlayers: 2, spawnRadius: 12, startingResourceMultiplier: 1.0)
+        config.seed = worldSeed
+        let humanSlot = LobbySlot(displayName: "You", isReady: true, teamId: nil, isAI: false, playerId: humanId)
+        let aiSlot = LobbySlot(displayName: "AI", isReady: true, teamId: nil, isAI: true, playerId: aiId)
+        spawnSystem.spawnPlayers(config: config, participants: [humanSlot, aiSlot])
     }
 
     func recordReplaySnapshot() {
@@ -1930,13 +1946,72 @@ final class GameLoop {
         return researchSystem.completedTechnologies.contains(techId)
     }
 
-    /// Sets a recipe for a machine entity
+    /// Sets a recipe for a machine entity and transfers items from player inventory
     func setMachineRecipe(_ entity: Entity, _ recipe: Recipe) {
+        guard let player = player else { return }
+        
         if let originalFurnace = world.get(FurnaceComponent.self, for: entity) {
             let furnace = originalFurnace
             furnace.recipe = recipe
             furnace.smeltingProgress = 0.001  // Start crafting immediately
             world.add(furnace, to: entity)
+            
+            // Transfer items from player inventory to machine slots
+            guard let buildingDef = buildingRegistry.get(furnace.buildingId),
+                  var machineInventory = world.get(InventoryComponent.self, for: entity) else {
+                return
+            }
+            
+            var playerInventory = player.inventory
+            
+            // Transfer recipe inputs to machine input slots
+            for (index, input) in recipe.inputs.enumerated() {
+                let machineSlotIndex = buildingDef.fuelSlots + index
+                if machineSlotIndex < machineInventory.slots.count {
+                    // Check if player has the item
+                    if playerInventory.has(itemId: input.itemId, count: input.count) {
+                        // Remove from player
+                        let _ = playerInventory.remove(itemId: input.itemId, count: input.count)
+                        
+                        // Add to machine input slot
+                        machineInventory.slots[machineSlotIndex] = ItemStack(
+                            itemId: input.itemId,
+                            count: input.count,
+                            maxStack: input.count
+                        )
+                    }
+                }
+            }
+            
+            // Transfer fuel if building has fuel slots and player has fuel items
+            // For burner furnaces, try to find fuel in player inventory
+            if buildingDef.fuelSlots > 0 {
+                // Look for fuel items in player inventory (coal, wood, solid-fuel, etc.)
+                let fuelItemIds = ItemRegistry.allowedFuel // ["coal", "wood", "solid-fuel", "rocket-fuel", "nuclear-fuel"]
+                for fuelItemId in fuelItemIds {
+                    if playerInventory.has(itemId: fuelItemId, count: 1) {
+                        let fuelSlotIndex = 0 // First slot is fuel
+                        if fuelSlotIndex < machineInventory.slots.count {
+                            // Get item definition for maxStack
+                            let maxStack = itemRegistry.get(fuelItemId)?.stackSize ?? 100
+                            
+                            // Transfer one fuel item
+                            let _ = playerInventory.remove(itemId: fuelItemId, count: 1)
+                            machineInventory.slots[fuelSlotIndex] = ItemStack(
+                                itemId: fuelItemId,
+                                count: 1,
+                                maxStack: maxStack
+                            )
+                            break
+                        }
+                    }
+                }
+            }
+            
+            // Update inventories
+            player.inventory = playerInventory
+            world.add(machineInventory, to: entity)
+            
         } else if let originalAssembler = world.get(AssemblerComponent.self, for: entity) {
             let assembler = originalAssembler
             assembler.recipe = recipe

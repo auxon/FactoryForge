@@ -1,14 +1,15 @@
 {
   "$schema": "https://example.com/machineui.schema.json",
   "version": "1.0.0",
-  "id": "machineui.furnace",
-  "machineKind": "furnace",
-  "title": "Furnace",
+  "id": "machineui.mining_drill",
+  "machineKind": "mining_drill",
+  "title": "Burner Mining Drill",
+
   "layout": {
     "flowAxis": "leftToRight",
     "safeArea": { "top": 16, "left": 16, "bottom": 16, "right": 16 },
     "padding": { "x": 24, "y": 24 },
-    "grid": { "columns": 12, "rows": 8, "gutterX": 8, "gutterY": 12 }
+    "grid": { "columns": 12, "rows": 6, "gutterX": 8, "gutterY": 12 }
   },
 
   "groups": [
@@ -26,26 +27,13 @@
     },
 
     {
-      "id": "ore",
-      "role": "input",
-      "header": { "text": "Ore", "styleRole": "input", "alignment": "leading" },
-      "anchor": { "gridX": 2, "gridY": 1, "spanX": 2, "spanY": 3, "alignX": "leading", "alignY": "top" },
-      "content": {
-        "slots": [
-          { "id": "ore.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": ["ore"] }, "renders": { "sizeDp": 56, "style": "square", "overlay": "count" } }
-        ],
-        "stateText": { "mode": "auto", "empty": "(insert ore)", "nonEmpty": "" }
-      }
-    },
-
-    {
       "id": "output",
       "role": "output",
       "header": { "text": "Output", "styleRole": "output", "alignment": "leading" },
-      "anchor": { "gridX": 9, "gridY": 1, "spanX": 2, "spanY": 3, "alignX": "leading", "alignY": "top" },
+      "anchor": { "gridX": 8, "gridY": 1, "spanX": 2, "spanY": 3, "alignX": "leading", "alignY": "top" },
       "content": {
         "slots": [
-          { "id": "output.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": ["ingot", "plate"] }, "renders": { "sizeDp": 56, "style": "square", "overlay": "count" } }
+          { "id": "output.slot0", "slotKind": "item", "capacity": { "maxStacks": 1 }, "accepts": { "tags": ["ore", "stone", "coal"] }, "renders": { "sizeDp": 56, "style": "square", "overlay": "count" } }
         ],
         "stateText": { "mode": "auto", "empty": "(idle)", "nonEmpty": "" }
       }
@@ -53,18 +41,11 @@
   ],
 
   "process": {
-    "id": "smelting",
-    "label": { "text": "Smelting", "styleRole": "process", "alignment": "center" },
-    "anchor": { "gridX": 4, "gridY": 1, "spanX": 5, "spanY": 3, "alignX": "fill", "alignY": "fill" },
+    "id": "mining",
+    "label": { "text": "Mining", "styleRole": "process", "alignment": "center" },
+    "anchor": { "gridX": 4, "gridY": 1, "spanX": 4, "spanY": 2, "alignX": "center", "alignY": "center" },
     "progress": { "style": "bar", "bindTo": "recipeProgress", "showPercent": false },
     "operators": { "showFlowGlyphs": false, "glyphStyleRole": "muted" }
-  },
-
-  "recipes": {
-    "title": "Available Recipes",
-    "mode": "picker",
-    "anchor": { "gridX": 1, "gridY": 4, "spanX": 10, "spanY": 3, "alignX": "fill", "alignY": "fill" },
-    "grid": { "cellSizeDp": 48, "columns": 6, "rowSpacingDp": 8, "colSpacingDp": 8 }
   },
 
   "style": {

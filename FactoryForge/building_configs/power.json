@@ -45,7 +45,7 @@
     "height": 3,
     "maxHealth": 200,
     "cost": [
-      {"itemId": "stone-furnace", "count": 1},
+      {"itemId": "iron-plate", "count": 5},
       {"itemId": "pipe", "count": 4}
     ],
     "fuelCategory": "chemical",

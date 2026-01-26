@@ -213,6 +213,16 @@
 		0DE229992F022E6500BD619D /* biter_right.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DE229972F022E6500BD619D /* biter_right.png */; };
 		0DE2299C2F0230BE00BD619D /* Biter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DE2299A2F0230BE00BD619D /* Biter.swift */; };
 		0DE2299E2F024C6000BD619D /* player_fire.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 0DE2299D2F024C6000BD619D /* player_fire.m4a */; };
+		0DFBFF652F25601F005489BF /* starting_items.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF632F25601E005489BF /* starting_items.json */; };
+		0DFBFF662F25601F005489BF /* assembler.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5B2F25601E005489BF /* assembler.json */; };
+		0DFBFF672F25601F005489BF /* furnace_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5E2F25601E005489BF /* furnace_schema.json */; };
+		0DFBFF702F25601F005489BF /* mining_drill_schema.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */; };
+		0DFBFF682F25601F005489BF /* rocket_silo.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF622F25601E005489BF /* rocket_silo.json */; };
+		0DFBFF692F25601F005489BF /* cross_pipe.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5C2F25601E005489BF /* cross_pipe.png */; };
+		0DFBFF6A2F25601F005489BF /* mining_drill.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF612F25601E005489BF /* mining_drill.json */; };
+		0DFBFF6B2F25601F005489BF /* furnace.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5D2F25601E005489BF /* furnace.json */; };
+		0DFBFF6C2F25601F005489BF /* burner_miner.json in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF5F2F25601E005489BF /* burner_miner.json */; };
+		0DFBFF6D2F25601F005489BF /* tee_pipe.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFBFF642F25601E005489BF /* tee_pipe.png */; };
 		0DFF59A82F02C08F00A8699D /* bullet_left.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A52F02C08F00A8699D /* bullet_left.png */; };
 		0DFF59A92F02C08F00A8699D /* bullet_right.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A62F02C08F00A8699D /* bullet_right.png */; };
 		0DFF59AA2F02C08F00A8699D /* bullet_down.png in Resources */ = {isa = PBXBuildFile; fileRef = 0DFF59A42F02C08F00A8699D /* bullet_down.png */; };
@@ -283,7 +293,6 @@
 		A1003007001 /* CombatComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003007000 /* CombatComponents.swift */; };
 		A1003008001 /* OwnershipComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003008000 /* OwnershipComponent.swift */; };
 		A1003009001 /* PlayerComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1003009000 /* PlayerComponent.swift */; };
-		A1013002001 /* PlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1013002000 /* PlayerManager.swift */; };
 		A1004001001 /* MetalRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1004001000 /* MetalRenderer.swift */; };
 		A1004002001 /* TextureAtlas.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1004002000 /* TextureAtlas.swift */; };
 		A1004003001 /* TileMapRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1004003000 /* TileMapRenderer.swift */; };
@@ -316,6 +325,7 @@
 		A1012001001 /* Technology.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1012001000 /* Technology.swift */; };
 		A1012002001 /* TechTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1012002000 /* TechTree.swift */; };
 		A1013001001 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1013001000 /* Player.swift */; };
+		A1013002001 /* PlayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1013002000 /* PlayerManager.swift */; };
 		A1014001001 /* UISystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014001000 /* UISystem.swift */; };
 		A1014002001 /* HUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014002000 /* HUD.swift */; };
 		A1014003001 /* InventoryUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014003000 /* InventoryUI.swift */; };
@@ -323,9 +333,10 @@
 		A1014005001 /* BuildMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014005000 /* BuildMenu.swift */; };
 		A1014006001 /* ResearchUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014006000 /* ResearchUI.swift */; };
 		A1014007001 /* MachineUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014007000 /* MachineUI.swift */; };
+		A1014008001 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014008000 /* VirtualJoystick.swift */; };
 		A1014009002 /* MachineUISchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014009000 /* MachineUISchema.swift */; };
 		A1014009003 /* MachineUILayoutEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014009001 /* MachineUILayoutEngine.swift */; };
-		A1014008001 /* VirtualJoystick.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014008000 /* VirtualJoystick.swift */; };
+		A1014010001 /* LobbyMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1014010000 /* LobbyMenu.swift */; };
 		A1015001001 /* SaveSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1015001000 /* SaveSystem.swift */; };
 		A1015002001 /* GameData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1015002000 /* GameData.swift */; };
 		A1020001010 /* Metal3DRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020001000 /* Metal3DRenderer.swift */; };
@@ -337,7 +348,7 @@
 		A1020007010 /* UI3DSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020007000 /* UI3DSystem.swift */; };
 		A1020009010 /* Shaders3D.metal in Sources */ = {isa = PBXBuildFile; fileRef = A1020009000 /* Shaders3D.metal */; platformFilter = ios; };
 		A1020010010 /* Metal3DViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1020010000 /* Metal3DViewDelegate.swift */; };
-		A1030000010 /* Engine/Network/GameNetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030000000 /* Engine/Network/GameNetworkManager.swift */; };
+		A1030000010 /* GameNetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030000000 /* GameNetworkManager.swift */; };
 		A1030001010 /* MultiplayerProtocolTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030001000 /* MultiplayerProtocolTypes.swift */; };
 		A1030002010 /* MultiplayerNetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030002000 /* MultiplayerNetworkManager.swift */; };
 		A1030003010 /* NetworkEntityMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1030003000 /* NetworkEntityMapper.swift */; };
@@ -604,6 +615,16 @@
 		0DE229972F022E6500BD619D /* biter_right.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = biter_right.png; sourceTree = "<group>"; };
 		0DE2299A2F0230BE00BD619D /* Biter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Biter.swift; sourceTree = "<group>"; };
 		0DE2299D2F024C6000BD619D /* player_fire.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = player_fire.m4a; sourceTree = "<group>"; };
+		0DFBFF5B2F25601E005489BF /* assembler.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = assembler.json; sourceTree = "<group>"; };
+		0DFBFF5C2F25601E005489BF /* cross_pipe.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cross_pipe.png; sourceTree = "<group>"; };
+		0DFBFF5D2F25601E005489BF /* furnace.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = furnace.json; sourceTree = "<group>"; };
+		0DFBFF5E2F25601E005489BF /* furnace_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = furnace_schema.json; sourceTree = "<group>"; };
+		0DFBFF5F2F25601E005489BF /* burner_miner.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = burner_miner.json; sourceTree = "<group>"; };
+		0DFBFF612F25601E005489BF /* mining_drill.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = mining_drill.json; sourceTree = "<group>"; };
+		0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = mining_drill_schema.json; sourceTree = "<group>"; };
+		0DFBFF622F25601E005489BF /* rocket_silo.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = rocket_silo.json; sourceTree = "<group>"; };
+		0DFBFF632F25601E005489BF /* starting_items.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = starting_items.json; sourceTree = "<group>"; };
+		0DFBFF642F25601E005489BF /* tee_pipe.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = tee_pipe.png; sourceTree = "<group>"; };
 		0DFF59A42F02C08F00A8699D /* bullet_down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_down.png; sourceTree = "<group>"; };
 		0DFF59A52F02C08F00A8699D /* bullet_left.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_left.png; sourceTree = "<group>"; };
 		0DFF59A62F02C08F00A8699D /* bullet_right.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = bullet_right.png; sourceTree = "<group>"; };
@@ -676,7 +697,6 @@
 		A1003007000 /* CombatComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombatComponents.swift; sourceTree = "<group>"; };
 		A1003008000 /* OwnershipComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnershipComponent.swift; sourceTree = "<group>"; };
 		A1003009000 /* PlayerComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerComponent.swift; sourceTree = "<group>"; };
-		A1013002000 /* PlayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerManager.swift; sourceTree = "<group>"; };
 		A1004001000 /* MetalRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalRenderer.swift; sourceTree = "<group>"; };
 		A1004002000 /* TextureAtlas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureAtlas.swift; sourceTree = "<group>"; };
 		A1004003000 /* TileMapRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TileMapRenderer.swift; sourceTree = "<group>"; };
@@ -709,6 +729,7 @@
 		A1012001000 /* Technology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Technology.swift; sourceTree = "<group>"; };
 		A1012002000 /* TechTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TechTree.swift; sourceTree = "<group>"; };
 		A1013001000 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
+		A1013002000 /* PlayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerManager.swift; sourceTree = "<group>"; };
 		A1014001000 /* UISystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UISystem.swift; sourceTree = "<group>"; };
 		A1014002000 /* HUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUD.swift; sourceTree = "<group>"; };
 		A1014003000 /* InventoryUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryUI.swift; sourceTree = "<group>"; };
@@ -716,9 +737,10 @@
 		A1014005000 /* BuildMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildMenu.swift; sourceTree = "<group>"; };
 		A1014006000 /* ResearchUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResearchUI.swift; sourceTree = "<group>"; };
 		A1014007000 /* MachineUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineUI.swift; sourceTree = "<group>"; };
+		A1014008000 /* VirtualJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualJoystick.swift; sourceTree = "<group>"; };
 		A1014009000 /* MachineUISchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineUISchema.swift; sourceTree = "<group>"; };
 		A1014009001 /* MachineUILayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MachineUILayoutEngine.swift; sourceTree = "<group>"; };
-		A1014008000 /* VirtualJoystick.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VirtualJoystick.swift; sourceTree = "<group>"; };
+		A1014010000 /* LobbyMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LobbyMenu.swift; sourceTree = "<group>"; };
 		A1015001000 /* SaveSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveSystem.swift; sourceTree = "<group>"; };
 		A1015002000 /* GameData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameData.swift; sourceTree = "<group>"; };
 		A1020001000 /* Metal3DRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metal3DRenderer.swift; sourceTree = "<group>"; };
@@ -731,7 +753,7 @@
 		A1020008000 /* ShaderTypes3D.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes3D.h; sourceTree = "<group>"; };
 		A1020009000 /* Shaders3D.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders3D.metal; sourceTree = "<group>"; };
 		A1020010000 /* Metal3DViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metal3DViewDelegate.swift; sourceTree = "<group>"; };
-		A1030000000 /* Engine/Network/GameNetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameNetworkManager.swift; sourceTree = "<group>"; };
+		A1030000000 /* GameNetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameNetworkManager.swift; sourceTree = "<group>"; };
 		A1030001000 /* MultiplayerProtocolTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiplayerProtocolTypes.swift; sourceTree = "<group>"; };
 		A1030002000 /* MultiplayerNetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiplayerNetworkManager.swift; sourceTree = "<group>"; };
 		A1030003000 /* NetworkEntityMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkEntityMapper.swift; sourceTree = "<group>"; };
@@ -821,6 +843,16 @@
 		0D6FDBD12EFDC7E900576EC3 /* Assets */ = {
 			isa = PBXGroup;
 			children = (
+				0DFBFF5B2F25601E005489BF /* assembler.json */,
+				0DFBFF5C2F25601E005489BF /* cross_pipe.png */,
+				0DFBFF5D2F25601E005489BF /* furnace.json */,
+				0DFBFF5E2F25601E005489BF /* furnace_schema.json */,
+				0DFBFF602F25601E005489BF /* machine_ui_configs */,
+				0DFBFF612F25601E005489BF /* mining_drill.json */,
+				0DFBFF6E2F25601E005489BF /* mining_drill_schema.json */,
+				0DFBFF622F25601E005489BF /* rocket_silo.json */,
+				0DFBFF632F25601E005489BF /* starting_items.json */,
+				0DFBFF642F25601E005489BF /* tee_pipe.png */,
 				0D7D82FF2F17459C001CA74A /* player_right.png */,
 				0D7D82F72F173E1C001CA74A /* player_down.png */,
 				0D7D82FA2F173E1C001CA74A /* player_up.png */,
@@ -1217,6 +1249,14 @@
 			path = Enemies;
 			sourceTree = "<group>";
 		};
+		0DFBFF602F25601E005489BF /* machine_ui_configs */ = {
+			isa = PBXGroup;
+			children = (
+				0DFBFF5F2F25601E005489BF /* burner_miner.json */,
+			);
+			path = machine_ui_configs;
+			sourceTree = "<group>";
+		};
 		A0000200000 = {
 			isa = PBXGroup;
 			children = (
@@ -1279,21 +1319,6 @@
 				A0000200025 /* Audio */,
 			);
 			path = Engine;
-			sourceTree = "<group>";
-		};
-		A0000200028 /* Network */ = {
-			isa = PBXGroup;
-			children = (
-				A1030000000 /* GameNetworkManager.swift */,
-				A1030001000 /* MultiplayerProtocolTypes.swift */,
-				A1030002000 /* MultiplayerNetworkManager.swift */,
-				A1030003000 /* NetworkEntityMapper.swift */,
-				A1030005000 /* InterestManager.swift */,
-				A1030006000 /* ClientPrediction.swift */,
-				A1060001000 /* ReplaySystem.swift */,
-				A1060002000 /* NetworkSimulator.swift */,
-			);
-			path = Network;
 			sourceTree = "<group>";
 		};
 		A0000200021 /* Core */ = {
@@ -1384,6 +1409,21 @@
 			path = Shaders;
 			sourceTree = "<group>";
 		};
+		A0000200028 /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				A1030000000 /* GameNetworkManager.swift */,
+				A1030001000 /* MultiplayerProtocolTypes.swift */,
+				A1030002000 /* MultiplayerNetworkManager.swift */,
+				A1030003000 /* NetworkEntityMapper.swift */,
+				A1030005000 /* InterestManager.swift */,
+				A1030006000 /* ClientPrediction.swift */,
+				A1060001000 /* ReplaySystem.swift */,
+				A1060002000 /* NetworkSimulator.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
 		A0000200030 /* Game */ = {
 			isa = PBXGroup;
 			children = (
@@ -1400,21 +1440,6 @@
 				A0000200038 /* Multiplayer */,
 			);
 			path = Game;
-			sourceTree = "<group>";
-		};
-		A0000200039 /* AI */ = {
-			isa = PBXGroup;
-			children = (
-				A1050001000 /* AIDifficultyConfig.swift */,
-				A1050002000 /* AITypes.swift */,
-				A1050003000 /* AIDecisionEngine.swift */,
-				A1050004000 /* AIEconomyManager.swift */,
-				A1050005000 /* AIResearchPlanner.swift */,
-				A1050006000 /* AIDefenseManager.swift */,
-				A1050007000 /* AIOffenseManager.swift */,
-				A1050008000 /* AIPlayerSystem.swift */,
-			);
-			path = AI;
 			sourceTree = "<group>";
 		};
 		A0000200031 /* World */ = {
@@ -1509,6 +1534,21 @@
 			path = Multiplayer;
 			sourceTree = "<group>";
 		};
+		A0000200039 /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				A1050001000 /* AIDifficultyConfig.swift */,
+				A1050002000 /* AITypes.swift */,
+				A1050003000 /* AIDecisionEngine.swift */,
+				A1050004000 /* AIEconomyManager.swift */,
+				A1050005000 /* AIResearchPlanner.swift */,
+				A1050006000 /* AIDefenseManager.swift */,
+				A1050007000 /* AIOffenseManager.swift */,
+				A1050008000 /* AIPlayerSystem.swift */,
+			);
+			path = AI;
+			sourceTree = "<group>";
+		};
 		A0000200040 /* UI */ = {
 			isa = PBXGroup;
 			children = (
@@ -1522,6 +1562,7 @@
 				0D18B5732F0DD8E2006B70A5 /* HelpMenu.swift */,
 				0D18B5652F0D96A4006B70A5 /* AutoPlayMenu.swift */,
 				0D6FDC622EFEDB6100576EC3 /* LoadingMenu.swift */,
+				A1014010000 /* LobbyMenu.swift */,
 				A1014001000 /* UISystem.swift */,
 				A1014002000 /* HUD.swift */,
 				A1014003000 /* InventoryUI.swift */,
@@ -1751,6 +1792,16 @@
 				0D6FDC372EFDE1B500576EC3 /* sand.png in Resources */,
 				0DE2297B2F01760A00BD619D /* gear.png in Resources */,
 				0DE229752F0064D200BD619D /* mining.m4a in Resources */,
+				0DFBFF652F25601F005489BF /* starting_items.json in Resources */,
+				0DFBFF662F25601F005489BF /* assembler.json in Resources */,
+				0DFBFF672F25601F005489BF /* furnace_schema.json in Resources */,
+				0DFBFF702F25601F005489BF /* mining_drill_schema.json in Resources */,
+				0DFBFF682F25601F005489BF /* rocket_silo.json in Resources */,
+				0DFBFF692F25601F005489BF /* cross_pipe.png in Resources */,
+				0DFBFF6A2F25601F005489BF /* mining_drill.json in Resources */,
+				0DFBFF6B2F25601F005489BF /* furnace.json in Resources */,
+				0DFBFF6C2F25601F005489BF /* burner_miner.json in Resources */,
+				0DFBFF6D2F25601F005489BF /* tee_pipe.png in Resources */,
 				0D6FDC382EFDE1B500576EC3 /* electric_mining_drill.png in Resources */,
 				0D6FDC392EFDE1B500576EC3 /* copper_cable.png in Resources */,
 				0D778B7D2F11DA87003BC642 /* Crafting.md in Resources */,
@@ -1958,7 +2009,7 @@
 				0D0816542F1C55CA00633C23 /* UnitSystem.swift in Sources */,
 				A1020001010 /* Metal3DRenderer.swift in Sources */,
 				A1020010010 /* Metal3DViewDelegate.swift in Sources */,
-				A1030000010 /* Engine/Network/GameNetworkManager.swift in Sources */,
+				A1030000010 /* GameNetworkManager.swift in Sources */,
 				A1030001010 /* MultiplayerProtocolTypes.swift in Sources */,
 				A1030002010 /* MultiplayerNetworkManager.swift in Sources */,
 				A1030003010 /* NetworkEntityMapper.swift in Sources */,
@@ -2006,6 +2057,7 @@
 				A1014005001 /* BuildMenu.swift in Sources */,
 				A1014006001 /* ResearchUI.swift in Sources */,
 				0D6FDC632EFEDB6100576EC3 /* LoadingMenu.swift in Sources */,
+				A1014010001 /* LobbyMenu.swift in Sources */,
 				0D18B5632F0D9219006B70A5 /* AutoPlayTypes.swift in Sources */,
 				0D18B5642F0D9219006B70A5 /* AutoPlaySystem.swift in Sources */,
 				A1014007001 /* MachineUI.swift in Sources */,

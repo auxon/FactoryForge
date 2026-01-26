@@ -699,7 +699,7 @@ final class BuildingRegistry {
           {
             "id": "boiler",
             "name": "Boiler",
-            "type": "boiler",
+            "type": "generator",
             "width": 2,
             "height": 3,
             "maxHealth": 200,
@@ -719,7 +719,7 @@ final class BuildingRegistry {
           {
             "id": "steam-engine",
             "name": "Steam Engine",
-            "type": "steamEngine",
+            "type": "generator",
             "width": 3,
             "height": 5,
             "maxHealth": 400,

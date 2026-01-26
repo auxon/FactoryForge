@@ -21,6 +21,7 @@ final class UISystem {
     private var machineUI: MachineUI
     private var loadingMenu: LoadingMenu
     private var autoplayMenu: AutoPlayMenu
+    private var lobbyMenu: LobbyMenu
     private var helpMenu: HelpMenu?
     private var documentViewer: DocumentViewer?
     private var entitySelectionDialog: EntitySelectionDialog?
@@ -41,6 +42,7 @@ final class UISystem {
         (inserterConnectionDialog?.isOpen ?? false) ||
         loadingMenu.isOpen ||
         autoplayMenu.isOpen ||
+        lobbyMenu.isOpen ||
         (helpMenu?.isOpen ?? false) ||
         (documentViewer?.isOpen ?? false) ||
         (activePanel != nil)
@@ -57,6 +59,7 @@ final class UISystem {
         
         loadingMenu = LoadingMenu(screenSize: screenSize)
         autoplayMenu = AutoPlayMenu(screenSize: screenSize)
+        lobbyMenu = LobbyMenu(screenSize: screenSize)
         hud = HUD(screenSize: screenSize, gameLoop: gameLoop, inputManager: nil)
         inventoryUI = InventoryUI(screenSize: screenSize, gameLoop: gameLoop)
         craftingMenu = CraftingMenu(screenSize: screenSize, gameLoop: gameLoop)
@@ -108,6 +111,10 @@ final class UISystem {
 
     func getAutoplayMenu() -> AutoPlayMenu {
         return autoplayMenu
+    }
+
+    func getLobbyMenu() -> LobbyMenu {
+        return lobbyMenu
     }
 
     func getHelpMenu() -> HelpMenu {
@@ -386,11 +393,13 @@ final class UISystem {
             return
         }
 
-        if let panel = activePanel, panel == .loadingMenu || panel == .autoplayMenu || panel == .helpMenu || panel == .documentViewer {
+        if let panel = activePanel, panel == .loadingMenu || panel == .autoplayMenu || panel == .lobbyMenu || panel == .helpMenu || panel == .documentViewer {
             if panel == .loadingMenu {
                 loadingMenu.update(deltaTime: deltaTime)
             } else if panel == .autoplayMenu {
                 autoplayMenu.update(deltaTime: deltaTime)
+            } else if panel == .lobbyMenu {
+                lobbyMenu.update(deltaTime: deltaTime)
             } else if panel == .helpMenu {
                 helpMenu?.update(deltaTime: deltaTime)
             } else if panel == .documentViewer {
@@ -407,6 +416,8 @@ final class UISystem {
                 loadingMenu.update(deltaTime: deltaTime)
             case .autoplayMenu:
                 autoplayMenu.update(deltaTime: deltaTime)
+            case .lobbyMenu:
+                lobbyMenu.update(deltaTime: deltaTime)
             case .helpMenu:
                 helpMenu?.update(deltaTime: deltaTime)
             case .documentViewer:
@@ -528,10 +539,12 @@ final class UISystem {
     // MARK: - Rendering
     
     func render(renderer: MetalRenderer) {
-        if let panel = activePanel, panel == .loadingMenu || panel == .helpMenu || panel == .documentViewer {
+        if let panel = activePanel, panel == .loadingMenu || panel == .lobbyMenu || panel == .helpMenu || panel == .documentViewer {
             // Only render these menus if they're active (replace entire view)
             if panel == .loadingMenu {
                 loadingMenu.render(renderer: renderer)
+            } else if panel == .lobbyMenu {
+                lobbyMenu.render(renderer: renderer)
             } else if panel == .helpMenu {
                 helpMenu?.render(renderer: renderer)
             } else if panel == .documentViewer {
@@ -549,6 +562,8 @@ final class UISystem {
                 loadingMenu.render(renderer: renderer)
             case .autoplayMenu:
                 autoplayMenu.render(renderer: renderer)
+            case .lobbyMenu:
+                lobbyMenu.render(renderer: renderer)
             case .helpMenu:
                 helpMenu?.render(renderer: renderer)
             case .documentViewer:
@@ -599,6 +614,8 @@ final class UISystem {
             loadingMenu.open()
         case .autoplayMenu:
             autoplayMenu.open()
+        case .lobbyMenu:
+            lobbyMenu.open()
         case .helpMenu:
             helpMenu?.open()
         case .documentViewer:
@@ -629,6 +646,8 @@ final class UISystem {
                 loadingMenu.close()
             case .autoplayMenu:
                 autoplayMenu.close()
+            case .lobbyMenu:
+                lobbyMenu.close()
             case .helpMenu:
                 helpMenu?.close()
             case .documentViewer:
@@ -724,6 +743,7 @@ final class UISystem {
                           (inserterConnectionDialog?.isOpen ?? false) ||
                           loadingMenu.isOpen ||
                           autoplayMenu.isOpen ||
+                          lobbyMenu.isOpen ||
                           (helpMenu?.isOpen ?? false) ||
                           (documentViewer?.isOpen ?? false)
 
@@ -736,6 +756,8 @@ final class UISystem {
                     tapHandled = loadingMenu.handleTap(at: screenPos)
                 case .autoplayMenu:
                     tapHandled = autoplayMenu.handleTap(at: screenPos)
+                case .lobbyMenu:
+                    tapHandled = lobbyMenu.handleTap(at: screenPos)
                 case .helpMenu:
                     tapHandled = helpMenu?.handleTap(at: screenPos) ?? false
                 case .documentViewer:
@@ -774,6 +796,7 @@ final class UISystem {
                                    (inserterConnectionDialog?.isOpen ?? false) ||
                                    loadingMenu.isOpen ||
                                    autoplayMenu.isOpen ||
+                                   lobbyMenu.isOpen ||
                                    (helpMenu?.isOpen ?? false) ||
                                    (documentViewer?.isOpen ?? false)
 
@@ -794,8 +817,8 @@ final class UISystem {
     }
     func getTooltip(at screenPos: Vector2) -> String? {
         // If loading menu is active, check tooltips only for it
-        if let panel = activePanel, panel == .loadingMenu {
-            return nil // Loading menu doesn't need tooltips
+        if let panel = activePanel, panel == .loadingMenu || panel == .lobbyMenu {
+            return nil // Loading/Lobby menus don't need tooltips
         }
 
         // Check if any panels are open - if so, don't show HUD tooltips
@@ -808,6 +831,7 @@ final class UISystem {
                           (inserterConnectionDialog?.isOpen ?? false) ||
                           loadingMenu.isOpen ||
                           autoplayMenu.isOpen ||
+                          lobbyMenu.isOpen ||
                           (helpMenu?.isOpen ?? false) ||
                           (documentViewer?.isOpen ?? false) ||
                           (activePanel != nil)
@@ -829,6 +853,8 @@ final class UISystem {
                 return nil
             case .autoplayMenu:
                 return nil  // AutoPlayMenu doesn't have detailed tooltips
+            case .lobbyMenu:
+                return nil
             case .helpMenu:
                 return nil  // HelpMenu doesn't have detailed tooltips
             case .documentViewer:
@@ -885,6 +911,7 @@ final class UISystem {
 enum UIPanel {
     case loadingMenu
     case autoplayMenu
+    case lobbyMenu
     case helpMenu
     case documentViewer
     case inventory

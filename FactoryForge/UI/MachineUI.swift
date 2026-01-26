@@ -646,38 +646,34 @@ final class MachineUI: UIPanel_Base {
         machineComponents.removeAll()
 
         // Try to load configuration for this machine type
+        var machineType: String? = nil
         if let gameLoop = gameLoop {
-            let machineType = determineMachineType(for: entity, in: gameLoop)
+            machineType = determineMachineType(for: entity, in: gameLoop)
 
-            // Check if there's a current schema for this machine type
-            if let schema = currentSchema, schema.machineKind == machineType {
-                // Use the current schema
-                do {
-                    try applySchema(schema)
-                } catch {
-                    print("MachineUI: Error applying current schema: \(error)")
-                    // Fall back to stored config
-                    if let config = uiConfigs[machineType] {
-                        applyConfiguration(config)
-                    } else {
-                        setupLegacyComponents(for: entity, in: gameLoop)
-                    }
-                }
-            } else if let schema = loadSchema(for: machineType) {
-                // Load schema from disk and use it
+            // Always reload schema from bundle to pick up changes
+            // Clear cached schema first to force fresh load
+            if currentSchema?.machineKind == machineType {
+                currentSchema = nil
+                schemaUIReferences = nil
+            }
+            
+            if let schema = loadSchema(for: machineType!) {
+                // Load schema from disk/bundle and use it
+                print("MachineUI: Found schema for \(machineType!), applying...")
                 currentSchema = schema
                 do {
                     try applySchema(schema)
+                    print("MachineUI: Successfully applied schema for \(machineType!)")
                 } catch {
                     print("MachineUI: Error applying loaded schema: \(error)")
                     // Fall back to stored config
-                    if let config = uiConfigs[machineType] {
+                    if let config = uiConfigs[machineType!] {
                         applyConfiguration(config)
                     } else {
                         setupLegacyComponents(for: entity, in: gameLoop)
                     }
                 }
-            } else if let config = uiConfigs[machineType] {
+            } else if let config = uiConfigs[machineType!] {
                 // Use stored JSON configuration
                 applyConfiguration(config)
             } else {
@@ -686,13 +682,34 @@ final class MachineUI: UIPanel_Base {
             }
         }
 
-        // Setup common UI elements (legacy compatibility)
-        setupSlots()
-        setupSlotsForMachine(entity)
+        // Check if we're using schema-based rendering
+        let usingSchema = currentSchema != nil && machineType != nil && currentSchema?.machineKind == machineType
+        
+        if !usingSchema {
+            // Legacy rendering path - only run when no schema exists
+            // Setup common UI elements (legacy compatibility)
+            setupSlots()
+            setupSlotsForMachine(entity)
 
-        // Setup machine-specific UI components
-        for (_, component) in machineComponents.enumerated() {
-            component.setupUI(for: entity, in: self)
+            // Setup machine-specific UI components
+            for (_, component) in machineComponents.enumerated() {
+                component.setupUI(for: entity, in: self)
+            }
+
+            // Setup power label for generators (legacy compatibility)
+            setupPowerLabel(for: entity)
+
+            // Set up UIKit slot buttons and layout
+            clearSlotUI()
+            setupSlotButtons()
+            layoutAll()
+        } else {
+            // Schema-based rendering - only setup non-conflicting components
+            // Setup machine-specific UI components that don't conflict with schema
+            // (e.g., pipe connections, fluid components, but NOT slots/progress which schema handles)
+            for (_, component) in machineComponents.enumerated() {
+                component.setupUI(for: entity, in: self)
+            }
         }
 
         if openPipeTankSelectionOnOpen {
@@ -704,13 +721,6 @@ final class MachineUI: UIPanel_Base {
             openPipeTankSelectionOnOpen = false
         }
 
-        // Setup power label for generators (legacy compatibility)
-        setupPowerLabel(for: entity)
-
-        // Set up UIKit slot buttons and layout
-        clearSlotUI()
-        setupSlotButtons()
-        layoutAll()
         // Update the UI with current machine state
         updateMachine(entity)
     }
@@ -723,6 +733,8 @@ final class MachineUI: UIPanel_Base {
             throw SchemaError.rootViewNotAvailable
         }
 
+        print("MachineUI: Applying schema for \(schema.machineKind) with \(schema.groups.count) groups")
+
         // Validate invariants
         let layoutEngine = MachineUILayoutEngine(schema: schema, rootView: rootView)
         try layoutEngine.validateInvariants()
@@ -730,28 +742,123 @@ final class MachineUI: UIPanel_Base {
         // Clear existing content
         clearSlotUI()
         machineComponents.removeAll()
+        
+        // Remove all legacy UI elements from view hierarchy when using schema
+        progressBarBackground?.removeFromSuperview()
+        progressBarFill?.removeFromSuperview()
+        progressStatusLabel?.removeFromSuperview()
+        fuelSlotButtons.forEach { $0.removeFromSuperview() }
+        inputSlotButtons.forEach { $0.removeFromSuperview() }
+        outputSlotButtons.forEach { $0.removeFromSuperview() }
+        fuelCountLabels.forEach { $0.removeFromSuperview() }
+        inputCountLabels.forEach { $0.removeFromSuperview() }
+        outputCountLabels.forEach { $0.removeFromSuperview() }
+        recipeScrollView?.removeFromSuperview()
+        recipeUIButtons.forEach { $0.removeFromSuperview() }
+        recipeHeaderLabel?.removeFromSuperview()
+        noRecipeSelectedLabel?.removeFromSuperview()
+        
+        // Clear arrays but keep references for potential cleanup
+        // (Don't removeAll() here as we might need to recreate if schema fails)
+        
+        // Remove existing schema-built views if any
+        if let oldReferences = schemaUIReferences {
+            // Remove all group containers
+            for (_, (container, _, _)) in oldReferences.groupViews {
+                container.removeFromSuperview()
+            }
+            // Remove process container
+            oldReferences.processContainer?.removeFromSuperview()
+            // Remove recipes container
+            oldReferences.recipesContainer?.removeFromSuperview()
+        }
 
         // Build new UI using schema
         let builder = MachineUIBuilder(schema: schema)
-        _ = builder.build(in: rootView)
+        let references = builder.build(in: rootView)
+        
+        print("MachineUI: Built schema UI - \(references.groupViews.count) groups, process: \(references.processContainer != nil), recipes: \(references.recipesContainer != nil)")
 
-        // Store schema for later reference
+        // Store schema and references for later updates
         self.currentSchema = schema
+        self.schemaUIReferences = references
+
+        // Connect schema-built slot buttons to tap handlers
+        connectSchemaSlotHandlers(schema: schema, references: references)
 
         // Convert schema to MachineUIConfig format and save for persistence
         let config = convertSchemaToConfig(schema)
         saveConfiguration(config)
 
-        // Also save the schema itself for future reference
-        saveSchema(schema)
+        // Don't save schema to config directory - always use bundle version
+        // This allows bundle updates to take effect immediately
+        // saveSchema(schema) // Disabled to prefer bundle schemas
+    }
+    
+    /// Connect schema-built slot buttons to their tap handlers
+    private func connectSchemaSlotHandlers(schema: MachineUISchema, references: SchemaUIReferences) {
+        guard let gameLoop = gameLoop, let entity = currentEntity else { return }
+        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { return }
+        
+        // Process each group and connect slot buttons to appropriate handlers
+        for group in schema.groups {
+            guard let (_, slotViews, _) = references.groupViews[group.id] else { continue }
+            
+            // Determine slot index offset based on role
+            var slotIndexOffset = 0
+            switch group.role {
+            case .fuel:
+                slotIndexOffset = 0
+            case .input:
+                slotIndexOffset = buildingDef.fuelSlots
+            case .output:
+                slotIndexOffset = buildingDef.fuelSlots + buildingDef.inputSlots
+            default:
+                continue
+            }
+            
+            // Connect each slot button to the appropriate handler
+            for (slotIndex, slotView) in slotViews.enumerated() {
+                guard let button = slotView as? UIKit.UIButton else { continue }
+                
+                // Remove any existing targets first
+                button.removeTarget(nil, action: nil, for: .allEvents)
+                
+                // Set tag to slot index within the group
+                button.tag = slotIndex
+                
+                // Connect to appropriate handler based on role
+                switch group.role {
+                case .fuel:
+                    button.addTarget(self, action: #selector(fuelSlotTapped(_:)), for: .touchUpInside)
+                case .input:
+                    button.addTarget(self, action: #selector(inputSlotTapped(_:)), for: .touchUpInside)
+                case .output:
+                    button.addTarget(self, action: #selector(outputSlotTapped(_:)), for: .touchUpInside)
+                default:
+                    break
+                }
+            }
+        }
     }
 
     /// Load schema from JSON file in bundle
     func loadSchemaFromBundle(named filename: String) throws -> MachineUISchema {
         guard let url = Bundle.main.url(forResource: filename, withExtension: "json") else {
+            print("MachineUI: ERROR - Bundle file not found: \(filename).json")
+            // Debug: List all bundle resources
+            if let resourcePath = Bundle.main.resourcePath {
+                print("MachineUI: Available resources in bundle:")
+                if let contents = try? FileManager.default.contentsOfDirectory(atPath: resourcePath) {
+                    for item in contents.filter({ $0.hasSuffix(".json") }) {
+                        print("MachineUI:   - \(item)")
+                    }
+                }
+            }
             throw SchemaError.schemaFileNotFound(filename)
         }
 
+        print("MachineUI: Loading schema from bundle: \(url.path)")
         let data = try Data(contentsOf: url)
         let decoder = JSONDecoder()
         return try decoder.decode(MachineUISchema.self, from: data)
@@ -918,6 +1025,7 @@ final class MachineUI: UIPanel_Base {
 
     // MARK: - Schema State
     private var currentSchema: MachineUISchema?
+    private var schemaUIReferences: SchemaUIReferences?
 
     enum SchemaError: Error {
         case rootViewNotAvailable
@@ -1190,17 +1298,29 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
-    /// Load a schema from disk
+    /// Load a schema from disk or bundle
+    /// Prefers bundle over config directory to allow bundle updates to take effect
     private func loadSchema(for machineType: String) -> MachineUISchema? {
-        guard let configDirectory = configDirectory else { return nil }
-
+        // Try to load from bundle first (allows bundle updates to override saved schemas)
         do {
-            let schemaURL = configDirectory.appendingPathComponent("\(machineType)_schema.json")
-            let jsonData = try Data(contentsOf: schemaURL)
-            let schema = try JSONDecoder().decode(MachineUISchema.self, from: jsonData)
+            let schema = try loadSchemaFromBundle(named: "\(machineType)_schema")
+            print("MachineUI: Loaded schema for \(machineType) from bundle")
             return schema
         } catch {
-            // Schema file doesn't exist or can't be loaded, return nil
+            // Bundle schema not found, try config directory (user-saved schemas)
+            if let configDirectory = configDirectory {
+                do {
+                    let schemaURL = configDirectory.appendingPathComponent("\(machineType)_schema.json")
+                    let jsonData = try Data(contentsOf: schemaURL)
+                    let schema = try JSONDecoder().decode(MachineUISchema.self, from: jsonData)
+                    print("MachineUI: Loaded schema for \(machineType) from config directory")
+                    return schema
+                } catch {
+                    print("MachineUI: No schema found for \(machineType) in bundle or config directory")
+                    return nil
+                }
+            }
+            print("MachineUI: No schema found for \(machineType) in bundle or config directory")
             return nil
         }
     }
@@ -1227,8 +1347,133 @@ final class MachineUI: UIPanel_Base {
         return uiConfigs
     }
 
+    /// Get current MachineUI state including errors, validation results, and schema info
+    func getState() -> [String: Any] {
+        var state: [String: Any] = [
+            "isOpen": isOpen,
+            "currentMachineType": currentEntity != nil && gameLoop != nil 
+                ? determineMachineType(for: currentEntity!, in: gameLoop!)
+                : "none",
+            "hasCurrentSchema": currentSchema != nil,
+            "currentSchemaKind": currentSchema?.machineKind ?? "none",
+            "schemaGroupCount": currentSchema?.groups.count ?? 0,
+            "hasProcess": currentSchema?.process != nil,
+            "hasRecipes": currentSchema?.recipes != nil
+        ]
+        
+        if let schema = currentSchema {
+            state["schemaVersion"] = schema.version ?? "unknown"
+            state["schemaTitle"] = schema.title ?? "unknown"
+        }
+        
+        return state
+    }
+    
+    /// Test a schema by attempting to load and validate it
+    /// Returns detailed feedback including validation errors
+    func testSchema(for machineType: String) -> [String: Any] {
+        var result: [String: Any] = [
+            "machineType": machineType,
+            "success": false,
+            "errors": [],
+            "warnings": [],
+            "validationResults": []
+        ]
+        
+        // Try to load the schema
+        do {
+            let schema = try loadSchemaFromBundle(named: "\(machineType)_schema")
+            result["schemaFound"] = true
+            result["schemaVersion"] = schema.version ?? "unknown"
+            result["schemaTitle"] = schema.title ?? "unknown"
+            result["groupCount"] = schema.groups.count
+            
+            // Validate the schema
+            if let rootView = rootView {
+                let layoutEngine = MachineUILayoutEngine(schema: schema, rootView: rootView)
+                do {
+                    try layoutEngine.validateInvariants()
+                    result["validationPassed"] = true
+                    var validationResults = result["validationResults"] as? [String] ?? []
+                    validationResults.append("All invariants validated successfully")
+                    result["validationResults"] = validationResults
+                } catch {
+                    result["validationPassed"] = false
+                    if let layoutError = error as? MachineUILayoutEngine.LayoutError {
+                        let errorDesc = "Validation failed: \(layoutError)"
+                        var errors = result["errors"] as? [String] ?? []
+                        errors.append(errorDesc)
+                        result["errors"] = errors
+                        var validationResults = result["validationResults"] as? [String] ?? []
+                        validationResults.append(errorDesc)
+                        result["validationResults"] = validationResults
+                    }
+                }
+            } else {
+                result["warnings"] = (result["warnings"] as? [String] ?? []) + ["rootView not available - cannot validate layout"]
+            }
+            
+            // Check for common issues
+            var warnings = result["warnings"] as? [String] ?? []
+            if schema.groups.isEmpty {
+                warnings.append("Schema has no groups defined")
+            }
+            if schema.process == nil {
+                warnings.append("Schema has no process defined (may be intentional)")
+            }
+            if schema.recipes == nil {
+                warnings.append("Schema has no recipes defined (may be intentional)")
+            }
+            result["warnings"] = warnings
+            
+            result["success"] = (result["validationPassed"] as? Bool ?? false) && (result["errors"] as? [String] ?? []).isEmpty
+            
+        } catch SchemaError.schemaFileNotFound(let filename) {
+            result["schemaFound"] = false
+            result["errors"] = (result["errors"] as? [String] ?? []) + ["Schema file not found: \(filename).json"]
+        } catch {
+            result["schemaFound"] = false
+            result["errors"] = (result["errors"] as? [String] ?? []) + ["Failed to load schema: \(error.localizedDescription)"]
+        }
+        
+        return result
+    }
+
+    /// Reload schema for a specific machine type (or all if machineType is nil)
+    /// If a machine UI is currently open for the reloaded type, it will be refreshed
+    func reloadSchema(for machineType: String?) throws {
+        if let machineType = machineType {
+            // Clear cached schema for this specific machine type
+            if currentSchema?.machineKind == machineType {
+                currentSchema = nil
+                schemaUIReferences = nil
+                print("MachineUI: Cleared cached schema for \(machineType)")
+            }
+            
+            // If this machine type is currently being displayed, refresh the UI
+            if let currentEntity = currentEntity, let gameLoop = gameLoop {
+                let currentMachineType = determineMachineType(for: currentEntity, in: gameLoop)
+                if currentMachineType == machineType && isOpen {
+                    print("MachineUI: Refreshing UI for currently open \(machineType) machine")
+                    setupComponentsForEntity(currentEntity)
+                }
+            }
+        } else {
+            // Reload all schemas - clear all caches
+            currentSchema = nil
+            schemaUIReferences = nil
+            print("MachineUI: Cleared all cached schemas")
+            
+            // If any machine UI is currently open, refresh it
+            if let currentEntity = currentEntity, isOpen {
+                print("MachineUI: Refreshing currently open machine UI")
+                setupComponentsForEntity(currentEntity)
+            }
+        }
+    }
+
     /// Determine machine type for an entity
-    private func determineMachineType(for entity: Entity, in gameLoop: GameLoop) -> String {
+    func determineMachineType(for entity: Entity, in gameLoop: GameLoop) -> String {
         if gameLoop.world.has(AssemblerComponent.self, for: entity) {
             return "assembler"
         } else if gameLoop.world.has(FurnaceComponent.self, for: entity) {
@@ -1341,8 +1586,19 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func layoutAll() {
-        layoutProgressBar()
-        relayoutCountLabels()
+        // Check if we're using schema-based rendering
+        let usingSchema = currentSchema != nil
+        let hasSchemaProcess = currentSchema?.process != nil
+
+        // Only layout legacy progress bar if schema doesn't have process
+        if !hasSchemaProcess {
+            layoutProgressBar()
+        }
+        
+        // Only layout legacy count labels if not using schema
+        if !usingSchema {
+            relayoutCountLabels()
+        }
         // Note: Tank updates are handled in updateMachine() for real-time updates
     }
 
@@ -1947,6 +2203,13 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func showRecipeDetails(_ recipe: Recipe) {
+        // Don't show recipe details when using schema - they're semantically redundant
+        // The schema layout (Fuel → Ore → Smelting → Output) already makes flow implicit
+        if currentSchema != nil {
+            clearRecipeDetails()
+            return
+        }
+        
         // Clear previous recipe details
         clearRecipeDetails()
         noRecipeSelectedLabel?.isHidden = true
@@ -2144,10 +2407,18 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func clearRecipeDetails() {
+        // Always clear recipe details, but only show them if not using schema
         for view in recipeLabels {
             view.removeFromSuperview()
         }
         recipeLabels.removeAll()
+        
+        // If using schema, ensure recipe details stay cleared (they're semantically redundant)
+        if currentSchema != nil {
+            // Recipe details (arrows, item previews) are not shown when using schema
+            // The schema layout already makes flow implicit through group positioning
+            return
+        }
     }
 
     private func showCraftButton() {
@@ -2605,7 +2876,8 @@ final class MachineUI: UIPanel_Base {
             rootView!.layer.borderWidth = 1
             rootView!.layer.borderColor = UIColor(white: 1, alpha: 0.15).cgColor
 
-            // Create progress bar views (layout will be done after slot setup)
+            // Create progress bar views (only if not using schema)
+            // These will be hidden if schema has process
             progressBarBackground = UIView()
             progressBarBackground!.backgroundColor = UIColor.gray
             progressBarBackground!.layer.cornerRadius = 4
@@ -2624,6 +2896,17 @@ final class MachineUI: UIPanel_Base {
             progressStatusLabel!.text = "Ready"
             rootView!.addSubview(progressStatusLabel!)
         }
+        
+        // Hide legacy progress bar if schema has process
+        if let schema = currentSchema, schema.process != nil {
+            progressBarBackground?.isHidden = true
+            progressBarFill?.isHidden = true
+            progressStatusLabel?.isHidden = true
+        } else {
+            progressBarBackground?.isHidden = false
+            progressBarFill?.isHidden = false
+            progressStatusLabel?.isHidden = false
+        }
 
         // Root view now exists; allow components to attach UIKit subviews
         if let entity = currentEntity {
@@ -2634,34 +2917,68 @@ final class MachineUI: UIPanel_Base {
         }
 
         // Set up UIKit components
-        // Setup recipe UI for assemblers, furnaces, and fluid machines.
-        if let entity = currentEntity, let gameLoop = gameLoop,
-           (gameLoop.world.has(AssemblerComponent.self, for: entity) ||
-            gameLoop.world.has(FurnaceComponent.self, for: entity) ||
-            gameLoop.world.has(FluidTankComponent.self, for: entity)) {
-            if recipeScrollView == nil {
-                setupRecipeScrollView(for: entity, gameLoop: gameLoop)
-            }
-            setupRecipeButtons()
+        // Check if schema has recipes panel - if so, skip legacy recipe UI
+        let hasSchemaRecipes = currentSchema?.recipes != nil
+        
+        if !hasSchemaRecipes {
+            // Legacy recipe UI setup
+            // Setup recipe UI for assemblers, furnaces, and fluid machines.
+            if let entity = currentEntity, let gameLoop = gameLoop,
+               (gameLoop.world.has(AssemblerComponent.self, for: entity) ||
+                gameLoop.world.has(FurnaceComponent.self, for: entity) ||
+                gameLoop.world.has(FluidTankComponent.self, for: entity)) {
+                if recipeScrollView == nil {
+                    setupRecipeScrollView(for: entity, gameLoop: gameLoop)
+                }
+                setupRecipeButtons()
 
-            // Clear any previous recipe selection and update button states
-            selectedRecipe = nil
-            noRecipeSelectedLabel?.isHidden = false
-            updateRecipeButtonStates()
+                // Clear any previous recipe selection and update button states
+                selectedRecipe = nil
+                noRecipeSelectedLabel?.isHidden = false
+                updateRecipeButtonStates()
+            } else {
+                // No recipes for this machine - hide recipe UI
+                recipeScrollView?.removeFromSuperview()
+                recipeScrollView = nil
+                recipeUIButtons.forEach { $0.removeFromSuperview() }
+                recipeUIButtons.removeAll()
+            }
         } else {
-            // No recipes for this machine - hide recipe UI
+            // Schema has recipes panel - completely remove legacy recipe UI
             recipeScrollView?.removeFromSuperview()
             recipeScrollView = nil
             recipeUIButtons.forEach { $0.removeFromSuperview() }
             recipeUIButtons.removeAll()
+            recipeHeaderLabel?.removeFromSuperview()
+            recipeHeaderLabel = nil
+            noRecipeSelectedLabel?.removeFromSuperview()
+            noRecipeSelectedLabel = nil
+            
+            // Populate schema recipes panel
+            if let entity = currentEntity, let gameLoop = gameLoop {
+                populateSchemaRecipesPanel(for: entity, gameLoop: gameLoop)
+            }
         }
 
-        // Set up UIKit slot buttons (ensure they're created when opening)
-        if currentEntity != nil {
+        // Set up UIKit slot buttons (only if not using schema)
+        let usingSchema = currentSchema != nil
+        if !usingSchema && currentEntity != nil {
             clearSlotUI()
             setupSlotButtons()
             layoutAll()
             // Update the UI with current machine state
+            updateMachine(currentEntity!)
+        } else if usingSchema && currentEntity != nil {
+            // Schema-based UI - ensure legacy views are hidden
+            // Hide legacy slot buttons if they exist
+            fuelSlotButtons.forEach { $0.isHidden = true }
+            inputSlotButtons.forEach { $0.isHidden = true }
+            outputSlotButtons.forEach { $0.isHidden = true }
+            fuelCountLabels.forEach { $0.isHidden = true }
+            inputCountLabels.forEach { $0.isHidden = true }
+            outputCountLabels.forEach { $0.isHidden = true }
+            
+            // Update the schema UI
             updateMachine(currentEntity!)
         }
 
@@ -2670,6 +2987,29 @@ final class MachineUI: UIPanel_Base {
             print("MachineUI: Setting up components for pending entity")
             setupComponentsForEntity(entity)
             pendingEntitySetup = nil
+            
+            // After schema is applied, ensure legacy views are hidden and schema views are on top
+            if currentSchema != nil {
+                // Hide all legacy views
+                progressBarBackground?.isHidden = true
+                progressBarFill?.isHidden = true
+                progressStatusLabel?.isHidden = true
+                fuelSlotButtons.forEach { $0.isHidden = true }
+                inputSlotButtons.forEach { $0.isHidden = true }
+                outputSlotButtons.forEach { $0.isHidden = true }
+                fuelCountLabels.forEach { $0.isHidden = true }
+                inputCountLabels.forEach { $0.isHidden = true }
+                outputCountLabels.forEach { $0.isHidden = true }
+                
+                // Bring schema views to front
+                if let references = schemaUIReferences {
+                    for (_, (container, _, _)) in references.groupViews {
+                        rootView?.bringSubviewToFront(container)
+                    }
+                    references.processContainer.map { rootView?.bringSubviewToFront($0) }
+                    references.recipesContainer.map { rootView?.bringSubviewToFront($0) }
+                }
+            }
         }
 
         // Add root view to hierarchy (AFTER content is added to it)
@@ -2687,8 +3027,8 @@ final class MachineUI: UIPanel_Base {
             close()
         }
 
-        // Add scroll view inside panel view
-        if let recipeScrollView = recipeScrollView, let rootView = rootView {
+        // Add scroll view inside panel view (only if not using schema recipes)
+        if let recipeScrollView = recipeScrollView, let rootView = rootView, currentSchema?.recipes == nil {
             rootView.addSubview(recipeScrollView)
         }
 
@@ -2900,6 +3240,10 @@ final class MachineUI: UIPanel_Base {
         progressBarBackground = nil
         progressStatusLabel?.removeFromSuperview()
         progressStatusLabel = nil
+
+        // Clear schema references
+        schemaUIReferences = nil
+        currentSchema = nil
 
         // Remove root view from hierarchy *directly*
         if let rv = rootView {
@@ -3249,21 +3593,30 @@ final class MachineUI: UIPanel_Base {
     }
 
     func updateMachine(_ entity: Entity) {
-        setupSlotsForMachine(entity)
-        updateCountLabels(entity)
-        relayoutCountLabels()
+        // Check if we're using schema-based rendering
+        let usingSchema = currentSchema != nil
+        
+        if !usingSchema {
+            // Legacy update path
+            setupSlotsForMachine(entity)
+            updateCountLabels(entity)
+            relayoutCountLabels()
+        } else {
+            // Schema-based rendering - update schema UI instead
+            updateSchemaUI(for: entity)
+        }
 
         // Update machine components
         for component in machineComponents {
             component.updateUI(for: entity, in: self)
         }
 
-        // Update craft button state if one is shown
-        if selectedRecipe != nil {
+        // Update craft button state if one is shown (legacy)
+        if !usingSchema && selectedRecipe != nil {
             updateCraftButtonState()
         }
 
-        // Reposition fluid labels
+        // Reposition fluid labels (non-conflicting)
         for component in machineComponents {
             if let fluidComponent = component as? FluidMachineUIComponent {
                 fluidComponent.positionLabels(in: self)
@@ -3271,22 +3624,400 @@ final class MachineUI: UIPanel_Base {
         }
     }
 
+    // MARK: - Schema UI Updates
+    
+    /// Update schema-built UI with current machine state
+    private func updateSchemaUI(for entity: Entity) {
+        guard let schema = currentSchema,
+              let references = schemaUIReferences,
+              let gameLoop = gameLoop,
+              let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else {
+            return
+        }
+        
+        // Update slot views in each group
+        updateSchemaSlots(schema: schema, references: references, inventory: inventory, entity: entity, gameLoop: gameLoop)
+        
+        // Update state text labels
+        updateSchemaStateText(schema: schema, references: references, inventory: inventory)
+        
+        // Update process progress bar
+        updateSchemaProcess(schema: schema, references: references, entity: entity, gameLoop: gameLoop)
+        
+        // Update recipes panel
+        if schema.recipes != nil {
+            populateSchemaRecipesPanel(for: entity, gameLoop: gameLoop)
+        }
+    }
+    
+    /// Populate schema recipes panel with actual recipe buttons
+    private func populateSchemaRecipesPanel(for entity: Entity, gameLoop: GameLoop) {
+        guard let references = schemaUIReferences,
+              let recipesGrid = references.recipesGrid else {
+            return
+        }
+        
+        // Clear existing recipe buttons from schema panel
+        recipesGrid.subviews.forEach { $0.removeFromSuperview() }
+        
+        // Get available recipes (same logic as setupRecipeButtons)
+        var availableRecipes = gameLoop.recipeRegistry.enabled
+        
+        // Filter recipes based on machine type
+        if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            let hasFluidCapabilities = gameLoop.world.has(FluidTankComponent.self, for: entity)
+            availableRecipes = availableRecipes.filter { recipe in
+                let categoryMatches = recipe.category.rawValue == assembler.craftingCategory
+                let fluidCheckPasses = hasFluidCapabilities || (recipe.fluidInputs.isEmpty && recipe.fluidOutputs.isEmpty)
+                return categoryMatches && fluidCheckPasses
+            }
+        } else if gameLoop.world.has(FurnaceComponent.self, for: entity),
+                  let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+            availableRecipes = availableRecipes.filter { recipe in
+                recipe.category.rawValue == buildingDef.craftingCategory
+            }
+        } else if let _ = gameLoop.world.get(FluidTankComponent.self, for: entity),
+                  let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) {
+            availableRecipes = availableRecipes.filter { recipe in
+                recipe.category.rawValue == buildingDef.craftingCategory
+            }
+        }
+        
+        if availableRecipes.isEmpty { return }
+        
+        // Store filtered recipes for consistent indexing
+        filteredRecipes = availableRecipes
+        
+        // Get grid configuration from schema
+        guard let schema = currentSchema, let recipesConfig = schema.recipes else { return }
+        let cellSize = CGFloat(recipesConfig.grid.cellSizeDp)
+        let colSpacing = CGFloat(recipesConfig.grid.colSpacingDp)
+        let rowSpacing = CGFloat(recipesConfig.grid.rowSpacingDp)
+        let columns = recipesConfig.grid.columns
+        
+        // Create recipe buttons in grid layout
+        for (index, recipe) in availableRecipes.enumerated() {
+            let row = index / columns
+            let col = index % columns
+            
+            let buttonX = CGFloat(col) * (cellSize + colSpacing)
+            let buttonY = CGFloat(row) * (cellSize + rowSpacing)
+            
+            let button = UIKit.UIButton(type: .custom)
+            button.frame = CGRect(x: buttonX, y: buttonY, width: cellSize, height: cellSize)
+            button.translatesAutoresizingMaskIntoConstraints = false
+            
+            // Configure button appearance
+            var config = UIKit.UIButton.Configuration.plain()
+            config.background.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.25, alpha: 0.8)
+            config.background.strokeColor = UIColor.white
+            config.background.strokeWidth = 1.0
+            config.background.cornerRadius = 4.0
+            config.contentInsets = NSDirectionalEdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 2)
+            
+            // Add recipe texture
+            if !recipe.textureId.isEmpty {
+                if let image = loadRecipeImage(for: recipe.textureId) {
+                    let scaledSize = CGSize(width: cellSize * 0.8, height: cellSize * 0.8)
+                    UIGraphicsBeginImageContextWithOptions(scaledSize, false, 0.0)
+                    image.draw(in: CGRect(origin: .zero, size: scaledSize))
+                    let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
+                    UIGraphicsEndImageContext()
+                    config.image = scaledImage
+                    config.imagePlacement = .all
+                } else {
+                    config.title = "R"
+                    config.baseForegroundColor = UIColor.white
+                }
+            } else {
+                config.title = "?"
+                config.baseForegroundColor = UIColor.white
+            }
+            
+            button.configuration = config
+            
+            // Add tap handler
+            button.tag = index
+            button.addTarget(self, action: #selector(recipeButtonTapped(_:)), for: UIControl.Event.touchUpInside)
+            
+            recipesGrid.addSubview(button)
+            
+            // Set constraints
+            button.widthAnchor.constraint(equalToConstant: cellSize).isActive = true
+            button.heightAnchor.constraint(equalToConstant: cellSize).isActive = true
+            
+            // Position button in grid
+            if row == 0 && col == 0 {
+                // First button
+                button.topAnchor.constraint(equalTo: recipesGrid.topAnchor).isActive = true
+                button.leadingAnchor.constraint(equalTo: recipesGrid.leadingAnchor).isActive = true
+            } else if col == 0 {
+                // First column of subsequent rows
+                // Find the button in the same column of the previous row
+                let prevRowIndex = (row - 1) * columns
+                if prevRowIndex < recipesGrid.subviews.count {
+                    let prevButton = recipesGrid.subviews[prevRowIndex]
+                    button.topAnchor.constraint(equalTo: prevButton.bottomAnchor, constant: rowSpacing).isActive = true
+                }
+                button.leadingAnchor.constraint(equalTo: recipesGrid.leadingAnchor).isActive = true
+            } else {
+                // Same row, different column
+                // Find the previous button in the same row
+                let prevColIndex = row * columns + col - 1
+                if prevColIndex < recipesGrid.subviews.count {
+                    let prevButton = recipesGrid.subviews[prevColIndex]
+                    button.topAnchor.constraint(equalTo: prevButton.topAnchor).isActive = true
+                    button.leadingAnchor.constraint(equalTo: prevButton.trailingAnchor, constant: colSpacing).isActive = true
+                }
+            }
+        }
+    }
+    
+    /// Update slot views with current inventory items
+    private func updateSchemaSlots(schema: MachineUISchema, references: SchemaUIReferences, inventory: InventoryComponent, entity: Entity, gameLoop: GameLoop) {
+        // Map inventory slots to schema groups by role
+        // Inventory order: fuel slots first, then input slots, then output slots
+        guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop) else { return }
+        
+        var inventoryIndex = 0
+        let totalSlots = inventory.slots.count
+        
+        // Process each group in schema order
+        for group in schema.groups {
+            guard let (_, slotViews, _) = references.groupViews[group.id] else { continue }
+            
+            // Determine which inventory slots this group maps to
+            var groupInventoryStart = inventoryIndex
+            var groupSlotCount = 0
+            
+            switch group.role {
+            case .fuel:
+                groupInventoryStart = 0
+                groupSlotCount = min(buildingDef.fuelSlots, group.content.slots.count)
+            case .input:
+                groupInventoryStart = buildingDef.fuelSlots
+                groupSlotCount = min(buildingDef.inputSlots, group.content.slots.count)
+            case .output:
+                groupInventoryStart = buildingDef.fuelSlots + buildingDef.inputSlots
+                groupSlotCount = min(buildingDef.outputSlots, group.content.slots.count)
+            default:
+                continue
+            }
+            
+            // Update each slot view in the group
+            for (slotIndex, slotView) in slotViews.enumerated() {
+                guard slotIndex < groupSlotCount else {
+                    // Hide extra slot views
+                    slotView.isHidden = true
+                    continue
+                }
+                
+                let invIndex = groupInventoryStart + slotIndex
+                slotView.isHidden = false
+                
+                // Get item from inventory
+                if invIndex < totalSlots, let item = inventory.slots[invIndex] {
+                    // Update slot button with item image
+                    if let button = slotView as? UIKit.UIButton {
+                        if let image = loadRecipeImage(for: item.itemId) {
+                            let buttonSize = button.bounds.width > 0 ? button.bounds.width : CGFloat(56)
+                            let scaledSize = CGSize(width: buttonSize * 0.8, height: buttonSize * 0.8)
+                            UIGraphicsBeginImageContextWithOptions(scaledSize, false, 0.0)
+                            image.draw(in: CGRect(origin: .zero, size: scaledSize))
+                            let scaledImage = UIGraphicsGetImageFromCurrentImageContext()
+                            UIGraphicsEndImageContext()
+                            button.setImage(scaledImage, for: .normal)
+                        } else {
+                            button.setImage(nil, for: .normal)
+                        }
+                        
+                        // Update count label if present
+                        if let countLabel = button.subviews.first(where: { $0 is UILabel }) as? UILabel {
+                            if item.count > 1 {
+                                countLabel.text = "\(item.count)"
+                                countLabel.isHidden = false
+                            } else {
+                                countLabel.text = ""
+                                countLabel.isHidden = true
+                            }
+                        }
+                    }
+                } else {
+                    // Empty slot
+                    if let button = slotView as? UIKit.UIButton {
+                        button.setImage(nil, for: .normal)
+                        if let countLabel = button.subviews.first(where: { ($0 as? UILabel)?.tag == 999 }) as? UILabel {
+                            countLabel.text = ""
+                            countLabel.isHidden = true
+                        }
+                    }
+                }
+            }
+            
+            // Advance inventory index for next group
+            if group.role == .fuel {
+                inventoryIndex += buildingDef.fuelSlots
+            } else if group.role == .input {
+                inventoryIndex += buildingDef.inputSlots
+            } else if group.role == .output {
+                inventoryIndex += buildingDef.outputSlots
+            }
+        }
+    }
+    
+    /// Update state text labels based on slot empty/non-empty state
+    private func updateSchemaStateText(schema: MachineUISchema, references: SchemaUIReferences, inventory: InventoryComponent) {
+        for group in schema.groups {
+            guard let (_, slotViews, stateLabel) = references.groupViews[group.id],
+                  let stateText = group.content.stateText,
+                  let label = stateLabel else {
+                continue
+            }
+            
+            // Determine if group slots are empty
+            var hasItems = false
+            for slotView in slotViews where !slotView.isHidden {
+                if let button = slotView as? UIKit.UIButton, button.image(for: .normal) != nil {
+                    hasItems = true
+                    break
+                }
+            }
+            
+            // Update label text based on state
+            switch stateText.mode {
+            case .auto:
+                label.text = hasItems ? (stateText.nonEmpty ?? "") : stateText.empty
+            case .always:
+                label.text = hasItems ? (stateText.nonEmpty ?? stateText.empty) : stateText.empty
+            case .never:
+                label.isHidden = true
+                continue
+            }
+            
+            label.isHidden = false
+        }
+    }
+    
+    /// Update process progress bar and state label with current machine progress
+    private func updateSchemaProcess(schema: MachineUISchema, references: SchemaUIReferences, entity: Entity, gameLoop: GameLoop) {
+        guard let process = schema.process,
+              let progressBar = references.processProgressBar else {
+            return
+        }
+        
+        // Get progress from the appropriate component
+        var progress: Float = 0
+        
+        if let miner = gameLoop.world.get(MinerComponent.self, for: entity) {
+            progress = miner.progress
+        } else if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+            progress = furnace.smeltingProgress
+        } else if let assembler = gameLoop.world.get(AssemblerComponent.self, for: entity) {
+            progress = assembler.craftingProgress
+        } else if let pumpjack = gameLoop.world.get(PumpjackComponent.self, for: entity) {
+            progress = pumpjack.progress
+        }
+        
+        // Clamp progress to valid range
+        let clampedProgress = max(0, min(1, progress))
+        
+        // Update progress bar - ensure it's on main thread and use setProgress for proper rendering
+        if Thread.isMainThread {
+            progressBar.setProgress(clampedProgress, animated: false)
+        } else {
+            DispatchQueue.main.async { [weak progressBar] in
+                guard let progressBar = progressBar else { return }
+                progressBar.setProgress(clampedProgress, animated: false)
+            }
+        }
+        
+        // Update label if showPercent is true
+        if process.progress.showPercent, let label = references.processLabel {
+            let percent = Int(clampedProgress * 100)
+            if Thread.isMainThread {
+                label.text = "\(process.label.text): \(percent)%"
+            } else {
+                DispatchQueue.main.async {
+                    label.text = "\(process.label.text): \(percent)%"
+                }
+            }
+        }
+
+        // Derive process state (idle / working / blocked) and update state label
+        let stateText = deriveProcessState(entity: entity, gameLoop: gameLoop, progress: progress)
+        if let stateLabel = references.processStateLabel {
+            if Thread.isMainThread {
+                stateLabel.text = stateText
+            } else {
+                DispatchQueue.main.async { stateLabel.text = stateText }
+            }
+        }
+    }
+
+    /// Idle / Working / No fuel / No ore / Ready
+    private func deriveProcessState(entity: Entity, gameLoop: GameLoop, progress: Float) -> String {
+        if let furnace = gameLoop.world.get(FurnaceComponent.self, for: entity) {
+            guard let buildingDef = getBuildingDefinition(for: entity, gameLoop: gameLoop),
+                  let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) else {
+                return "Idle"
+            }
+            if furnace.recipe == nil { return "Idle" }
+            if progress > 0 { return "Working" }
+            let fuelSlots = buildingDef.fuelSlots
+            let inputSlots = buildingDef.inputSlots
+            let hasFuel = furnace.fuelRemaining > 0 || (0..<min(fuelSlots, inventory.slots.count)).contains { i in
+                guard let s = inventory.slots[i] else { return false }
+                return ["coal", "wood", "solid-fuel"].contains(s.itemId)
+            }
+            if !hasFuel { return "No fuel" }
+            let inputStart = fuelSlots
+            let inputEnd = min(fuelSlots + inputSlots, inventory.slots.count)
+            let hasOre = (inputStart..<inputEnd).contains { i in inventory.slots[i] != nil }
+            if !hasOre { return "No ore" }
+            return "Ready"
+        }
+        if gameLoop.world.get(MinerComponent.self, for: entity) != nil {
+            return progress > 0 ? "Working" : "Idle"
+        }
+        if gameLoop.world.get(AssemblerComponent.self, for: entity) != nil {
+            return progress > 0 ? "Working" : "Idle"
+        }
+        if gameLoop.world.get(PumpjackComponent.self, for: entity) != nil {
+            return progress > 0 ? "Working" : "Idle"
+        }
+        return "Idle"
+    }
+
 // Fluid updates now handled by FluidMachineUIComponent
 
     override func update(deltaTime: Float) {
         guard isOpen else { return }
 
-        // Update progress bar
-        updateProgressBar()
+        // Check if we're using schema-based rendering
+        let usingSchema = currentSchema != nil
+        let hasSchemaProcess = currentSchema?.process != nil
 
-        if let entity = currentEntity,
-           let gameLoop = gameLoop,
-           let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
-            let signature = inventorySignature(for: inventory)
-            if lastInventoryEntity != entity || lastInventorySignature != signature {
-                lastInventoryEntity = entity
-                lastInventorySignature = signature
-                updateCountLabels(entity)
+        // Update progress bar (only if not using schema process)
+        if !hasSchemaProcess {
+            updateProgressBar()
+        } else {
+            // Schema process owns its progress - update it via schema UI
+            if let entity = currentEntity, let gameLoop = gameLoop {
+                updateSchemaUI(for: entity)
+            }
+        }
+
+        if !usingSchema {
+            // Legacy count label updates
+            if let entity = currentEntity,
+               let gameLoop = gameLoop,
+               let inventory = gameLoop.world.get(InventoryComponent.self, for: entity) {
+                let signature = inventorySignature(for: inventory)
+                if lastInventoryEntity != entity || lastInventorySignature != signature {
+                    lastInventoryEntity = entity
+                    lastInventorySignature = signature
+                    updateCountLabels(entity)
+                }
             }
         }
 
@@ -3687,6 +4418,11 @@ final class MachineUI: UIPanel_Base {
     }
 
     private func updateProgressBar() {
+        // Skip if schema has process (schema owns progress)
+        if currentSchema?.process != nil {
+            return
+        }
+        
         guard let entity = currentEntity, let gameLoop = gameLoop else { return }
 
         // Get progress from the appropriate component

@@ -180,6 +180,7 @@ final class Player {
             // Fallback to hardcoded defaults
             startingItems = [
                 ("iron-plate", 10),  // 5 for stone furnace + 5 for burner mining drill
+                ("firearm-magazine", 50),  // Ammo for early-game biter defense
             ]
         }
 

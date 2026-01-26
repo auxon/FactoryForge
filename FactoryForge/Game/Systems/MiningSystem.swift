@@ -75,14 +75,14 @@ final class MiningSystem: System {
                 guard let position = world.get(PositionComponent.self, for: entity) else { continue }
                 guard var inventory = world.get(InventoryComponent.self, for: entity) else { continue }
 
-                let updatedMiner = miner
+                var updatedMiner = miner
 
                 if let nextScan = minerNextScanTime[entity], currentTimeSeconds < nextScan {
                     minerModifications.append((entity, updatedMiner))
                     continue
                 }
 
-                // Check power for electric miners only
+                // Check power for electric miners only; fuel for burner miners
                 let isBurnerMiner = world.get(PowerConsumerComponent.self, for: entity) == nil
 
                 if !isBurnerMiner {
@@ -105,7 +105,24 @@ final class MiningSystem: System {
                         continue
                     }
                 } else {
-                    // Burner miners are always active (no fuel requirement)
+                    // Burner miner - require fuel in fuel slot
+                    var hasFuel = updatedMiner.fuelRemaining > 0
+                    if !hasFuel {
+                        guard let buildingDef = buildingRegistry.get(updatedMiner.buildingId) else {
+                            updatedMiner.isActive = false
+                            minerModifications.append((entity, updatedMiner))
+                            minerNextScanTime[entity] = currentTimeSeconds + minerScanInterval
+                            continue
+                        }
+                        hasFuel = consumeMinerFuel(inventory: &inventory, miner: &updatedMiner, fuelSlots: buildingDef.fuelSlots)
+                        if hasFuel { inventoryModifications.append((entity, inventory)) }
+                    }
+                    if !hasFuel {
+                        updatedMiner.isActive = false
+                        minerModifications.append((entity, updatedMiner))
+                        minerNextScanTime[entity] = currentTimeSeconds + minerScanInterval
+                        continue
+                    }
                     updatedMiner.isActive = true
                 }
 
@@ -160,6 +177,22 @@ final class MiningSystem: System {
                 var speedMultiplier: Float = 1.0
                 if let power = world.get(PowerConsumerComponent.self, for: entity) {
                     speedMultiplier = power.satisfaction
+                }
+
+                // Burner miners: consume fuel while mining; stop if no fuel
+                if isBurnerMiner {
+                    updatedMiner.fuelRemaining -= deltaTime
+                    if updatedMiner.fuelRemaining <= 0 {
+                        let consumed = consumeMinerFuel(inventory: &inventory, miner: &updatedMiner, fuelSlots: buildingDef.fuelSlots)
+                        if consumed {
+                            inventoryModifications.append((entity, inventory))
+                        } else {
+                            updatedMiner.isActive = false
+                            minerModifications.append((entity, updatedMiner))
+                            minerNextScanTime[entity] = currentTimeSeconds + minerScanInterval
+                            continue
+                        }
+                    }
                 }
 
                 // Progress mining
@@ -516,6 +549,32 @@ final class MiningSystem: System {
 
     private func isWithinRadius(_ pos: IntVector2, center: IntVector2, radius: Int32) -> Bool {
         return abs(pos.x - center.x) <= radius && abs(pos.y - center.y) <= radius
+    }
+
+    /// Consume one fuel item from fuel slots only (coal, wood, solid-fuel). Same fuels as furnaces.
+    /// - Returns: true if fuel was consumed
+    private func consumeMinerFuel(inventory: inout InventoryComponent, miner: inout MinerComponent, fuelSlots: Int) -> Bool {
+        let fuels: [(String, Float)] = [
+            ("coal", 4.0),
+            ("wood", 2.0),
+            ("solid-fuel", 12.0)
+        ]
+        let end = min(fuelSlots, inventory.slots.count)
+        for (fuelId, burnTime) in fuels {
+            for i in 0..<end {
+                if var stack = inventory.slots[i], stack.itemId == fuelId, stack.count > 0 {
+                    stack.count -= 1
+                    if stack.count == 0 {
+                        inventory.slots[i] = nil
+                    } else {
+                        inventory.slots[i] = stack
+                    }
+                    miner.fuelRemaining = burnTime
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     private func findResource(at position: IntVector2) -> ResourceDeposit? {

@@ -58,12 +58,13 @@ final class SpawnSystem {
         }
     }
 
-    /// Grant starting resources (e.g. iron-plate, copper-plate) scaled by multiplier.
+    /// Grant starting resources (e.g. iron-plate, copper-plate, ammo) scaled by multiplier.
     private func applyStartingResources(player: Player, multiplier: Float) {
         let defaults: [(String, Int)] = [
             ("iron-plate", 8),
             ("copper-plate", 8),
             ("wood", 4),
+            ("firearm-magazine", 50),  // Ammo for early-game biter defense
         ]
         for (itemId, base) in defaults {
             let count = max(0, Int(Float(base) * multiplier))
