@@ -1,0 +1,74 @@
+{
+  "$schema": "https://example.com/machineui.schema.json",
+  "version": "1.0.0",
+  "id": "machineui.water_pump",
+  "machineKind": "water_pump",
+  "title": "Water Pump",
+  "layout": {
+    "flowAxis": "leftToRight",
+    "safeArea": { "top": 16, "left": 16, "bottom": 16, "right": 16 },
+    "padding": { "x": 24, "y": 24 },
+    "grid": { "columns": 12, "rows": 6, "gutterX": 8, "gutterY": 12 }
+  },
+
+  "groups": [
+    {
+      "id": "output",
+      "role": "output",
+      "header": { "text": "Water Output", "styleRole": "output", "alignment": "leading" },
+      "anchor": { "gridX": 5, "gridY": 0, "spanX": 4, "spanY": 4, "alignX": "leading", "alignY": "top" },
+      "content": {
+        "slots": [
+          { 
+            "id": "water.output", 
+            "slotKind": "fluid", 
+            "capacity": { "maxStacks": 1 },
+            "accepts": { "tags": [] },
+            "renders": { "sizeDp": 64, "style": "square", "overlay": "connection" }
+          }
+        ],
+        "stateText": { "mode": "auto", "empty": "(no connection)", "nonEmpty": "" }
+      }
+    }
+  ],
+
+  "process": {
+    "id": "pumping",
+    "label": { "text": "Pumping", "styleRole": "process", "alignment": "center" },
+    "anchor": { "gridX": 1, "gridY": 0, "spanX": 4, "spanY": 4, "alignX": "fill", "alignY": "fill" },
+    "progress": { "style": "bar", "bindTo": "recipeProgress", "showPercent": false },
+    "operators": { "showFlowGlyphs": true, "glyphStyleRole": "muted" }
+  },
+
+  "style": {
+    "palette": {
+      "fuel": "#FFAA00",
+      "input": "#00AAFF",
+      "output": "#00FF00",
+      "process": "#4A90E2",
+      "mutedText": "#CCCCCC"
+    },
+    "typography": {
+      "headerSize": 14,
+      "bodySize": 12,
+      "mutedSize": 10
+    },
+    "chrome": {
+      "panelOpacity": 1.0,
+      "cornerRadiusDp": 8,
+      "labelBackplateOpacity": 0.5
+    }
+  },
+
+  "invariants": [
+    "Every GroupHeader must be a descendant of exactly one Group.",
+    "No floating labels: GroupHeader must not be sibling of Slot; it must be ancestor (container header).",
+    "Process.progress must be visually adjacent to Process.label (max distance <= 1 grid row).",
+    "All input-role groups must be placed left of process anchor when flowAxis=leftToRight.",
+    "All output-role groups must be placed right of process anchor when flowAxis=leftToRight.",
+    "Slots in the same Group must share the same leading alignment and spacing.",
+    "If operators.showFlowGlyphs=true, glyphs must use glyphStyleRole=muted and never use semantic colors.",
+    "Any progress bar must have an explicit label (Process.label.text non-empty).",
+    "Empty state text must be inside the owning Group (content.stateText), never global."
+  ]
+}

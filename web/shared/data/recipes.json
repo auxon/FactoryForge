@@ -1,0 +1,1399 @@
+[
+  {
+    "id": "iron-plate",
+    "name": "Iron Plate",
+    "inputs": [
+      {
+        "itemId": "iron-ore",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      }
+    ],
+    "craftTime": 3.2,
+    "category": "smelting",
+    "order": "a"
+  },
+  {
+    "id": "copper-plate",
+    "name": "Copper Plate",
+    "inputs": [
+      {
+        "itemId": "copper-ore",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "copper-plate",
+        "count": 1
+      }
+    ],
+    "craftTime": 3.2,
+    "category": "smelting",
+    "order": "b"
+  },
+  {
+    "id": "steel-plate",
+    "name": "Steel Plate",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 5
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 1
+      }
+    ],
+    "craftTime": 16,
+    "category": "smelting",
+    "order": "c"
+  },
+  {
+    "id": "stone-brick",
+    "name": "Stone Brick",
+    "inputs": [
+      {
+        "itemId": "stone",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "stone-brick",
+        "count": 1
+      }
+    ],
+    "craftTime": 3.2,
+    "category": "smelting",
+    "order": "d"
+  },
+  {
+    "id": "iron-gear-wheel",
+    "name": "Iron Gear Wheel",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "a"
+  },
+  {
+    "id": "copper-cable",
+    "name": "Copper Cable",
+    "inputs": [
+      {
+        "itemId": "copper-plate",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "copper-cable",
+        "count": 2
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "b"
+  },
+  {
+    "id": "pipe",
+    "name": "Pipe",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "pipe",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "b1"
+  },
+  {
+    "id": "electronic-circuit",
+    "name": "Electronic Circuit",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      },
+      {
+        "itemId": "copper-cable",
+        "count": 3
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "electronic-circuit",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "c"
+  },
+  {
+    "id": "advanced-circuit",
+    "name": "Advanced Circuit",
+    "inputs": [
+      {
+        "itemId": "electronic-circuit",
+        "count": 2
+      },
+      {
+        "itemId": "copper-cable",
+        "count": 4
+      },
+      {
+        "itemId": "plastic-bar",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "advanced-circuit",
+        "count": 1
+      }
+    ],
+    "craftTime": 6,
+    "category": "crafting",
+    "order": "d"
+  },
+  {
+    "id": "processing-unit",
+    "name": "Processing Unit",
+    "inputs": [
+      {
+        "itemId": "advanced-circuit",
+        "count": 2
+      },
+      {
+        "itemId": "electronic-circuit",
+        "count": 20
+      },
+      {
+        "itemId": "sulfuric-acid",
+        "count": 5
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "processing-unit",
+        "count": 1
+      }
+    ],
+    "craftTime": 10,
+    "category": "crafting",
+    "order": "e"
+  },
+  {
+    "id": "automation-science-pack",
+    "name": "Automation Science Pack",
+    "inputs": [
+      {
+        "itemId": "copper-plate",
+        "count": 1
+      },
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 5
+      }
+    ],
+    "craftTime": 5,
+    "category": "crafting",
+    "order": "e"
+  },
+  {
+    "id": "logistic-science-pack",
+    "name": "Logistic Science Pack",
+    "inputs": [
+      {
+        "itemId": "inserter",
+        "count": 1
+      },
+      {
+        "itemId": "transport-belt",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "logistic-science-pack",
+        "count": 5
+      }
+    ],
+    "craftTime": 6,
+    "category": "crafting",
+    "order": "f"
+  },
+  {
+    "id": "transport-belt",
+    "name": "Transport Belt",
+    "inputs": [
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 1
+      },
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "transport-belt",
+        "count": 2
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "g"
+  },
+  {
+    "id": "fast-transport-belt",
+    "name": "Fast Transport Belt",
+    "inputs": [
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 5
+      },
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "fast-transport-belt",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "g1"
+  },
+  {
+    "id": "express-transport-belt",
+    "name": "Express Transport Belt",
+    "inputs": [
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 10
+      },
+      {
+        "itemId": "advanced-circuit",
+        "count": 2
+      },
+      {
+        "itemId": "steel-plate",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "express-transport-belt",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "g2"
+  },
+  {
+    "id": "underground-belt",
+    "name": "Underground Belt",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 10
+      },
+      {
+        "itemId": "transport-belt",
+        "count": 5
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "underground-belt",
+        "count": 2
+      }
+    ],
+    "craftTime": 1,
+    "category": "crafting",
+    "order": "g3"
+  },
+  {
+    "id": "splitter",
+    "name": "Splitter",
+    "inputs": [
+      {
+        "itemId": "electronic-circuit",
+        "count": 5
+      },
+      {
+        "itemId": "iron-plate",
+        "count": 5
+      },
+      {
+        "itemId": "transport-belt",
+        "count": 4
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "splitter",
+        "count": 1
+      }
+    ],
+    "craftTime": 1,
+    "category": "crafting",
+    "order": "g4"
+  },
+  {
+    "id": "merger",
+    "name": "Merger",
+    "inputs": [
+      {
+        "itemId": "electronic-circuit",
+        "count": 5
+      },
+      {
+        "itemId": "iron-plate",
+        "count": 5
+      },
+      {
+        "itemId": "transport-belt",
+        "count": 4
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "merger",
+        "count": 1
+      }
+    ],
+    "craftTime": 1,
+    "category": "crafting",
+    "order": "g5"
+  },
+  {
+    "id": "belt-bridge",
+    "name": "Belt Bridge",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      },
+      {
+        "itemId": "iron-stick",
+        "count": 2
+      },
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "belt-bridge",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "g6"
+  },
+  {
+    "id": "inserter",
+    "name": "Inserter",
+    "inputs": [
+      {
+        "itemId": "electronic-circuit",
+        "count": 1
+      },
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 1
+      },
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "inserter",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "h"
+  },
+  {
+    "id": "long-handed-inserter",
+    "name": "Long Handed Inserter",
+    "inputs": [
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 1
+      },
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      },
+      {
+        "itemId": "inserter",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "long-handed-inserter",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "h1"
+  },
+  {
+    "id": "fast-inserter",
+    "name": "Fast Inserter",
+    "inputs": [
+      {
+        "itemId": "electronic-circuit",
+        "count": 2
+      },
+      {
+        "itemId": "iron-plate",
+        "count": 2
+      },
+      {
+        "itemId": "inserter",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "fast-inserter",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "h2"
+  },
+  {
+    "id": "stack-inserter",
+    "name": "Stack Inserter",
+    "inputs": [
+      {
+        "itemId": "advanced-circuit",
+        "count": 1
+      },
+      {
+        "itemId": "electronic-circuit",
+        "count": 15
+      },
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 15
+      },
+      {
+        "itemId": "fast-inserter",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "stack-inserter",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "h3"
+  },
+  {
+    "id": "wooden-chest",
+    "name": "Wooden Chest",
+    "inputs": [
+      {
+        "itemId": "wood",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "wooden-chest",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "i"
+  },
+  {
+    "id": "iron-chest",
+    "name": "Iron Chest",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 8
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "iron-chest",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "i1"
+  },
+  {
+    "id": "steel-chest",
+    "name": "Steel Chest",
+    "inputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 8
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "steel-chest",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "i2"
+  },
+  {
+    "id": "small-electric-pole",
+    "name": "Small Electric Pole",
+    "inputs": [
+      {
+        "itemId": "wood",
+        "count": 2
+      },
+      {
+        "itemId": "copper-cable",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "small-electric-pole",
+        "count": 2
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "j"
+  },
+  {
+    "id": "medium-electric-pole",
+    "name": "Medium Electric Pole",
+    "inputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 2
+      },
+      {
+        "itemId": "copper-plate",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "medium-electric-pole",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "j1"
+  },
+  {
+    "id": "big-electric-pole",
+    "name": "Big Electric Pole",
+    "inputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 5
+      },
+      {
+        "itemId": "copper-plate",
+        "count": 5
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "big-electric-pole",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "j2"
+  },
+  {
+    "id": "stone-furnace",
+    "name": "Stone Furnace",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 5
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "stone-furnace",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "k"
+  },
+  {
+    "id": "steel-furnace",
+    "name": "Steel Furnace",
+    "inputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 6
+      },
+      {
+        "itemId": "stone-brick",
+        "count": 10
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "steel-furnace",
+        "count": 1
+      }
+    ],
+    "craftTime": 3,
+    "category": "crafting",
+    "order": "k1"
+  },
+  {
+    "id": "burner-mining-drill",
+    "name": "Burner Mining Drill",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 5
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "burner-mining-drill",
+        "count": 1
+      }
+    ],
+    "craftTime": 2,
+    "category": "crafting",
+    "order": "m"
+  },
+  {
+    "id": "electric-mining-drill",
+    "name": "Electric Mining Drill",
+    "inputs": [
+      {
+        "itemId": "electronic-circuit",
+        "count": 3
+      },
+      {
+        "itemId": "iron-gear-wheel",
+        "count": 5
+      },
+      {
+        "itemId": "iron-plate",
+        "count": 10
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "electric-mining-drill",
+        "count": 1
+      }
+    ],
+    "craftTime": 2,
+    "category": "crafting",
+    "order": "m1"
+  },
+  {
+    "id": "stone-wall",
+    "name": "Wall",
+    "inputs": [
+      {
+        "itemId": "stone-brick",
+        "count": 5
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "stone-wall",
+        "count": 1
+      }
+    ],
+    "craftTime": 0.5,
+    "category": "crafting",
+    "order": "n"
+  },
+  {
+    "id": "firearm-magazine",
+    "name": "Firearm Magazine",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 4
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "firearm-magazine",
+        "count": 1
+      }
+    ],
+    "craftTime": 1,
+    "category": "crafting",
+    "order": "t"
+  },
+  {
+    "id": "water-pump",
+    "name": "Water Pump",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 5
+      },
+      {
+        "itemId": "pipe",
+        "count": 5
+      },
+      {
+        "itemId": "electronic-circuit",
+        "count": 2
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "water-pump",
+        "count": 1
+      }
+    ],
+    "craftTime": 5,
+    "category": "crafting",
+    "order": "w"
+  },
+  {
+    "id": "basic-oil-processing",
+    "name": "Basic Oil Processing",
+    "inputs": [
+      {
+        "itemId": "crude-oil",
+        "count": 50
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "petroleum-gas",
+        "count": 22.5
+      },
+      {
+        "itemId": "light-oil",
+        "count": 15
+      },
+      {
+        "itemId": "heavy-oil",
+        "count": 12.5
+      }
+    ],
+    "craftTime": 5,
+    "category": "oil-processing",
+    "order": "a"
+  },
+  {
+    "id": "advanced-oil-processing",
+    "name": "Advanced Oil Processing",
+    "inputs": [
+      {
+        "itemId": "crude-oil",
+        "count": 50
+      },
+      {
+        "itemId": "water",
+        "count": 25
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "petroleum-gas",
+        "count": 27.5
+      },
+      {
+        "itemId": "light-oil",
+        "count": 22.5
+      },
+      {
+        "itemId": "heavy-oil",
+        "count": 12.5
+      }
+    ],
+    "craftTime": 5,
+    "category": "oil-processing",
+    "order": "c"
+  },
+  {
+    "id": "light-oil-cracking",
+    "name": "Light Oil Cracking",
+    "inputs": [
+      {
+        "itemId": "light-oil",
+        "count": 15
+      },
+      {
+        "itemId": "water",
+        "count": 15
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "petroleum-gas",
+        "count": 10
+      }
+    ],
+    "craftTime": 5,
+    "category": "chemistry",
+    "order": "c"
+  },
+  {
+    "id": "heavy-oil-cracking",
+    "name": "Heavy Oil Cracking",
+    "inputs": [
+      {
+        "itemId": "heavy-oil",
+        "count": 20
+      },
+      {
+        "itemId": "water",
+        "count": 15
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "light-oil",
+        "count": 15
+      }
+    ],
+    "craftTime": 5,
+    "category": "chemistry",
+    "order": "d"
+  },
+  {
+    "id": "plastic-bar",
+    "name": "Plastic Bar",
+    "inputs": [
+      {
+        "itemId": "coal",
+        "count": 1
+      },
+      {
+        "itemId": "petroleum-gas",
+        "count": 10
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "plastic-bar",
+        "count": 2
+      }
+    ],
+    "craftTime": 1,
+    "category": "chemistry",
+    "order": "e"
+  },
+  {
+    "id": "sulfur",
+    "name": "Sulfur",
+    "inputs": [
+      {
+        "itemId": "petroleum-gas",
+        "count": 15
+      },
+      {
+        "itemId": "water",
+        "count": 15
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "sulfur",
+        "count": 2
+      },
+      {
+        "itemId": "sulfuric-acid",
+        "count": 25
+      }
+    ],
+    "craftTime": 1,
+    "category": "chemistry",
+    "order": "f"
+  },
+  {
+    "id": "sulfuric-acid",
+    "name": "Sulfuric Acid",
+    "inputs": [
+      {
+        "itemId": "sulfur",
+        "count": 5
+      },
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      },
+      {
+        "itemId": "water",
+        "count": 50
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "sulfuric-acid",
+        "count": 50
+      }
+    ],
+    "craftTime": 1,
+    "category": "chemistry",
+    "order": "g"
+  },
+  {
+    "id": "lubricant",
+    "name": "Lubricant",
+    "inputs": [
+      {
+        "itemId": "heavy-oil",
+        "count": 5
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "lubricant",
+        "count": 5
+      }
+    ],
+    "craftTime": 1,
+    "category": "chemistry",
+    "order": "h"
+  },
+  {
+    "id": "solid-fuel",
+    "name": "Solid Fuel",
+    "inputs": [
+      {
+        "itemId": "coal",
+        "count": 1
+      },
+      {
+        "itemId": "petroleum-gas",
+        "count": 10
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "solid-fuel",
+        "count": 1
+      }
+    ],
+    "craftTime": 2,
+    "category": "chemistry",
+    "order": "i"
+  },
+  {
+    "id": "low-density-structure",
+    "name": "Low Density Structure",
+    "inputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 2
+      },
+      {
+        "itemId": "copper-plate",
+        "count": 20
+      },
+      {
+        "itemId": "plastic-bar",
+        "count": 5
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "low-density-structure",
+        "count": 1
+      }
+    ],
+    "craftTime": 20,
+    "category": "crafting",
+    "order": "j"
+  },
+  {
+    "id": "battery",
+    "name": "Battery",
+    "inputs": [
+      {
+        "itemId": "iron-plate",
+        "count": 1
+      },
+      {
+        "itemId": "copper-plate",
+        "count": 1
+      },
+      {
+        "itemId": "sulfuric-acid",
+        "count": 20
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "battery",
+        "count": 1
+      }
+    ],
+    "craftTime": 5,
+    "category": "chemistry",
+    "order": "i"
+  },
+  {
+    "id": "explosives",
+    "name": "Explosives",
+    "inputs": [
+      {
+        "itemId": "coal",
+        "count": 1
+      },
+      {
+        "itemId": "sulfur",
+        "count": 1
+      },
+      {
+        "itemId": "water",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "explosives",
+        "count": 2
+      }
+    ],
+    "craftTime": 5,
+    "category": "chemistry",
+    "order": "j"
+  },
+  {
+    "id": "uranium-processing",
+    "name": "Uranium Processing",
+    "inputs": [
+      {
+        "itemId": "uranium-ore",
+        "count": 10
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "uranium-235",
+        "count": 1
+      },
+      {
+        "itemId": "uranium-238",
+        "count": 9
+      }
+    ],
+    "craftTime": 12,
+    "category": "centrifuging",
+    "order": "ab"
+  },
+  {
+    "id": "nuclear-fuel",
+    "name": "Nuclear Fuel",
+    "inputs": [
+      {
+        "itemId": "uranium-235",
+        "count": 1
+      },
+      {
+        "itemId": "uranium-238",
+        "count": 19
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "nuclear-fuel",
+        "count": 1
+      }
+    ],
+    "craftTime": 60,
+    "category": "centrifuging",
+    "order": "ac"
+  },
+  {
+    "id": "nuclear-reactor",
+    "name": "Nuclear Reactor",
+    "inputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 400
+      },
+      {
+        "itemId": "advanced-circuit",
+        "count": 400
+      },
+      {
+        "itemId": "copper-plate",
+        "count": 400
+      },
+      {
+        "itemId": "stone-brick",
+        "count": 400
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "nuclear-reactor",
+        "count": 1
+      }
+    ],
+    "craftTime": 8,
+    "category": "crafting",
+    "order": "ad"
+  },
+  {
+    "id": "centrifuge",
+    "name": "Centrifuge",
+    "inputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 50
+      },
+      {
+        "itemId": "advanced-circuit",
+        "count": 100
+      },
+      {
+        "itemId": "processing-unit",
+        "count": 100
+      },
+      {
+        "itemId": "stone-brick",
+        "count": 100
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "centrifuge",
+        "count": 1
+      }
+    ],
+    "craftTime": 4,
+    "category": "crafting",
+    "order": "ae"
+  },
+  {
+    "id": "rocket-fuel",
+    "name": "Rocket Fuel",
+    "inputs": [
+      {
+        "itemId": "solid-fuel",
+        "count": 10
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "rocket-fuel",
+        "count": 1
+      }
+    ],
+    "craftTime": 30,
+    "category": "crafting",
+    "order": "af"
+  },
+  {
+    "id": "rocket-parts",
+    "name": "Rocket Parts",
+    "inputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 10
+      },
+      {
+        "itemId": "low-density-structure",
+        "count": 10
+      },
+      {
+        "itemId": "rocket-fuel",
+        "count": 10
+      },
+      {
+        "itemId": "electronic-circuit",
+        "count": 10
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "rocket-parts",
+        "count": 1
+      }
+    ],
+    "craftTime": 3,
+    "category": "crafting",
+    "order": "ag"
+  },
+  {
+    "id": "satellite",
+    "name": "Satellite",
+    "inputs": [
+      {
+        "itemId": "low-density-structure",
+        "count": 100
+      },
+      {
+        "itemId": "solar-panel",
+        "count": 100
+      },
+      {
+        "itemId": "accumulator",
+        "count": 100
+      },
+      {
+        "itemId": "radar",
+        "count": 5
+      },
+      {
+        "itemId": "processing-unit",
+        "count": 100
+      },
+      {
+        "itemId": "rocket-fuel",
+        "count": 50
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "satellite",
+        "count": 1
+      }
+    ],
+    "craftTime": 5,
+    "category": "crafting",
+    "order": "ah"
+  },
+  {
+    "id": "rocket-silo",
+    "name": "Rocket Silo",
+    "inputs": [
+      {
+        "itemId": "steel-plate",
+        "count": 1000
+      },
+      {
+        "itemId": "stone-brick",
+        "count": 1000
+      },
+      {
+        "itemId": "pipe",
+        "count": 100
+      },
+      {
+        "itemId": "processing-unit",
+        "count": 200
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "rocket-silo",
+        "count": 1
+      }
+    ],
+    "craftTime": 30,
+    "category": "crafting",
+    "order": "ai"
+  },
+  {
+    "id": "space-science-pack",
+    "name": "Space Science Pack (Generated by Rocket Launches)",
+    "inputs": [],
+    "outputs": [
+      {
+        "itemId": "space-science-pack",
+        "count": 1000
+      }
+    ],
+    "craftTime": 0,
+    "category": "crafting",
+    "order": "aj"
+  },
+  {
+    "id": "chemical-science-pack",
+    "name": "Chemical Science Pack",
+    "inputs": [
+      {
+        "itemId": "advanced-circuit",
+        "count": 3
+      },
+      {
+        "itemId": "engine-unit",
+        "count": 2
+      },
+      {
+        "itemId": "sulfuric-acid",
+        "count": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "chemical-science-pack",
+        "count": 1
+      }
+    ],
+    "craftTime": 24,
+    "category": "crafting",
+    "order": "aa"
+  }
+]

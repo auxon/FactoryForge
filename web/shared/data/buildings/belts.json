@@ -1,0 +1,83 @@
+[
+  {
+    "id": "transport-belt",
+    "name": "Transport Belt",
+    "type": "belt",
+    "maxHealth": 50,
+    "cost": [
+      {"itemId": "iron-gear-wheel", "count": 1},
+      {"itemId": "iron-plate", "count": 1}
+    ],
+    "beltSpeed": 1.875
+  },
+  {
+    "id": "fast-transport-belt",
+    "name": "Fast Transport Belt",
+    "type": "belt",
+    "maxHealth": 50,
+    "cost": [
+      {"itemId": "iron-gear-wheel", "count": 5},
+      {"itemId": "iron-plate", "count": 1}
+    ],
+    "beltSpeed": 3.75
+  },
+  {
+    "id": "express-transport-belt",
+    "name": "Express Transport Belt",
+    "type": "belt",
+    "maxHealth": 50,
+    "cost": [
+      {"itemId": "iron-gear-wheel", "count": 10},
+      {"itemId": "advanced-circuit", "count": 2},
+      {"itemId": "steel-plate", "count": 1}
+    ],
+    "beltSpeed": 5.625
+  },
+  {
+    "id": "underground-belt",
+    "name": "Underground Belt",
+    "type": "belt",
+    "maxHealth": 60,
+    "cost": [
+      {"itemId": "iron-plate", "count": 10},
+      {"itemId": "transport-belt", "count": 5}
+    ],
+    "beltSpeed": 1.875
+  },
+  {
+    "id": "splitter",
+    "name": "Splitter",
+    "type": "belt",
+    "maxHealth": 80,
+    "cost": [
+      {"itemId": "electronic-circuit", "count": 5},
+      {"itemId": "iron-plate", "count": 5},
+      {"itemId": "transport-belt", "count": 4}
+    ],
+    "beltSpeed": 1.875
+  },
+  {
+    "id": "merger",
+    "name": "Merger",
+    "type": "belt",
+    "maxHealth": 80,
+    "cost": [
+      {"itemId": "electronic-circuit", "count": 5},
+      {"itemId": "iron-plate", "count": 5},
+      {"itemId": "transport-belt", "count": 4}
+    ],
+    "beltSpeed": 1.875
+  },
+  {
+    "id": "belt-bridge",
+    "name": "Belt Bridge",
+    "type": "belt",
+    "maxHealth": 50,
+    "cost": [
+      {"itemId": "iron-plate", "count": 1},
+      {"itemId": "iron-stick", "count": 2},
+      {"itemId": "iron-gear-wheel", "count": 2}
+    ],
+    "beltSpeed": 1.875
+  }
+]

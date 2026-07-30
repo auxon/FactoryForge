@@ -1,0 +1,950 @@
+[
+  {
+    "id": "automation",
+    "name": "Automation",
+    "description": "Unlocks assembling machines for automated crafting",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 10
+      }
+    ],
+    "researchTime": 10,
+    "unlocks": {
+      "recipes": [
+        "assembling-machine-1"
+      ]
+    },
+    "order": "a",
+    "tier": 1
+  },
+  {
+    "id": "logistics",
+    "name": "Logistics",
+    "description": "Unlocks basic logistics items",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 20
+      }
+    ],
+    "researchTime": 15,
+    "unlocks": {
+      "recipes": [
+        "fast-inserter",
+        "long-handed-inserter"
+      ]
+    },
+    "order": "b",
+    "tier": 1
+  },
+  {
+    "id": "turrets",
+    "name": "Turrets",
+    "description": "Unlocks gun turrets for defense",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 10
+      }
+    ],
+    "researchTime": 10,
+    "unlocks": {
+      "recipes": [
+        "gun-turret"
+      ]
+    },
+    "order": "c",
+    "tier": 1
+  },
+  {
+    "id": "stone-walls",
+    "name": "Stone Walls",
+    "description": "Unlocks walls for defense",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 10
+      }
+    ],
+    "researchTime": 10,
+    "unlocks": {
+      "recipes": [
+        "stone-wall"
+      ]
+    },
+    "order": "d",
+    "tier": 1
+  },
+  {
+    "id": "steel-processing",
+    "name": "Steel Processing",
+    "description": "Unlocks steel plate smelting",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 50
+      }
+    ],
+    "researchTime": 20,
+    "unlocks": {
+      "recipes": [
+        "steel-plate"
+      ]
+    },
+    "order": "e",
+    "tier": 1
+  },
+  {
+    "id": "military",
+    "name": "Military",
+    "description": "Unlocks better ammunition",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 20
+      }
+    ],
+    "researchTime": 15,
+    "unlocks": {
+      "recipes": [
+        "piercing-rounds-magazine"
+      ]
+    },
+    "order": "f",
+    "tier": 1
+  },
+  {
+    "id": "logistic-science-pack",
+    "name": "Logistic Science Pack",
+    "description": "Unlocks green science packs",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 75
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "logistic-science-pack"
+      ]
+    },
+    "order": "a",
+    "tier": 2,
+    "prerequisites": [
+      "automation"
+    ]
+  },
+  {
+    "id": "automation-2",
+    "name": "Automation 2",
+    "description": "Unlocks faster assembling machines",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 40
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 40
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "assembling-machine-2"
+      ]
+    },
+    "order": "b",
+    "tier": 2,
+    "prerequisites": [
+      "automation",
+      "logistic-science-pack"
+    ]
+  },
+  {
+    "id": "automation-3",
+    "name": "Automation 3",
+    "description": "Unlocks the fastest assembling machines",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 60,
+    "unlocks": {
+      "recipes": [
+        "assembling-machine-3"
+      ]
+    },
+    "order": "c",
+    "tier": 3,
+    "prerequisites": [
+      "automation-2",
+      "advanced-electronics"
+    ]
+  },
+  {
+    "id": "logistics-2",
+    "name": "Logistics 2",
+    "description": "Unlocks fast transport belts",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 40
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 40
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "fast-transport-belt"
+      ]
+    },
+    "order": "c",
+    "tier": 2,
+    "prerequisites": [
+      "logistics",
+      "logistic-science-pack"
+    ]
+  },
+  {
+    "id": "advanced-logistics",
+    "name": "Advanced Logistics",
+    "description": "Unlocks underground belts, splitters, and mergers",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 75
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 75
+      }
+    ],
+    "researchTime": 45,
+    "unlocks": {
+      "recipes": [
+        "underground-belt",
+        "splitter",
+        "merger"
+      ]
+    },
+    "order": "d",
+    "tier": 3,
+    "prerequisites": [
+      "logistics-2"
+    ]
+  },
+  {
+    "id": "advanced-material-processing",
+    "name": "Advanced Material Processing",
+    "description": "Unlocks steel furnaces",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 50
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 50
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "steel-furnace"
+      ]
+    },
+    "order": "d",
+    "tier": 2,
+    "prerequisites": [
+      "steel-processing"
+    ]
+  },
+  {
+    "id": "solar-energy",
+    "name": "Solar Energy",
+    "description": "Unlocks solar panels",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 60,
+    "unlocks": {
+      "recipes": [
+        "solar-panel"
+      ]
+    },
+    "order": "e",
+    "tier": 2,
+    "prerequisites": [
+      "logistic-science-pack"
+    ]
+  },
+  {
+    "id": "electric-energy-accumulators",
+    "name": "Electric Energy Accumulators",
+    "description": "Unlocks accumulators for energy storage",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 60,
+    "unlocks": {
+      "recipes": [
+        "accumulator"
+      ]
+    },
+    "order": "f",
+    "tier": 2,
+    "prerequisites": [
+      "solar-energy"
+    ]
+  },
+  {
+    "id": "laser-turrets",
+    "name": "Laser Turrets",
+    "description": "Unlocks laser turrets",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 150
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 150
+      }
+    ],
+    "researchTime": 60,
+    "unlocks": {
+      "recipes": [
+        "laser-turret"
+      ]
+    },
+    "order": "g",
+    "tier": 2,
+    "prerequisites": [
+      "turrets",
+      "logistic-science-pack"
+    ]
+  },
+  {
+    "id": "mining-productivity-1",
+    "name": "Mining Productivity 1",
+    "description": "Increases mining output by 10%",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 60,
+    "unlocks": {},
+    "order": "z-a",
+    "tier": 2,
+    "prerequisites": [
+      "logistic-science-pack"
+    ]
+  },
+  {
+    "id": "research-speed-1",
+    "name": "Research Speed 1",
+    "description": "Increases research speed by 20%",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 60,
+    "unlocks": {},
+    "order": "z-b",
+    "tier": 2,
+    "prerequisites": [
+      "logistic-science-pack"
+    ]
+  },
+  {
+    "id": "advanced-electronics",
+    "name": "Advanced Electronics",
+    "description": "Unlocks advanced electronic circuits and processing units",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 75
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 75
+      }
+    ],
+    "researchTime": 45,
+    "unlocks": {
+      "recipes": [
+        "advanced-circuit",
+        "processing-unit"
+      ]
+    },
+    "order": "h",
+    "tier": 2,
+    "prerequisites": [
+      "logistic-science-pack"
+    ]
+  },
+  {
+    "id": "oil-processing",
+    "name": "Oil Processing",
+    "description": "Unlocks oil wells and basic oil refining",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 50
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 50
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 50
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "pumpjack",
+        "water-pump",
+        "basic-oil-processing"
+      ]
+    },
+    "order": "a",
+    "tier": 3,
+    "prerequisites": [
+      "advanced-electronics"
+    ]
+  },
+  {
+    "id": "advanced-oil-processing",
+    "name": "Advanced Oil Processing",
+    "description": "Unlocks advanced oil refining techniques",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 50
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 50
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 50
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "oil-refinery",
+        "advanced-oil-processing"
+      ]
+    },
+    "order": "b",
+    "tier": 3,
+    "prerequisites": [
+      "oil-processing"
+    ]
+  },
+  {
+    "id": "chemistry",
+    "name": "Chemistry",
+    "description": "Unlocks chemical plants and basic chemical production",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "chemical-plant",
+        "sulfur",
+        "plastic-bar",
+        "chemical-science-pack"
+      ]
+    },
+    "order": "c",
+    "tier": 3,
+    "prerequisites": [
+      "advanced-oil-processing"
+    ]
+  },
+  {
+    "id": "sulfur-processing",
+    "name": "Sulfur Processing",
+    "description": "Unlocks sulfuric acid production",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "sulfuric-acid"
+      ]
+    },
+    "order": "d",
+    "tier": 3,
+    "prerequisites": [
+      "chemistry"
+    ]
+  },
+  {
+    "id": "oil-cracking",
+    "name": "Oil Cracking",
+    "description": "Unlocks oil cracking for better yields",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "light-oil-cracking",
+        "heavy-oil-cracking"
+      ]
+    },
+    "order": "e",
+    "tier": 3,
+    "prerequisites": [
+      "chemistry"
+    ]
+  },
+  {
+    "id": "battery",
+    "name": "Battery",
+    "description": "Unlocks battery production",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "battery"
+      ]
+    },
+    "order": "f",
+    "tier": 3,
+    "prerequisites": [
+      "sulfur-processing"
+    ]
+  },
+  {
+    "id": "explosives",
+    "name": "Explosives",
+    "description": "Unlocks explosive production",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "explosives"
+      ]
+    },
+    "order": "g",
+    "tier": 3,
+    "prerequisites": [
+      "sulfur-processing"
+    ]
+  },
+  {
+    "id": "lubricant",
+    "name": "Lubricant",
+    "description": "Unlocks lubricant production",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 100
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 100
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "lubricant"
+      ]
+    },
+    "order": "h",
+    "tier": 3,
+    "prerequisites": [
+      "oil-cracking"
+    ]
+  },
+  {
+    "id": "stack-inserter",
+    "name": "Stack Inserter",
+    "description": "Unlocks stack inserters for moving multiple items",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 150
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 150
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 150
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "stack-inserter"
+      ]
+    },
+    "order": "i",
+    "tier": 3,
+    "prerequisites": [
+      "advanced-electronics"
+    ]
+  },
+  {
+    "id": "nuclear-processing",
+    "name": "Nuclear Processing",
+    "description": "Unlocks uranium processing and nuclear fuel production",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 200
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 200
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 200
+      }
+    ],
+    "researchTime": 45,
+    "unlocks": {
+      "recipes": [
+        "uranium-processing",
+        "nuclear-fuel"
+      ]
+    },
+    "order": "j",
+    "tier": 3,
+    "prerequisites": [
+      "chemistry"
+    ]
+  },
+  {
+    "id": "nuclear-power",
+    "name": "Nuclear Power",
+    "description": "Unlocks nuclear reactors and centrifuges",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 300
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 300
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 300
+      }
+    ],
+    "researchTime": 60,
+    "unlocks": {
+      "recipes": [
+        "nuclear-reactor",
+        "centrifuge"
+      ]
+    },
+    "order": "k",
+    "tier": 3,
+    "prerequisites": [
+      "nuclear-processing",
+      "automation-3"
+    ]
+  },
+  {
+    "id": "rocket-fuel",
+    "name": "Rocket Fuel",
+    "description": "Unlocks solid fuel and rocket fuel production",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 200
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 200
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 200
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "solid-fuel",
+        "rocket-fuel"
+      ]
+    },
+    "order": "l",
+    "tier": 3,
+    "prerequisites": [
+      "advanced-oil-processing"
+    ]
+  },
+  {
+    "id": "low-density-structure",
+    "name": "Low Density Structure",
+    "description": "Unlocks lightweight structural materials",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 200
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 200
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 200
+      }
+    ],
+    "researchTime": 30,
+    "unlocks": {
+      "recipes": [
+        "low-density-structure"
+      ]
+    },
+    "order": "m",
+    "tier": 3,
+    "prerequisites": [
+      "rocket-fuel"
+    ]
+  },
+  {
+    "id": "rocket-parts",
+    "name": "Rocket Parts",
+    "description": "Unlocks rocket part assembly",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 300
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 300
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 300
+      }
+    ],
+    "researchTime": 45,
+    "unlocks": {
+      "recipes": [
+        "rocket-parts"
+      ]
+    },
+    "order": "n",
+    "tier": 3,
+    "prerequisites": [
+      "low-density-structure"
+    ]
+  },
+  {
+    "id": "satellite",
+    "name": "Satellite",
+    "description": "Unlocks satellite construction",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 400
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 400
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 400
+      }
+    ],
+    "researchTime": 60,
+    "unlocks": {
+      "recipes": [
+        "satellite"
+      ]
+    },
+    "order": "o",
+    "tier": 3,
+    "prerequisites": [
+      "rocket-parts",
+      "solar-energy"
+    ]
+  },
+  {
+    "id": "rocket-silo",
+    "name": "Rocket Silo",
+    "description": "Unlocks rocket silo construction",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 500
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 500
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 500
+      }
+    ],
+    "researchTime": 90,
+    "unlocks": {
+      "recipes": [
+        "rocket-silo"
+      ]
+    },
+    "order": "p",
+    "tier": 3,
+    "prerequisites": [
+      "satellite"
+    ]
+  },
+  {
+    "id": "space-science-pack",
+    "name": "Space Science Pack",
+    "description": "Unlocks space science research",
+    "cost": [
+      {
+        "itemId": "automation-science-pack",
+        "count": 1000
+      },
+      {
+        "itemId": "logistic-science-pack",
+        "count": 1000
+      },
+      {
+        "itemId": "chemical-science-pack",
+        "count": 1000
+      }
+    ],
+    "researchTime": 120,
+    "unlocks": {
+      "recipes": [
+        "space-science-pack"
+      ]
+    },
+    "order": "q",
+    "tier": 4,
+    "prerequisites": [
+      "rocket-silo"
+    ]
+  }
+]

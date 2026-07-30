@@ -1,0 +1,51 @@
+[
+  {
+    "id": "gun-turret",
+    "name": "Gun Turret",
+    "type": "turret",
+    "width": 2,
+    "height": 2,
+    "maxHealth": 400,
+    "cost": [
+      {"itemId": "iron-gear-wheel", "count": 10},
+      {"itemId": "copper-plate", "count": 10},
+      {"itemId": "iron-plate", "count": 20}
+    ],
+    "turretRange": 18,
+    "turretDamage": 6,
+    "turretFireRate": 10,
+    "inputSlots": 1,
+    "outputSlots": 0,
+    "fuelSlots": 0
+  },
+  {
+    "id": "laser-turret",
+    "name": "Laser Turret",
+    "type": "turret",
+    "width": 2,
+    "height": 2,
+    "maxHealth": 1000,
+    "cost": [
+      {"itemId": "steel-plate", "count": 20},
+      {"itemId": "electronic-circuit", "count": 20},
+      {"itemId": "battery", "count": 12}
+    ],
+    "turretRange": 24,
+    "turretDamage": 20,
+    "turretFireRate": 20,
+    "powerConsumption": 800,
+    "inputSlots": 1,
+    "outputSlots": 0,
+    "fuelSlots": 0
+  },
+  {
+    "id": "stone-wall",
+    "name": "Wall",
+    "type": "wall",
+    "maxHealth": 350,
+    "cost": [
+      {"itemId": "stone-brick", "count": 5}
+    ],
+    "textureId": "wall"
+  }
+]
