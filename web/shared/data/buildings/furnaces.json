@@ -1,0 +1,54 @@
+[
+  {
+    "id": "stone-furnace",
+    "name": "Stone Furnace",
+    "type": "furnace",
+    "width": 2,
+    "height": 2,
+    "maxHealth": 200,
+    "cost": [
+      {"itemId": "iron-plate", "count": 5}
+    ],
+    "craftingSpeed": 1,
+    "craftingCategory": "smelting",
+    "inputSlots": 1,
+    "outputSlots": 1,
+    "fuelSlots": 1
+  },
+  {
+    "id": "steel-furnace",
+    "name": "Steel Furnace",
+    "type": "furnace",
+    "width": 2,
+    "height": 2,
+    "maxHealth": 300,
+    "cost": [
+      {"itemId": "steel-plate", "count": 6},
+      {"itemId": "stone-brick", "count": 10}
+    ],
+    "craftingSpeed": 2,
+    "craftingCategory": "smelting",
+    "inputSlots": 1,
+    "outputSlots": 1,
+    "fuelSlots": 1
+  },
+  {
+    "id": "electric-furnace",
+    "name": "Electric Furnace",
+    "type": "furnace",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 350,
+    "cost": [
+      {"itemId": "steel-plate", "count": 10},
+      {"itemId": "advanced-circuit", "count": 5},
+      {"itemId": "stone-brick", "count": 10}
+    ],
+    "craftingSpeed": 2,
+    "craftingCategory": "smelting",
+    "powerConsumption": 180,
+    "inputSlots": 1,
+    "outputSlots": 1,
+    "fuelSlots": 0
+  }
+]

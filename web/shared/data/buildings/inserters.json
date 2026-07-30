@@ -1,0 +1,59 @@
+[
+  {
+    "id": "inserter",
+    "name": "Inserter",
+    "type": "inserter",
+    "maxHealth": 40,
+    "cost": [
+      {"itemId": "electronic-circuit", "count": 1},
+      {"itemId": "iron-gear-wheel", "count": 1},
+      {"itemId": "iron-plate", "count": 1}
+    ],
+    "inserterSpeed": 4.0,
+    "inserterStackSize": 1,
+    "powerConsumption": 13
+  },
+  {
+    "id": "long-handed-inserter",
+    "name": "Long Handed Inserter",
+    "type": "inserter",
+    "maxHealth": 40,
+    "cost": [
+      {"itemId": "iron-gear-wheel", "count": 1},
+      {"itemId": "iron-plate", "count": 1},
+      {"itemId": "inserter", "count": 1}
+    ],
+    "inserterSpeed": 1.2,
+    "inserterStackSize": 1,
+    "powerConsumption": 18
+  },
+  {
+    "id": "fast-inserter",
+    "name": "Fast Inserter",
+    "type": "inserter",
+    "maxHealth": 40,
+    "cost": [
+      {"itemId": "electronic-circuit", "count": 2},
+      {"itemId": "iron-plate", "count": 2},
+      {"itemId": "inserter", "count": 1}
+    ],
+    "inserterSpeed": 2.31,
+    "inserterStackSize": 1,
+    "powerConsumption": 46
+  },
+  {
+    "id": "stack-inserter",
+    "name": "Stack Inserter",
+    "type": "inserter",
+    "maxHealth": 40,
+    "cost": [
+      {"itemId": "advanced-circuit", "count": 1},
+      {"itemId": "electronic-circuit", "count": 15},
+      {"itemId": "iron-gear-wheel", "count": 15},
+      {"itemId": "fast-inserter", "count": 1}
+    ],
+    "inserterSpeed": 1.5,
+    "inserterStackSize": 2,
+    "powerConsumption": 75
+  }
+]

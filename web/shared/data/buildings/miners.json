@@ -1,0 +1,72 @@
+[
+  {
+    "id": "burner-mining-drill",
+    "name": "Burner Mining Drill",
+    "type": "miner",
+    "width": 2,
+    "height": 2,
+    "maxHealth": 150,
+    "cost": [
+      {"itemId": "iron-plate", "count": 5}
+    ],
+    "miningSpeed": 0.5,
+    "inputSlots": 0,
+    "outputSlots": 1,
+    "fuelSlots": 1
+  },
+  {
+    "id": "electric-mining-drill",
+    "name": "Electric Mining Drill",
+    "type": "miner",
+    "width": 3,
+    "height": 3,
+    "maxHealth": 300,
+    "cost": [
+      {"itemId": "electronic-circuit", "count": 3},
+      {"itemId": "iron-gear-wheel", "count": 5},
+      {"itemId": "iron-plate", "count": 10}
+    ],
+    "miningSpeed": 0.75,
+    "powerConsumption": 90,
+    "inputSlots": 0,
+    "outputSlots": 1,
+    "fuelSlots": 0
+  },
+  {
+    "id": "pumpjack",
+    "name": "Pumpjack",
+    "type": "pumpjack",
+    "maxHealth": 200,
+    "cost": [
+      {"itemId": "steel-plate", "count": 5},
+      {"itemId": "iron-gear-wheel", "count": 10},
+      {"itemId": "electronic-circuit", "count": 5},
+      {"itemId": "pipe", "count": 10}
+    ],
+    "powerConsumption": 90,
+    "extractionRate": 1.0,
+    "fluidOutputType": "crudeOil",
+    "inventorySlots": 1,
+    "inputSlots": 0,
+    "outputSlots": 1,
+    "fuelSlots": 0
+  },
+  {
+    "id": "water-pump",
+    "name": "Water Pump",
+    "type": "waterPump",
+    "maxHealth": 150,
+    "cost": [
+      {"itemId": "iron-plate", "count": 5},
+      {"itemId": "pipe", "count": 5},
+      {"itemId": "electronic-circuit", "count": 2}
+    ],
+    "powerConsumption": 30,
+    "extractionRate": 20.0,
+    "fluidOutputType": "water",
+    "inventorySlots": 0,
+    "inputSlots": 0,
+    "outputSlots": 0,
+    "fuelSlots": 0
+  }
+]
