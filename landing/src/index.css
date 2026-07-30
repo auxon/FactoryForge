@@ -1,0 +1,56 @@
+:root {
+  color-scheme: dark;
+  --bg-deep: #070b10;
+  --bg-panel: #0d141c;
+  --bg-ink: #101820;
+  --cyan: #2de2e6;
+  --cyan-dim: #1a9aa0;
+  --cyan-glow: rgba(45, 226, 230, 0.35);
+  --amber: #f0b429;
+  --steel: #8a9bb0;
+  --fog: #c5d0db;
+  --line: rgba(45, 226, 230, 0.22);
+  --font-display: "Chakra Petch", sans-serif;
+  --font-body: "Space Grotesk", sans-serif;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--fog);
+  background: var(--bg-deep);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(45, 226, 230, 0.3);
+  color: #fff;
+}
