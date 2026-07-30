@@ -102,6 +102,18 @@ function Reveal({ className = '', children, as: Tag = 'div', delay = 0 }) {
 
 function FeatureBlock({ feature, index }) {
   const reversed = index % 2 === 1
+  const items = [
+    { src: feature.image, alt: feature.imageAlt },
+    ...feature.icons,
+  ]
+  const [selected, setSelected] = useState(items[0])
+  const [swapKey, setSwapKey] = useState(0)
+
+  function selectItem(item) {
+    if (item.src === selected.src) return
+    setSelected(item)
+    setSwapKey((key) => key + 1)
+  }
 
   return (
     <Reveal
@@ -110,11 +122,34 @@ function FeatureBlock({ feature, index }) {
       delay={index * 80}
     >
       <div className="feature__visual">
-        <img src={feature.image} alt={feature.imageAlt} className="feature__hero-asset" />
-        <div className="feature__icon-row" aria-hidden="true">
-          {feature.icons.map((icon) => (
-            <img key={icon.src} src={icon.src} alt="" className="feature__icon" />
-          ))}
+        <img
+          key={swapKey}
+          src={selected.src}
+          alt={selected.alt}
+          className="feature__hero-asset"
+        />
+        <p className="feature__asset-label">{selected.alt}</p>
+        <div
+          className="feature__icon-row"
+          role="listbox"
+          aria-label={`${feature.title} assets`}
+        >
+          {items.map((item) => {
+            const isActive = item.src === selected.src
+            return (
+              <button
+                key={item.src}
+                type="button"
+                role="option"
+                aria-selected={isActive}
+                aria-label={`View ${item.alt}`}
+                className={`feature__icon-btn ${isActive ? 'is-active' : ''}`}
+                onClick={() => selectItem(item)}
+              >
+                <img src={item.src} alt="" className="feature__icon" />
+              </button>
+            )
+          })}
         </div>
       </div>
       <div className="feature__copy">

@@ -308,11 +308,32 @@
   width: min(360px, 78%);
   image-rendering: auto;
   filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.55));
-  animation: float-y 5.5s ease-in-out infinite;
+  animation:
+    float-y 5.5s ease-in-out infinite,
+    asset-swap 0.45s var(--ease-out);
 }
 
 .feature--reverse .feature__hero-asset {
-  animation-delay: -1.8s;
+  animation-delay: -1.8s, 0s;
+}
+
+.feature__asset-label {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.2rem 0.65rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  background: rgba(7, 11, 16, 0.72);
+  border: 1px solid var(--line);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .feature__icon-row {
@@ -320,19 +341,51 @@
   inset: auto 8% 8%;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  gap: 0.45rem;
+  z-index: 1;
+}
+
+.feature__icon-btn {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: rgba(7, 11, 16, 0.55);
+  cursor: pointer;
+  transition:
+    transform 0.25s var(--ease-out),
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.feature__icon-btn:hover,
+.feature__icon-btn:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--cyan-dim);
+  background: rgba(45, 226, 230, 0.1);
+  outline: none;
+}
+
+.feature__icon-btn.is-active {
+  border-color: var(--cyan);
+  background: rgba(45, 226, 230, 0.14);
+  box-shadow: 0 0 16px var(--cyan-glow);
 }
 
 .feature__icon {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
-  opacity: 0.9;
-  transition: transform 0.25s var(--ease-out), opacity 0.25s ease;
+  opacity: 0.88;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
 }
 
-.feature__icon:hover {
-  transform: translateY(-4px) scale(1.08);
+.feature__icon-btn:hover .feature__icon,
+.feature__icon-btn.is-active .feature__icon {
   opacity: 1;
 }
 
@@ -490,6 +543,17 @@
   }
   50% {
     transform: translateY(-10px);
+  }
+}
+
+@keyframes asset-swap {
+  from {
+    opacity: 0;
+    filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.55)) blur(2px);
+  }
+  to {
+    opacity: 1;
+    filter: drop-shadow(0 18px 40px rgba(0, 0, 0, 0.55));
   }
 }
 
