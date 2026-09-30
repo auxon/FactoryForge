@@ -8,7 +8,6 @@ from fac import *  # noqa
 import math as _m
 
 ensure_base_materials()
-plain_material("FF_solarcell", (0.08, 0.16, 0.45), metallic=0.7, roughness=0.25)
 C = col("FF_solar")
 wipe_collection("FF_solar")
 

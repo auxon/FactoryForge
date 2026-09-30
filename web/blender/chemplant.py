@@ -8,7 +8,6 @@ from fac import *  # noqa
 import math as _m
 
 ensure_base_materials()
-plain_material("FF_chemgreen", (0.2, 0.55, 0.3), metallic=0.5, roughness=0.45)
 C = col("FF_chemplant")
 wipe_collection("FF_chemplant")
 
