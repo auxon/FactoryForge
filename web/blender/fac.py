@@ -122,6 +122,32 @@ def bolt(coll, loc, r=0.045, h=0.06, material="FF_darksteel"):
     return cyl(coll, "Bolt", r, r, h, loc, material, verts=6, bevel=0.005)
 
 
+def sphere(coll, name, r, loc, material, scale=(1, 1, 1), verts=20, bevel=0.0):
+    """loc=(x, center_up, z). scale=(sx, sy_up, sz)."""
+    bpy.ops.mesh.primitive_uv_sphere_add(
+        radius=r, segments=verts, ring_count=max(8, verts // 2),
+        location=(loc[0], loc[2], loc[1]))
+    o = bpy.context.view_layer.objects.active
+    o.name = name
+    o.scale = (scale[0], scale[2], scale[1])
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    o.data.materials.append(mat(material))
+    _own(o, coll)
+    return _finish(o, coll, bevel)
+
+
+def cone(coll, name, r, depth, loc, material, verts=12, bevel=0.01):
+    """Vertical cone pointing up, loc=(x, base_up, z)."""
+    bpy.ops.mesh.primitive_cone_add(
+        radius1=r, radius2=0.01, depth=depth, vertices=verts,
+        location=(loc[0], loc[2], loc[1] + depth / 2))
+    o = bpy.context.view_layer.objects.active
+    o.name = name
+    o.data.materials.append(mat(material))
+    _own(o, coll)
+    return _finish(o, coll, bevel)
+
+
 def pad(coll, w, d, material="concrete_floor"):
     return box(coll, "Pad", (w, 0.15, d), (0, 0.075, 0), material, bevel=0.01)
 
@@ -172,6 +198,12 @@ def ensure_base_materials():
     plain_material("FF_fire", (1.0, 0.4, 0.05), emissive=(1.0, 0.3, 0.02))
     plain_material("FF_greenlamp", (0.05, 0.8, 0.2), emissive=(0.05, 0.8, 0.2))
     plain_material("FF_redlamp", (0.9, 0.1, 0.1), emissive=(0.9, 0.1, 0.1))
+    plain_material("FF_orange", (0.85, 0.45, 0.08), metallic=0.3, roughness=0.5)
+    plain_material("FF_chitin", (0.35, 0.08, 0.08), metallic=0.1, roughness=0.45)
+    plain_material("FF_chitin_dark", (0.2, 0.04, 0.05), metallic=0.1, roughness=0.6)
+    plain_material("FF_nest", (0.3, 0.08, 0.15), metallic=0.0, roughness=0.7)
+    plain_material("FF_sac", (0.4, 0.8, 0.1), emissive=(0.35, 0.75, 0.1))
+    plain_material("FF_visor", (0.05, 0.1, 0.14), metallic=0.9, roughness=0.15)
 
 
 def isolate(name):
@@ -217,13 +249,13 @@ def frame_camera_target(target=(0, 1, 0), dist=7.0, yaw=0.785, pitch=0.9):
     if not cam:
         cam = bpy.data.objects.new("Camera", bpy.data.cameras.new("Camera"))
         bpy.context.scene.collection.objects.link(cam)
-    tx, ty, tz = target[0], target[2], target[1]
+    tx, ty, tz = target[0], target[2], target[1]  # Blender x, y(game z), z(game up)
     cx = tx + dist * math.cos(yaw) * math.cos(pitch)
-    cy = tz + dist * math.sin(yaw) * math.cos(pitch)
-    cz = ty + dist * math.sin(pitch)
+    cy = ty + dist * math.sin(yaw) * math.cos(pitch)
+    cz = tz + dist * math.sin(pitch)
     cam.location = (cx, cy, cz)
     from mathutils import Vector
-    d = Vector((tx - cx, tz - cy, ty - cz))
+    d = Vector((tx - cx, ty - cy, tz - cz))
     cam.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
     bpy.context.scene.camera = cam
     # drive the visible viewport directly (user view), not just the camera
@@ -233,9 +265,9 @@ def frame_camera_target(target=(0, 1, 0), dist=7.0, yaw=0.785, pitch=0.9):
             for space in area.spaces:
                 if space.type == "VIEW_3D":
                     r3d = space.region_3d
-                    r3d.view_location = (tx, tz, ty)
+                    r3d.view_location = (tx, ty, tz)
                     r3d.view_distance = dist
-                    dvec = Vector((tx - cx, tz - cy, ty - cz))
+                    dvec = Vector((tx - cx, ty - cy, tz - cz))
                     r3d.view_rotation = dvec.to_track_quat("-Z", "Y")
                     r3d.view_perspective = "PERSP"
                     try:
