@@ -192,6 +192,8 @@ def plain_material(name, base, metallic=0.0, roughness=0.6, emissive=None):
 def ensure_base_materials():
     plain_material("FF_darksteel", (0.16, 0.16, 0.18), metallic=0.85, roughness=0.45)
     plain_material("FF_steel", (0.55, 0.57, 0.6), metallic=0.9, roughness=0.35)
+    plain_material("FF_bluepaint", (0.22, 0.42, 0.85), metallic=0.55, roughness=0.42)
+    plain_material("FF_lightsteel", (0.7, 0.72, 0.75), metallic=0.9, roughness=0.3)
     plain_material("FF_copper", (0.72, 0.35, 0.16), metallic=0.95, roughness=0.3)
     plain_material("FF_hazard", (0.85, 0.65, 0.05), metallic=0.2, roughness=0.6)
     plain_material("FF_glass", (0.6, 0.85, 1.0), metallic=0.0, roughness=0.1)
