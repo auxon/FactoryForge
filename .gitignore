@@ -5,3 +5,4 @@ FactoryForge.xcodeproj/project.xcworkspace/xcuserdata/rah.xcuserdatad/UserInterf
 web/node_modules/
 web/blender/__pycache__/
 web/blender/factory.blend
+web/blender/*.blend1
