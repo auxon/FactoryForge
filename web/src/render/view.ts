@@ -6,6 +6,7 @@ import type { Game } from '../sim/game';
 import type { Ent } from '../sim/world';
 import { DIR_VEC } from '../sim/world';
 import { buildModel, isActive, itemColor, type Anim } from './models';
+import { GlbLibrary, MODEL_FOR, PLAYER_GLB, BITER_GLB, SPITTER_GLB, NEST_GLB } from './glb';
 import { Nature, bakeTerrainCanvas } from './nature';
 
 export class View {
@@ -26,6 +27,8 @@ export class View {
 
   private entMeshes = new Map<number, THREE.Group>();
   private anims = new Map<number, Anim>();
+  private glb = new GlbLibrary();
+  private glbFileOf = new Map<number, string>();
   private beltItems = new Map<number, THREE.Mesh[]>();
   private oreMesh: THREE.InstancedMesh | null = null;
   private trunkMesh: THREE.InstancedMesh | null = null;
@@ -34,7 +37,7 @@ export class View {
   private wireLines: THREE.LineSegments | null = null;
   private playerMesh!: THREE.Group;
   private enemyMeshes = new Map<number, THREE.Group>();
-  private spawnerMeshes = new Map<number, THREE.Mesh>();
+  private spawnerMeshes = new Map<number, THREE.Group>();
   private lastResCount = -1;
   private lastTreeCount = -1;
   private lastEntCount = -1;
@@ -121,6 +124,10 @@ export class View {
 
     this.buildPlayer();
     this.nature = new Nature(this.scene, game.world, game.world.seed);
+    // hero actors: swap to GLB when loaded
+    for (const f of [PLAYER_GLB, BITER_GLB, SPITTER_GLB, NEST_GLB]) {
+      void this.glb.load(f).then(() => this.onGlbFileReady(f));
+    }
 
     this.selBox = new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, 1.02, 1.02)),
@@ -253,31 +260,106 @@ export class View {
     });
   }
 
+  /** A GLB file finished loading: force-swap entities/actors using it. */
+  private onGlbFileReady(file: string): void {
+    for (const [id, f] of this.glbFileOf) {
+      if (f === file) {
+        const g = this.entMeshes.get(id);
+        if (g) this.scene.remove(g);
+        this.entMeshes.delete(id);
+        this.anims.delete(id);
+        this.glbFileOf.delete(id);
+      }
+    }
+    if (file === PLAYER_GLB) this.swapPlayerToGlb();
+    if (file === NEST_GLB) {
+      for (const m of this.spawnerMeshes.values()) this.scene.remove(m);
+      this.spawnerMeshes.clear();
+    }
+  }
+
+  /** Wrap a GLB clone so model-forward (-Z) becomes game-forward (+Z). */
+  private wrapGlb(clone: THREE.Group): THREE.Group {
+    const g = new THREE.Group();
+    clone.rotation.y = Math.PI;
+    clone.traverse((o) => {
+      if (o instanceof THREE.Mesh) { o.castShadow = true; }
+    });
+    g.add(clone);
+    g.userData.glb = true;
+    return g;
+  }
+
   private syncEntities(): void {
     const seen = new Set<number>();
     for (const e of this.game.world.entities.values()) {
       seen.add(e.id);
       let g = this.entMeshes.get(e.id);
       if (!g) {
-        const { group, anim } = buildModel(e);
-        g = group;
+        const def = BUILDING_MAP.get(e.buildingId);
+        const w = def?.width ?? 1, h = def?.height ?? 1;
+        const entry = MODEL_FOR[e.buildingId];
+        const proto = entry ? this.glb.get(entry.file) : null;
+        if (proto) {
+          // GLB hero model
+          const inner = proto.clone(true);
+          if (entry!.tint != null) {
+            inner.traverse((o) => {
+              if (o instanceof THREE.Mesh) {
+                const m = o.material as THREE.MeshStandardMaterial;
+                if (m && 'color' in m) {
+                  o.material = m.clone();
+                  (o.material as THREE.MeshStandardMaterial).color.multiply(
+                    new THREE.Color(entry!.tint!));
+                }
+              }
+            });
+          }
+          if (entry!.scale != null) inner.scale.setScalar(entry!.scale);
+          g = this.wrapGlb(inner);
+          // hide silo rocket until assembled (sync below drives it)
+          const anim0 = this.glb.collectAnim(g);
+          if (anim0.rocket && e.buildingId === 'rocket-silo') anim0.rocket.visible = false;
+          this.anims.set(e.id, anim0);
+          this.glbFileOf.set(e.id, entry!.file);
+          // directional buildings face their direction
+          if (def?.type === 'Inserter' || def?.type === 'Belt') {
+            const [dx, dy] = DIR_VEC[e.dir];
+            g.rotation.y = Math.atan2(dx, dy);
+          }
+        } else {
+          if (entry) {
+            // record wanted file so the async load swaps this mesh on arrival
+            this.glbFileOf.set(e.id, entry.file);
+            void this.glb.load(entry.file).then(() => this.onGlbFileReady(entry.file));
+          }
+          const { group, anim } = buildModel(e);
+          g = group;
+          this.anims.set(e.id, anim);
+        }
         this.entMeshes.set(e.id, g);
-        this.anims.set(e.id, anim);
+        g.position.set(e.x + w / 2, 0, e.y + h / 2);
         this.scene.add(g);
       }
       const anim = this.anims.get(e.id)!;
       const active = isActive(e);
       const t = this.clock;
-      if (anim.rotor && active) anim.rotor.rotation.y += 0.25;
-      if (anim.wheel && e.satisfaction > 0) anim.wheel.rotation.x += 0.12;
+      const baseY = (o: THREE.Object3D): number => {
+        if (o.userData.baseY == null) o.userData.baseY = o.position.y;
+        return o.userData.baseY as number;
+      };
+      if (anim.rotor && active) anim.rotor.rotateY(0.25);
+      if (anim.wheel && e.satisfaction > 0) anim.wheel.rotateZ(0.12);
       if (anim.beam && active) anim.beam.rotation.z = Math.sin(t * 2.2) * 0.28;
       if (anim.arms) {
         anim.arms.forEach((a, i) => {
-          a.position.y = active ? 1.3 + Math.sin(t * 5 + i * Math.PI) * 0.18 : 1.3;
+          a.position.y = baseY(a) + (active ? Math.sin(t * 5 + i * Math.PI) * 0.18 : 0);
         });
       }
-      if (anim.arm && active) {
-        anim.arm.rotation.y += Math.sin(t * 3) * 0.02 + 0.03;
+      if (anim.arm) {
+        if (anim.arm.userData.baseRotY == null) anim.arm.userData.baseRotY = anim.arm.rotation.y;
+        const br = anim.arm.userData.baseRotY as number;
+        anim.arm.rotation.y = active ? br + Math.sin(t * 3) * 0.55 : br;
       }
       if (anim.armTip) {
         // show held item
@@ -291,8 +373,10 @@ export class View {
       }
       if (anim.glow) {
         const on = active;
-        const m = anim.glow.material as THREE.MeshBasicMaterial | THREE.MeshLambertMaterial;
-        if ('color' in m && m instanceof THREE.MeshBasicMaterial && anim.glow.geometry.type === 'PlaneGeometry') {
+        const m = anim.glow.material as THREE.MeshBasicMaterial | THREE.MeshStandardMaterial;
+        if ('emissiveIntensity' in m) {
+          m.emissiveIntensity = on ? 2.2 + Math.sin(t * 9) * 0.8 : 0.12;
+        } else if (m instanceof THREE.MeshBasicMaterial && anim.glow.geometry.type === 'PlaneGeometry') {
           m.color.setHex(on ? (Math.sin(t * 9) > 0 ? 0xff6600 : 0xff3300) : 0x3a2018);
         }
       }
@@ -311,13 +395,26 @@ export class View {
       }
       if (anim.rocket && e.buildingId === 'rocket-silo') {
         anim.rocket.visible = e.assembled || e.launching;
-        if (e.launching) anim.rocket.position.y = 0.6 + (e.launchT / 10) * 14;
-        else if (e.assembled) anim.rocket.position.y = 0.6;
+        const by = baseY(anim.rocket);
+        if (e.launching) anim.rocket.position.y = by + (e.launchT / 10) * 14;
+        else if (e.assembled) anim.rocket.position.y = by;
       }
-      const lamp = g.getObjectByName('lamp') as THREE.Mesh | undefined;
+      let lamp: THREE.Object3D | undefined = g.getObjectByName('lamp') as THREE.Mesh | undefined;
+      if (!lamp) {
+        g.traverse((o) => {
+          if (!lamp && o instanceof THREE.Mesh && /^Lamp/.test(o.name)) lamp = o;
+        });
+      }
       if (lamp) {
-        (lamp.material as THREE.MeshBasicMaterial).color.setHex(
-          e.satisfaction > 0 ? 0x00ff00 : 0xff0000);
+        let lm = (lamp as THREE.Mesh).material as THREE.MeshBasicMaterial | THREE.MeshStandardMaterial;
+        if (!lm.userData.own) {
+          lm = lm.clone();
+          (lamp as THREE.Mesh).material = lm;
+          lm.userData.own = true;
+        }
+        const hex = e.satisfaction > 0 ? 0x00ff00 : 0xff0000;
+        if ('emissive' in lm) lm.emissive.setHex(hex);
+        else if ('color' in lm) (lm as THREE.MeshBasicMaterial).color.setHex(hex);
       }
       const def = BUILDING_MAP.get(e.buildingId);
       if (def?.type === 'Belt') this.syncBeltItems(e);
@@ -536,8 +633,26 @@ export class View {
     }
   }
 
+  /** Swap the procedural player rig for the Blender engineer GLB. */
+  private swapPlayerToGlb(): void {
+    const proto = this.glb.get(PLAYER_GLB);
+    if (!proto || this.playerMesh.userData.glb) return;
+    this.playerMesh.clear();
+    const inner = proto.clone(true);
+    inner.rotation.y = Math.PI; // model-forward (-Z) -> game-forward (+Z)
+    inner.traverse((o) => {
+      if (o instanceof THREE.Mesh) o.castShadow = true;
+    });
+    this.playerMesh.add(inner);
+    this.playerMesh.userData.glb = true;
+  }
+
   private syncActors(): void {
     const p = this.game.player;
+    if (!this.playerMesh.userData.glb) {
+      const proto = this.glb.get(PLAYER_GLB);
+      if (proto) this.swapPlayerToGlb();
+    }
     const px = this.playerMesh.position.x, pz = this.playerMesh.position.z;
     const moved = Math.hypot(p.x - px, p.y - pz);
     this.playerMesh.position.set(p.x, moved > 0.001 ? Math.abs(Math.sin(this.clock * 10)) * 0.06 : 0, p.y);
@@ -549,15 +664,31 @@ export class View {
       seen.add(en.id);
       let grp = this.enemyMeshes.get(en.id);
       if (!grp) {
+        const spitter = (en.enemyId ?? '').includes('spitter');
+        const proto = this.glb.get(spitter ? SPITTER_GLB : BITER_GLB);
         grp = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8),
-          new THREE.MeshLambertMaterial({ color: 0xa02020 }));
-        body.position.y = 0.35; body.castShadow = true;
-        const jaw = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.4, 6),
-          new THREE.MeshLambertMaterial({ color: 0x601010 }));
-        jaw.position.set(0, 0.3, 0.4);
-        jaw.rotation.x = Math.PI / 2;
-        grp.add(body, jaw);
+        if (proto) {
+          const inner = proto.clone(true);
+          inner.rotation.y = Math.PI;
+          inner.traverse((o) => {
+            if (o instanceof THREE.Mesh) o.castShadow = true;
+          });
+          grp.add(inner);
+          grp.userData.glb = true;
+          const tier = en.enemyId ?? '';
+          const s = tier.includes('behemoth') ? 2.4 : tier.includes('big') ? 1.7
+            : tier.includes('medium') ? 1.3 : 1.0;
+          grp.scale.setScalar(s);
+        } else {
+          const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8),
+            new THREE.MeshLambertMaterial({ color: 0xa02020 }));
+          body.position.y = 0.35; body.castShadow = true;
+          const jaw = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.4, 6),
+            new THREE.MeshLambertMaterial({ color: 0x601010 }));
+          jaw.position.set(0, 0.3, 0.4);
+          jaw.rotation.x = Math.PI / 2;
+          grp.add(body, jaw);
+        }
         this.enemyMeshes.set(en.id, grp);
         this.scene.add(grp);
       }
@@ -574,11 +705,25 @@ export class View {
       sseen.add(i);
       let m = this.spawnerMeshes.get(i);
       if (!m) {
-        m = new THREE.Mesh(new THREE.SphereGeometry(1.4, 12, 8),
-          new THREE.MeshLambertMaterial({ color: 0x5a1a2a }));
-        m.scale.y = 0.55;
-        m.position.set(s.x, 0.2, s.y);
-        m.castShadow = true;
+        m = new THREE.Group();
+        const proto = this.glb.get(NEST_GLB);
+        if (proto) {
+          const inner = proto.clone(true);
+          inner.traverse((o) => {
+            if (o instanceof THREE.Mesh) o.castShadow = true;
+          });
+          inner.scale.setScalar(1.4);
+          m.add(inner);
+          m.userData.glb = true;
+        } else {
+          const blob = new THREE.Mesh(new THREE.SphereGeometry(1.4, 12, 8),
+            new THREE.MeshLambertMaterial({ color: 0x5a1a2a }));
+          blob.scale.y = 0.55;
+          blob.position.y = 0.2;
+          blob.castShadow = true;
+          m.add(blob);
+        }
+        m.position.set(s.x, 0, s.y);
         this.spawnerMeshes.set(i, m);
         this.scene.add(m);
       }
