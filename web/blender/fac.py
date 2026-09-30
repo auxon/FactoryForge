@@ -206,6 +206,7 @@ def ensure_base_materials():
     plain_material("FF_nest", (0.3, 0.08, 0.15), metallic=0.0, roughness=0.7)
     plain_material("FF_sac", (0.4, 0.8, 0.1), emissive=(0.35, 0.75, 0.1))
     plain_material("FF_visor", (0.05, 0.1, 0.14), metallic=0.9, roughness=0.15)
+    plain_material("FF_brick", (0.48, 0.27, 0.18), metallic=0.0, roughness=0.85)
 
 
 def isolate(name):

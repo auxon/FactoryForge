@@ -3,3 +3,5 @@ FactoryForge.xcodeproj/xcshareddata/xcschemes/FactoryForge.xcscheme
 FactoryForge.xcodeproj/xcuserdata/rah.xcuserdatad/xcschemes/xcschememanagement.plist
 FactoryForge.xcodeproj/project.xcworkspace/xcuserdata/rah.xcuserdatad/UserInterfaceState.xcuserstateweb/dist/
 web/node_modules/
+web/blender/__pycache__/
+web/blender/factory.blend

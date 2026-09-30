@@ -7,7 +7,6 @@ importlib.reload(fac)
 from fac import *  # noqa
 
 ensure_base_materials()
-plain_material("FF_brick", (0.48, 0.27, 0.18), metallic=0.0, roughness=0.85)
 C = col("FF_stone_furnace")
 wipe_collection("FF_stone_furnace")
 
