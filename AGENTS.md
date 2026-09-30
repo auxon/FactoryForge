@@ -5,13 +5,18 @@
 ### What runs where
 This repo is primarily an **iOS/Swift game** (`FactoryForge.xcodeproj`, `FactoryForge/`, `FactoryForgeTests/`) that **cannot be built or tested on Linux** — it needs macOS + Xcode + an iOS simulator/device. The Cursor Cloud VM is Linux, so the game and its `xcodebuild` tests are out of scope here.
 
-The runnable-on-Linux pieces are three Node.js/TypeScript projects:
+The runnable-on-Linux pieces are four Node.js/TypeScript projects:
 
 | Project | Path | Runs fully on Linux? | Lint | Build | Run (dev) |
 | --- | --- | --- | --- | --- | --- |
 | Landing page (React 19 + Vite 8) | `landing/` | Yes | `npm run lint` (oxlint) | `npm run build` | `npm run dev` → http://localhost:5173 |
+| Web port (Three.js + Vite 6 + TS) | `web/` | Yes (playable in browser) | `npx tsc --noEmit` | `npm run build` | `npm run dev` → http://localhost:5174 |
 | Game-control MCP server (Node/TS) | `MCP/` | Starts & serves HTTP on 8080, but full function needs the iOS game | — | `npm run build` (tsc) | `npm start` / `npm run dev` |
 | Xcode/LLDB debug MCP server (Node/TS) | `DebugMCP/` | Builds & starts, but only does real work with macOS/Xcode/LLDB | — | `npm run build` (tsc) | `npm start` / `npm run dev` |
+
+### `web/` extra notes
+- Blender asset pipeline lives in `web/blender/` (`fac.py` helpers + per-model scripts). It needs a running Blender with the MCP addon; the `.blend` working file is gitignored, scripts are source of truth, exported GLBs ship under `web/public/models/`.
+- Headless smoke test: `cd web && ./node_modules/.bin/esbuild smoke.ts --bundle --platform=node --format=cjs --outfile=/tmp/smoke.cjs && node /tmp/smoke.cjs` (do NOT commit `smoke.ts`; it is a scratch verification file).
 
 ### Non-obvious caveats
 - **`node_modules/` is committed to git for `MCP/` and `DebugMCP/`, and it contains macOS-only binaries (`@esbuild/darwin-arm64`).** On Linux you must reinstall (`rm -rf node_modules && npm install`) to get the correct native binaries. The startup update script already does a fresh reinstall for these two. Do NOT commit the reinstalled `node_modules` — the platform-specific changes would pollute the repo.

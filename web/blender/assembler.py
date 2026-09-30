@@ -33,7 +33,7 @@ for sz in (-1.35, 1.35):
     import math as _m
     for i in range(3):
         r = cyl(C, "Roller", 0.05, 0.05, 0.7, (-0.25 + i * 0.25, 0.55, sz), "FF_steel", verts=8)
-        r.rotation_euler = (0, 0, _m.pi / 2)
+        r.rotation_euler = (0, _m.pi / 2, 0)  # Z-cylinder -> axis along X
 # cabinet + lamp
 box(C, "Cabinet", (0.5, 1.0, 0.6), (1.25, 0.65, -0.9), "FF_bluepaint", bevel=0.04)
 sphere(C, "Lamp", 0.07, (1.25, 1.25, -0.9), "FF_greenlamp")
