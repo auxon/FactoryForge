@@ -40,6 +40,8 @@ export class Game {
   constructor(seed: number) {
     this.world = new World(seed);
     this.player.inv.add('iron-plate', 10);
+    this.player.inv.add('coal', 10);
+    this.player.inv.add('wood', 10);
     this.player.inv.add('firearm-magazine', 50);
     this.player.inv.add('burner-mining-drill', 2);
     this.player.inv.add('stone-furnace', 2);
@@ -181,7 +183,7 @@ export class Game {
           const got = this.burnFuel(e);
           if (!got) continue;
         }
-        e.fuel -= dt;
+        e.fuel = Math.max(0, e.fuel - dt);
       }
       const dep = this.world.resourceNear(e.x, e.y, 2);
       if (!dep) continue;
@@ -348,7 +350,7 @@ export class Game {
       if (burner) {
         if (e.progress > 0 || this.furnaceHasWork(e)) {
           if (e.fuel <= 0 && !this.burnFuel(e)) continue;
-          e.fuel -= dt;
+          e.fuel = Math.max(0, e.fuel - dt);
         } else continue;
       }
       // auto-select furnace recipe

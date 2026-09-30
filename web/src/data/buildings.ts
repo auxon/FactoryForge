@@ -64,7 +64,7 @@ export const BUILDINGS: BuildingDefinition[] = [
   B({ id: 'fluid-tank', name: 'Fluid Tank', type: 'FluidTank', width: 3, height: 3, maxHealth: 500, cost: cost(['iron-plate', 20], ['steel-plate', 5], ['iron-gear-wheel', 3]), fluidCapacity: 25000 }),
   // nuclear
   B({ id: 'nuclear-reactor', name: 'Nuclear Reactor', type: 'NuclearReactor', width: 5, height: 5, maxHealth: 500, cost: cost(['steel-plate', 400], ['advanced-circuit', 400], ['copper-plate', 400], ['stone-brick', 400]), powerProduction: 40000, fuelSlots: 1 }),
-  B({ id: 'centrifuge', name: 'Centrifuge', type: 'Centrifuge', width: 3, height: 3, maxHealth: 300, cost: cost(['centrifuge', 1]), powerConsumption: 350, inventorySlots: 4, inputSlots: 2, outputSlots: 2 }),
+  B({ id: 'centrifuge', name: 'Centrifuge', type: 'Centrifuge', width: 3, height: 3, maxHealth: 300, cost: cost(['steel-plate', 50], ['advanced-circuit', 100], ['iron-gear-wheel', 100], ['stone-brick', 100]), powerConsumption: 350, inventorySlots: 4, inputSlots: 2, outputSlots: 2 }),
   // rockets
   B({ id: 'rocket-silo', name: 'Rocket Silo', type: 'RocketSilo', width: 9, height: 9, maxHealth: 5000, cost: cost(['steel-plate', 1000], ['stone-brick', 1000], ['pipe', 100], ['processing-unit', 200]), powerConsumption: 1000, inventorySlots: 5, inputSlots: 4, fuelSlots: 1 }),
   // lab (embedded in BuildingRegistry.swift)

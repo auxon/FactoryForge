@@ -194,6 +194,7 @@ export class UI {
     el.innerHTML = `<div class="help">
     <b>FactoryForge Web — core loop</b><br>
     WASD/arrows move (5 tiles/s) · Click ore/tree: hand-mine · Space: attack<br>
+    Walk up to any machine → [E] Use opens its panel · walking away closes it<br>
     Left-click place (ghost) · Right-drag pan camera · Wheel zoom · Q/E orbit · F follow<br>
     R rotate ghost · Esc cancel · B build · C craft · V bags · G research<br>
     Loop: burner drill on ore → stone furnace (iron/copper) → assembler (gears/circuits/belts)
@@ -234,7 +235,11 @@ export class UI {
       if (e.recipeId) {
         const r = RECIPE_MAP.get(e.recipeId)!;
         const p = document.createElement('div');
-        p.textContent = `progress ${Math.floor(e.progress * 100)}%`;
+        p.textContent = `progress ${Math.floor(e.progress * 100)}% — ` +
+          r.inputs.map((i) => {
+            const have = (e.inv[i.itemId] ?? 0) + this.game.player.inv.count(i.itemId);
+            return `${have >= i.count ? '✓' : '✗'} ${i.count}×${iname(i.itemId)}`;
+          }).join(' · ');
         wrap.appendChild(p);
       }
     }

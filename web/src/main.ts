@@ -18,6 +18,53 @@ container.appendChild(uiRoot);
 
 const view = new View(canvasHost, game);
 const ui = new UI(uiRoot, game, view);
+// dev/debug hook (used by automated checks; harmless in prod)
+(window as unknown as { __ff: unknown }).__ff = { game, view, ui };
+
+// walk-up-to-use prompt
+const prompt = document.createElement('div');
+prompt.id = 'prompt';
+prompt.style.display = 'none';
+uiRoot.appendChild(prompt);
+
+/** Nearest machine within use-range of the player. */
+function nearMachine(): { id: number; name: string } | null {
+  let best: { id: number; name: string; d: number } | null = null;
+  for (const e of game.world.entities.values()) {
+    const def = BUILDING_MAP.get(e.buildingId);
+    if (!def || def.type === 'Belt' || def.type === 'Pipe' || def.type === 'Wall') continue;
+    const cx = e.x + def.width / 2, cy = e.y + def.height / 2;
+    const d = Math.hypot(game.player.x - cx, game.player.y - cy);
+    if (d <= 2.5 + Math.max(def.width, def.height) / 2 && (!best || d < best.d)) {
+      best = { id: e.id, name: def.name, d };
+    }
+  }
+  return best;
+}
+
+function updatePrompt(): void {
+  // auto-close machine UI when walking away
+  if (ui.panel === 'machine' && view.selectedId != null) {
+    const e = game.world.entities.get(view.selectedId);
+    if (e) {
+      const def = BUILDING_MAP.get(e.buildingId)!;
+      const d = Math.hypot(game.player.x - (e.x + def.width / 2), game.player.y - (e.y + def.height / 2));
+      if (d > 5 + Math.max(def.width, def.height)) {
+        ui.panel = null; view.selectedId = null; ui.render();
+      }
+    }
+  }
+  const n = nearMachine();
+  const using = ui.panel === 'machine' && view.selectedId != null;
+  if (n && !using && !view.ghostId) {
+    prompt.style.display = 'block';
+    prompt.textContent = `[E] Use ${n.name} — walk inside a machine to operate it`;
+    prompt.dataset.machineId = String(n.id);
+  } else {
+    prompt.style.display = 'none';
+    delete prompt.dataset.machineId;
+  }
+}
 
 game.say('Welcome to FactoryForge Web. Press ? for help.');
 
@@ -38,13 +85,15 @@ window.addEventListener('keydown', (e) => {
       const ent = game.world.entities.get(view.selectedId);
       if (ent) {
         ent.dir = ((ent.dir + 1) % 4) as Dir;
-        // rebuild mesh with new direction
+        // rebuild mesh with new direction (preserve all runtime state)
         game.world.remove(ent.id);
         const { buildingId, x, y, dir } = ent;
         const fresh = game.world.place(buildingId, x, y, dir);
         if (fresh) {
           fresh.inv = ent.inv; fresh.recipeId = ent.recipeId;
           fresh.progress = ent.progress; fresh.fuel = ent.fuel;
+          fresh.left = ent.left; fresh.right = ent.right;
+          fresh.held = ent.held; fresh.fluid = ent.fluid;
           view.selectedId = fresh.id;
           ui.render();
         }
@@ -56,6 +105,17 @@ window.addEventListener('keydown', (e) => {
   if (k === 'c') { ui.toggle('craft'); return; }
   if (k === 'v') { ui.toggle('inv'); return; }
   if (k === 'g') { ui.toggle('research'); return; }
+  if (k === 'e') {
+    // walk-up-use: open the nearby machine (or close it if open)
+    if (ui.panel === 'machine') { ui.panel = null; view.selectedId = null; ui.render(); return; }
+    const n = nearMachine();
+    if (n) {
+      view.selectedId = n.id;
+      view.followPlayer = true;
+      ui.openMachine();
+    }
+    return;
+  }
   if (k === ' ') { e.preventDefault(); game.playerAttack(); return; }
   keys.add(k);
 });
@@ -121,6 +181,7 @@ function loop(now: number): void {
   }
   game.frame(dt);
   view.update(dt);
+  updatePrompt();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

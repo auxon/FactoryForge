@@ -17,6 +17,10 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #101510;
   max-width: 70vw; }
 .log { position: absolute; bottom: 10px; left: 10px; font-size: 12px; opacity: .9;
   background: rgba(10,18,10,.7); padding: 6px 10px; border-radius: 4px; max-width: 40vw; }
+#prompt { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: rgba(20,30,10,.92); border: 1px solid #ffd75a; color: #ffe9a8;
+  padding: 8px 18px; border-radius: 20px; font-size: 14px; pointer-events: none;
+  box-shadow: 0 0 18px rgba(255,215,90,.35); }
 .panel { position: absolute; top: 100px; right: 10px; width: 400px; max-height: 70vh;
   overflow-y: auto; background: rgba(10, 18, 10, 0.94); border: 1px solid #4a6a4a;
   border-radius: 6px; padding: 10px; }

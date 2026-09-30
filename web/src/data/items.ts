@@ -47,6 +47,14 @@ export const ITEMS: Item[] = [
   it('satellite', 'Satellite', 10, 'intermediate', { order: 'u' }),
   it('low-density-structure', 'Low Density Structure', 100, 'intermediate', { order: 'v' }),
   it('solid-fuel', 'Solid Fuel', 500, 'intermediate', { order: 'w', fuelValue: 25000, fuelCategory: 'chemical' }),
+  // --- web-port additions: items the Swift registries reference but never define.
+  // Without these, whole branches (belts, modules, science) are uncraftable.
+  it('iron-stick', 'Iron Stick', 1000, 'intermediate', { order: 'x' }),
+  it('speed-module', 'Speed Module', 500, 'intermediate', { order: 'y' }),
+  it('water-pump', 'Water Pump', 100, 'production', { order: 'm1', placedAs: 'water-pump' }),
+  it('underground-pipe', 'Underground Pipe', 100, 'production', { order: 'm2' }),
+  it('fluid-tank', 'Fluid Tank', 100, 'production', { order: 'm3' }),
+  it('uranium-rounds-magazine', 'Uranium Rounds Magazine', 1000, 'ammo', { order: 'c' }),
   // science (7)
   it('automation-science-pack', 'Automation Science Pack', 200, 'science', { order: 'a' }),
   it('logistic-science-pack', 'Logistic Science Pack', 200, 'science', { order: 'b' }),

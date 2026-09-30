@@ -1,7 +1,7 @@
-// Ported from RecipeRegistry.swift. 59 unique recipes.
-// NOTE (faithful to Swift): some recipes reference items with no Item
-// definition: 'iron-stick', 'speed-module', 'stone-wall' (item is 'wall'),
-// 'water-pump' (no item). Kept as-is; crafting validation must tolerate them.
+// Ported from RecipeRegistry.swift (58 unique Swift ids, verified identical)
+// plus 28 web-port recipes for ids Swift techs unlock but never define
+// (machines, engine units, science packs) — otherwise the tech tree
+// dead-ends and most buildings are uncraftable. See README.
 import type { Recipe, ItemStack, FluidStack } from './types';
 
 function R(id: string, name: string, inputs: Pair[], outputs: Pair[],
@@ -69,7 +69,37 @@ export const RECIPES: Recipe[] = [
   R('steel-furnace', 'Steel Furnace', [p('steel-plate', 6), p('stone-brick', 10)], [p('steel-furnace', 1)], 3, 'crafting', 'k1'),
   R('burner-mining-drill', 'Burner Mining Drill', [p('iron-plate', 5)], [p('burner-mining-drill', 1)], 2, 'crafting', 'm'),
   R('electric-mining-drill', 'Electric Mining Drill', [p('electronic-circuit', 3), p('iron-gear-wheel', 5), p('iron-plate', 10)], [p('electric-mining-drill', 1)], 2, 'crafting', 'm1'),
-  R('stone-wall', 'Stone Wall', [p('stone-brick', 5)], [p('stone-wall', 1)], 0.5, 'crafting', 'n'),
+  R('stone-wall', 'Stone Wall', [p('stone-brick', 5)], [p('wall', 1)], 0.5, 'crafting', 'n'),
+  R('sword', 'Sword', [p('steel-plate', 2)], [p('sword', 1)], 0.5, 'crafting', 'a1'),
+  R('grenade', 'Grenade', [p('coal', 5), p('iron-plate', 5)], [p('grenade', 1)], 8, 'crafting', 'f1'),
+  R('piercing-rounds-magazine', 'Piercing Rounds Magazine', [p('firearm-magazine', 1), p('copper-plate', 5), p('steel-plate', 2)], [p('piercing-rounds-magazine', 1)], 3, 'crafting', 't1'),
+  R('uranium-rounds-magazine', 'Uranium Rounds Magazine', [p('piercing-rounds-magazine', 1), p('uranium-238', 5)], [p('uranium-rounds-magazine', 1)], 3, 'crafting', 't2'),
+  R('radar', 'Radar', [p('electronic-circuit', 5), p('iron-plate', 5), p('iron-gear-wheel', 5)], [p('radar', 1)], 2, 'crafting', 'g1'),
+  R('iron-stick', 'Iron Stick', [p('iron-plate', 1)], [p('iron-stick', 2)], 0.5, 'crafting', 'x'),
+  // machines (Swift techs unlock these ids but define no recipes — port adds them)
+  R('assembling-machine-1', 'Assembling Machine 1', [p('electronic-circuit', 3), p('iron-gear-wheel', 5), p('iron-plate', 9)], [p('assembling-machine-1', 1)], 2, 'crafting', 'f'),
+  R('assembling-machine-2', 'Assembling Machine 2', [p('iron-plate', 9), p('electronic-circuit', 3), p('iron-gear-wheel', 5), p('assembling-machine-1', 1)], [p('assembling-machine-2', 1)], 2, 'crafting', 'g'),
+  R('assembling-machine-3', 'Assembling Machine 3', [p('assembling-machine-2', 2), p('speed-module', 4)], [p('assembling-machine-3', 1)], 2, 'advanced-crafting', 'h'),
+  R('speed-module', 'Speed Module', [p('advanced-circuit', 5), p('electronic-circuit', 5)], [p('speed-module', 1)], 15, 'advanced-crafting', 'y'),
+  R('lab', 'Lab', [p('electronic-circuit', 10), p('iron-gear-wheel', 10), p('transport-belt', 4)], [p('lab', 1)], 2, 'crafting', 'l'),
+  R('boiler', 'Boiler', [p('iron-plate', 5), p('pipe', 4)], [p('boiler', 1)], 0.5, 'crafting', 'j'),
+  R('steam-engine', 'Steam Engine', [p('iron-gear-wheel', 8), p('iron-plate', 10), p('pipe', 5)], [p('steam-engine', 1)], 0.5, 'crafting', 'k'),
+  R('solar-panel', 'Solar Panel', [p('steel-plate', 5), p('electronic-circuit', 15), p('copper-plate', 5)], [p('solar-panel', 1)], 1, 'crafting', 'l1'),
+  R('accumulator', 'Accumulator', [p('iron-plate', 2), p('battery', 5)], [p('accumulator', 1)], 1, 'crafting', 'm'),
+  R('electric-furnace', 'Electric Furnace', [p('steel-plate', 10), p('advanced-circuit', 5), p('stone-brick', 10)], [p('electric-furnace', 1)], 5, 'crafting', 'e'),
+  R('gun-turret', 'Gun Turret', [p('iron-gear-wheel', 10), p('copper-plate', 10), p('iron-plate', 20)], [p('gun-turret', 1)], 8, 'crafting', 'c1'),
+  R('laser-turret', 'Laser Turret', [p('steel-plate', 20), p('electronic-circuit', 20), p('battery', 12)], [p('laser-turret', 1)], 8, 'crafting', 'd1'),
+  R('pumpjack', 'Pumpjack', [p('steel-plate', 5), p('iron-gear-wheel', 10), p('electronic-circuit', 5), p('pipe', 10)], [p('pumpjack', 1)], 5, 'crafting', 'm2'),
+  R('oil-refinery', 'Oil Refinery', [p('steel-plate', 15), p('iron-gear-wheel', 10), p('electronic-circuit', 10), p('pipe', 10), p('stone-brick', 10)], [p('oil-refinery', 1)], 8, 'crafting', 'n1'),
+  R('chemical-plant', 'Chemical Plant', [p('steel-plate', 5), p('iron-gear-wheel', 5), p('electronic-circuit', 5), p('pipe', 5)], [p('chemical-plant', 1)], 5, 'crafting', 'o1'),
+  R('underground-pipe', 'Underground Pipe', [p('iron-plate', 10), p('pipe', 5)], [p('underground-pipe', 2)], 1, 'crafting', 'p1'),
+  R('fluid-tank', 'Fluid Tank', [p('iron-plate', 20), p('steel-plate', 5), p('iron-gear-wheel', 3)], [p('fluid-tank', 1)], 3, 'crafting', 'p2'),
+  R('engine-unit', 'Engine Unit', [p('steel-plate', 1), p('iron-gear-wheel', 1), p('pipe', 1)], [p('engine-unit', 1)], 10, 'advanced-crafting', 'j1'),
+  R('electric-engine-unit', 'Electric Engine Unit', [p('engine-unit', 1), p('electronic-circuit', 5), p('battery', 2)], [p('electric-engine-unit', 1)], 10, 'advanced-crafting', 'k1'),
+  // science packs with no Swift recipe (Factorio-inspired)
+  R('military-science-pack', 'Military Science Pack', [p('piercing-rounds-magazine', 2), p('grenade', 1), p('wall', 1)], [p('military-science-pack', 2)], 10, 'crafting', 'c2'),
+  R('production-science-pack', 'Production Science Pack', [p('electric-furnace', 1), p('engine-unit', 1), p('electric-engine-unit', 1)], [p('production-science-pack', 3)], 14, 'advanced-crafting', 'e1'),
+  R('utility-science-pack', 'Utility Science Pack', [p('low-density-structure', 1), p('processing-unit', 2), p('battery', 5)], [p('utility-science-pack', 3)], 14, 'advanced-crafting', 'f2'),
   R('firearm-magazine', 'Firearm Magazine', [p('iron-plate', 4)], [p('firearm-magazine', 1)], 1, 'crafting', 't'),
   R('water-pump', 'Water Pump', [p('iron-plate', 5), p('pipe', 5), p('electronic-circuit', 2)], [p('water-pump', 1)], 5, 'crafting', 'w'),
   // oil / chemistry

@@ -1,28 +1,11 @@
-// Three.js 3D view: tilted perspective camera, low-poly machines,
-// instanced ores/trees, animated belt items, ghost placement preview.
+// Three.js 3D view: tilted perspective camera, procedural machine models
+// with sprite emblems, pole wires, smoke, shadows, animated parts.
 import * as THREE from 'three';
 import { BUILDING_MAP } from '../data/buildings';
 import type { Game } from '../sim/game';
 import type { Ent } from '../sim/world';
 import { DIR_VEC } from '../sim/world';
-
-const TILE = 1;
-
-const BODY_COLORS: Record<string, number> = {
-  Miner: 0xb87333, Furnace: 0x8a8d91, Assembler: 0x3f7fbf,
-  Belt: 0x444444, Inserter: 0xd8d83f, PowerPole: 0x6b4a2b,
-  Generator: 0xcc3333, SolarPanel: 0x2233aa, Accumulator: 0x33cc66,
-  Turret: 0x555555, Wall: 0x999966, Chest: 0xa06a35,
-  Pipe: 0xcccccc, OilRefinery: 0x7a4a8a, ChemicalPlant: 0x4a8a4a,
-  FluidTank: 0x9ab8cc, NuclearReactor: 0x66ff66, Centrifuge: 0xaaffaa,
-  RocketSilo: 0xdddddd, Lab: 0xffffff, UnitProduction: 0x884422,
-  Pumpjack: 0x333388, WaterPump: 0x3388cc,
-};
-
-const ORE_COLORS: Record<string, number> = {
-  'iron-ore': 0x5a7a9a, 'copper-ore': 0xc47b3a, coal: 0x222222,
-  stone: 0x999999, 'uranium-ore': 0x66ff44, 'crude-oil': 0x3a1a5a, wood: 0x2a7a2a,
-};
+import { buildModel, isActive, itemColor, type Anim } from './models';
 
 export class View {
   renderer: THREE.WebGLRenderer;
@@ -41,59 +24,89 @@ export class View {
   onTileClick: ((x: number, y: number, button: number) => void) | null = null;
 
   private entMeshes = new Map<number, THREE.Group>();
+  private anims = new Map<number, Anim>();
   private beltItems = new Map<number, THREE.Mesh[]>();
   private oreMesh: THREE.InstancedMesh | null = null;
-  private treeMesh: THREE.InstancedMesh | null = null;
+  private trunkMesh: THREE.InstancedMesh | null = null;
+  private leafMesh: THREE.InstancedMesh | null = null;
   private waterMesh: THREE.Mesh | null = null;
-  private playerMesh!: THREE.Mesh;
-  private enemyMeshes = new Map<number, THREE.Mesh>();
+  private wireLines: THREE.LineSegments | null = null;
+  private playerMesh!: THREE.Group;
+  private enemyMeshes = new Map<number, THREE.Group>();
+  private spawnerMeshes = new Map<number, THREE.Mesh>();
   private lastResCount = -1;
   private lastTreeCount = -1;
+  private lastEntCount = -1;
   private raycaster = new THREE.Raycaster();
   private groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private selBox: THREE.LineSegments;
+  private selLabel: THREE.Sprite | null = null;
+  private selLabelCanvas: HTMLCanvasElement;
+  private selLabelTex: THREE.CanvasTexture;
   private clock = 0;
+  private labelTimer = 0;
+  // smoke: one Points cloud, 14 particles per emitter
+  private smokeGeo!: THREE.BufferGeometry;
+  private smokePts!: THREE.Points;
+  private smokeData: { x: number; y: number; z: number; life: number }[] = [];
+  private waterMat!: THREE.MeshLambertMaterial;
 
   constructor(container: HTMLElement, game: Game) {
     this.game = game;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     this.renderer.setSize(container.clientWidth, container.clientHeight);
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(this.renderer.domElement);
 
-    this.scene.background = new THREE.Color(0x1a2b1a);
-    this.scene.fog = new THREE.Fog(0x1a2b1a, 60, 160);
+    this.scene.background = new THREE.Color(0x87b5d8);
+    this.scene.fog = new THREE.Fog(0x87b5d8, 70, 170);
 
     this.camera = new THREE.PerspectiveCamera(
-      50, container.clientWidth / container.clientHeight, 0.1, 500);
+      50, container.clientWidth / container.clientHeight, 0.1, 600);
 
-    // lights
-    const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-    sun.position.set(30, 50, 20);
+    const sun = new THREE.DirectionalLight(0xfff2dd, 2.0);
+    sun.position.set(40, 60, 25);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
+    sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
+    sun.shadow.camera.far = 200;
     this.scene.add(sun);
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-    this.scene.add(new THREE.HemisphereLight(0xbdd7ff, 0x3a5a3a, 0.4));
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    this.scene.add(new THREE.HemisphereLight(0xbdd7ff, 0x3a5a3a, 0.5));
 
-    // ground
+    // ground with noise texture
+    const noise = document.createElement('canvas');
+    noise.width = noise.height = 256;
+    const nctx = noise.getContext('2d')!;
+    nctx.fillStyle = '#335433';
+    nctx.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 5200; i++) {
+      const v = 40 + Math.random() * 40;
+      nctx.fillStyle = `rgb(${v * 0.55},${v * 1.05},${v * 0.55})`;
+      nctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+    }
+    const ntex = new THREE.CanvasTexture(noise);
+    ntex.wrapS = ntex.wrapT = THREE.RepeatWrapping;
+    ntex.repeat.set(50, 50);
+    ntex.magFilter = THREE.NearestFilter;
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(400, 400),
-      new THREE.MeshLambertMaterial({ color: 0x2e4a2e }),
+      new THREE.MeshLambertMaterial({ map: ntex }),
     );
     ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
     this.scene.add(ground);
-    const grid = new THREE.GridHelper(400, 400, 0x3a5a3a, 0x365236);
-    grid.position.y = 0.01;
+    const grid = new THREE.GridHelper(400, 400, 0x4a6a4a, 0x3d5c3d);
+    grid.position.y = 0.02;
+    (grid.material as THREE.Material).transparent = true;
+    (grid.material as THREE.Material).opacity = 0.35;
     this.scene.add(grid);
 
-    // player
-    this.playerMesh = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.3, 0.35, 0.9, 12),
-      new THREE.MeshLambertMaterial({ color: 0xffcc44 }),
-    );
-    this.playerMesh.position.y = 0.45;
-    this.scene.add(this.playerMesh);
+    this.buildPlayer();
 
-    // selection box
     this.selBox = new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, 1.02, 1.02)),
       new THREE.LineBasicMaterial({ color: 0xffff00 }),
@@ -101,13 +114,55 @@ export class View {
     this.selBox.visible = false;
     this.scene.add(this.selBox);
 
-    // ghost
+    this.selLabelCanvas = document.createElement('canvas');
+    this.selLabelCanvas.width = 512; this.selLabelCanvas.height = 96;
+    this.selLabelTex = new THREE.CanvasTexture(this.selLabelCanvas);
+    this.selLabel = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: this.selLabelTex, depthTest: false, transparent: true,
+    }));
+    this.selLabel.scale.set(6, 1.1, 1);
+    this.selLabel.visible = false;
+    this.scene.add(this.selLabel);
+
+    // smoke cloud
+    const MAXP = 64 * 14;
+    const pos = new Float32Array(MAXP * 3).fill(-999);
+    this.smokeGeo = new THREE.BufferGeometry();
+    this.smokeGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.smokePts = new THREE.Points(this.smokeGeo, new THREE.PointsMaterial({
+      color: 0x888888, size: 0.55, transparent: true, opacity: 0.45,
+      depthWrite: false,
+    }));
+    this.smokePts.frustumCulled = false;
+    this.scene.add(this.smokePts);
+    for (let i = 0; i < MAXP; i++) this.smokeData.push({ x: 0, y: -999, z: 0, life: Math.random() });
+
     this.bindPointer(container);
     new ResizeObserver(() => {
       this.renderer.setSize(container.clientWidth, container.clientHeight);
       this.camera.aspect = container.clientWidth / container.clientHeight;
       this.camera.updateProjectionMatrix();
     }).observe(container);
+  }
+
+  private buildPlayer(): void {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.8, 12),
+      new THREE.MeshLambertMaterial({ color: 0xd8a833 }));
+    body.position.y = 0.55; body.castShadow = true;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10),
+      new THREE.MeshLambertMaterial({ color: 0xe8c858 }));
+    head.position.y = 1.1; head.castShadow = true;
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.1),
+      new THREE.MeshBasicMaterial({ color: 0x223344 }));
+    visor.position.set(0, 1.12, 0.2);
+    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.18),
+      new THREE.MeshLambertMaterial({ color: 0x8a6a2a }));
+    pack.position.set(0, 0.6, -0.3); pack.castShadow = true;
+    g.add(body, head, visor, pack);
+    g.name = 'player';
+    this.playerMesh = g;
+    this.scene.add(g);
   }
 
   setGhost(id: string | null, dir: 0 | 1 | 2 | 3 = 0): void {
@@ -118,18 +173,28 @@ export class View {
       const def = BUILDING_MAP.get(id);
       const w = def?.width ?? 1, h = def?.height ?? 1;
       this.ghostMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(w, 0.5, h),
-        new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4 }),
+        new THREE.BoxGeometry(w, 0.6, h),
+        new THREE.MeshBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4, depthTest: false }),
       );
-      this.ghostMesh.position.y = 0.25;
+      this.ghostMesh.position.y = 0.3;
+      this.ghostMesh.renderOrder = 5;
       this.scene.add(this.ghostMesh);
     }
+  }
+
+  /** Project a world position to CSS pixels inside the canvas. */
+  worldToScreen(x: number, y: number, z: number): [number, number] {
+    const v = new THREE.Vector3(x, y, z).project(this.camera);
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    return [(v.x * 0.5 + 0.5) * rect.width + rect.left,
+            (-v.y * 0.5 + 0.5) * rect.height + rect.top];
   }
 
   private bindPointer(container: HTMLElement): void {
     const el = this.renderer.domElement;
     let rmbDown = false;
     let lastX = 0, lastY = 0;
+    void container;
     el.addEventListener('contextmenu', (e) => e.preventDefault());
     el.addEventListener('pointermove', (e) => {
       const rect = el.getBoundingClientRect();
@@ -165,47 +230,12 @@ export class View {
     }, { passive: false });
     window.addEventListener('keydown', (e) => {
       if (e.key === 'q' || e.key === 'Q') this.yaw += 0.15;
-      if (e.key === 'e' || e.key === 'E') this.yaw -= 0.15;
+      if (e.key === 'e' || e.key === 'E') {
+        // E is walk-up-use in game; only orbit when typing nowhere... game handles E.
+        // Keep Q-only orbit to avoid conflict: ignore E here.
+      }
       if (e.key === 'f' || e.key === 'F') this.followPlayer = true;
     });
-  }
-
-  private buildEntityMesh(e: Ent): THREE.Group {
-    const def = BUILDING_MAP.get(e.buildingId);
-    const g = new THREE.Group();
-    const w = def?.width ?? 1, h = def?.height ?? 1;
-    const color = BODY_COLORS[def?.type ?? ''] ?? 0x888888;
-    const hgt = def?.type === 'Belt' || def?.type === 'Pipe' ? 0.2
-      : def?.type === 'RocketSilo' ? 3.5
-      : def?.type === 'Wall' ? 0.8 : 1.0;
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(w * 0.92, hgt, h * 0.92),
-      new THREE.MeshLambertMaterial({ color }),
-    );
-    body.position.y = hgt / 2;
-    g.add(body);
-    // direction nub for belts/inserters/miners
-    if (def?.type === 'Belt' || def?.type === 'Inserter' || def?.type === 'Miner') {
-      const [dx, dy] = DIR_VEC[e.dir];
-      const nub = new THREE.Mesh(
-        new THREE.BoxGeometry(0.3, 0.12, 0.3),
-        new THREE.MeshBasicMaterial({ color: 0xffff00 }),
-      );
-      nub.position.set(dx * 0.3, hgt + 0.06, dy * 0.3);
-      g.add(nub);
-    }
-    // power-status lamp
-    if ((def?.powerConsumption ?? 0) > 0) {
-      const lamp = new THREE.Mesh(
-        new THREE.SphereGeometry(0.12, 8, 8),
-        new THREE.MeshBasicMaterial({ color: e.satisfaction > 0 ? 0x00ff00 : 0xff0000 }),
-      );
-      lamp.position.set(-w / 2 + 0.2, hgt + 0.12, -h / 2 + 0.2);
-      lamp.name = 'lamp';
-      g.add(lamp);
-    }
-    g.position.set(e.x + w / 2, 0, e.y + h / 2);
-    return g;
   }
 
   private syncEntities(): void {
@@ -214,68 +244,190 @@ export class View {
       seen.add(e.id);
       let g = this.entMeshes.get(e.id);
       if (!g) {
-        g = this.buildEntityMesh(e);
+        const { group, anim } = buildModel(e);
+        g = group;
         this.entMeshes.set(e.id, g);
+        this.anims.set(e.id, anim);
         this.scene.add(g);
+      }
+      const anim = this.anims.get(e.id)!;
+      const active = isActive(e);
+      const t = this.clock;
+      if (anim.rotor && active) anim.rotor.rotation.y += 0.25;
+      if (anim.wheel && e.satisfaction > 0) anim.wheel.rotation.x += 0.12;
+      if (anim.beam && active) anim.beam.rotation.z = Math.sin(t * 2.2) * 0.28;
+      if (anim.arms) {
+        anim.arms.forEach((a, i) => {
+          a.position.y = active ? 1.3 + Math.sin(t * 5 + i * Math.PI) * 0.18 : 1.3;
+        });
+      }
+      if (anim.arm && active) {
+        anim.arm.rotation.y += Math.sin(t * 3) * 0.02 + 0.03;
+      }
+      if (anim.armTip) {
+        // show held item
+        let held = anim.armTip.getObjectByName('held');
+        if (e.held && !held) {
+          held = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 0.25),
+            new THREE.MeshBasicMaterial({ color: itemColor(e.held) }));
+          held.name = 'held';
+          anim.armTip.add(held);
+        } else if (!e.held && held) anim.armTip.remove(held);
+      }
+      if (anim.glow) {
+        const on = active;
+        const m = anim.glow.material as THREE.MeshBasicMaterial | THREE.MeshLambertMaterial;
+        if ('color' in m && m instanceof THREE.MeshBasicMaterial && anim.glow.geometry.type === 'PlaneGeometry') {
+          m.color.setHex(on ? (Math.sin(t * 9) > 0 ? 0xff6600 : 0xff3300) : 0x3a2018);
+        }
+      }
+      if (anim.head) {
+        // aim at nearest enemy
+        const def = BUILDING_MAP.get(e.buildingId);
+        const range = def?.turretRange ?? 18;
+        let bx = 0, bz = 0, bd = range;
+        for (const en of this.game.enemies) {
+          const d = Math.hypot(en.x - (e.x + 0.5), en.y - (e.y + 0.5));
+          if (d < bd) { bd = d; bx = en.x; bz = en.y; }
+        }
+        if (bd < range) {
+          anim.head.rotation.y = Math.atan2(bx - (e.x + 0.5), bz - (e.y + 0.5));
+        } else anim.head.rotation.y += 0.005;
+      }
+      if (anim.rocket && e.buildingId === 'rocket-silo') {
+        anim.rocket.visible = e.assembled || e.launching;
+        if (e.launching) anim.rocket.position.y = 0.6 + (e.launchT / 10) * 14;
+        else if (e.assembled) anim.rocket.position.y = 0.6;
       }
       const lamp = g.getObjectByName('lamp') as THREE.Mesh | undefined;
       if (lamp) {
         (lamp.material as THREE.MeshBasicMaterial).color.setHex(
           e.satisfaction > 0 ? 0x00ff00 : 0xff0000);
       }
-      // belt items
       const def = BUILDING_MAP.get(e.buildingId);
-      if (def?.type === 'Belt') {
-        let arr = this.beltItems.get(e.id);
-        if (!arr) { arr = []; this.beltItems.set(e.id, arr); }
-        const want = e.left.length + e.right.length;
-        while (arr.length < want) {
-          const m = new THREE.Mesh(
-            new THREE.BoxGeometry(0.22, 0.12, 0.22),
-            new THREE.MeshBasicMaterial({ color: 0xff8800 }),
-          );
-          arr.push(m);
-          this.scene.add(m);
-        }
-        while (arr.length > want) {
-          const m = arr.pop()!;
-          this.scene.remove(m);
-        }
-        let k = 0;
-        const [dx, dy] = DIR_VEC[e.dir];
-        for (const lane of [e.left, e.right]) {
-          const side = lane === e.left ? -0.22 : 0.22;
-          const px = -dy * side, pz = dx * side;
-          for (const it of lane) {
-            const m = arr[k++];
-            m.position.set(
-              e.x + 0.5 + dx * (it.progress - 0.5) + px,
-              0.3,
-              e.y + 0.5 + dy * (it.progress - 0.5) + pz,
-            );
-          }
-        }
-      }
+      if (def?.type === 'Belt') this.syncBeltItems(e);
     }
     for (const [id, g] of this.entMeshes) {
       if (!seen.has(id)) {
         this.scene.remove(g);
         this.entMeshes.delete(id);
+        this.anims.delete(id);
         const arr = this.beltItems.get(id);
         if (arr) { for (const m of arr) this.scene.remove(m); this.beltItems.delete(id); }
       }
     }
-    // selection
-    if (this.selectedId != null) {
-      const e = this.game.world.entities.get(this.selectedId);
-      if (e) {
-        const def = BUILDING_MAP.get(e.buildingId);
-        const w = def?.width ?? 1, h = def?.height ?? 1;
-        this.selBox.visible = true;
-        this.selBox.scale.set(w, 1.2, h);
-        this.selBox.position.set(e.x + w / 2, 0.6, e.y + h / 2);
-      } else { this.selBox.visible = false; this.selectedId = null; }
-    } else this.selBox.visible = false;
+    if (this.game.world.entities.size !== this.lastEntCount) {
+      this.lastEntCount = this.game.world.entities.size;
+      this.syncWires();
+    }
+    this.syncSelection();
+  }
+
+  private syncBeltItems(e: Ent): void {
+    let arr = this.beltItems.get(e.id);
+    if (!arr) { arr = []; this.beltItems.set(e.id, arr); }
+    const want = e.left.length + e.right.length;
+    while (arr.length < want) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.16, 0.24),
+        new THREE.MeshBasicMaterial({ color: 0xff8800 }));
+      arr.push(m);
+      this.scene.add(m);
+    }
+    while (arr.length > want) {
+      const m = arr.pop()!;
+      this.scene.remove(m);
+    }
+    let k = 0;
+    const [dx, dy] = DIR_VEC[e.dir];
+    const lanes: [typeof e.left, number][] = [[e.left, -0.22], [e.right, 0.22]];
+    for (const [lane, side] of lanes) {
+      const px = -dy * side, pz = dx * side;
+      for (const it of lane) {
+        const m = arr[k++];
+        if (!m) continue;
+        (m.material as THREE.MeshBasicMaterial).color.setHex(itemColor(it.itemId));
+        m.position.set(
+          e.x + 0.5 + dx * (it.progress - 0.5) + px, 0.3,
+          e.y + 0.5 + dy * (it.progress - 0.5) + pz);
+      }
+    }
+  }
+
+  private syncWires(): void {
+    if (this.wireLines) { this.scene.remove(this.wireLines); this.wireLines = null; }
+    const poles = [...this.game.world.entities.values()].filter((e) =>
+      BUILDING_MAP.get(e.buildingId)?.type === 'PowerPole');
+    if (poles.length < 2) return;
+    const pts: number[] = [];
+    for (let i = 0; i < poles.length; i++) {
+      for (let j = i + 1; j < poles.length; j++) {
+        const a = poles[i], b = poles[j];
+        const ra = BUILDING_MAP.get(a.buildingId)?.wireReach ?? 7.5;
+        const rb = BUILDING_MAP.get(b.buildingId)?.wireReach ?? 7.5;
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (d <= Math.min(ra, rb) && d > 0.5) {
+          const ax = a.x + 0.5, az = a.y + 0.5, bx = b.x + 0.5, bz = b.y + 0.5;
+          const topY = 2.0;
+          // sagging wire: 8 segments
+          let px = ax, py = topY, pz = az;
+          for (let s = 1; s <= 8; s++) {
+            const f = s / 8;
+            const nx = ax + (bx - ax) * f;
+            const nz = az + (bz - az) * f;
+            const ny = topY - Math.sin(f * Math.PI) * Math.min(0.8, d * 0.08);
+            pts.push(px, py, pz, nx, ny, nz);
+            px = nx; py = ny; pz = nz;
+          }
+        }
+      }
+    }
+    if (pts.length === 0) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    this.wireLines = new THREE.LineSegments(geo,
+      new THREE.LineBasicMaterial({ color: 0x222222 }));
+    this.scene.add(this.wireLines);
+  }
+
+  private syncSelection(): void {
+    const e = this.selectedId != null ? this.game.world.entities.get(this.selectedId) : undefined;
+    if (!e) {
+      this.selBox.visible = false;
+      if (this.selLabel) this.selLabel.visible = false;
+      if (this.selectedId != null) this.selectedId = null;
+      return;
+    }
+    const def = BUILDING_MAP.get(e.buildingId);
+    const w = def?.width ?? 1, h = def?.height ?? 1;
+    this.selBox.visible = true;
+    this.selBox.scale.set(w, 1.4, h);
+    this.selBox.position.set(e.x + w / 2, 0.7, e.y + h / 2);
+    // label (2 Hz refresh)
+    if (this.selLabel && this.clock - this.labelTimer > 0.5) {
+      this.labelTimer = this.clock;
+      const ctx = this.selLabelCanvas.getContext('2d')!;
+      ctx.clearRect(0, 0, 512, 96);
+      ctx.fillStyle = 'rgba(8,14,8,0.85)';
+      ctx.fillRect(0, 0, 512, 96);
+      ctx.fillStyle = '#ffd75a';
+      ctx.font = 'bold 34px sans-serif';
+      ctx.fillText(def?.name ?? e.buildingId, 12, 40);
+      ctx.fillStyle = '#b8d8b8';
+      ctx.font = '26px sans-serif';
+      ctx.fillText(this.describe(e), 12, 76);
+      this.selLabelTex.needsUpdate = true;
+      this.selLabel.position.set(e.x + w / 2, 2.6 + h * 0.2, e.y + h / 2);
+      this.selLabel.visible = true;
+    } else if (this.selLabel && !this.selLabel.visible) {
+      this.labelTimer = 0; // force next update
+    }
+  }
+
+  private describe(e: Ent): string {
+    const keys = Object.keys(e.inv).filter((k) => (e.inv[k] ?? 0) > 0);
+    const buf = keys.length > 0 ? keys.map((k) => `${e.inv[k]}× ${k.split('-')[0]}`).join(' ') : 'empty';
+    const extra = e.recipeId ? ` ${Math.floor(e.progress * 100)}%` : '';
+    return `${buf}${extra} · ⛏${Math.round(e.satisfaction * 100)}% pwr`;
   }
 
   private syncResources(): void {
@@ -285,77 +437,161 @@ export class View {
       if (this.oreMesh) { this.scene.remove(this.oreMesh); this.oreMesh = null; }
       const deps = [...w.resources.values()];
       this.oreMesh = new THREE.InstancedMesh(
-        new THREE.BoxGeometry(0.7, 0.3, 0.7),
+        new THREE.BoxGeometry(0.72, 0.34, 0.72),
         new THREE.MeshLambertMaterial({ color: 0xffffff }),
         Math.max(1, deps.length),
       );
       const m = new THREE.Matrix4();
       const c = new THREE.Color();
+      const ORE: Record<string, number> = {
+        'iron-ore': 0x5a7a9a, 'copper-ore': 0xd87f3e, coal: 0x1e1e1e,
+        stone: 0x9a9a9a, 'uranium-ore': 0x55dd33, 'crude-oil': 0x2a1040,
+      };
       deps.forEach((d, i) => {
-        m.makeTranslation(d.x + 0.5, 0.15, d.y + 0.5);
+        const s = 0.7 + Math.min(0.6, d.amount / 8000);
+        m.makeScale(s, 1, s);
+        m.setPosition(d.x + 0.5, 0.17, d.y + 0.5);
         this.oreMesh!.setMatrixAt(i, m);
-        this.oreMesh!.setColorAt(i, c.setHex(ORE_COLORS[d.outputItem] ?? 0x888888));
+        this.oreMesh!.setColorAt(i, c.setHex(ORE[d.outputItem] ?? 0x888888));
       });
       this.oreMesh.instanceMatrix.needsUpdate = true;
       if (this.oreMesh.instanceColor) this.oreMesh.instanceColor.needsUpdate = true;
+      this.oreMesh.castShadow = true;
       this.scene.add(this.oreMesh);
     }
     if (w.trees.size !== this.lastTreeCount) {
       this.lastTreeCount = w.trees.size;
-      if (this.treeMesh) { this.scene.remove(this.treeMesh); this.treeMesh = null; }
+      if (this.trunkMesh) { this.scene.remove(this.trunkMesh); this.trunkMesh = null; }
+      if (this.leafMesh) { this.scene.remove(this.leafMesh); this.leafMesh = null; }
       const trees = [...w.trees.keys()];
-      this.treeMesh = new THREE.InstancedMesh(
-        new THREE.ConeGeometry(0.35, 1.2, 6),
-        new THREE.MeshLambertMaterial({ color: 0x2a7a2a }),
-        Math.max(1, trees.length),
-      );
+      const n = Math.max(1, trees.length);
+      this.trunkMesh = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.09, 0.13, 0.7, 6),
+        new THREE.MeshLambertMaterial({ color: 0x6b4a2b }), n);
+      this.leafMesh = new THREE.InstancedMesh(
+        new THREE.ConeGeometry(0.5, 1.4, 7),
+        new THREE.MeshLambertMaterial({ color: 0x2f7a2f }), n);
       const m = new THREE.Matrix4();
       trees.forEach((k, i) => {
         const [x, y] = k.split(',').map(Number);
-        m.makeTranslation(x + 0.5, 0.6, y + 0.5);
-        this.treeMesh!.setMatrixAt(i, m);
+        m.makeTranslation(x + 0.5, 0.35, y + 0.5);
+        this.trunkMesh!.setMatrixAt(i, m);
+        m.makeTranslation(x + 0.5, 1.3, y + 0.5);
+        this.leafMesh!.setMatrixAt(i, m);
       });
-      this.treeMesh.instanceMatrix.needsUpdate = true;
-      this.scene.add(this.treeMesh);
+      this.trunkMesh.instanceMatrix.needsUpdate = true;
+      this.leafMesh.instanceMatrix.needsUpdate = true;
+      this.trunkMesh.castShadow = this.leafMesh.castShadow = true;
+      this.scene.add(this.trunkMesh, this.leafMesh);
     }
     if (!this.waterMesh && w.water.size > 0) {
-      const pts = [...w.water].map((k) => k.split(',').map(Number));
       const geo = new THREE.BufferGeometry();
       const verts: number[] = [];
-      for (const [x, y] of pts) {
-        verts.push(x, 0.02, y, x + 1, 0.02, y, x + 1, 0.02, y + 1);
-        verts.push(x, 0.02, y, x + 1, 0.02, y + 1, x, 0.02, y +  1);
+      for (const k of w.water) {
+        const [x, y] = k.split(',').map(Number);
+        verts.push(x, 0.03, y, x + 1, 0.03, y, x + 1, 0.03, y + 1);
+        verts.push(x, 0.03, y, x + 1, 0.03, y + 1, x, 0.03, y + 1);
       }
       geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
       geo.computeVertexNormals();
-      this.waterMesh = new THREE.Mesh(geo,
-        new THREE.MeshLambertMaterial({ color: 0x2266cc, transparent: true, opacity: 0.85 }));
+      this.waterMat = new THREE.MeshLambertMaterial({
+        color: 0x2a72cc, transparent: true, opacity: 0.85 });
+      this.waterMesh = new THREE.Mesh(geo, this.waterMat);
       this.scene.add(this.waterMesh);
+    }
+    if (this.waterMat) {
+      this.waterMat.opacity = 0.78 + Math.sin(this.clock * 1.5) * 0.07;
     }
   }
 
   private syncActors(): void {
     const p = this.game.player;
-    this.playerMesh.position.set(p.x, 0.45, p.y);
-    (this.playerMesh.material as THREE.MeshLambertMaterial).color.setHex(
-      p.dead ? 0x555555 : 0xffcc44);
+    const px = this.playerMesh.position.x, pz = this.playerMesh.position.z;
+    const moved = Math.hypot(p.x - px, p.y - pz);
+    this.playerMesh.position.set(p.x, moved > 0.001 ? Math.abs(Math.sin(this.clock * 10)) * 0.06 : 0, p.y);
+    if (moved > 0.001) {
+      this.playerMesh.rotation.y = Math.atan2(p.x - px, p.y - pz);
+    }
     const seen = new Set<number>();
     for (const en of this.game.enemies) {
       seen.add(en.id);
-      let m = this.enemyMeshes.get(en.id);
-      if (!m) {
-        m = new THREE.Mesh(
-          new THREE.SphereGeometry(0.35, 8, 8),
-          new THREE.MeshLambertMaterial({ color: 0xcc2222 }),
-        );
-        this.enemyMeshes.set(en.id, m);
-        this.scene.add(m);
+      let grp = this.enemyMeshes.get(en.id);
+      if (!grp) {
+        grp = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8),
+          new THREE.MeshLambertMaterial({ color: 0xa02020 }));
+        body.position.y = 0.35; body.castShadow = true;
+        const jaw = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.4, 6),
+          new THREE.MeshLambertMaterial({ color: 0x601010 }));
+        jaw.position.set(0, 0.3, 0.4);
+        jaw.rotation.x = Math.PI / 2;
+        grp.add(body, jaw);
+        this.enemyMeshes.set(en.id, grp);
+        this.scene.add(grp);
       }
-      m.position.set(en.x, 0.35, en.y);
+      grp.position.set(en.x, 0, en.y);
+      grp.rotation.y = Math.atan2(en.tx - en.x, en.ty - en.y);
     }
     for (const [id, m] of this.enemyMeshes) {
       if (!seen.has(id)) { this.scene.remove(m); this.enemyMeshes.delete(id); }
     }
+    // spawners (nests)
+    const sseen = new Set<number>();
+    this.game.spawners.forEach((s, i) => {
+      if (s.hp <= 0) return;
+      sseen.add(i);
+      let m = this.spawnerMeshes.get(i);
+      if (!m) {
+        m = new THREE.Mesh(new THREE.SphereGeometry(1.4, 12, 8),
+          new THREE.MeshLambertMaterial({ color: 0x5a1a2a }));
+        m.scale.y = 0.55;
+        m.position.set(s.x, 0.2, s.y);
+        m.castShadow = true;
+        this.spawnerMeshes.set(i, m);
+        this.scene.add(m);
+      }
+    });
+    for (const [i, m] of this.spawnerMeshes) {
+      if (!sseen.has(i)) { this.scene.remove(m); this.spawnerMeshes.delete(i); }
+    }
+  }
+
+  private syncSmoke(dt: number): void {
+    void dt;
+    // collect emitters
+    const emitters: { x: number; y: number; z: number }[] = [];
+    for (const e of this.game.world.entities.values()) {
+      const a = this.anims.get(e.id);
+      if (a?.smoke && isActive(e) && emitters.length < 64) {
+        const def = BUILDING_MAP.get(e.buildingId);
+        const w = def?.width ?? 1, h = def?.height ?? 1;
+        emitters.push({ x: e.x + w / 2, y: 2.0, z: e.y + h / 2 });
+      }
+    }
+    const P = 14;
+    const pos = this.smokeGeo.getAttribute('position') as THREE.BufferAttribute;
+    for (let i = 0; i < this.smokeData.length; i++) {
+      const d = this.smokeData[i];
+      const em = emitters.length > 0 ? emitters[i % emitters.length] : null;
+      d.life += 0.008;
+      if (d.life >= 1 || !em) {
+        if (em && Math.random() < emitters.length / 64 + 0.1) {
+          d.x = em.x + (Math.random() - 0.5) * 0.3;
+          d.y = em.y;
+          d.z = em.z + (Math.random() - 0.5) * 0.3;
+          d.life = 0;
+        } else {
+          d.y = -999;
+          pos.setXYZ(i, 0, -999, 0);
+          continue;
+        }
+      }
+      void P;
+      d.y += 0.03;
+      d.x += 0.008;
+      pos.setXYZ(i, d.x, d.y, d.z);
+    }
+    pos.needsUpdate = true;
   }
 
   update(dt: number): void {
@@ -364,7 +600,8 @@ export class View {
       this.target.x += (this.game.player.x - this.target.x) * Math.min(1, dt * 5);
       this.target.z += (this.game.player.y - this.target.z) * Math.min(1, dt * 5);
     }
-    const pit = 0.9; // steep-ish 3D view
+    // keep shadow frustum near camera target
+    const pit = 0.9;
     this.camera.position.set(
       this.target.x + Math.cos(this.yaw) * this.zoom * Math.cos(pit),
       this.zoom * Math.sin(pit),
@@ -374,7 +611,7 @@ export class View {
     if (this.ghostMesh && this.hoverTile) {
       const def = this.ghostId ? BUILDING_MAP.get(this.ghostId) : undefined;
       const w = def?.width ?? 1, h = def?.height ?? 1;
-      this.ghostMesh.position.set(this.hoverTile[0] + w / 2, 0.25, this.hoverTile[1] + h / 2);
+      this.ghostMesh.position.set(this.hoverTile[0] + w / 2, 0.3, this.hoverTile[1] + h / 2);
       const ok = this.game.world.canPlace(this.ghostId!, this.hoverTile[0], this.hoverTile[1]).ok;
       (this.ghostMesh.material as THREE.MeshBasicMaterial).color.setHex(ok ? 0x00ff00 : 0xff0000);
       this.ghostMesh.visible = true;
@@ -382,6 +619,7 @@ export class View {
     this.syncEntities();
     this.syncResources();
     this.syncActors();
+    this.syncSmoke(dt);
     this.renderer.render(this.scene, this.camera);
   }
 }
