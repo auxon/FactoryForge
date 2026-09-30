@@ -24,8 +24,8 @@ for y, r in [(1.45, 0.82), (1.9, 0.95), (2.35, 0.82)]:
 cyl(C, "TopNozzle", 0.18, 0.18, 0.4, (0, 2.7, 0), "FF_steel", verts=12)
 sphere(C, "NozzleCap", 0.2, (0, 2.92, 0), "FF_copper")
 # side pipe rack: 3 horizontal pipes + supports
-for i, y in enumerate([0.7, 1.0, 1.3]):
-    p = cyl(C, "RackPipe", 0.07, 0.07, 2.6, (-1.25, y, -0.9 + i * 0.15), "FF_copper" if i == 1 else "FF_steel", verts=10)
+for i, y in enumerate([2.0, 2.3, 2.6]):
+    p = cyl(C, "RackPipe", 0.07, 0.07, 2.6, (-1.25, y, -0.9 + i * 0.15), "FF_copper" if i == 1 else "FF_steel", verts=10, centered=True)
     p.rotation_euler = (0, _m.pi / 2, 0)
 for sx in (-1.25, 0.2):
     box(C, "RackPost", (0.08, 1.5, 0.5), (sx, 0.75, -0.75), "FF_darksteel")

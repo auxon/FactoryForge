@@ -18,7 +18,7 @@ for s in (-1, 1):
         box(C, "Leg", (0.08, 0.2, 0.08), (s * 0.42, 0.1, dz), "FF_darksteel")
 # roller ends (Z-cylinder rotated about Y -> axis along X, centered)
 for dz in (-0.45, 0.45):
-    r = cyl(C, "RollerEnd", 0.09, 0.09, 0.74, (0, 0.28, dz), "FF_steel", verts=12)
+    r = cyl(C, "RollerEnd", 0.09, 0.09, 0.74, (0, 0.35, dz), "FF_steel", verts=12, centered=True)
     r.rotation_euler = (0, _m.pi / 2, 0)
 # belt bed
 box(C, "Bed", (0.74, 0.06, 0.95), (0, 0.3, 0), "FF_darksteel", bevel=0.01)

@@ -18,7 +18,7 @@ box(C, "CylBlock", (1.8, 1.2, 1.6), (0, 0.75, 1.5), "FF_steel", bevel=0.06)
 for dz in (1.0, 2.0):
     box(C, "LagBand", (1.88, 0.12, 0.14), (0, 0.75, dz), "FF_darksteel", bevel=0.01)
 # steam inlet pipe + valve
-c = cyl(C, "InletPipe", 0.12, 0.12, 1.2, (0, 1.0, 2.3), "FF_copper", verts=12)
+c = cyl(C, "InletPipe", 0.12, 0.12, 1.2, (0, 1.6, 2.3), "FF_copper", verts=12, centered=True)
 c.rotation_euler = (_m.pi / 2, 0, 0)
 box(C, "ValveWheel", (0.24, 0.05, 0.24), (0, 1.35, 2.5), "FF_redlamp", bevel=0.01)
 # flywheel (animated Wheel) on side shaft

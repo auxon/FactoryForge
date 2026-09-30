@@ -22,8 +22,8 @@ cyl(C, "TowerSecond", 0.42, 0.48, 1.9, (0.75, 0.15, -0.7), "FF_refpurple", verts
 for i in range(3):
     cyl(C, "TrayRing2", 0.47, 0.47, 0.06, (0.75, 0.6 + i * 0.5, -0.7), "FF_darksteel", verts=18)
 # crossover pipes between towers (2 levels)
-for y in (1.1, 1.9):
-    p = cyl(C, "Crossover", 0.08, 0.08, 1.45, (-0.7, y, -0.7), "FF_copper", verts=10)
+for y in (1.83, 2.63):
+    p = cyl(C, "Crossover", 0.08, 0.08, 1.45, (-0.7, y, -0.7), "FF_copper", verts=10, centered=True)
     p.rotation_euler = (0, _m.pi / 2, 0)
 # furnace box (front) with fire mouth
 box(C, "Heater", (1.2, 1.0, 0.9), (0.3, 0.65, 0.85), "rusty_metal_02", bevel=0.05)

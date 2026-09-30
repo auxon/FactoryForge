@@ -94,11 +94,14 @@ def box(coll, name, dims, loc, material, bevel=0.03):
     return _finish(o, coll, bevel)
 
 
-def cyl(coll, name, r_top, r_bot, depth, loc, material, verts=20, bevel=0.02):
-    """Vertical cylinder, loc=(x, base_up, z) = bottom center."""
+def cyl(coll, name, r_top, r_bot, depth, loc, material, verts=20, bevel=0.02,
+        centered=False):
+    """Vertical cylinder. loc=(x, up, z): base center by default,
+    geometric center if centered=True (use for horizontal cylinders)."""
+    up = loc[1] if centered else loc[1] + depth / 2
     bpy.ops.mesh.primitive_cylinder_add(
         radius=r_bot, depth=depth, vertices=verts,
-        location=(loc[0], loc[2], loc[1] + depth / 2))
+        location=(loc[0], loc[2], up))
     o = bpy.context.view_layer.objects.active
     o.name = name
     if abs(r_top - r_bot) > 1e-6:

@@ -15,7 +15,7 @@ pad(C, 2.0, 3.0)
 box(C, "Firebox", (1.5, 1.0, 1.1), (0, 0.65, 0.85), "rusty_metal_02", bevel=0.05)
 box(C, "FireDoor", (0.7, 0.6, 0.1), (0, 0.55, 1.42), "FF_darksteel", bevel=0.02)
 glow_plane(C, "GlowFire", 0.5, 0.35, (0, 0.55, 1.48))
-cyl(C, "Drum", 0.65, 0.65, 1.5, (0, 0.35, -0.7), "FF_steel", verts=20)
+cyl(C, "Drum", 0.65, 0.65, 1.5, (0, 1.1, -0.7), "FF_steel", verts=20, centered=True)
 # rotate drum axis along X: Z-cylinder -> rotate about Y
 import math as _m
 _drum = bpy.data.objects.get("Drum")
