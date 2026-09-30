@@ -6,6 +6,7 @@ import type { Game } from '../sim/game';
 import type { Ent } from '../sim/world';
 import { DIR_VEC } from '../sim/world';
 import { buildModel, isActive, itemColor, type Anim } from './models';
+import { Nature, bakeTerrainCanvas } from './nature';
 
 export class View {
   renderer: THREE.WebGLRenderer;
@@ -50,6 +51,8 @@ export class View {
   private smokePts!: THREE.Points;
   private smokeData: { x: number; y: number; z: number; life: number }[] = [];
   private waterMat!: THREE.MeshLambertMaterial;
+  private nature: Nature;
+  private legacyTrees = true;
 
   constructor(container: HTMLElement, game: Game) {
     this.game = game;
@@ -77,28 +80,39 @@ export class View {
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
     this.scene.add(new THREE.HemisphereLight(0xbdd7ff, 0x3a5a3a, 0.5));
 
-    // ground with noise texture
-    const noise = document.createElement('canvas');
-    noise.width = noise.height = 256;
-    const nctx = noise.getContext('2d')!;
-    nctx.fillStyle = '#335433';
-    nctx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 5200; i++) {
-      const v = 40 + Math.random() * 40;
-      nctx.fillStyle = `rgb(${v * 0.55},${v * 1.05},${v * 0.55})`;
-      nctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
-    }
-    const ntex = new THREE.CanvasTexture(noise);
-    ntex.wrapS = ntex.wrapT = THREE.RepeatWrapping;
-    ntex.repeat.set(50, 50);
-    ntex.magFilter = THREE.NearestFilter;
+    // ground: baked PBR zone canvas (grass/dirt/sand per world features)
+    const zoneTex = new THREE.CanvasTexture(
+      bakeTerrainCanvas(game.world, game.world.seed));
+    zoneTex.colorSpace = THREE.SRGBColorSpace;
+    zoneTex.anisotropy = 4;
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(400, 400),
-      new THREE.MeshLambertMaterial({ map: ntex }),
+      new THREE.MeshStandardMaterial({ map: zoneTex, roughness: 0.95, metalness: 0 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     this.scene.add(ground);
+    // close-up PBR detail overlay: repeating grass diffuse+normal, translucent
+    const texLoader = new THREE.TextureLoader();
+    const gDiff = texLoader.load('/tex/leafy_grass_Diffuse.jpg');
+    gDiff.wrapS = gDiff.wrapT = THREE.RepeatWrapping;
+    gDiff.repeat.set(110, 110);
+    gDiff.colorSpace = THREE.SRGBColorSpace;
+    const gNor = texLoader.load('/tex/leafy_grass_nor_gl.png');
+    gNor.wrapS = gNor.wrapT = THREE.RepeatWrapping;
+    gNor.repeat.set(110, 110);
+    const detail = new THREE.Mesh(
+      new THREE.PlaneGeometry(400, 400),
+      new THREE.MeshStandardMaterial({
+        map: gDiff, normalMap: gNor, normalScale: new THREE.Vector2(0.6, 0.6),
+        transparent: true, opacity: 0.42, roughness: 1,
+        depthWrite: false,
+      }),
+    );
+    detail.rotation.x = -Math.PI / 2;
+    detail.position.y = 0.015;
+    detail.renderOrder = 1;
+    this.scene.add(detail);
     const grid = new THREE.GridHelper(400, 400, 0x4a6a4a, 0x3d5c3d);
     grid.position.y = 0.02;
     (grid.material as THREE.Material).transparent = true;
@@ -106,6 +120,7 @@ export class View {
     this.scene.add(grid);
 
     this.buildPlayer();
+    this.nature = new Nature(this.scene, game.world, game.world.seed);
 
     this.selBox = new THREE.LineSegments(
       new THREE.EdgesGeometry(new THREE.BoxGeometry(1.02, 1.02, 1.02)),
@@ -437,20 +452,28 @@ export class View {
       if (this.oreMesh) { this.scene.remove(this.oreMesh); this.oreMesh = null; }
       const deps = [...w.resources.values()];
       this.oreMesh = new THREE.InstancedMesh(
-        new THREE.BoxGeometry(0.72, 0.34, 0.72),
-        new THREE.MeshLambertMaterial({ color: 0xffffff }),
+        new THREE.BoxGeometry(0.5, 0.3, 0.42),
+        new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0.35 }),
         Math.max(1, deps.length),
       );
       const m = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const eul = new THREE.Euler();
+      const sc = new THREE.Vector3();
+      const pv = new THREE.Vector3();
       const c = new THREE.Color();
       const ORE: Record<string, number> = {
-        'iron-ore': 0x5a7a9a, 'copper-ore': 0xd87f3e, coal: 0x1e1e1e,
-        stone: 0x9a9a9a, 'uranium-ore': 0x55dd33, 'crude-oil': 0x2a1040,
+        'iron-ore': 0x54687e, 'copper-ore': 0xb06a35, coal: 0x1e1e1e,
+        stone: 0x8a8a8a, 'uranium-ore': 0x55dd33, 'crude-oil': 0x1a0a28,
       };
       deps.forEach((d, i) => {
-        const s = 0.7 + Math.min(0.6, d.amount / 8000);
-        m.makeScale(s, 1, s);
-        m.setPosition(d.x + 0.5, 0.17, d.y + 0.5);
+        const s = 0.55 + Math.min(0.5, d.amount / 9000);
+        const h = ((d.x * 37 + d.y * 91) % 100) / 100;
+        eul.set((h - 0.5) * 0.35, h * Math.PI * 2, 0);
+        q.setFromEuler(eul);
+        sc.set(s * (0.8 + h * 0.4), 0.7 + h * 0.7, s);
+        pv.set(d.x + 0.25 + h * 0.5, 0.12, d.y + 0.5 - h * 0.3);
+        m.compose(pv, q, sc);
         this.oreMesh!.setMatrixAt(i, m);
         this.oreMesh!.setColorAt(i, c.setHex(ORE[d.outputItem] ?? 0x888888));
       });
@@ -461,6 +484,15 @@ export class View {
     }
     if (w.trees.size !== this.lastTreeCount) {
       this.lastTreeCount = w.trees.size;
+      if (this.nature.loaded) {
+        // GLB trees take over: drop legacy cones once
+        if (this.legacyTrees) {
+          this.legacyTrees = false;
+          if (this.trunkMesh) { this.scene.remove(this.trunkMesh); this.trunkMesh = null; }
+          if (this.leafMesh) { this.scene.remove(this.leafMesh); this.leafMesh = null; }
+        }
+        return;
+      }
       if (this.trunkMesh) { this.scene.remove(this.trunkMesh); this.trunkMesh = null; }
       if (this.leafMesh) { this.scene.remove(this.leafMesh); this.leafMesh = null; }
       const trees = [...w.trees.keys()];
@@ -618,6 +650,7 @@ export class View {
     } else if (this.ghostMesh) this.ghostMesh.visible = false;
     this.syncEntities();
     this.syncResources();
+    this.nature.update(this.game.world.entities.size);
     this.syncActors();
     this.syncSmoke(dt);
     this.renderer.render(this.scene, this.camera);
