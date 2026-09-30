@@ -163,14 +163,14 @@ def chimney(coll, loc, r=0.16, h=1.6, material="rusty_metal_02"):
     return c
 
 
-def glow_plane(coll, name, w, h, loc, rot_z=0.0):
+def glow_plane(coll, name, w, h, loc, rot_z=0.0, rot_y=0.0):
     m = bpy.data.materials.get("FF_fire")
     bpy.ops.mesh.primitive_plane_add(size=1, location=B(*loc))
     o = bpy.context.view_layer.objects.active
     o.name = name
     o.dimensions = (w, h, h)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    o.rotation_euler = (0, 0, rot_z)
+    o.rotation_euler = (0, rot_y, rot_z)
     o.data.materials.append(m)
     _own(o, coll)
     return o
@@ -210,6 +210,11 @@ def ensure_base_materials():
     plain_material("FF_sac", (0.4, 0.8, 0.1), emissive=(0.35, 0.75, 0.1))
     plain_material("FF_visor", (0.05, 0.1, 0.14), metallic=0.9, roughness=0.15)
     plain_material("FF_brick", (0.48, 0.27, 0.18), metallic=0.0, roughness=0.85)
+    plain_material("FF_chemgreen", (0.2, 0.55, 0.3), metallic=0.5, roughness=0.45)
+    plain_material("FF_gunmetal", (0.3, 0.28, 0.22), metallic=0.8, roughness=0.5)
+    plain_material("FF_pearl", (0.82, 0.84, 0.88), metallic=0.4, roughness=0.3)
+    plain_material("FF_refpurple", (0.45, 0.25, 0.5), metallic=0.6, roughness=0.45)
+    plain_material("FF_solarcell", (0.08, 0.16, 0.45), metallic=0.7, roughness=0.25)
 
 
 def isolate(name):
