@@ -13,7 +13,7 @@ C = col("FF_gun_turret")
 wipe_collection("FF_gun_turret")
 
 pad(C, 2.0, 2.0)
-box(C, "Skirt", (1.48, 0.48, 1.48), (0, 0.38, 0), "FF_soot", bevel=0.05)
+box(C, "Skirt", (1.48, 0.48, 1.48), (0, 0.38, 0), "FF_iron", bevel=0.05)
 rivet_row(C, (-0.6, 0.55, 0.74), (0.6, 0.55, 0.74), n=6, r=0.028)
 cyl(C, "TurretRing", 0.52, 0.58, 0.22, (0, 0.62, 0), "FF_brass", verts=18)
 

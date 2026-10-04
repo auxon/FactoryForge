@@ -13,7 +13,7 @@ C = col("FF_refinery")
 wipe_collection("FF_refinery")
 
 pad(C, 3.0, 3.0)
-cyl(C, "TowerMain", 0.52, 0.58, 2.75, (-0.7, 0.15, -0.55), "FF_iron", verts=18)
+cyl(C, "TowerMain", 0.52, 0.58, 2.75, (-0.7, 0.15, -0.55), "FF_copper", verts=18)
 for i in range(5):
     cyl(C, "TrayRing", 0.58, 0.58, 0.06, (-0.7, 0.65 + i * 0.48, -0.55), "FF_brass", verts=18)
     rivet_ring(C, (-0.7, 0.65 + i * 0.48, -0.55), 0.58, n=8, r=0.018, h=0.025)

@@ -105,13 +105,23 @@ def height_to_normal(height: np.ndarray, strength: float = 4.0) -> np.ndarray:
     return ((n + 1.0) * 0.5).astype(np.float32)
 
 
-def to_rgb(a: np.ndarray | float, color: tuple[float, float, float]) -> np.ndarray:
-    if np.isscalar(a):
-        return np.array(color, dtype=np.float32) * float(a)
-    out = np.zeros(a.shape + (3,), dtype=np.float32)
-    for i, c in enumerate(color):
-        out[..., i] = a * c
-    return out
+def to_rgb(var: np.ndarray | float, color: tuple[float, float, float]) -> np.ndarray:
+    """var is 0..1 modulation around `color` (the midtone), not a multiplier."""
+    c = np.array(color, dtype=np.float32)
+    if np.isscalar(var):
+        v = float(var)
+        return np.clip(c * (0.55 + 0.9 * v), 0, 1)
+    v = var[..., None]
+    return np.clip(c * (0.55 + 0.9 * v), 0, 1)
+
+
+def plate_grid(w: int, h: int, n: int = 6, grout: int = 2) -> np.ndarray:
+    img = np.ones((h, w), dtype=np.float32)
+    tw, th = w // n, h // n
+    for i in range(n + 1):
+        img[:, max(0, i * tw - grout): i * tw + grout] *= 0.62
+        img[max(0, i * th - grout): i * th + grout, :] *= 0.62
+    return img
 
 
 def mix(a: np.ndarray, b: np.ndarray, t: np.ndarray) -> np.ndarray:
@@ -137,14 +147,16 @@ def iron(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n2 = fbm(w, h, 18, 4, 29)
     dirt = fbm(w, h, 4, 4, 47)
     sc = scratches(w, h, 91, 110, 0.55)
-    rust = np.clip(fbm(w, h, 8, 4, 73) - 0.62, 0, 1) * 1.6
-    height = 0.45 + n1 * 0.18 + n2 * 0.08 - sc * 0.12 - rust * 0.08
-    base = to_rgb(0.22 + n1 * 0.08, (0.38, 0.36, 0.34))
-    dark = to_rgb(0.18 + n2 * 0.05, (0.16, 0.15, 0.14))
-    rust_c = to_rgb(0.55 + n2 * 0.2, (0.45, 0.22, 0.08))
-    albedo = mix(mix(base, dark, dirt * 0.55), rust_c, np.clip(rust, 0, 1))
-    albedo = mix(albedo, albedo * 0.55, sc * 0.7)
-    rough = np.clip(0.48 + n2 * 0.25 + rust * 0.2 - sc * 0.08, 0.28, 0.92)
+    rust = np.clip(fbm(w, h, 8, 4, 73) - 0.58, 0, 1) * 1.4
+    plates = plate_grid(w, h, 5, 2)
+    height = 0.5 + n1 * 0.16 + n2 * 0.08 - sc * 0.1 - rust * 0.06 + plates * 0.12
+    base = to_rgb(0.62 + n1 * 0.25, (0.62, 0.58, 0.52))
+    dark = to_rgb(0.4 + n2 * 0.15, (0.38, 0.34, 0.30))
+    rust_c = to_rgb(0.7 + n2 * 0.15, (0.62, 0.32, 0.12))
+    albedo = mix(mix(base, dark, dirt * 0.4), rust_c, np.clip(rust, 0, 1) * 0.55)
+    albedo = mix(albedo, albedo * 0.72, (1 - plates) * 0.8)
+    albedo = mix(albedo, albedo * 0.7, sc * 0.5)
+    rough = np.clip(0.42 + n2 * 0.22 + rust * 0.18 - sc * 0.06, 0.25, 0.88)
     return albedo, height_to_normal(height, 6.5), rough
 
 
@@ -153,13 +165,15 @@ def brass(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n2 = fbm(w, h, 22, 4, 19)
     tarnish = np.clip(fbm(w, h, 3.5, 5, 41) - 0.42, 0, 1)
     sc = scratches(w, h, 7, 70, 0.4)
-    height = 0.5 + n1 * 0.12 + n2 * 0.06 - tarnish * 0.1 - sc * 0.08
-    polish = to_rgb(0.72 + n1 * 0.12, (0.82, 0.62, 0.22))
-    aged = to_rgb(0.45 + n2 * 0.1, (0.42, 0.28, 0.10))
-    green = to_rgb(0.35, (0.22, 0.38, 0.22))
-    albedo = mix(mix(polish, aged, tarnish * 0.85), green, tarnish * tarnish * 0.35)
-    albedo = mix(albedo, albedo * 0.7, sc)
-    rough = np.clip(0.28 + tarnish * 0.4 + n2 * 0.12 + sc * 0.08, 0.14, 0.78)
+    plates = plate_grid(w, h, 4, 1)
+    height = 0.52 + n1 * 0.12 + n2 * 0.06 - tarnish * 0.08 - sc * 0.06 + plates * 0.08
+    polish = to_rgb(0.78 + n1 * 0.18, (0.90, 0.70, 0.28))
+    aged = to_rgb(0.55 + n2 * 0.15, (0.62, 0.42, 0.16))
+    green = to_rgb(0.45, (0.32, 0.48, 0.28))
+    albedo = mix(mix(polish, aged, tarnish * 0.55), green, tarnish * tarnish * 0.22)
+    albedo = mix(albedo, albedo * 0.78, (1 - plates) * 0.6)
+    albedo = mix(albedo, albedo * 0.75, sc * 0.5)
+    rough = np.clip(0.22 + tarnish * 0.32 + n2 * 0.1 + sc * 0.06, 0.12, 0.7)
     return albedo, height_to_normal(height, 4.2), rough
 
 
@@ -167,40 +181,40 @@ def rust(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n1 = warp(fbm(w, h, 7, 5, 13), 14)
     flake = fbm(w, h, 16, 4, 59)
     sc = scratches(w, h, 23, 40, 0.8)
-    height = 0.4 + n1 * 0.28 + flake * 0.12
-    orange = to_rgb(0.55 + n1 * 0.25, (0.55, 0.24, 0.07))
-    brown = to_rgb(0.28 + flake * 0.15, (0.28, 0.12, 0.05))
-    dark = to_rgb(0.16, (0.12, 0.08, 0.06))
-    albedo = mix(mix(orange, brown, flake), dark, sc * 0.5)
-    rough = np.clip(0.72 + flake * 0.2, 0.55, 0.98)
+    height = 0.42 + n1 * 0.26 + flake * 0.12
+    orange = to_rgb(0.72 + n1 * 0.22, (0.72, 0.38, 0.14))
+    brown = to_rgb(0.5 + flake * 0.18, (0.42, 0.22, 0.10))
+    dark = to_rgb(0.35, (0.22, 0.14, 0.08))
+    albedo = mix(mix(orange, brown, flake * 0.55), dark, sc * 0.35)
+    rough = np.clip(0.68 + flake * 0.18, 0.5, 0.95)
     return albedo, height_to_normal(height, 8.0), rough
 
 
 def copper(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n1 = fbm(w, h, 6, 5, 31)
-    patina = np.clip(fbm(w, h, 4, 5, 67) - 0.5, 0, 1) * 1.5
+    patina = np.clip(fbm(w, h, 4, 5, 67) - 0.5, 0, 1) * 1.3
     sc = scratches(w, h, 37, 50, 0.45)
     height = 0.5 + n1 * 0.12 - patina * 0.08
-    metal = to_rgb(0.55 + n1 * 0.15, (0.72, 0.34, 0.16))
-    verdi = to_rgb(0.4 + n1 * 0.1, (0.12, 0.42, 0.32))
-    albedo = mix(metal, verdi, np.clip(patina, 0, 1))
-    albedo = mix(albedo, albedo * 0.65, sc)
-    rough = np.clip(0.32 + patina * 0.35 + n1 * 0.1, 0.18, 0.8)
+    metal = to_rgb(0.7 + n1 * 0.2, (0.82, 0.42, 0.22))
+    verdi = to_rgb(0.5 + n1 * 0.12, (0.22, 0.52, 0.40))
+    albedo = mix(metal, verdi, np.clip(patina, 0, 1) * 0.55)
+    albedo = mix(albedo, albedo * 0.75, sc * 0.45)
+    rough = np.clip(0.28 + patina * 0.3 + n1 * 0.1, 0.16, 0.75)
     return albedo, height_to_normal(height, 4.0), rough
 
 
 def wood(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    grain = np.sin((xx * 0.085 + fbm(w, h, 3, 4, 5) * 18) ) * 0.5 + 0.5
+    grain = np.sin((xx * 0.085 + fbm(w, h, 3, 4, 5) * 18)) * 0.5 + 0.5
     rings = np.sin(xx * 0.02 + fbm(w, h, 2, 3, 8) * 6) * 0.5 + 0.5
     plank = tile_seams(w, h, 4, 4)
     n = fbm(w, h, 10, 4, 21)
     height = 0.45 + grain * 0.18 + n * 0.08 + plank * 0.12
-    light = to_rgb(0.42 + grain * 0.2, (0.42, 0.26, 0.12))
-    dark = to_rgb(0.22 + rings * 0.1, (0.18, 0.10, 0.05))
-    albedo = mix(light, dark, 0.45 + n * 0.2)
-    albedo = mix(albedo, to_rgb(0.08, (0.06, 0.04, 0.02)), 1 - plank)
-    rough = np.clip(0.62 + n * 0.2 + (1 - plank) * 0.15, 0.45, 0.95)
+    light = to_rgb(0.65 + grain * 0.25, (0.58, 0.38, 0.18))
+    dark = to_rgb(0.4 + rings * 0.15, (0.32, 0.18, 0.08))
+    albedo = mix(light, dark, 0.4 + n * 0.2)
+    albedo = mix(albedo, to_rgb(0.25, (0.16, 0.10, 0.05)), 1 - plank)
+    rough = np.clip(0.58 + n * 0.18 + (1 - plank) * 0.12, 0.42, 0.9)
     return albedo, height_to_normal(height, 5.5), rough
 
 
@@ -209,12 +223,12 @@ def brick(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n = fbm(w, h, 12, 4, 44)
     soot = fbm(w, h, 3, 4, 88)
     height = 0.35 + mask * 0.35 + n * 0.1
-    clay = to_rgb(0.42 + n * 0.12, (0.48, 0.22, 0.14))
-    soot_c = to_rgb(0.12 + soot * 0.08, (0.10, 0.08, 0.07))
-    mortar = to_rgb(0.28 + n * 0.05, (0.32, 0.28, 0.24))
-    albedo = mix(clay, soot_c, np.clip(soot - 0.25, 0, 1) * 0.7)
+    clay = to_rgb(0.7 + n * 0.2, (0.68, 0.32, 0.20))
+    soot_c = to_rgb(0.35 + soot * 0.1, (0.22, 0.16, 0.12))
+    mortar = to_rgb(0.55 + n * 0.08, (0.55, 0.48, 0.40))
+    albedo = mix(clay, soot_c, np.clip(soot - 0.35, 0, 1) * 0.4)
     albedo = mix(mortar, albedo, mask)
-    rough = np.clip(0.78 + n * 0.12, 0.6, 0.98)
+    rough = np.clip(0.72 + n * 0.12, 0.55, 0.95)
     return albedo, height_to_normal(height, 7.0), rough
 
 
@@ -223,10 +237,10 @@ def concrete(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n2 = fbm(w, h, 20, 4, 14)
     stain = np.clip(fbm(w, h, 3, 4, 33) - 0.55, 0, 1)
     height = 0.5 + n1 * 0.16 + n2 * 0.08 - stain * 0.06
-    base = to_rgb(0.42 + n1 * 0.1, (0.40, 0.38, 0.35))
-    dirt = to_rgb(0.22, (0.22, 0.16, 0.10))
-    albedo = mix(base, dirt, stain * 0.8 + n2 * 0.15)
-    rough = np.clip(0.82 + n2 * 0.1, 0.7, 0.98)
+    base = to_rgb(0.7 + n1 * 0.15, (0.58, 0.54, 0.48))
+    dirt = to_rgb(0.45, (0.40, 0.30, 0.20))
+    albedo = mix(base, dirt, stain * 0.55 + n2 * 0.12)
+    rough = np.clip(0.78 + n2 * 0.1, 0.65, 0.95)
     return albedo, height_to_normal(height, 5.0), rough
 
 
@@ -234,11 +248,13 @@ def soot(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n1 = fbm(w, h, 4, 5, 77)
     n2 = fbm(w, h, 16, 4, 99)
     sc = scratches(w, h, 55, 40, 0.7)
-    height = 0.4 + n1 * 0.2 + n2 * 0.08
-    albedo = to_rgb(0.10 + n1 * 0.08, (0.10, 0.09, 0.08))
-    albedo = mix(albedo, to_rgb(0.2, (0.18, 0.10, 0.05)), n2 * 0.35)
-    albedo = mix(albedo, albedo * 1.4, sc * 0.4)
-    rough = np.clip(0.7 + n2 * 0.2, 0.5, 0.96)
+    plates = plate_grid(w, h, 5, 2)
+    height = 0.42 + n1 * 0.18 + n2 * 0.08 + plates * 0.1
+    albedo = to_rgb(0.45 + n1 * 0.2, (0.28, 0.24, 0.20))
+    albedo = mix(albedo, to_rgb(0.5, (0.36, 0.22, 0.12)), n2 * 0.3)
+    albedo = mix(albedo, albedo * 0.75, (1 - plates) * 0.7)
+    albedo = mix(albedo, albedo * 1.15, sc * 0.35)
+    rough = np.clip(0.58 + n2 * 0.18, 0.4, 0.9)
     return albedo, height_to_normal(height, 4.5), rough
 
 

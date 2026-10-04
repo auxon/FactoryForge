@@ -546,19 +546,19 @@ def ensure_base_materials():
     if _MATERIALS_READY and bpy.data.materials.get("FF_iron"):
         return
     specs = [
-        ("FF_iron", "iron", 0.88, 1.0, (0.42, 0.40, 0.38)),
-        ("FF_darkiron", "iron", 0.9, 1.05, (0.18, 0.17, 0.16)),
-        ("FF_soot", "soot", 0.82, 1.1, (0.10, 0.09, 0.08)),
-        ("FF_brass", "brass", 0.95, 0.9, (0.72, 0.52, 0.18)),
-        ("FF_brass_polish", "brass", 0.97, 0.55, (0.86, 0.68, 0.28)),
-        ("FF_bronze", "brass", 0.92, 1.05, (0.48, 0.28, 0.10)),
-        ("FF_copper", "copper", 0.95, 0.95, (0.70, 0.32, 0.14)),
-        ("FF_verdigris", "copper", 0.55, 1.15, (0.18, 0.42, 0.32)),
-        ("FF_rust", "rust", 0.35, 1.2, (0.50, 0.22, 0.08)),
-        ("FF_wood", "wood", 0.02, 1.0, (0.32, 0.18, 0.08)),
-        ("FF_brick", "brick", 0.0, 1.0, (0.42, 0.20, 0.12)),
-        ("FF_concrete", "concrete", 0.0, 1.0, (0.38, 0.36, 0.32)),
-        ("FF_leather", "leather", 0.05, 1.0, (0.24, 0.12, 0.06)),
+        ("FF_iron", "iron", 0.62, 1.0, (0.72, 0.68, 0.62)),
+        ("FF_darkiron", "iron", 0.7, 1.05, (0.42, 0.40, 0.38)),
+        ("FF_soot", "soot", 0.55, 1.1, (0.32, 0.28, 0.24)),
+        ("FF_brass", "brass", 0.78, 0.85, (1.0, 0.78, 0.32)),
+        ("FF_brass_polish", "brass", 0.85, 0.5, (1.0, 0.86, 0.42)),
+        ("FF_bronze", "brass", 0.72, 1.0, (0.72, 0.42, 0.16)),
+        ("FF_copper", "copper", 0.8, 0.9, (0.92, 0.48, 0.24)),
+        ("FF_verdigris", "copper", 0.4, 1.1, (0.28, 0.55, 0.40)),
+        ("FF_rust", "rust", 0.28, 1.15, (0.72, 0.38, 0.14)),
+        ("FF_wood", "wood", 0.02, 1.0, (0.55, 0.36, 0.16)),
+        ("FF_brick", "brick", 0.0, 1.0, (0.72, 0.36, 0.22)),
+        ("FF_concrete", "concrete", 0.0, 1.0, (0.62, 0.58, 0.52)),
+        ("FF_leather", "leather", 0.05, 1.0, (0.42, 0.24, 0.12)),
     ]
     for name, kind, metal, rm, colr in specs:
         m = bpy.data.materials.get(name)

@@ -21,7 +21,7 @@ for sx in (-1.15, 1.15):
     rivet_row(C, (sx, 0.44, -2.1), (sx, 0.44, 2.1), n=8, r=0.028)
 
 # lagged high-pressure cylinder (front)
-box(C, "CylBlock", (1.7, 1.15, 1.7), (0, 0.82, 1.45), "FF_iron", bevel=0.05)
+box(C, "CylBlock", (1.7, 1.15, 1.7), (0, 0.82, 1.45), "FF_brass", bevel=0.05)
 lagging(C, (0, 0.82, 1.45), 1.5, 0.72, n=6, axis="z")
 rivet_row(C, (-0.75, 1.25, 2.25), (0.75, 1.25, 2.25), n=6, r=0.03)
 # cylinder head + glands

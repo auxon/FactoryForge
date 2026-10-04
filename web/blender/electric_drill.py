@@ -22,7 +22,7 @@ for sx in (-1.22, 1.22):
 ibeam(C, "GantryX", 2.6, (0, 2.38, 0), "FF_darkiron", axis="x")
 ibeam(C, "GantryZ", 2.6, (0, 2.38, 0), "FF_darkiron", axis="z")
 
-box(C, "Housing", (1.65, 1.15, 1.65), (0, 0.88, 0), "FF_iron", bevel=0.05)
+box(C, "Housing", (1.65, 1.15, 1.65), (0, 0.88, 0), "FF_brass", bevel=0.05)
 box(C, "HousingBand", (1.74, 0.12, 1.74), (0, 0.42, 0), "FF_brass")
 rivet_row(C, (-0.7, 1.3, 0.84), (0.7, 1.3, 0.84), n=6, r=0.028)
 for i in range(5):
