@@ -18,6 +18,8 @@ export class Game {
     inv: new Inventory(70),
     craftQueue: [] as CraftJob[],
     dead: false,
+    /** True on frames the player actually walked (set by movePlayer). */
+    moving: false,
   };
   unlocked = new Set<string>(DEFAULT_UNLOCKED_RECIPES);
   completedTech = new Set<string>();
@@ -102,6 +104,7 @@ export class Game {
     const sp = 5.0;
     this.player.x += dx * sp * dt;
     this.player.y += dy * sp * dt;
+    this.player.moving = true;
   }
 
   /** Hand-mine: 1 item per call if a resource/tree is adjacent. */
@@ -629,7 +632,7 @@ export class Game {
     const hasSword = this.player.inv.count('sword') > 0;
     const range = hasGun ? 10 : hasSword ? 2 : 0;
     if (range === 0) return false;
-    this.playerSwing = 0.32;
+    this.playerSwing = 0.4;
     let best: Ent | null = null; let bestD = range;
     for (const en of this.enemies) {
       const d = Math.hypot(en.x - this.player.x, en.y - this.player.y);

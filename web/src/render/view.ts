@@ -695,42 +695,55 @@ export class View {
   }
 
   private posePlayer(walking: boolean): void {
-    const a = this.playerMesh.userData.actor as ActorAnim | undefined;
-    if (!a) return;
+    let a = this.playerMesh.userData.actor as ActorAnim | undefined;
+    if (!a || a.legs.length < 2 || !a.armL || !a.armR) {
+      a = this.glb.collectActor(this.playerMesh);
+      this.playerMesh.userData.actor = a;
+    }
+    if (!a || a.legs.length === 0) return;
     const t = this.clock;
     const punch = this.game.playerSwing;
-    const swing = walking ? Math.sin(t * 9.2) : 0;
-    const idle = walking ? 0 : Math.sin(t * 1.6);
+    const swing = walking ? Math.sin(t * 8.5) : 0;
+    const idle = Math.sin(t * 1.7);
     for (const leg of a.legs) {
       this.bindRest(leg);
       const sign = this.gaitSign(leg.name);
-      const amp = walking ? 0.62 : 0.035;
-      leg.rotation.x = (leg.userData.restRX as number) + sign * (walking ? swing : idle) * amp;
+      const left = leg.name.split('.')[0].startsWith('LegL');
+      const stride = walking ? swing * 1.05 : idle * 0.08;
+      leg.rotation.x = (leg.userData.restRX as number) + sign * stride;
+      // Kick sideways so the gait reads from the default high camera.
+      leg.rotation.z = (leg.userData.restRZ as number)
+        + (left ? 1 : -1) * Math.abs(walking ? swing : idle) * (walking ? 0.28 : 0.06);
     }
     if (a.armL) {
       this.bindRest(a.armL);
       a.armL.rotation.x = (a.armL.userData.restRX as number)
-        - swing * (walking ? 0.5 : 0) + idle * 0.05;
+        - (walking ? swing * 0.95 : idle * 0.16);
+      a.armL.rotation.z = (a.armL.userData.restRZ as number) + idle * 0.05;
     }
     if (a.armR) {
       this.bindRest(a.armR);
-      const u = punch > 0 ? 1 - punch / 0.32 : 0;
-      const punchX = punch > 0 ? -Math.sin(u * Math.PI) * 1.15 : 0;
+      const u = punch > 0 ? 1 - punch / 0.4 : 0;
+      const punchX = punch > 0 ? -Math.sin(u * Math.PI) * 1.45 : 0;
       a.armR.rotation.x = (a.armR.userData.restRX as number)
-        + swing * (walking ? 0.5 : 0) + punchX;
+        + (walking ? swing * 0.95 : idle * 0.16) + punchX;
+      a.armR.rotation.z = (a.armR.userData.restRZ as number) - idle * 0.05;
     }
     if (a.torso) {
       this.bindRest(a.torso);
       a.torso.position.y = (a.torso.userData.restY as number)
-        + (walking ? Math.abs(swing) * 0.03 : idle * 0.012);
+        + (walking ? Math.abs(swing) * 0.055 : idle * 0.022);
       a.torso.rotation.y = (a.torso.userData.restRY as number)
-        + (walking ? swing * 0.06 : idle * 0.02);
+        + (walking ? swing * 0.12 : idle * 0.04);
+      a.torso.rotation.z = (a.torso.userData.restRZ as number)
+        + (walking ? swing * 0.08 : idle * 0.03);
     }
     if (a.head) {
       this.bindRest(a.head);
-      a.head.rotation.x = (a.head.userData.restRX as number) + idle * 0.035;
-      a.head.rotation.y = (a.head.userData.restRY as number) + Math.sin(t * 0.7) * 0.05;
+      a.head.rotation.x = (a.head.userData.restRX as number) + idle * 0.08;
+      a.head.rotation.y = (a.head.userData.restRY as number) + Math.sin(t * 0.9) * 0.14;
     }
+    this.playerMesh.updateMatrixWorld(true);
   }
 
   private poseEnemy(grp: THREE.Group, walking: boolean, attacking: boolean): void {
@@ -740,36 +753,36 @@ export class View {
       grp.userData.actor = a;
     }
     const t = this.clock;
-    const swing = walking ? Math.sin(t * 10.5) : 0;
-    const idle = walking ? 0 : Math.sin(t * 2.1);
-    const bite = attacking ? Math.abs(Math.sin(t * 14)) : 0;
+    const swing = walking ? Math.sin(t * 9.5) : 0;
+    const idle = Math.sin(t * 2.1);
+    const bite = attacking ? Math.abs(Math.sin(t * 12)) : 0;
     for (const leg of a.legs) {
       this.bindRest(leg);
       const sign = this.gaitSign(leg.name);
       const left = leg.name.split('.')[0].startsWith('LegL');
-      const amp = walking ? 0.48 : 0.06;
-      leg.rotation.x = (leg.userData.restRX as number) + sign * (walking ? swing : idle) * amp;
+      const stride = walking ? swing * 0.85 : idle * 0.12;
+      leg.rotation.x = (leg.userData.restRX as number) + sign * stride;
       leg.rotation.z = (leg.userData.restRZ as number)
-        + (left ? 1 : -1) * Math.abs(walking ? swing : idle) * (walking ? 0.14 : 0.03);
+        + (left ? 1 : -1) * Math.abs(walking ? swing : idle) * (walking ? 0.32 : 0.08);
     }
     if (a.torso) {
       this.bindRest(a.torso);
       a.torso.position.y = (a.torso.userData.restY as number)
-        + (walking ? Math.abs(swing) * 0.025 : idle * 0.01);
+        + (walking ? Math.abs(swing) * 0.05 : idle * 0.02);
       a.torso.rotation.y = (a.torso.userData.restRY as number)
-        + (walking ? swing * 0.08 : idle * 0.03);
-      a.torso.rotation.x = (a.torso.userData.restRX as number) + (attacking ? -0.12 : 0);
+        + (walking ? swing * 0.16 : idle * 0.06);
+      a.torso.rotation.x = (a.torso.userData.restRX as number) + (attacking ? -0.2 : idle * 0.05);
     }
     if (a.head) {
       this.bindRest(a.head);
       a.head.rotation.x = (a.head.userData.restRX as number)
-        + (attacking ? -0.28 - bite * 0.12 : idle * 0.08);
+        + (attacking ? -0.38 - bite * 0.2 : idle * 0.12);
     }
     for (const jaw of a.jaws) {
       this.bindRest(jaw);
       const sign = this.gaitSign(jaw.name);
       jaw.rotation.z = (jaw.userData.restRZ as number)
-        + sign * (0.08 + bite * 0.55 + (attacking ? 0.18 : 0));
+        + sign * (0.12 + bite * 0.7 + (attacking ? 0.22 : 0));
     }
     a.sacs.forEach((sac, i) => {
       this.bindRest(sac);
@@ -780,6 +793,7 @@ export class View {
         (sac.userData.restSZ as number) * pulse,
       );
     });
+    grp.updateMatrixWorld(true);
   }
 
   private poseNest(m: THREE.Group): void {
@@ -807,13 +821,13 @@ export class View {
     }
     const px = this.playerMesh.position.x, pz = this.playerMesh.position.z;
     const moved = Math.hypot(p.x - px, p.y - pz);
-    const hop = !this.playerMesh.userData.glb && moved > 0.001
-      ? Math.abs(Math.sin(this.clock * 10)) * 0.06 : 0;
+    const walking = !!p.moving || moved > 0.002;
+    const hop = walking ? Math.abs(Math.sin(this.clock * 10)) * 0.07 : 0;
     this.playerMesh.position.set(p.x, hop, p.y);
     if (moved > 0.001) {
       this.playerMesh.rotation.y = Math.atan2(p.x - px, p.y - pz);
     }
-    if (this.playerMesh.userData.glb) this.posePlayer(moved > 0.001);
+    this.posePlayer(walking);
     const seen = new Set<number>();
     for (const en of this.game.enemies) {
       seen.add(en.id);
@@ -848,15 +862,11 @@ export class View {
         this.enemyMeshes.set(en.id, grp);
         this.scene.add(grp);
       }
-      const prevX = (grp.userData.prevX as number | undefined) ?? en.x;
-      const prevY = (grp.userData.prevY as number | undefined) ?? en.y;
-      const walked = Math.hypot(en.x - prevX, en.y - prevY);
-      grp.userData.prevX = en.x;
-      grp.userData.prevY = en.y;
       const dist = Math.hypot(en.tx - en.x, en.ty - en.y);
-      grp.position.set(en.x, 0, en.y);
+      const chasing = dist > 1.05;
+      grp.position.set(en.x, chasing ? Math.abs(Math.sin(this.clock * 11)) * 0.05 : 0, en.y);
       grp.rotation.y = Math.atan2(en.tx - en.x, en.ty - en.y);
-      if (grp.userData.glb) this.poseEnemy(grp, walked > 0.0004, dist < 1.25);
+      if (grp.userData.glb) this.poseEnemy(grp, chasing, dist < 1.25);
     }
     for (const [id, m] of this.enemyMeshes) {
       if (!seen.has(id)) { this.scene.remove(m); this.enemyMeshes.delete(id); }

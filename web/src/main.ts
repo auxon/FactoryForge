@@ -186,6 +186,7 @@ function loop(now: number): void {
   const dt = Math.min(0.25, (now - last) / 1000);
   last = now;
   // movement (variable dt like Swift player.update)
+  game.player.moving = false;
   let mx = 0, my = 0;
   if (keys.has('w') || keys.has('arrowup')) my -= 1;
   if (keys.has('s') || keys.has('arrowdown')) my += 1;
