@@ -75,11 +75,13 @@ blender --background --python export_all.py
 
 Outputs overwrite `public/models/ff-*.glb` (trees / rocks stay as-is).
 Characters (`player.py`, `biter.py` → player, biter, spitter, nest) are
-included. To view in game: `npm run dev` → http://localhost:5174.
-The engineer is at spawn. Biters appear after the 5-minute grace period,
-or spawners sit far from origin (`~±55` tiles). Press **B** to place
-machines from the starting inventory (drills, furnaces, belts, inserters,
-chest).
+included. Limb joints (`Torso`, `Head`, `ArmL`/`ArmR`, `Leg*`, `Jaw*`)
+are tiny named pivots; the web view drives walk, idle, and biter bite
+cycles from those names. To view in game: `npm run dev` → http://localhost:5174.
+The engineer is at spawn (WASD walks, Space swings). Biters appear after
+the 5-minute grace period, or spawners sit far from origin (`~±55` tiles).
+Press **B** to place machines from the starting inventory (drills,
+furnaces, belts, inserters, chest).
 
 ## Controls
 

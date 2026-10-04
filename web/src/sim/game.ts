@@ -34,6 +34,8 @@ export class Game {
   paused = false;
   /** Dev/test cheat: all machines fully powered. */
   freePower = false;
+  /** Seconds remaining on the player attack swing (view-only). */
+  playerSwing = 0;
   onWin: (() => void) | null = null;
   log: string[] = [];
 
@@ -74,6 +76,7 @@ export class Game {
   }
 
   tick(dt: number): void {
+    this.playerSwing = Math.max(0, this.playerSwing - dt);
     this.world.playTime += dt;
     this.world.evo = Math.min(1, this.world.playTime / (4 * 3600) * 0.5);
     this.tickPlayer(dt);
@@ -626,6 +629,7 @@ export class Game {
     const hasSword = this.player.inv.count('sword') > 0;
     const range = hasGun ? 10 : hasSword ? 2 : 0;
     if (range === 0) return false;
+    this.playerSwing = 0.32;
     let best: Ent | null = null; let bestD = range;
     for (const en of this.enemies) {
       const d = Math.hypot(en.x - this.player.x, en.y - this.player.y);
