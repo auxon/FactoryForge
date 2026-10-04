@@ -58,7 +58,7 @@ function updatePrompt(): void {
   const using = ui.panel === 'machine' && view.selectedId != null;
   if (n && !using && !view.ghostId) {
     prompt.style.display = 'block';
-    prompt.textContent = `[E] Use ${n.name} — walk inside a machine to operate it`;
+    prompt.textContent = `[E] Use ${n.name} — walk up to a machine to operate it`;
     prompt.dataset.machineId = String(n.id);
   } else {
     prompt.style.display = 'none';
@@ -123,10 +123,27 @@ window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
 
 view.onTileClick = (x, y) => {
   if (view.ghostId) {
+    // Clicked a finished machine while holding a ghost (and not drag-painting):
+    // operate it instead of trying to build over it.
+    const existing = game.world.entityAt(x, y);
+    if (existing && !painting) {
+      ui.placeMode(null);
+      view.selectedId = existing.id;
+      ui.openMachine();
+      return;
+    }
     const e = game.tryPlace(view.ghostId, x, y, ui.ghostDir);
     if (e) {
       view.selectedId = e.id;
-      ui.refresh();
+      const def = BUILDING_MAP.get(view.ghostId);
+      if (def && def.type !== 'Belt' && def.type !== 'Pipe') {
+        // Single-shot buildings: disarm the ghost and open the new machine.
+        // (Belts/pipes keep painting; Esc disarms manually.)
+        ui.placeMode(null);
+        ui.openMachine();
+      } else {
+        ui.refresh();
+      }
     }
     return;
   }
