@@ -1,6 +1,7 @@
 // Three.js 3D view: tilted perspective camera, procedural machine models
 // with sprite emblems, pole wires, smoke, shadows, animated parts.
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { BUILDING_MAP } from '../data/buildings';
 import type { Game } from '../sim/game';
 import type { Ent } from '../sim/world';
@@ -64,24 +65,32 @@ export class View {
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.12;
     container.appendChild(this.renderer.domElement);
 
-    this.scene.background = new THREE.Color(0x87b5d8);
-    this.scene.fog = new THREE.Fog(0x87b5d8, 70, 170);
+    this.scene.background = new THREE.Color(0x7d93a6);
+    this.scene.fog = new THREE.Fog(0x7d93a6, 64, 165);
 
     this.camera = new THREE.PerspectiveCamera(
       50, container.clientWidth / container.clientHeight, 0.1, 600);
 
-    const sun = new THREE.DirectionalLight(0xfff2dd, 2.0);
-    sun.position.set(40, 60, 25);
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environmentIntensity = 0.42;
+    pmrem.dispose();
+
+    const sun = new THREE.DirectionalLight(0xffe0b0, 2.35);
+    sun.position.set(36, 52, 22);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
     sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
     sun.shadow.camera.far = 200;
     this.scene.add(sun);
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-    this.scene.add(new THREE.HemisphereLight(0xbdd7ff, 0x3a5a3a, 0.5));
+    this.scene.add(new THREE.AmbientLight(0xfff0dc, 0.28));
+    this.scene.add(new THREE.HemisphereLight(0xffd9a8, 0x3a2a18, 0.48));
 
     // ground: baked PBR zone canvas (grass/dirt/sand per world features)
     const zoneTex = new THREE.CanvasTexture(
@@ -154,7 +163,7 @@ export class View {
     this.smokeGeo = new THREE.BufferGeometry();
     this.smokeGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     this.smokePts = new THREE.Points(this.smokeGeo, new THREE.PointsMaterial({
-      color: 0x888888, size: 0.55, transparent: true, opacity: 0.45,
+      color: 0xddd4c4, size: 0.68, transparent: true, opacity: 0.38,
       depthWrite: false,
     }));
     this.smokePts.frustumCulled = false;

@@ -56,9 +56,28 @@ All green.
 ## Render (`src/render/view.ts`)
 
 Tilted perspective camera following the player (wheel zoom, right-drag
-pan, Q/E orbit, F refollow), low-poly machines color-coded by category,
-instanced ore patches/trees, animated belt items, power-status lamps,
-ghost placement preview with validity coloring, selection highlight.
+pan, Q orbit, F refollow). Machinery is Blender-authored steampunk GLBs
+(brass, worn iron, rivets, pipes, gears, steam) loaded from
+`public/models/ff-*.glb`. Procedural box meshes remain as a fallback if
+a GLB is missing. ACES + room-environment lighting makes the metals read
+as physical. Instanced ore/trees, animated belt items, power lamps,
+ghost placement, selection highlight.
+
+### Rebuild machinery GLBs
+
+Needs Blender 4.x on PATH (or `$HOME/blender/blender`):
+
+```bash
+cd web/blender
+python3 make_tex.py          # tileable PBR maps in blender/tex/
+blender --background --python export_all.py
+```
+
+Outputs overwrite `public/models/ff-*.glb` (player / biters / trees are
+left alone). To view in game: `npm run dev` → http://localhost:5174,
+press **B** and place a burner drill, stone furnace, boiler, steam
+engine, assembler, pipe, or any other machine. Starting inventory
+already includes drills, furnaces, belts, inserters, and a chest.
 
 ## Controls
 

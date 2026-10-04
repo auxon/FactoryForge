@@ -117,8 +117,8 @@ export function buildModel(e: Ent): { group: THREE.Group; anim: Anim } {
   switch (type) {
     case 'Miner': {
       const burner = e.buildingId.startsWith('burner');
-      add(box(w * 0.9, 0.5, h * 0.9, burner ? 0x7a5a3a : 0x3a6a8a, 0, 0.25, 0));
-      add(box(w * 0.5, 0.9, h * 0.5, 0x2c2c34, 0, 0.9, 0));
+      add(box(w * 0.9, 0.5, h * 0.9, burner ? 0x6a3a22 : 0x4a453c, 0, 0.25, 0));
+      add(box(w * 0.5, 0.9, h * 0.5, 0x8a6a2a, 0, 0.9, 0));
       const rotor = new THREE.Group();
       const bit = cyl(0.12, 0.02, 1.1, 0xcccccc, 0, -0.4, 0, 8);
       rotor.add(bit);
@@ -144,11 +144,11 @@ export function buildModel(e: Ent): { group: THREE.Group; anim: Anim } {
       break;
     }
     case 'Assembler': {
-      add(box(w * 0.9, 0.9, h * 0.9, 0x3f7fbf, 0, 0.45, 0));
-      add(box(w * 0.7, 0.25, h * 0.7, 0x9ac8e8, 0, 1.0, 0)); // glass top
+      add(box(w * 0.9, 0.9, h * 0.9, 0x4a453c, 0, 0.45, 0));
+      add(box(w * 0.7, 0.25, h * 0.7, 0xb08a3a, 0, 1.0, 0)); // brass top
       anim.arms = [];
       for (const s of [-1, 1]) {
-        const arm = box(0.25, 0.7, 0.25, 0xd8d83f, s * w * 0.25, 1.3, 0);
+        const arm = box(0.25, 0.7, 0.25, 0xc4a24a, s * w * 0.25, 1.3, 0);
         add(arm); anim.arms.push(arm);
       }
       topEmblem(e.buildingId);
@@ -186,16 +186,16 @@ export function buildModel(e: Ent): { group: THREE.Group; anim: Anim } {
     }
     case 'Generator': {
       if (e.buildingId === 'boiler') {
-        add(box(1.8, 1.2, 2.6, 0x8a4a2a, 0, 0.6, 0));
-        add(box(0.5, 2.0, 0.5, 0x4a4a52, 0.4, 1.6, -0.8));
+        add(box(1.8, 1.2, 2.6, 0x6a3a22, 0, 0.6, 0));
+        add(box(0.5, 2.0, 0.5, 0x3a322c, 0.4, 1.6, -0.8));
         const glow = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.5),
           new THREE.MeshBasicMaterial({ color: 0xff5500 }));
         glow.position.set(0, 0.5, 1.32);
         add(glow); anim.glow = glow; anim.smoke = true;
       } else { // steam engine
-        add(box(2.6, 0.8, 1.4, 0x993333, 0, 0.4, 0));
-        add(cyl(0.5, 0.5, 2.2, 0xcc6666, 0, 0.7, 0));
-        const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.12, 8, 20), lam(0x555555));
+        add(box(2.6, 0.8, 1.4, 0x4a453c, 0, 0.4, 0));
+        add(cyl(0.5, 0.5, 2.2, 0xb08a3a, 0, 0.7, 0));
+        const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.12, 8, 20), lam(0x2a2622));
         wheel.position.set(-1.5, 0.8, 0);
         wheel.rotation.y = Math.PI / 2;
         wheel.castShadow = true;
