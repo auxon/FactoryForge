@@ -16,7 +16,7 @@ export class View {
   camera: THREE.PerspectiveCamera;
   game: Game;
   target = new THREE.Vector3(0.5, 0, 0.5);
-  zoom = 24;
+  zoom = 12;
   yaw = Math.PI / 4;
   followPlayer = true;
   ghostId: string | null = null;
@@ -239,8 +239,8 @@ export class View {
         this.hoverTile = [Math.floor(pt.x), Math.floor(pt.z)];
       }
       if (rmbDown) {
-        const dx = (e.clientX - lastX) * 0.02 * (this.zoom / 24);
-        const dy = (e.clientY - lastY) * 0.02 * (this.zoom / 24);
+        const dx = (e.clientX - lastX) * 0.02 * (this.zoom / 12);
+        const dy = (e.clientY - lastY) * 0.02 * (this.zoom / 12);
         const cos = Math.cos(this.yaw), sin = Math.sin(this.yaw);
         this.target.x -= dx * cos - dy * sin;
         this.target.z -= dy * cos + dx * sin;
@@ -748,7 +748,7 @@ export class View {
 
   private poseEnemy(grp: THREE.Group, walking: boolean, attacking: boolean): void {
     let a = grp.userData.actor as ActorAnim | undefined;
-    if (!a) {
+    if (!a || a.legs.length < 2) {
       a = this.glb.collectActor(grp);
       grp.userData.actor = a;
     }
@@ -952,7 +952,7 @@ export class View {
       this.target.z += (this.game.player.y - this.target.z) * Math.min(1, dt * 5);
     }
     // keep shadow frustum near camera target
-    const pit = 0.9;
+    const pit = 0.68;
     this.camera.position.set(
       this.target.x + Math.cos(this.yaw) * this.zoom * Math.cos(pit),
       this.zoom * Math.sin(pit),
