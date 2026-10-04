@@ -76,12 +76,14 @@ box(C, "LampCage", (0.06, 0.06, 0.06), (-0.28, 1.24, 0.08), "FF_brass", bevel=0.
 # helmet + goggles
 sphere(C, "Helmet", 0.155, (0, 1.28, 0.0), "FF_iron", scale=(1.05, 1.0, 1.1), verts=16)
 box(C, "HelmRidge", (0.06, 0.08, 0.22), (0, 1.40, -0.02), "FF_brass", bevel=0.01)
-torus(C, "GoggleL", 0.055, 0.012, (-0.06, 1.28, 0.12), "FF_brass_polish",
-      major_seg=12, minor_seg=6)
-torus(C, "GoggleR", 0.055, 0.012, (0.06, 1.28, 0.12), "FF_brass_polish",
-      major_seg=12, minor_seg=6)
-box(C, "Visor", (0.22, 0.08, 0.04), (0, 1.28, 0.14), "FF_visor", bevel=0.012)
-box(C, "GoggleBridge", (0.06, 0.03, 0.03), (0, 1.28, 0.14), "FF_brass", bevel=0.004)
+for sx in (-0.055, 0.055):
+    rim = cyl(C, "GoggleRim", 0.05, 0.05, 0.03, (sx, 1.28, 0.13),
+              "FF_brass_polish", verts=12, centered=True)
+    rim.rotation_euler = (_m.pi / 2, 0, 0)
+    lens = cyl(C, "Visor", 0.038, 0.038, 0.016, (sx, 1.28, 0.145),
+               "FF_visor", verts=12, centered=True)
+    lens.rotation_euler = (_m.pi / 2, 0, 0)
+box(C, "GoggleBridge", (0.05, 0.025, 0.03), (0, 1.28, 0.14), "FF_brass", bevel=0.004)
 # chin guard
 box(C, "Chin", (0.16, 0.06, 0.10), (0, 1.18, 0.08), "FF_darkiron", bevel=0.012)
 

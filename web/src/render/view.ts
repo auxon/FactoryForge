@@ -733,7 +733,7 @@ export class View {
           inner.traverse((o) => {
             if (o instanceof THREE.Mesh) o.castShadow = true;
           });
-          inner.scale.setScalar(1.4);
+          inner.scale.setScalar(1.0);
           m.add(inner);
           m.userData.glb = true;
         } else {

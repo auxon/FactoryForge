@@ -565,7 +565,7 @@ def ensure_base_materials():
         ("FF_chitin", "chitin", 0.18, 1.0, (0.52, 0.34, 0.18)),
         ("FF_chitin_dark", "chitin", 0.22, 1.05, (0.32, 0.18, 0.10)),
         ("FF_flesh", "flesh", 0.04, 0.85, (0.72, 0.28, 0.24)),
-        ("FF_sac", "flesh", 0.06, 0.7, (0.42, 0.72, 0.22)),
+        ("FF_sac", "flesh", 0.06, 0.7, (0.18, 0.48, 0.14)),
         ("FF_bone", "bone", 0.02, 1.0, (0.82, 0.74, 0.56)),
     ]
     for name, kind, metal, rm, colr in specs:
