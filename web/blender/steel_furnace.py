@@ -12,7 +12,7 @@ C = col("FF_steel_furnace")
 wipe_collection("FF_steel_furnace")
 
 pad(C, 2.0, 2.0)
-box(C, "Body", (1.62, 1.52, 1.62), (0, 0.92, 0), "FF_darkiron", bevel=0.04)
+box(C, "Body", (1.62, 1.52, 1.62), (0, 0.92, 0), "FF_iron", bevel=0.04)
 box(C, "Throat", (0.78, 0.58, 0.1), (0, 0.52, 0.8), "FF_brick", bevel=0.02)
 box(C, "MouthInset", (0.58, 0.4, 0.08), (0, 0.5, 0.84), "FF_soot", bevel=0.015)
 glow_plane(C, "GlowFire", 0.42, 0.28, (0, 0.5, 0.9))
