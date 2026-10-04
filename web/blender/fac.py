@@ -2,6 +2,7 @@
 # Game coords: (x, up, z), 1 unit = 1 metre = 1 game tile.
 # Mapped to Blender Z-up internally. Animatable parts are separate
 # objects named: Rotor | Wheel | Beam | Arm | ArmTip | Head | Rocket | Glow*
+# Character joints: Torso | Head | ArmL/ArmR | Leg* | Jaw* (tiny pivot meshes).
 from __future__ import annotations
 
 import math
@@ -13,7 +14,10 @@ from mathutils import Vector
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEX_DIR = os.path.join(HERE, "tex")
 
-ANIM_PREFIXES = ("Rotor", "Wheel", "Beam", "Arm", "Head", "Rocket", "Glow", "Lamp")
+ANIM_PREFIXES = (
+    "Rotor", "Wheel", "Beam", "Arm", "Head", "Rocket", "Glow", "Lamp",
+    "Leg", "Jaw", "Torso",
+)
 
 
 def B(x, up, z):
@@ -403,6 +407,22 @@ def parent_keep(child, parent):
     child.parent = parent
     child.matrix_parent_inverse = parent.matrix_world.inverted()
     child.matrix_world = mw
+
+
+def pivot(coll, name, loc):
+    """Tiny joint mesh. Rotate this object in the web view to swing a limb."""
+    return box(coll, name, (0.008, 0.008, 0.008), loc, "FF_darkiron", bevel=0.0)
+
+
+def snapshot(coll):
+    return {id(o) for o in coll.objects}
+
+
+def parent_created(coll, parent, before):
+    """Parent every object created after snapshot `before` onto `parent`."""
+    for o in list(coll.objects):
+        if id(o) not in before and o is not parent and o.parent is None:
+            parent_keep(o, parent)
 
 
 def parent_name(child_name_prefix, parent):
