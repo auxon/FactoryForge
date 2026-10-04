@@ -1,6 +1,7 @@
-# Gun turret (2x2m): armored base, rotating Head + twin barrels, ammo box.
+# Gun turret (2x2m): riveted iron barbette, rotating Head, brass sights.
+import os
 import sys
-sys.path.insert(0, "/home/rah/factoryforge/web/blender")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import importlib
 import fac
 importlib.reload(fac)
@@ -12,26 +13,30 @@ C = col("FF_gun_turret")
 wipe_collection("FF_gun_turret")
 
 pad(C, 2.0, 2.0)
-# armored base: sloped skirt + turret ring
-box(C, "Skirt", (1.5, 0.5, 1.5), (0, 0.4, 0), "FF_gunmetal", bevel=0.06)
-cyl(C, "TurretRing", 0.55, 0.6, 0.25, (0, 0.65, 0), "FF_darksteel", verts=20)
-# Head (animated aim): housing + mantlet + twin barrels + sight
-box(C, "Head", (0.9, 0.55, 0.9), (0, 1.05, 0), "FF_gunmetal", bevel=0.06)
-box(C, "Mantlet", (0.6, 0.4, 0.25), (0, 1.0, 0.5), "FF_darksteel", bevel=0.04)
-for sx in (-0.15, 0.15):
-    b = cyl(C, "Barrel", 0.055, 0.065, 1.1, (sx, 1.02, 0.6), "FF_darksteel", verts=10, centered=True)
+box(C, "Skirt", (1.48, 0.48, 1.48), (0, 0.38, 0), "FF_soot", bevel=0.05)
+rivet_row(C, (-0.6, 0.55, 0.74), (0.6, 0.55, 0.74), n=6, r=0.028)
+cyl(C, "TurretRing", 0.52, 0.58, 0.22, (0, 0.62, 0), "FF_brass", verts=18)
+
+head = box(C, "Head", (0.88, 0.52, 0.88), (0, 1.02, 0), "FF_soot", bevel=0.05)
+mant = box(C, "Mantlet", (0.58, 0.38, 0.22), (0, 0.98, 0.48), "FF_darkiron", bevel=0.03)
+parent_keep(mant, head)
+for sx in (-0.14, 0.14):
+    b = cyl(C, "Barrel", 0.05, 0.06, 1.05, (sx, 1.0, 0.58), "FF_darkiron", verts=10, centered=True)
     b.rotation_euler = (_m.pi / 2, 0, 0)
-    mz = cyl(C, "Muzzle", 0.075, 0.075, 0.16, (sx, 1.02, 1.1), "FF_darksteel", verts=10, centered=True)
+    parent_keep(b, head)
+    mz = cyl(C, "Muzzle", 0.07, 0.07, 0.14, (sx, 1.0, 1.08), "FF_brass", verts=10, centered=True)
     mz.rotation_euler = (_m.pi / 2, 0, 0)
-box(C, "Sight", (0.12, 0.12, 0.3), (0.3, 1.3, 0.2), "FF_darksteel", bevel=0.02)
-sphere(C, "SightLens", 0.045, (0.3, 1.3, 0.37), "FF_redlamp")
-# ammo box + feed chute on the side
-box(C, "AmmoBox", (0.45, 0.5, 0.6), (-0.85, 0.5, -0.3), "FF_hazard", bevel=0.03)
-box(C, "FeedChute", (0.15, 0.12, 0.5), (-0.55, 0.75, -0.3), "FF_darksteel", bevel=0.02)
-# corner bolts
-for sx in (-0.65, 0.65):
-    for sz in (-0.65, 0.65):
-        bolt(C, (sx, 0.2, sz), r=0.05)
+    parent_keep(mz, head)
+sight = box(C, "Sight", (0.1, 0.1, 0.26), (0.28, 1.28, 0.18), "FF_brass", bevel=0.015)
+parent_keep(sight, head)
+lens = sphere(C, "SightLens", 0.04, (0.28, 1.28, 0.34), "FF_redlamp", verts=8)
+parent_keep(lens, head)
+
+box(C, "AmmoBox", (0.42, 0.48, 0.55), (-0.82, 0.48, -0.28), "FF_iron", bevel=0.025)
+box(C, "FeedChute", (0.14, 0.1, 0.45), (-0.52, 0.72, -0.28), "FF_darkiron", bevel=0.012)
+for sx in (-0.62, 0.62):
+    for sz in (-0.62, 0.62):
+        bolt(C, (sx, 0.2, sz), r=0.045)
 
 frame_camera_target(target=(0, 0.8, 0), dist=6.0)
 print("gun turret done")
