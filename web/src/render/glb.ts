@@ -2,6 +2,7 @@
 // File per building; animatable parts found by name prefix:
 // Rotor* (spin) | Arm* (bob/swing) | Beam* (rock) | Head* (aim) |
 // Wheel* (spin) | Rocket* (rise group) | Glow* (flicker) | Lamp* (power color)
+// Characters use collectActor: Torso | Head | ArmL/ArmR | Leg* | Jaw* | Sac*
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Anim } from './models';
@@ -67,6 +68,31 @@ export const PLAYER_GLB = M('ff-player.glb');
 export const BITER_GLB = M('ff-biter.glb');
 export const SPITTER_GLB = M('ff-spitter.glb');
 export const NEST_GLB = M('ff-nest.glb');
+
+/** Named character joints the view poses each frame. */
+export interface ActorAnim {
+  torso?: THREE.Object3D;
+  head?: THREE.Object3D;
+  armL?: THREE.Object3D;
+  armR?: THREE.Object3D;
+  legs: THREE.Object3D[];
+  jaws: THREE.Object3D[];
+  sacs: THREE.Object3D[];
+}
+
+const nodeBase = (n: string): string => n.split('.')[0];
+
+/** GLTFLoader strips dots (`Torso.001` → `Torso001`). */
+function matchesJoint(name: string, exact: string): boolean {
+  const n = nodeBase(name);
+  return n === exact || new RegExp(`^${exact}\\d+$`).test(n);
+}
+
+function pickNamed(cands: THREE.Object3D[], exact: string): THREE.Object3D | undefined {
+  const hits = cands.filter((o) => matchesJoint(o.name, exact));
+  hits.sort((a, b) => b.children.length - a.children.length);
+  return hits[0];
+}
 
 const loader = new GLTFLoader();
 
@@ -179,5 +205,35 @@ export class GlbLibrary {
         ?? rockets[0];
     }
     return anim;
+  }
+
+  /** Character joints only — do not reuse collectAnim (Arm* is a machine arm). */
+  collectActor(g: THREE.Object3D): ActorAnim {
+    const torsoC: THREE.Object3D[] = [];
+    const headC: THREE.Object3D[] = [];
+    const armL: THREE.Object3D[] = [];
+    const armR: THREE.Object3D[] = [];
+    const legs: THREE.Object3D[] = [];
+    const jaws: THREE.Object3D[] = [];
+    const sacs: THREE.Object3D[] = [];
+    g.traverse((o) => {
+      const n = nodeBase(o.name);
+      if (matchesJoint(o.name, 'Torso')) torsoC.push(o);
+      else if (matchesJoint(o.name, 'Head')) headC.push(o);
+      else if (matchesJoint(o.name, 'ArmL')) armL.push(o);
+      else if (matchesJoint(o.name, 'ArmR')) armR.push(o);
+      else if (n.startsWith('Leg')) legs.push(o);
+      else if (n.startsWith('Jaw')) jaws.push(o);
+      else if (n.startsWith('Sac') || n.startsWith('NestSac')) sacs.push(o);
+    });
+    legs.sort((a, b) => a.name.localeCompare(b.name));
+    jaws.sort((a, b) => a.name.localeCompare(b.name));
+    return {
+      torso: pickNamed(torsoC, 'Torso'),
+      head: pickNamed(headC, 'Head'),
+      armL: pickNamed(armL, 'ArmL'),
+      armR: pickNamed(armR, 'ArmR'),
+      legs, jaws, sacs,
+    };
   }
 }
