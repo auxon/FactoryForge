@@ -324,12 +324,28 @@ export class UI {
           this.flowBody(e, e.recipeId);
       }
       case 'Miner': {
-        const out = Object.keys(e.inv).filter((k) => (e.inv[k] ?? 0) > 0);
-        const h = out.length > 0
+        const burner = (def.powerConsumption ?? 0) === 0;
+        const hasFuel = e.fuel > 0 ||
+          ['coal', 'wood', 'solid-fuel'].some((f) => (e.inv[f] ?? 0) > 0);
+        // Mirror the sim's exact lookup so the diagnosis can't disagree with it.
+        const dep = this.game.world.resourceNear(e.x, e.y, 2);
+        const out = Object.keys(e.inv).filter((k) => (e.inv[k] ?? 0) > 0 &&
+          !['coal', 'wood', 'solid-fuel'].includes(k));
+        let note = '';
+        if (burner && !hasFuel) {
+          note = '<div class="mempty warn">NO FUEL — press LOAD ALL to feed coal / wood</div>';
+        } else if (!burner && e.satisfaction <= 0) {
+          note = '<div class="mempty warn">NO POWER — connect poles + generation</div>';
+        } else if (!dep) {
+          note = '<div class="mempty warn">NO ORE IN RANGE — move the drill onto the patch</div>';
+        } else if (out.length === 0 && e.progress > 0.02) {
+          note = `<div class="msub">MINING ${iname(dep.outputItem)}…</div>`;
+        }
+        const slots = out.length > 0
           ? `<div class="mslots">${out.map((k) => this.slot(k, e.inv[k] ?? 0)).join('')}</div>`
-          : '<div class="mempty">NO ORE UNDER DRILL / OUTPUT FULL</div>';
+          : '';
         return `<div class="mdrill"><div class="mbit${isActive(e) ? ' spin' : ''}">🛠</div></div>` +
-          this.prog(e.progress) + h + this.fuelGauge(e);
+          this.prog(e.progress) + note + slots + (burner ? this.fuelGauge(e) : '');
       }
       case 'Pumpjack': case 'WaterPump': {
         const fluids = Object.entries(e.fluid);
