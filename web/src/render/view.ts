@@ -687,7 +687,10 @@ export class View {
   private gaitSign(name: string): number {
     const n = name.split('.')[0];
     const left = n.startsWith('LegL') || n.startsWith('JawL') || n.startsWith('ArmL');
-    const idx = parseInt(n.replace(/^\D+/, ''), 10) || 0;
+    // LegL0 / LegL0.001 (GLTF → LegL0001): drop a trailing blender duplicate suffix.
+    let digits = n.replace(/^\D+/, '');
+    if (digits.length > 1 && /0\d{2}$/.test(digits)) digits = digits.slice(0, -3) || '0';
+    const idx = parseInt(digits, 10) || 0;
     return ((left ? 0 : 1) + idx) % 2 === 0 ? 1 : -1;
   }
 

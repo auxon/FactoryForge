@@ -82,8 +82,14 @@ export interface ActorAnim {
 
 const nodeBase = (n: string): string => n.split('.')[0];
 
+/** GLTFLoader strips dots (`Torso.001` → `Torso001`). */
+function matchesJoint(name: string, exact: string): boolean {
+  const n = nodeBase(name);
+  return n === exact || new RegExp(`^${exact}\\d+$`).test(n);
+}
+
 function pickNamed(cands: THREE.Object3D[], exact: string): THREE.Object3D | undefined {
-  const hits = cands.filter((o) => nodeBase(o.name) === exact);
+  const hits = cands.filter((o) => matchesJoint(o.name, exact));
   hits.sort((a, b) => b.children.length - a.children.length);
   return hits[0];
 }
@@ -212,10 +218,10 @@ export class GlbLibrary {
     const sacs: THREE.Object3D[] = [];
     g.traverse((o) => {
       const n = nodeBase(o.name);
-      if (n === 'Torso') torsoC.push(o);
-      else if (n === 'Head') headC.push(o);
-      else if (n === 'ArmL') armL.push(o);
-      else if (n === 'ArmR') armR.push(o);
+      if (matchesJoint(o.name, 'Torso')) torsoC.push(o);
+      else if (matchesJoint(o.name, 'Head')) headC.push(o);
+      else if (matchesJoint(o.name, 'ArmL')) armL.push(o);
+      else if (matchesJoint(o.name, 'ArmR')) armR.push(o);
       else if (n.startsWith('Leg')) legs.push(o);
       else if (n.startsWith('Jaw')) jaws.push(o);
       else if (n.startsWith('Sac') || n.startsWith('NestSac')) sacs.push(o);

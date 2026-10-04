@@ -92,10 +92,12 @@ def main():
         print("=" * 60)
         print("BUILD", script)
         try:
+            _reset_scene()
             _run_script(script)
             for collection, glb in pairs:
                 dest = os.path.join(OUT, glb)
                 fac.export_collection(collection, dest)
+                fac.wipe_collection(collection)
         except Exception:
             traceback.print_exc()
             failed.append(script)

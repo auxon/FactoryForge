@@ -720,6 +720,11 @@ def export_collection(collection_name, path):
     for o in list(c.objects):
         if o.type == "MESH":
             apply_mods(o)
+    # Drop Blender .001 suffixes so Three.js does not sanitize Torso.001 → Torso001.
+    for o in list(c.objects):
+        base = o.name.split(".")[0]
+        if o.name != base:
+            o.name = base
     join_static(c)
     bpy.ops.object.select_all(action="DESELECT")
     for o in c.objects:
