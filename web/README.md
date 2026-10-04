@@ -73,11 +73,13 @@ python3 make_tex.py          # tileable PBR maps in blender/tex/
 blender --background --python export_all.py
 ```
 
-Outputs overwrite `public/models/ff-*.glb` (player / biters / trees are
-left alone). To view in game: `npm run dev` → http://localhost:5174,
-press **B** and place a burner drill, stone furnace, boiler, steam
-engine, assembler, pipe, or any other machine. Starting inventory
-already includes drills, furnaces, belts, inserters, and a chest.
+Outputs overwrite `public/models/ff-*.glb` (trees / rocks stay as-is).
+Characters (`player.py`, `biter.py` → player, biter, spitter, nest) are
+included. To view in game: `npm run dev` → http://localhost:5174.
+The engineer is at spawn. Biters appear after the 5-minute grace period,
+or spawners sit far from origin (`~±55` tiles). Press **B** to place
+machines from the starting inventory (drills, furnaces, belts, inserters,
+chest).
 
 ## Controls
 
