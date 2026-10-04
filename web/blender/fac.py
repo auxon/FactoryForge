@@ -69,6 +69,7 @@ MAT_ALIAS = {
     "FF_refpurple": "FF_copper",
     "FF_chemgreen": "FF_verdigris",
     "FF_solarcell": "FF_glass",
+    "FF_nest": "FF_chitin_dark",
 }
 
 
@@ -448,6 +449,8 @@ def _tex_world(material):
         "FF_copper": 0.65, "FF_verdigris": 0.7, "FF_rust": 0.75,
         "FF_wood": 0.9, "FF_brick": 0.8, "FF_concrete": 1.4,
         "FF_leather": 0.6,
+        "FF_chitin": 0.55, "FF_chitin_dark": 0.55, "FF_flesh": 0.5,
+        "FF_sac": 0.5, "FF_bone": 0.7, "FF_visor": 0.4,
     }.get(name, 1.0)
 
 
@@ -559,6 +562,11 @@ def ensure_base_materials():
         ("FF_brick", "brick", 0.0, 1.0, (0.72, 0.36, 0.22)),
         ("FF_concrete", "concrete", 0.0, 1.0, (0.62, 0.58, 0.52)),
         ("FF_leather", "leather", 0.05, 1.0, (0.42, 0.24, 0.12)),
+        ("FF_chitin", "chitin", 0.18, 1.0, (0.52, 0.34, 0.18)),
+        ("FF_chitin_dark", "chitin", 0.22, 1.05, (0.32, 0.18, 0.10)),
+        ("FF_flesh", "flesh", 0.04, 0.85, (0.72, 0.28, 0.24)),
+        ("FF_sac", "flesh", 0.06, 0.7, (0.42, 0.72, 0.22)),
+        ("FF_bone", "bone", 0.02, 1.0, (0.82, 0.74, 0.56)),
     ]
     for name, kind, metal, rm, colr in specs:
         m = bpy.data.materials.get(name)
@@ -585,6 +593,20 @@ def ensure_base_materials():
                    emissive=(0.95, 0.1, 0.05))
     plain_material("FF_amber", (1.0, 0.55, 0.12), metallic=0.15, roughness=0.3,
                    emissive=(1.0, 0.45, 0.08))
+    plain_material("FF_visor", (0.25, 0.72, 0.85), metallic=0.2, roughness=0.08,
+                   emissive=(0.15, 0.55, 0.7))
+    visor = bpy.data.materials.get("FF_visor")
+    if visor and visor.use_nodes:
+        bsdf = next(n for n in visor.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+        if "Transmission Weight" in bsdf.inputs:
+            bsdf.inputs["Transmission Weight"].default_value = 0.45
+        visor.blend_method = "BLEND"
+    sac = bpy.data.materials.get("FF_sac")
+    if sac and sac.use_nodes:
+        bsdf = next((n for n in sac.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+        if bsdf:
+            bsdf.inputs["Emission Color"].default_value = (0.35, 0.85, 0.18, 1.0)
+            bsdf.inputs["Emission Strength"].default_value = 1.6
     plain_material("FF_coal", (0.04, 0.04, 0.045), metallic=0.15, roughness=0.75)
     # keep old names so leftover scripts don't crash
     for old, new in MAT_ALIAS.items():

@@ -13,10 +13,7 @@ const M = (f: string): string => `${BASE}models/${f}`.replace(/\/+/g, '/');
 interface Entry { file: string; tint?: number; scale?: number; }
 
 /** Per-file sculpt fixes: models authored off-scale relative to their footprint. */
-const SCALE_FIX: Record<string, number> = {
-  // engineer authored 0.55 tall; procedural rig is ~1.1
-  [M('ff-player.glb')]: 2.0,
-};
+const SCALE_FIX: Record<string, number> = {};
 
 /** buildingId -> GLB. Unlisted ids use the procedural fallback. */
 export const MODEL_FOR: Record<string, Entry> = {

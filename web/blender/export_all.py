@@ -76,6 +76,29 @@ def main():
         except Exception:
             traceback.print_exc()
             failed.append(script)
+    characters = [
+        ("player.py", [("FF_player", "ff-player.glb")]),
+        ("biter.py", [
+            ("FF_biter", "ff-biter.glb"),
+            ("FF_spitter", "ff-spitter.glb"),
+            ("FF_nest", "ff-nest.glb"),
+        ]),
+    ]
+    for script, pairs in characters:
+        if only and script not in only and not any(
+            g in only or c in only for c, g in pairs
+        ):
+            continue
+        print("=" * 60)
+        print("BUILD", script)
+        try:
+            _run_script(script)
+            for collection, glb in pairs:
+                dest = os.path.join(OUT, glb)
+                fac.export_collection(collection, dest)
+        except Exception:
+            traceback.print_exc()
+            failed.append(script)
     if failed:
         print("FAILED:", ", ".join(failed))
         raise SystemExit(1)

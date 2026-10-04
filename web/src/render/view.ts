@@ -180,18 +180,18 @@ export class View {
 
   private buildPlayer(): void {
     const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.8, 12),
-      new THREE.MeshLambertMaterial({ color: 0xd8a833 }));
-    body.position.y = 0.55; body.castShadow = true;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10),
-      new THREE.MeshLambertMaterial({ color: 0xe8c858 }));
-    head.position.y = 1.1; head.castShadow = true;
-    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.1),
-      new THREE.MeshBasicMaterial({ color: 0x223344 }));
-    visor.position.set(0, 1.12, 0.2);
-    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.18),
-      new THREE.MeshLambertMaterial({ color: 0x8a6a2a }));
-    pack.position.set(0, 0.6, -0.3); pack.castShadow = true;
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.7, 12),
+      new THREE.MeshStandardMaterial({ color: 0xc4a056, metalness: 0.55, roughness: 0.4 }));
+    body.position.y = 0.5; body.castShadow = true;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 10),
+      new THREE.MeshStandardMaterial({ color: 0x8a8680, metalness: 0.65, roughness: 0.35 }));
+    head.position.y = 1.02; head.castShadow = true;
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.06),
+      new THREE.MeshStandardMaterial({ color: 0x3aa8c8, emissive: 0x145868, metalness: 0.2, roughness: 0.15 }));
+    visor.position.set(0, 1.02, 0.16);
+    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.36, 0.16),
+      new THREE.MeshStandardMaterial({ color: 0x4a4642, metalness: 0.7, roughness: 0.45 }));
+    pack.position.set(0, 0.62, -0.2); pack.castShadow = true;
     g.add(body, head, visor, pack);
     g.name = 'player';
     this.playerMesh = g;
@@ -701,12 +701,12 @@ export class View {
             : tier.includes('medium') ? 1.3 : 1.0;
           grp.scale.setScalar(s);
         } else {
-          const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8),
-            new THREE.MeshLambertMaterial({ color: 0xa02020 }));
-          body.position.y = 0.35; body.castShadow = true;
-          const jaw = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.4, 6),
-            new THREE.MeshLambertMaterial({ color: 0x601010 }));
-          jaw.position.set(0, 0.3, 0.4);
+          const body = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 8),
+            new THREE.MeshStandardMaterial({ color: 0x6a4024, metalness: 0.2, roughness: 0.55 }));
+          body.scale.set(1.1, 0.75, 1.35); body.position.y = 0.32; body.castShadow = true;
+          const jaw = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.32, 6),
+            new THREE.MeshStandardMaterial({ color: 0xc8b080, metalness: 0.1, roughness: 0.5 }));
+          jaw.position.set(0, 0.26, 0.42);
           jaw.rotation.x = Math.PI / 2;
           grp.add(body, jaw);
         }

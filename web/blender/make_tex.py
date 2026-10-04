@@ -268,6 +268,49 @@ def leather(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return albedo, height_to_normal(height, 3.5), rough
 
 
+def chitin(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Overlapping beetle-plate scales: readable mid-brown, not black."""
+    n1 = fbm(w, h, 5, 5, 61)
+    n2 = fbm(w, h, 16, 4, 83)
+    sc = scratches(w, h, 103, 50, 0.45)
+    scales = plate_grid(w, h, 7, 2)
+    # staggered second grid for scale overlap
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    stagger = ((yy + (xx // (w // 7)) * (h // 14)) % (h // 7)) / (h / 7)
+    height = 0.48 + n1 * 0.16 + n2 * 0.08 + scales * 0.14 - stagger * 0.06
+    base = to_rgb(0.58 + n1 * 0.22, (0.48, 0.32, 0.18))
+    dark = to_rgb(0.38 + n2 * 0.12, (0.28, 0.16, 0.10))
+    sheen = to_rgb(0.62, (0.36, 0.42, 0.22))
+    albedo = mix(mix(base, dark, (1 - scales) * 0.7), sheen, n2 * 0.18)
+    albedo = mix(albedo, albedo * 0.78, sc * 0.45)
+    rough = np.clip(0.48 + n2 * 0.2 - scales * 0.08 + sc * 0.1, 0.3, 0.88)
+    return albedo, height_to_normal(height, 6.0), rough
+
+
+def flesh(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    n1 = warp(fbm(w, h, 4, 5, 21), 10)
+    n2 = fbm(w, h, 14, 4, 39)
+    height = 0.5 + n1 * 0.18 + n2 * 0.08
+    pink = to_rgb(0.7 + n1 * 0.2, (0.72, 0.28, 0.26))
+    raw = to_rgb(0.5 + n2 * 0.15, (0.48, 0.12, 0.12))
+    pale = to_rgb(0.62, (0.78, 0.48, 0.42))
+    albedo = mix(mix(pink, raw, n1 * 0.45), pale, n2 * 0.18)
+    rough = np.clip(0.38 + n2 * 0.22, 0.22, 0.72)
+    return albedo, height_to_normal(height, 3.2), rough
+
+
+def bone(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    n1 = fbm(w, h, 6, 5, 9)
+    n2 = fbm(w, h, 20, 4, 15)
+    sc = scratches(w, h, 27, 40, 0.7)
+    height = 0.5 + n1 * 0.14 + n2 * 0.08 - sc * 0.08
+    ivory = to_rgb(0.78 + n1 * 0.16, (0.82, 0.74, 0.58))
+    stain = to_rgb(0.5, (0.48, 0.32, 0.18))
+    albedo = mix(ivory, stain, n2 * 0.28 + sc * 0.2)
+    rough = np.clip(0.55 + n2 * 0.18, 0.4, 0.85)
+    return albedo, height_to_normal(height, 4.0), rough
+
+
 KINDS = {
     "iron": iron,
     "brass": brass,
@@ -278,6 +321,9 @@ KINDS = {
     "concrete": concrete,
     "soot": soot,
     "leather": leather,
+    "chitin": chitin,
+    "flesh": flesh,
+    "bone": bone,
 }
 
 
