@@ -4,11 +4,26 @@ import { RECIPE_MAP } from '../data/recipes';
 import { ITEM_MAP } from '../data/items';
 import { TECH_MAP, TECHNOLOGIES } from '../data/tech';
 import { CATEGORY_BUILDINGS } from '../data/types';
+import type { BuildingDefinition } from '../data/types';
+import { isActive, itemColor } from '../render/models';
 import type { Game } from '../sim/game';
 import type { View } from '../render/view';
 import type { Dir } from '../sim/world';
+import type { Ent } from '../sim/world';
 
 const iname = (id: string): string => ITEM_MAP.get(id)?.name ?? id;
+const hex = (id: string): string => `#${itemColor(id).toString(16).padStart(6, '0')}`;
+const pretty = (id: string): string => id.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+
+const VERB: Record<string, string> = {
+  Miner: 'MINING', Furnace: 'SMELTING', Assembler: 'ASSEMBLING',
+  ChemicalPlant: 'SYNTHESIZING', OilRefinery: 'REFINING', Centrifuge: 'ENRICHING',
+  Lab: 'RESEARCHING', Pumpjack: 'PUMPING', WaterPump: 'PUMPING',
+  Generator: 'GENERATING', Turret: 'ON GUARD', RocketSilo: 'STANDING BY',
+  SolarPanel: 'COLLECTING', Accumulator: 'CHARGING', NuclearReactor: 'BURNING',
+  Inserter: 'SWINGING', Belt: 'FLOWING', Pipe: 'FLOWING', FluidTank: 'STORING',
+  Chest: 'STORING', Wall: 'HOLDING', PowerPole: 'RELAYING', UnitProduction: 'TRAINING',
+};
 
 export class UI {
   root: HTMLElement;
@@ -19,6 +34,7 @@ export class UI {
   ghostDir: Dir = 0;
   statusEl!: HTMLElement;
   logEl!: HTMLElement;
+  machineBody: HTMLElement | null = null;
 
   constructor(root: HTMLElement, game: Game, view: View) {
     this.root = root;
@@ -36,6 +52,7 @@ export class UI {
 
   render(): void {
     const g = this.game;
+    this.machineBody = null;
     this.root.innerHTML = '';
     const bar = document.createElement('div');
     bar.className = 'topbar';
@@ -96,6 +113,7 @@ export class UI {
       (this.view.ghostId ? ` | PLACING ${iname(this.view.ghostId)} (R rotate, Esc cancel)` : '') +
       (g.launched ? ' | 🏆 ROCKET LAUNCHED — YOU WIN' : '');
     this.logEl.innerHTML = g.log.map((l) => `<div>${l}</div>`).join('');
+    this.refreshMachine();
   }
 
   // ---- panels ----
@@ -204,89 +222,261 @@ export class UI {
     </div>`;
   }
 
+  // ---- machine face: a panel that looks like the machine it controls ----
+  private machineState(e: Ent, def: BuildingDefinition): { lamp: string; text: string } {
+    if ((def.powerConsumption ?? 0) > 0 && e.satisfaction <= 0) {
+      return { lamp: 'red', text: 'NO POWER' };
+    }
+    if ((def.fuelSlots ?? 0) > 0 && e.fuel <= 0) {
+      return { lamp: 'amber', text: 'NO FUEL' };
+    }
+    const producer = ['Assembler', 'ChemicalPlant', 'OilRefinery', 'Centrifuge'].includes(def.type);
+    if (producer && !e.recipeId) return { lamp: 'amber', text: 'NO RECIPE' };
+    if (isActive(e)) return { lamp: 'green', text: VERB[def.type] ?? 'RUNNING' };
+    return { lamp: 'dim', text: 'IDLE' };
+  }
+
+  /** One Factorio-style slot: color chip + count, green/red rim vs need. */
+  private slot(itemId: string, count: number, need?: number): string {
+    const cls = need == null ? '' : count >= need ? ' ok' : ' short';
+    return `<div class="mslot${cls}" title="${iname(itemId)}"><i style="--c:${hex(itemId)}"></i>` +
+      `<b>${count}</b>${need != null ? `<s>/${need}</s>` : ''}<span>${iname(itemId)}</span></div>`;
+  }
+
+  private prog(pct: number, kind = ''): string {
+    const p = Math.max(0, Math.min(100, Math.floor(pct * 100)));
+    return `<div class="mprog ${kind}"><div class="mfill" style="width:${p}%"></div><em>${p}%</em></div>`;
+  }
+
+  private recipeOptions(e: Ent, def: BuildingDefinition): string {
+    const cats = CATEGORY_BUILDINGS as unknown as Record<string, string[]>;
+    const myCat = Object.entries(cats).find(([, ms]) =>
+      ms.includes(def.id) ||
+      (def.type === 'Furnace' && (def as { craftingCategory?: string }).craftingCategory === 'smelting'))?.[0];
+    const cat = def.type === 'Assembler'
+      ? ((def as { craftingCategory?: string }).craftingCategory ?? 'crafting')
+      : myCat ?? 'chemistry';
+    let h = '<option value="">— program —</option>';
+    for (const r of [...RECIPE_MAP.values()].filter((r) =>
+      r.category === cat && this.game.unlocked.has(r.id))) {
+      h += `<option value="${r.id}"${e.recipeId === r.id ? ' selected' : ''}>${r.name}</option>`;
+    }
+    return h;
+  }
+
+  /** Flow view: inputs → work → outputs, with live have/need rims. */
+  private flowBody(e: Ent, recipeId: string | null, flame = false): string {
+    if (!recipeId) {
+      return '<div class="mempty">NO PROGRAM — pick one above to start the line.</div>' + this.bufferGrid(e);
+    }
+    const r = RECIPE_MAP.get(recipeId);
+    if (!r) return this.bufferGrid(e);
+    const ins = r.inputs.map((i) =>
+      this.slot(i.itemId, e.inv[i.itemId] ?? 0, i.count)).join('');
+    const outs = r.outputs.map((o) => this.slot(o.itemId, e.inv[o.itemId] ?? 0)).join('');
+    const mid = flame
+      ? `<div class="mfire${isActive(e) ? ' lit' : ''}">🔥</div>`
+      : '<div class="mgear">⚙</div>';
+    return `<div class="mflow"><div class="mcol"><label>IN</label><div class="mslots">${ins}</div></div>` +
+      `${mid}<div class="mcol"><label>OUT</label><div class="mslots">${outs}</div></div></div>` +
+      this.prog(e.progress, flame ? 'heat' : '') + this.bufferGrid(e);
+  }
+
+  private bufferGrid(e: Ent): string {
+    const keys = Object.keys(e.inv).filter((k) => (e.inv[k] ?? 0) > 0);
+    if (keys.length === 0 && Object.keys(e.fluid).length === 0) {
+      return '<div class="mempty">BUFFER EMPTY</div>';
+    }
+    let h = '<div class="mbuffer"><label>BUFFER</label><div class="mslots">';
+    for (const k of keys) h += this.slot(k, e.inv[k] ?? 0);
+    for (const [k, v] of Object.entries(e.fluid)) {
+      if (v > 0) h += `<div class="mslot fluid" title="${pretty(k)}"><i class="drop"></i><b>${Math.floor(v)}</b><span>${pretty(k)}</span></div>`;
+    }
+    return h + '</div></div>';
+  }
+
+  private fuelGauge(e: Ent): string {
+    if (e.fuel <= 0) return '<div class="mfuel"><label>FUEL</label><div class="mempty">EMPTY — load coal / wood</div></div>';
+    const w = Math.min(100, e.fuel);
+    return `<div class="mfuel"><label>FUEL ⛽ ${e.fuel.toFixed(0)}s</label>` +
+      `<div class="mprog fuel"><div class="mfill" style="width:${w}%"></div></div></div>`;
+  }
+
+  private powerStrip(e: Ent, def: BuildingDefinition): string {
+    const need = def.powerConsumption ?? 0;
+    if (!need && !def.powerProduction) return '';
+    if (def.powerProduction) {
+      return `<div class="mpower"><label>⚡ OUTPUT ${def.powerProduction}</label>` +
+        `<div class="mprog power"><div class="mfill" style="width:${e.satisfaction * 100}%"></div></div></div>`;
+    }
+    return `<div class="mpower"><label>⚡ GRID ${Math.floor(e.satisfaction * 100)}% <small>needs ${need}</small></label>` +
+      `<div class="mprog power"><div class="mfill" style="width:${e.satisfaction * 100}%"></div></div></div>`;
+  }
+
+  private machineBodyHtml(e: Ent, def: BuildingDefinition): string {
+    switch (def.type) {
+      case 'Furnace': {
+        const rname = e.recipeId ? (RECIPE_MAP.get(e.recipeId)?.name ?? iname(e.recipeId)) : 'auto-smelt';
+        return `<div class="msub">${rname}</div>` + this.flowBody(e, e.recipeId, true) + this.fuelGauge(e);
+      }
+      case 'Assembler': case 'ChemicalPlant': case 'OilRefinery': case 'Centrifuge': {
+        return `<select class="mchip">${this.recipeOptions(e, def)}</select>` +
+          this.flowBody(e, e.recipeId);
+      }
+      case 'Miner': {
+        const out = Object.keys(e.inv).filter((k) => (e.inv[k] ?? 0) > 0);
+        const h = out.length > 0
+          ? `<div class="mslots">${out.map((k) => this.slot(k, e.inv[k] ?? 0)).join('')}</div>`
+          : '<div class="mempty">NO ORE UNDER DRILL / OUTPUT FULL</div>';
+        return `<div class="mdrill"><div class="mbit${isActive(e) ? ' spin' : ''}">🛠</div></div>` +
+          this.prog(e.progress) + h + this.fuelGauge(e);
+      }
+      case 'Pumpjack': case 'WaterPump': {
+        const fluids = Object.entries(e.fluid);
+        const h = fluids.length > 0 && fluids.some(([, v]) => v > 0)
+          ? `<div class="mslots">${fluids.filter(([, v]) => v > 0).map(([k, v]) =>
+            `<div class="mslot fluid"><i class="drop"></i><b>${Math.floor(v)}</b><span>${pretty(k)}</span></div>`).join('')}</div>`
+          : '<div class="mempty">NO FLUID — check placement + power</div>';
+        return `<div class="msub">${pretty((def as { fluidOutputType?: string }).fluidOutputType ?? 'fluid')} · ` +
+          `rate ${(def as { extractionRate?: number }).extractionRate ?? '?'}/s</div>` + h;
+      }
+      case 'Lab': {
+        const packs = Object.keys(e.inv).filter((k) => (e.inv[k] ?? 0) > 0);
+        const cur = this.game.currentResearch ? TECH_MAP.get(this.game.currentResearch)?.name ?? '' : '';
+        return (this.game.currentResearch
+          ? `<div class="msub">🔬 ${cur}</div>` + this.prog(this.game.researchFraction(), 'sci')
+          : '<div class="mempty">NO ACTIVE RESEARCH — press G</div>') +
+          (packs.length > 0
+            ? `<div class="mslots">${packs.map((k) => this.slot(k, e.inv[k] ?? 0)).join('')}</div>`
+            : '<div class="mempty">NO SCIENCE PACKS LOADED</div>');
+      }
+      case 'RocketSilo': {
+        if (e.launching) return `<div class="mlaunch">🚀 LAUNCH ${Math.floor((e.launchT / 10) * 100)}%</div>` + this.prog(e.launchT / 10, 'sci');
+        const need: [string, number][] = [['rocket-parts', 100], ['rocket-fuel', 50], ['satellite', 1]];
+        const rows = need.map(([k, n]) => {
+          const have = e.inv[k] ?? 0;
+          return `<div class="mcheck${have >= n ? ' ok' : ''}">${have >= n ? '✓' : '○'} ${iname(k)} — ${have}/${n}</div>`;
+        }).join('');
+        return `<div class="mrocket">🚀</div>${rows}${e.assembled ? '<div class="mready">ASSEMBLED — READY</div>' : ''}`;
+      }
+      case 'Turret': {
+        const ammo = Object.keys(e.inv).filter((k) => (e.inv[k] ?? 0) > 0);
+        const d = def as { turretRange?: number; turretDamage?: number; turretFireRate?: number };
+        return `<div class="mstats">RANGE ${d.turretRange ?? '?'} · DMG ${d.turretDamage ?? '?'} · RATE ${d.turretFireRate ?? '?'}</div>` +
+          (ammo.length > 0
+            ? `<div class="mslots">${ammo.map((k) => this.slot(k, e.inv[k] ?? 0)).join('')}</div>`
+            : '<div class="mempty">NO AMMO — Load all to feed mags</div>');
+      }
+      case 'Generator': {
+        if (def.id === 'boiler') return this.fuelGauge(e) + '<div class="msub">BOILS WATER → STEAM</div>';
+        return `<div class="mstats">⚡ 900 · STEAM 540</div>` + this.powerStrip(e, def);
+      }
+      case 'NuclearReactor': {
+        const fuel = Object.keys(e.inv).filter((k) => (e.inv[k] ?? 0) > 0);
+        return (fuel.length > 0
+          ? `<div class="mslots">${fuel.map((k) => this.slot(k, e.inv[k] ?? 0)).join('')}</div>`
+          : '<div class="mempty">NO FUEL CELLS</div>') + '<div class="mstats">⚡ 40000 · NEIGHBOUR BONUS APPLIES</div>';
+      }
+      case 'SolarPanel': case 'Accumulator': case 'PowerPole': {
+        const d = def as { accumulatorCapacity?: number; wireReach?: number; supplyArea?: number };
+        const spec = def.type === 'PowerPole'
+          ? `REACH ${d.wireReach ?? '?'} · AREA ${d.supplyArea ?? '?'}`
+          : def.type === 'Accumulator' ? `STORE ${d.accumulatorCapacity ?? '?'}` : '⚡ 60 DAYTIME';
+        return `<div class="mstats">${spec}</div>` + this.powerStrip(e, def);
+      }
+      case 'Chest': case 'FluidTank': case 'UnitProduction': {
+        return this.bufferGrid(e);
+      }
+      case 'Belt': {
+        const n = e.left.length + e.right.length;
+        return `<div class="mstats">ON BELT: ${n} ITEMS</div>` + this.prog(Math.min(1, n / 8), 'belt');
+      }
+      case 'Pipe': {
+        return this.bufferGrid(e);
+      }
+      case 'Inserter': {
+        return `<div class="mstats">${e.held ? `HOLDING ${iname(e.held)}` : 'HAND EMPTY'} · ${Math.floor(e.satisfaction * 100)}% PWR</div>`;
+      }
+      default:
+        return this.bufferGrid(e);
+    }
+  }
+
   machinePanel(el: HTMLElement): void {
     const e = this.game.world.entities.get(this.view.selectedId ?? -1);
     if (!e) { el.innerHTML = '<i>no selection</i>'; return; }
     const def = BUILDING_MAP.get(e.buildingId)!;
-    const wrap = document.createElement('div');
-    wrap.innerHTML = `<b>${def.name}</b> <small>HP ${Math.ceil(e.hp)}/${def.maxHealth} · power ${(e.satisfaction * 100).toFixed(0)}%</small> `;
-    const close = document.createElement('button');
-    close.textContent = '✕';
-    close.onclick = () => { this.view.selectedId = null; this.panel = null; this.render(); };
-    wrap.appendChild(close);
-
-    // recipe picker for producers
-    const cats: Record<string, string[]> = CATEGORY_BUILDINGS as unknown as Record<string, string[]>;
-    const myCat = Object.entries(cats).find(([, ms]) =>
-      ms.includes(e.buildingId) ||
-      (def.type === 'Furnace' && def.craftingCategory === 'smelting'))?.[0];
-    if (def.type === 'Assembler' || def.type === 'ChemicalPlant' || def.type === 'OilRefinery' || def.type === 'Centrifuge') {
-      const cat = def.type === 'Assembler' ? (BUILDING_MAP.get(e.buildingId)?.craftingCategory ?? 'crafting') : myCat ?? 'chemistry';
-      const sel = document.createElement('select');
-      sel.innerHTML = '<option value="">— recipe —</option>';
-      for (const r of [...RECIPE_MAP.values()].filter((r) => r.category === cat && this.game.unlocked.has(r.id))) {
-        const o = document.createElement('option');
-        o.value = r.id; o.textContent = r.name;
-        if (e.recipeId === r.id) o.selected = true;
-        sel.appendChild(o);
-      }
-      sel.onchange = () => { e.recipeId = sel.value || null; e.progress = 0; this.refresh(); };
-      wrap.appendChild(sel);
-      if (e.recipeId) {
-        const r = RECIPE_MAP.get(e.recipeId)!;
-        const p = document.createElement('div');
-        p.textContent = `progress ${Math.floor(e.progress * 100)}% — ` +
-          r.inputs.map((i) => {
-            const have = (e.inv[i.itemId] ?? 0) + this.game.player.inv.count(i.itemId);
-            return `${have >= i.count ? '✓' : '✗'} ${i.count}×${iname(i.itemId)}`;
-          }).join(' · ');
-        wrap.appendChild(p);
-      }
-    }
-    if (def.type === 'Furnace') {
-      const d = document.createElement('div');
-      d.textContent = e.recipeId ? `smelting ${iname(e.recipeId)} ${Math.floor(e.progress * 100)}% · fuel ${e.fuel.toFixed(1)}s` : 'auto-selects from inputs · needs fuel if burner';
-      wrap.appendChild(d);
-    }
-    if (def.type === 'Lab') {
-      const d = document.createElement('div');
-      d.textContent = this.game.currentResearch
-        ? `researching ${TECH_MAP.get(this.game.currentResearch)?.name} ${Math.floor(this.game.researchFraction() * 100)}%`
-        : 'no active research (press G)';
-      wrap.appendChild(d);
-    }
-    if (def.type === 'RocketSilo') {
-      const d = document.createElement('div');
-      d.textContent = e.launching ? `LAUNCHING ${Math.floor((e.launchT / 10) * 100)}%`
-        : e.assembled ? 'assembled' : `needs 100 rocket-parts (${e.inv['rocket-parts'] ?? 0}) + 50 rocket-fuel (${e.inv['rocket-fuel'] ?? 0}) + 1 satellite (${e.inv['satellite'] ?? 0})`;
-      wrap.appendChild(d);
-    }
-    // buffers
-    const buf = document.createElement('div');
-    buf.className = 'buf';
-    const keys = Object.keys(e.inv).filter((k) => (e.inv[k] ?? 0) > 0);
-    buf.textContent = keys.length > 0
-      ? keys.map((k) => `${iname(k)} ×${e.inv[k]}`).join(' · ') : '(empty)';
-    wrap.appendChild(buf);
-    // transfer buttons
-    const row = document.createElement('div');
-    row.className = 'btnrow';
-    const load = document.createElement('button');
-    load.textContent = 'Load all (from bags)';
-    load.onclick = () => { this.loadMachine(e.id); this.render(); };
-    const take = document.createElement('button');
-    take.textContent = 'Take all';
-    take.onclick = () => { this.takeMachine(e.id); this.render(); };
-    const del = document.createElement('button');
-    del.textContent = 'Demolish';
-    del.onclick = () => {
+    const st = this.machineState(e, def);
+    const hp = Math.max(0, Math.ceil((e.hp / def.maxHealth) * 100));
+    const frame = document.createElement('div');
+    frame.className = `machine mtype-${def.type.toLowerCase()}`;
+    frame.innerHTML =
+      `<div class="mhead"><span class="mlamp ${st.lamp}" id="mc-lamp"></span>` +
+      `<div class="mtitle"><b>${def.name}</b><small id="mc-state">${st.text}</small></div>` +
+      `<button class="mx" id="mc-x">✕</button></div>` +
+      `<div class="mhp"><div class="mhp-fill" id="mc-hp" style="width:${hp}%"></div><span>HP ${Math.ceil(e.hp)}/${def.maxHealth}</span></div>` +
+      this.powerStrip(e, def) +
+      `<div class="mbody" id="mc-body">${this.machineBodyHtml(e, def)}</div>` +
+      `<div class="mkeys"><button id="mc-load">⇪ LOAD ALL</button>` +
+      `<button id="mc-take">⇩ TAKE ALL</button>` +
+      `<button id="mc-demo" class="danger">✖ DEMOLISH</button></div>`;
+    el.appendChild(frame);
+    (frame.querySelector('#mc-x') as HTMLButtonElement).onclick = () => {
+      this.view.selectedId = null; this.panel = null; this.render();
+    };
+    (frame.querySelector('#mc-load') as HTMLButtonElement).onclick = () => { this.loadMachine(e.id); this.refreshMachine(); };
+    (frame.querySelector('#mc-take') as HTMLButtonElement).onclick = () => { this.takeMachine(e.id); this.refreshMachine(); };
+    (frame.querySelector('#mc-demo') as HTMLButtonElement).onclick = () => {
       const gone = this.game.world.remove(e.id);
       if (gone) for (const [k, v] of Object.entries(gone.inv)) this.game.player.inv.add(k, v);
       this.view.selectedId = null; this.panel = null; this.render();
     };
-    row.append(load, take, del);
-    wrap.appendChild(row);
-    el.appendChild(wrap);
+    const sel = frame.querySelector('select.mchip') as HTMLSelectElement | null;
+    if (sel) {
+      sel.onchange = () => {
+        e.recipeId = sel.value || null; e.progress = 0;
+        const body = frame.querySelector('#mc-body');
+        if (body) body.innerHTML = this.machineBodyHtml(e, def);
+        this.rewireChip(frame, e, def);
+        this.refreshMachine();
+      };
+    }
+    this.machineBody = frame.querySelector('#mc-body');
+  }
+
+  /** Re-attach the recipe picker handler after a body re-render. */
+  private rewireChip(frame: HTMLElement, e: Ent, def: BuildingDefinition): void {
+    const sel = frame.querySelector('select.mchip') as HTMLSelectElement | null;
+    if (sel) {
+      sel.onchange = () => {
+        e.recipeId = sel.value || null; e.progress = 0;
+        const body = frame.querySelector('#mc-body');
+        if (body) body.innerHTML = this.machineBodyHtml(e, def);
+        this.rewireChip(frame, e, def);
+        this.refreshMachine();
+      };
+    }
+  }
+
+  /** Live-update the open machine face (500ms tick + after actions). */
+  refreshMachine(): void {
+    if (this.panel !== 'machine' || !this.machineBody || !this.machineBody.isConnected) return;
+    const e = this.game.world.entities.get(this.view.selectedId ?? -1);
+    if (!e) return;
+    const def = BUILDING_MAP.get(e.buildingId)!;
+    // Never clobber the recipe picker mid-interaction.
+    const ae = document.activeElement;
+    if (ae && ae.tagName === 'SELECT' && this.machineBody.contains(ae)) return;
+    const st = this.machineState(e, def);
+    const lamp = document.getElementById('mc-lamp');
+    if (lamp) lamp.className = `mlamp ${st.lamp}`;
+    const state = document.getElementById('mc-state');
+    if (state) state.textContent = st.text;
+    const hp = document.getElementById('mc-hp') as HTMLElement | null;
+    if (hp) hp.style.width = `${Math.max(0, Math.ceil((e.hp / def.maxHealth) * 100))}%`;
+    this.machineBody.innerHTML = this.machineBodyHtml(e, def);
+    const frame = this.machineBody.closest('.machine') as HTMLElement | null;
+    if (frame) this.rewireChip(frame, e, def);
   }
 
   loadMachine(id: number): void {

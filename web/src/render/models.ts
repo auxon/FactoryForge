@@ -15,7 +15,8 @@ export interface Anim {
   arms?: THREE.Object3D[];  // assembler press arms (bob)
   head?: THREE.Object3D;    // turret head (aims)
   glow?: THREE.Mesh;        // emissive fire/activity lamp
-  rocket?: THREE.Object3D;  // silo rocket (rises on launch)
+  rocket?: THREE.Object3D;  // silo rocket representative part (rises on launch)
+  rockets?: THREE.Object3D[]; // ALL silo rocket parts (visibility driven together)
   smoke?: boolean;          // emits smoke when active
 }
 
@@ -40,7 +41,8 @@ function emblem(textureId: string, size: number, y: number): THREE.Mesh | null {
   let tex = texCache.get(key);
   if (tex === undefined) {
     tex = null;
-    loader.load(`/assets/${key}.png`,
+    const base = (import.meta.env.BASE_URL || '/');
+    loader.load(`${base}assets/${key}.png`.replace(/\/+/g, '/'),
       (t) => {
         t.magFilter = THREE.NearestFilter;
         t.minFilter = THREE.NearestFilter;

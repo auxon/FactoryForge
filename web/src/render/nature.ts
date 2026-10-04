@@ -28,17 +28,27 @@ export class Nature {
     this.seed = seed;
     scene.add(this.treeGroup, this.rockGroup, this.grassGroup);
     const loader = new GLTFLoader();
+    const base = (import.meta.env.BASE_URL || '/');
+    const M = (f: string): string => `${base}models/${f}`.replace(/\/+/g, '/');
     const load = (url: string): Promise<THREE.Group> =>
       new Promise((res, rej) => loader.load(url, (g) => res(g.scene), undefined, rej));
     Promise.all([
-      load('/models/ff-tree-game.glb'),
-      load('/models/ff-rock-game.glb'),
-      load('/models/ff-grass.glb'),
+      load(M('ff-tree-game.glb')),
+      load(M('ff-rock-game.glb')),
+      load(M('ff-grass.glb')),
     ]).then(([tree, rock, grass]) => {
       for (const g of [tree, rock, grass]) {
         g.traverse((o) => {
           if (o instanceof THREE.Mesh) { o.castShadow = true; o.receiveShadow = false; }
         });
+      }
+      // Same sculpt fix as buildings: center-authored models arrive sunk.
+      // Trees also come out small next to the legacy cones, so grow them.
+      // Seat is stored, not baked: clones below overwrite position/scale.
+      tree.userData.baseScale = 1.6;
+      for (const g of [tree, rock, grass]) {
+        const box = new THREE.Box3().setFromObject(g);
+        g.userData.seatY = -box.min.y;
       }
       this.treeProto = tree;
       this.rockProto = rock;
@@ -68,9 +78,9 @@ export class Nature {
     }
     for (const [x, y, s] of spots) {
       const m = this.rockProto!.clone();
-      m.position.set(x, 0, y);
       m.rotation.y = rand() * Math.PI * 2;
       m.scale.setScalar(s);
+      m.position.set(x, (this.rockProto!.userData.seatY as number) * s, y);
       this.rockGroup.add(m);
     }
     // grass tufts: dense, not on water
@@ -82,9 +92,10 @@ export class Nature {
       if (this.world.water.has(k)) continue;
       if (this.world.resources.has(k) && rand() < 0.7) continue;
       const m = this.grassProto!.clone();
-      m.position.set(x + rand(), 0, y + rand());
+      const gs = 0.8 + rand() * 1.4;
+      m.position.set(x + rand(), (this.grassProto!.userData.seatY as number) * gs, y + rand());
       m.rotation.y = rand() * Math.PI * 2;
-      m.scale.setScalar(0.8 + rand() * 1.4);
+      m.scale.setScalar(gs);
       m.visible = true;
       m.userData.tx = x; m.userData.ty = y;
       this.grassGroup.add(m);
@@ -111,9 +122,11 @@ export class Nature {
     for (const k of this.world.trees.keys()) {
       const [x, y] = k.split(',').map(Number);
       const m = this.treeProto!.clone();
-      m.position.set(x + 0.5, 0, y + 0.5);
       m.rotation.y = ((x * 31 + y * 17) % 100) / 100 * Math.PI * 2;
-      m.scale.setScalar(0.85 + (((x * 13 + y * 29) % 50) / 50) * 0.5 + rand() * 0.05);
+      const ts = ((this.treeProto!.userData.baseScale as number) ?? 1)
+        * (0.85 + (((x * 13 + y * 29) % 50) / 50) * 0.5 + rand() * 0.05);
+      m.scale.setScalar(ts);
+      m.position.set(x + 0.5, (this.treeProto!.userData.seatY as number) * ts, y + 0.5);
       this.treeGroup.add(m);
     }
   }

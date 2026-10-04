@@ -97,11 +97,13 @@ export class View {
     this.scene.add(ground);
     // close-up PBR detail overlay: repeating grass diffuse+normal, translucent
     const texLoader = new THREE.TextureLoader();
-    const gDiff = texLoader.load('/tex/leafy_grass_Diffuse.jpg');
+    const base = (import.meta.env.BASE_URL || '/');
+    const T = (f: string): string => `${base}tex/${f}`.replace(/\/+/g, '/');
+    const gDiff = texLoader.load(T('leafy_grass_Diffuse.jpg'));
     gDiff.wrapS = gDiff.wrapT = THREE.RepeatWrapping;
     gDiff.repeat.set(110, 110);
     gDiff.colorSpace = THREE.SRGBColorSpace;
-    const gNor = texLoader.load('/tex/leafy_grass_nor_gl.png');
+    const gNor = texLoader.load(T('leafy_grass_nor_gl.png'));
     gNor.wrapS = gNor.wrapT = THREE.RepeatWrapping;
     gNor.repeat.set(110, 110);
     const detail = new THREE.Mesh(
@@ -316,10 +318,13 @@ export class View {
             });
           }
           if (entry!.scale != null) inner.scale.setScalar(entry!.scale);
+          this.glb.reseat(inner);
           g = this.wrapGlb(inner);
           // hide silo rocket until assembled (sync below drives it)
           const anim0 = this.glb.collectAnim(g);
-          if (anim0.rocket && e.buildingId === 'rocket-silo') anim0.rocket.visible = false;
+          if (e.buildingId === 'rocket-silo' && anim0.rockets) {
+            for (const r of anim0.rockets) r.visible = false;
+          }
           this.anims.set(e.id, anim0);
           this.glbFileOf.set(e.id, entry!.file);
           // directional buildings face their direction
@@ -393,7 +398,14 @@ export class View {
           anim.head.rotation.y = Math.atan2(bx - (e.x + 0.5), bz - (e.y + 0.5));
         } else anim.head.rotation.y += 0.005;
       }
-      if (anim.rocket && e.buildingId === 'rocket-silo') {
+      if (anim.rockets && e.buildingId === 'rocket-silo') {
+        const show = e.assembled || e.launching;
+        const rise = e.launching ? (e.launchT / 10) * 14 : 0;
+        for (const r of anim.rockets) {
+          r.visible = show;
+          r.position.y = baseY(r) + rise;
+        }
+      } else if (anim.rocket && e.buildingId === 'rocket-silo') {
         anim.rocket.visible = e.assembled || e.launching;
         const by = baseY(anim.rocket);
         if (e.launching) anim.rocket.position.y = by + (e.launchT / 10) * 14;
