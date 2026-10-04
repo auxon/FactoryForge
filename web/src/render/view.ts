@@ -67,7 +67,7 @@ export class View {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
+    this.renderer.toneMappingExposure = 1.28;
     container.appendChild(this.renderer.domElement);
 
     this.scene.background = new THREE.Color(0x7d93a6);
@@ -77,11 +77,11 @@ export class View {
       50, container.clientWidth / container.clientHeight, 0.1, 600);
 
     const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    this.scene.environmentIntensity = 0.42;
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.02).texture;
+    this.scene.environmentIntensity = 0.95;
     pmrem.dispose();
 
-    const sun = new THREE.DirectionalLight(0xffe0b0, 2.35);
+    const sun = new THREE.DirectionalLight(0xffe6c0, 2.85);
     sun.position.set(36, 52, 22);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
@@ -89,8 +89,8 @@ export class View {
     sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
     sun.shadow.camera.far = 200;
     this.scene.add(sun);
-    this.scene.add(new THREE.AmbientLight(0xfff0dc, 0.28));
-    this.scene.add(new THREE.HemisphereLight(0xffd9a8, 0x3a2a18, 0.48));
+    this.scene.add(new THREE.AmbientLight(0xfff4e4, 0.45));
+    this.scene.add(new THREE.HemisphereLight(0xffe2b8, 0x4a3a28, 0.62));
 
     // ground: baked PBR zone canvas (grass/dirt/sand per world features)
     const zoneTex = new THREE.CanvasTexture(
