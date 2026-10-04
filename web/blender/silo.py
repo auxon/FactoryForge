@@ -1,43 +1,57 @@
-# Rocket silo (9x9m): pad, pit ring, gantry tower, Rocket (animated rise).
+# Rocket silo (9x9m): iron pit, brass gantry, Rocket (animated rise).
+import os
 import sys
-sys.path.insert(0, "/home/rah/factoryforge/web/blender")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import importlib
 import fac
 importlib.reload(fac)
 from fac import *  # noqa
+import math as _m
 
 ensure_base_materials()
 C = col("FF_silo")
 wipe_collection("FF_silo")
 
 pad(C, 9.0, 9.0)
-# pit: dark ring + inner collar
-cyl(C, "PitRing", 2.2, 2.4, 0.5, (0, 0.15, 0), "FF_darksteel", verts=32)
-cyl(C, "PitCollar", 1.7, 1.7, 0.7, (0, 0.15, 0), "FF_hazard", verts=32)
-# Rocket (animated): body + nose + fins + engine bell
-cyl(C, "RocketBody", 0.7, 0.7, 2.6, (0, 0.6, 0), "FF_pearl", verts=20)
-cone(C, "RocketNose", 0.7, 1.0, (0, 3.2, 0), "FF_redlamp", verts=20)
+cyl(C, "PitRing", 2.15, 2.35, 0.48, (0, 0.14, 0), "FF_darkiron", verts=28)
+cyl(C, "PitCollar", 1.65, 1.65, 0.65, (0, 0.14, 0), "FF_brass", verts=28)
+rivet_ring(C, (0, 0.6, 0), 1.7, n=16, r=0.03, h=0.04)
+
+# RocketRig groups all rising parts
+rig = box(C, "RocketRig", (0.08, 0.08, 0.08), (0, 0.4, 0), "FF_iron", bevel=0.0)
+rig.hide_render = True
+body = cyl(C, "RocketBody", 0.68, 0.68, 2.55, (0, 0.58, 0), "FF_iron", verts=18)
+parent_keep(body, rig)
+nose = cone(C, "RocketNose", 0.68, 0.95, (0, 3.15, 0), "FF_copper", verts=18)
+parent_keep(nose, rig)
 for i in range(4):
-    import math as _m
-    fin = box(C, "RocketFin", (0.08, 0.9, 0.5), (0.75 * _m.cos(i * _m.pi / 2), 1.0, 0.75 * _m.sin(i * _m.pi / 2)), "FF_redlamp", bevel=0.02)
+    fin = box(C, "RocketFin", (0.07, 0.85, 0.48),
+              (0.72 * _m.cos(i * _m.pi / 2), 0.98, 0.72 * _m.sin(i * _m.pi / 2)),
+              "FF_brass", bevel=0.015)
     fin.rotation_euler = (0, -i * _m.pi / 2, 0)
-cyl(C, "RocketBell", 0.5, 0.28, 0.4, (0, 0.25, 0), "FF_darksteel", verts=16)
-glow_plane(C, "RocketGlow", 0.5, 0.5, (0, 0.2, 0.55))
-# gantry tower + crane arms + elevator rails
-box(C, "Gantry", (0.8, 5.2, 0.8), (-2.6, 2.75, -2.6), "FF_hazard", bevel=0.04)
-for y in (2.0, 3.4, 4.6):
-    arm = box(C, "CraneArm", (2.2, 0.18, 0.18), (-1.5, y, -1.5), "FF_darksteel", bevel=0.02)
+    parent_keep(fin, rig)
+bell = cyl(C, "RocketBell", 0.48, 0.26, 0.38, (0, 0.24, 0), "FF_soot", verts=14)
+parent_keep(bell, rig)
+gl = glow_plane(C, "RocketGlow", 0.45, 0.45, (0, 0.2, 0.52))
+parent_keep(gl, rig)
+# brass banding on rocket
+band = cyl(C, "RocketBand", 0.7, 0.7, 0.08, (0, 1.6, 0), "FF_brass", verts=18)
+parent_keep(band, rig)
+
+box(C, "Gantry", (0.75, 5.1, 0.75), (-2.55, 2.7, -2.55), "FF_iron", bevel=0.03)
+rivet_row(C, (-2.55, 0.5, -2.15), (-2.55, 5.0, -2.15), n=8, r=0.025)
+for y in (1.95, 3.3, 4.55):
+    arm = box(C, "CraneArm", (2.15, 0.16, 0.16), (-1.45, y, -1.45), "FF_brass", bevel=0.015)
     arm.rotation_euler = (0, 0.6, 0)
-box(C, "GantryTop", (1.0, 0.3, 1.0), (-2.6, 5.4, -2.6), "FF_darksteel")
-sphere(C, "Beacon", 0.09, (-2.6, 5.65, -2.6), "FF_redlamp")
-# hazard ring dashes + floodlight poles
+box(C, "GantryTop", (0.95, 0.28, 0.95), (-2.55, 5.35, -2.55), "FF_darkiron")
+sphere(C, "Beacon", 0.09, (-2.55, 5.6, -2.55), "FF_redlamp", verts=10)
 for i in range(8):
-    import math as _m2
-    a = i * _m2.pi / 4
-    box(C, "RingDash", (0.7, 0.02, 0.25), (3.4 * _m2.cos(a), 0.16, 3.4 * _m2.sin(a)), "FF_hazard", bevel=0.005)
-for sx, sz in [(-4, 4), (4, -4)]:
-    cyl(C, "FloodPole", 0.06, 0.08, 2.6, (sx, 0.15, sz), "FF_darksteel", verts=8)
-    sphere(C, "FloodHead", 0.12, (sx, 2.8, sz), "FF_pearl")
+    a = i * _m.pi / 4
+    box(C, "RingDash", (0.65, 0.02, 0.22), (3.35 * _m.cos(a), 0.15, 3.35 * _m.sin(a)),
+        "FF_bronze", bevel=0.004)
+for sx, sz in [(-3.9, 3.9), (3.9, -3.9)]:
+    cyl(C, "FloodPole", 0.055, 0.075, 2.55, (sx, 0.14, sz), "FF_iron", verts=8)
+    sphere(C, "FloodHead", 0.12, (sx, 2.75, sz), "FF_amber", verts=10)
 
 frame_camera_target(target=(0, 2.0, 0), dist=16.0)
 print("silo done")
