@@ -152,16 +152,16 @@ export function bakeTerrainCanvas(world: World, seed: number): HTMLCanvasElement
   const ctx = cv.getContext('2d')!;
   const px = (v: number): number => ((v + WORLD / 2) / WORLD) * S;
   const rand = rng(seed + 1234);
-  // grass base
-  ctx.fillStyle = '#4a6b3a';
+  // grass base — cooler shade in shadow, warmer in sun
+  ctx.fillStyle = '#3d5c32';
   ctx.fillRect(0, 0, S, S);
   // large soft variation splotches
-  for (let i = 0; i < 900; i++) {
-    const x = rand() * S, y = rand() * S, r = 12 + rand() * 60;
+  for (let i = 0; i < 1100; i++) {
+    const x = rand() * S, y = rand() * S, r = 10 + rand() * 72;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     const tint = rand();
-    const c = tint < 0.5 ? '58,92,52' : tint < 0.8 ? '74,107,58' : '96,128,72';
-    g.addColorStop(0, `rgba(${c},0.5)`);
+    const c = tint < 0.35 ? '48,78,42' : tint < 0.7 ? '74,107,58' : '110,138,72';
+    g.addColorStop(0, `rgba(${c},0.55)`);
     g.addColorStop(1, `rgba(${c},0)`);
     ctx.fillStyle = g;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
@@ -179,8 +179,16 @@ export function bakeTerrainCanvas(world: World, seed: number): HTMLCanvasElement
     const dark = d.outputItem === 'uranium-ore' || d.outputItem === 'crude-oil';
     blob(d.x + 0.5, d.y + 0.5, 1.6, dark ? 'rgba(52,44,40,A)' : 'rgba(124,96,64,A)', 0.85);
   }
-  // factory floor at spawn
-  blob(0.5, 0.5, 9, 'rgba(130,104,70,A)', 0.9);
+  // packed-earth factory floor at spawn + wheel ruts
+  blob(0.5, 0.5, 14, 'rgba(122,92,58,A)', 0.92);
+  blob(2.5, 1.5, 6, 'rgba(108,82,52,A)', 0.7);
+  blob(-2, 3, 5, 'rgba(96,74,48,A)', 0.65);
+  for (let i = 0; i < 18; i++) {
+    const ang = rand() * Math.PI * 2;
+    const dist = 2 + rand() * 10;
+    blob(0.5 + Math.cos(ang) * dist, 0.5 + Math.sin(ang) * dist,
+      1.2 + rand() * 1.8, 'rgba(90,68,44,A)', 0.55);
+  }
   // sand ring near water
   for (const k of world.water) {
     const [x, y] = k.split(',').map(Number);
