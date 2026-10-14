@@ -24,6 +24,8 @@ for i in range(4):
 # ceramic petticoats
 for y in (1.9, 2.0):
     cyl(C, "Skirt", 0.09, 0.07, 0.04, (0, y, 0), "FF_verdigris", verts=8)
+pipe(C, "DropLine", 0.016, (0.12, 1.55, -0.16), (0.48, 2.22, 0), "FF_copper", verts=6)
+steam_vent(C, (0.14, 1.72, -0.16), r=0.022, h=0.08)
 
 frame_camera_target(target=(0, 1.2, 0), dist=5.0)
 print("pole done")

@@ -80,6 +80,9 @@ for sx in (-0.09, 0.09):
     bolt(C, (sx, 1.18, -0.30), r=0.014, h=0.03)
 pipe(C, "TankPipe", 0.018, (-0.09, 1.12, -0.30), (0.09, 1.12, -0.30), "FF_copper", verts=8)
 valve(C, (0.0, 1.18, -0.30), r=0.05)
+gear(C, "PackGear", 0.055, 8, 0.03, (0.12, 1.02, -0.28), "FF_brass", axis="x")
+steam_vent(C, (-0.09, 1.16, -0.32), r=0.018, h=0.07)
+pipe(C, "HelmHose", 0.012, (0.09, 1.14, -0.30), (0.12, 1.28, -0.08), "FF_copper", verts=6)
 parent_created(C, torso, before_torso)
 
 # head

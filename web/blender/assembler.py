@@ -50,6 +50,11 @@ shaft = cyl(C, "LineShaft", 0.04, 0.04, 2.2, (0, 2.05, 0.9), "FF_iron", verts=8,
 shaft.rotation_euler = (0, _m.pi / 2, 0)
 for sx in (-0.7, 0.7):
     gear(C, "LineGear", 0.14, 10, 0.04, (sx, 2.05, 0.9), "FF_brass", axis="x")
+pipe(C, "AirLine", 0.03, (1.22, 1.15, -0.92), (0.7, 1.55, 0.4), "FF_copper")
+steam_vent(C, (1.22, 1.22, -0.55), r=0.04, h=0.14)
+piston(C, (-1.22, 0.55, -0.7), length=0.42, r=0.055, axis="y")
+valve(C, (0.9, 1.15, 0.95), r=0.07)
+gauge(C, (-1.0, 0.85, 1.0), facing="z", r=0.06)
 
 frame_camera_target(target=(0, 1.1, 0), dist=8.0)
 print("assembler done")

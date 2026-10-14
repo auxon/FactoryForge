@@ -62,6 +62,10 @@ cyl(C, "SightFluid", 0.022, 0.022, 0.32, (0.72, 0.55, -0.2), "FF_verdigris", ver
 box(C, "Scuttle", (0.45, 0.32, 0.4), (-0.7, 0.32, 1.15), "FF_soot", bevel=0.02)
 box(C, "CoalHeap", (0.32, 0.16, 0.28), (-0.7, 0.5, 1.15), "FF_coal", bevel=0.03)
 
+piston(C, (-0.72, 0.72, 0.15), length=0.48, r=0.07, axis="y")
+pipe(C, "WhistleFeed", 0.035, (0.22, 2.0, -0.55), (0.48, 1.85, 0.4), "FF_copper")
+steam_vent(C, (-0.35, 1.72, -0.95), r=0.045, h=0.16)
+valve(C, (0.55, 1.55, -0.2), r=0.08)
 lamp(C, (-0.7, 1.25, 1.15), r=0.055)
 box(C, "Stripe", (2.0, 0.02, 0.1), (0, 0.15, 1.44), "FF_bronze", bevel=0.004)
 

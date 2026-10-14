@@ -22,6 +22,8 @@ box(C, "Handle", (0.22, 0.045, 0.055), (0, 0.8, 0.42), "FF_bronze", bevel=0.008)
 box(C, "Lock", (0.12, 0.1, 0.06), (0, 0.55, 0.42), "FF_brass_polish", bevel=0.008)
 box(C, "Strap", (0.08, 0.5, 0.82), (0, 0.42, 0), "FF_leather", bevel=0.006)
 rivet_row(C, (-0.3, 0.55, 0.41), (0.3, 0.55, 0.41), n=4, r=0.02)
+gauge(C, (0.22, 0.48, 0.42), facing="z", r=0.04)
+pipe(C, "ChestPipe", 0.016, (-0.3, 0.72, -0.3), (0.3, 0.72, -0.3), "FF_copper", verts=6)
 
 frame_camera_target(target=(0, 0.4, 0), dist=3.5)
 print("chest done")

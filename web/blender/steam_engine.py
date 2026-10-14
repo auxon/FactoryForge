@@ -84,6 +84,11 @@ bpy.context.view_layer.objects.active.rotation_euler = (0, _m.pi / 2, 0)
 # exhaust stack + steam
 chimney(C, (-0.85, 1.4, 1.1), r=0.13, h=1.35, material="FF_rust")
 pipe(C, "Exhaust", 0.07, (-0.85, 1.4, 1.45), (-0.85, 1.4, 1.1), "FF_copper")
+piston(C, (-0.55, 0.55, 1.85), length=0.7, r=0.08, axis="z")
+steam_vent(C, (0.55, 1.55, 1.15), r=0.05, h=0.18)
+pipe(C, "OilLine", 0.03, (-0.7, 1.45, 1.7), (-0.55, 1.2, 2.1), "FF_copper")
+gauge(C, (0.85, 0.85, 2.22), facing="z", r=0.07)
+gear(C, "Governor", 0.14, 10, 0.05, (-0.9, 1.25, 1.55), "FF_brass", axis="x")
 
 # nameplate, lamp, oil cups
 box(C, "Nameplate", (0.7, 0.16, 0.03), (0, 0.95, 2.28), "FF_brass_polish", bevel=0.006)

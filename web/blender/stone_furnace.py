@@ -39,6 +39,10 @@ for sx in (0.82, 1.08):
 box(C, "Bellows", (0.35, 0.22, 0.28), (-0.85, 0.38, 0.55), "FF_leather", bevel=0.02)
 tuy = cyl(C, "Tuyere", 0.05, 0.05, 0.35, (-0.55, 0.42, 0.55), "FF_brass", verts=8, centered=True)
 tuy.rotation_euler = (0, 1.5708, 0)
+gauge(C, (0.82, 1.05, 0.55), facing="z", r=0.06)
+valve(C, (0.95, 1.05, 0.0), r=0.07)
+steam_vent(C, (0.55, 1.55, -0.4), r=0.045, h=0.14)
+pipe(C, "AirPipe", 0.035, (-0.85, 0.48, 0.55), (-0.55, 0.7, 0.2), "FF_copper")
 
 frame_camera_target(target=(0, 0.8, 0), dist=6.0)
 print("stone furnace done")

@@ -71,6 +71,9 @@ def build_biter(cname, sac=False):
             cyl(C, "Vent", 0.03, 0.022, 0.08, (s * 0.24, 0.38, z), "FF_brass", verts=8)
         pipe(C, "Gill", 0.014, (s * 0.22, 0.36, -0.30), (s * 0.22, 0.36, 0.12),
              "FF_copper", verts=6)
+        steam_vent(C, (s * 0.22, 0.48, -0.08), r=0.018, h=0.07)
+    gauge(C, (0.0, 0.54, 0.18), facing="z", r=0.04)
+    box(C, "BrassPlate", (0.18, 0.04, 0.14), (0, 0.56, -0.08), "FF_brass", bevel=0.008)
 
     # dorsal spikes
     for i, z in enumerate([-0.42, -0.22, -0.02, 0.16]):

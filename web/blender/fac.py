@@ -272,8 +272,12 @@ def flange(coll, loc, r=0.18, axis="z", material="FF_brass"):
 
 
 def valve(coll, loc, r=0.14, material="FF_brass"):
-    """Handwheel valve standing on +Y (up)."""
+    """Handwheel valve standing on +Y (up), with stem and packing gland."""
     x, y, z = loc
+    cyl(coll, "ValveStem", r * 0.16, r * 0.16, r * 0.7,
+        (x, y - r * 0.55, z), "FF_bronze", verts=8)
+    cyl(coll, "ValveGland", r * 0.28, r * 0.28, r * 0.18,
+        (x, y - r * 0.22, z), material, verts=10)
     torus(coll, "ValveRim", r, r * 0.16, (x, y, z), material, major_seg=16, minor_seg=8)
     box(coll, "ValveHub", (r * 0.35, r * 0.22, r * 0.35), (x, y, z), "FF_bronze", bevel=0.01)
     for i in range(4):
@@ -285,27 +289,80 @@ def valve(coll, loc, r=0.14, material="FF_brass"):
 
 
 def gauge(coll, loc, facing="z", r=0.11):
-    """Brass pressure gauge with glass and needle. facing +z or +x."""
+    """Brass pressure gauge with glass, bezel, and needle. facing +z or +x."""
     x, y, z = loc
     body = cyl(coll, "GaugeBody", r, r, 0.06, (x, y, z), "FF_brass", verts=16, centered=True)
     glass = cyl(coll, "GaugeGlass", r * 0.78, r * 0.78, 0.02,
                 (x, y, z), "FF_glass", verts=14, centered=True)
     needle = box(coll, "GaugeNeedle", (0.012, r * 0.7, 0.012),
                  (x, y, z), "FF_soot", bevel=0.0)
+    # mounting boss keeps the gauge readable as a fitting, not a sticker
+    boss = cyl(coll, "GaugeBoss", r * 0.35, r * 0.35, 0.05,
+               (x, y, z), "FF_bronze", verts=10, centered=True)
     if facing == "z":
         body.rotation_euler = (math.pi / 2, 0, 0)
         glass.rotation_euler = (math.pi / 2, 0, 0)
+        boss.rotation_euler = (math.pi / 2, 0, 0)
         needle.location = B(x, y, z + 0.04)
         torus(coll, "GaugeBezel", r * 0.95, 0.015, (x, y, z + 0.04),
               "FF_brass_polish", major_seg=16, minor_seg=6)
     else:
         body.rotation_euler = (0, math.pi / 2, 0)
         glass.rotation_euler = (0, math.pi / 2, 0)
+        boss.rotation_euler = (0, math.pi / 2, 0)
         needle.location = B(x + 0.04, y, z)
         torus(coll, "GaugeBezel", r * 0.95, 0.015, (x + 0.04, y, z),
               "FF_brass_polish", major_seg=16, minor_seg=6,
               rot=(0, math.pi / 2, 0))
     return glass
+
+
+def piston(coll, loc, length=0.42, r=0.065, axis="y", material="FF_brass"):
+    """Lagged cylinder, packing gland, and polished rod. axis is the stroke."""
+    x, y, z = loc
+    barrel_h = length * 0.52
+    if axis == "y":
+        cyl(coll, "PistBarrel", r, r * 1.04, barrel_h, (x, y, z), material, verts=12)
+        cyl(coll, "PistGland", r * 1.2, r * 1.2, 0.055,
+            (x, y + barrel_h, z), "FF_bronze", verts=12)
+        rivet_ring(coll, (x, y + barrel_h + 0.02, z), r * 1.05, n=6,
+                   r=0.012, h=0.02, material="FF_brass")
+        cyl(coll, "PistRod", r * 0.36, r * 0.36, length * 0.5,
+            (x, y + barrel_h, z), "FF_iron", verts=8)
+        cyl(coll, "PistCap", r * 0.62, r * 0.62, 0.045,
+            (x, y + length, z), "FF_brass_polish", verts=10)
+    else:
+        o = cyl(coll, "PistBarrel", r, r * 1.04, barrel_h,
+                (x, y, z), material, verts=12, centered=True)
+        g = cyl(coll, "PistGland", r * 1.2, r * 1.2, 0.055,
+                (x, y, z), "FF_bronze", verts=12, centered=True)
+        rod = cyl(coll, "PistRod", r * 0.36, r * 0.36, length * 0.5,
+                  (x, y, z), "FF_iron", verts=8, centered=True)
+        cap = cyl(coll, "PistCap", r * 0.62, r * 0.62, 0.045,
+                  (x, y, z), "FF_brass_polish", verts=10, centered=True)
+        rot = (0, math.pi / 2, 0) if axis == "x" else (math.pi / 2, 0, 0)
+        for part in (o, g, rod, cap):
+            part.rotation_euler = rot
+        if axis == "z":
+            g.location = B(x, y, z + barrel_h * 0.5)
+            rod.location = B(x, y, z + barrel_h * 0.55)
+            cap.location = B(x, y, z + length * 0.55)
+        else:
+            g.location = B(x + barrel_h * 0.5, y, z)
+            rod.location = B(x + barrel_h * 0.55, y, z)
+            cap.location = B(x + length * 0.55, y, z)
+    return None
+
+
+def steam_vent(coll, loc, r=0.05, h=0.16):
+    """Short copper stack with a flared brass rain cap."""
+    x, y, z = loc
+    cyl(coll, "VentPipe", r, r, h, (x, y, z), "FF_copper", verts=10)
+    cyl(coll, "VentFlare", r * 1.42, r * 0.72, 0.045,
+        (x, y + h, z), "FF_brass", verts=10)
+    torus(coll, "VentLip", r * 1.12, r * 0.12, (x, y + h + 0.02, z),
+          "FF_brass_polish", major_seg=12, minor_seg=6)
+    return None
 
 
 def gear(coll, name, r_outer, teeth, depth, loc, material="FF_brass",
@@ -371,17 +428,40 @@ def pad(coll, w, d, material="FF_concrete"):
     box(coll, "PadLipS", (w * 0.98, 0.04, 0.06), (0, 0.14, -d * 0.48), "FF_soot", bevel=0.004)
     box(coll, "PadLipE", (0.06, 0.04, d * 0.9), (w * 0.48, 0.14, 0), "FF_soot", bevel=0.004)
     box(coll, "PadLipW", (0.06, 0.04, d * 0.9), (-w * 0.48, 0.14, 0), "FF_soot", bevel=0.004)
+    # perimeter fittings — sit on the lip so they don't clip machine bodies
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            bolt(coll, (sx * w * 0.42, 0.17, sz * d * 0.42), r=0.034, h=0.05)
+    rivet_row(coll, (-w * 0.32, 0.16, d * 0.48), (w * 0.32, 0.16, d * 0.48),
+              n=max(4, int(w * 2.5)), r=0.02, h=0.03)
+    pipe(coll, "PadPipe", 0.026,
+         (w * 0.45, 0.22, -d * 0.32), (w * 0.45, 0.22, d * 0.22), "FF_copper")
+    steam_vent(coll, (w * 0.38, 0.14, -d * 0.38), r=0.038, h=0.13)
+    if w >= 2.4:
+        gauge(coll, (w * 0.47, 0.30, -d * 0.08), facing="x", r=0.05)
+        valve(coll, (w * 0.45, 0.34, d * 0.08), r=0.05)
     return o
 
 
 def chimney(coll, loc, r=0.16, h=1.6, material="FF_rust"):
     c = cyl(coll, "Chimney", r, r * 1.12, h, loc, material, verts=14)
     cyl(coll, "ChimneyBand", r * 1.18, r * 1.18, 0.07,
-        (loc[0], loc[1] + h * 0.45, loc[2]), "FF_brass")
+        (loc[0], loc[1] + h * 0.32, loc[2]), "FF_brass")
+    cyl(coll, "ChimneyBand2", r * 1.16, r * 1.16, 0.055,
+        (loc[0], loc[1] + h * 0.68, loc[2]), "FF_brass")
+    cyl(coll, "ChimneySoot", r * 1.08, r * 1.2, 0.14,
+        (loc[0], loc[1] + 0.02, loc[2]), "FF_soot")
     cyl(coll, "ChimneyLip", r * 1.28, r * 1.05, 0.12,
         (loc[0], loc[1] + h, loc[2]), "FF_soot")
-    rivet_ring(coll, (loc[0], loc[1] + h * 0.45, loc[2]), r * 1.2, n=6,
+    rivet_ring(coll, (loc[0], loc[1] + h * 0.32, loc[2]), r * 1.2, n=6,
                r=0.02, h=0.03, material="FF_brass")
+    rivet_ring(coll, (loc[0], loc[1] + h * 0.68, loc[2]), r * 1.18, n=6,
+               r=0.018, h=0.028, material="FF_brass")
+    # spark arrestor / rain cap
+    cone(coll, "ChimneyCap", r * 1.15, 0.14,
+         (loc[0], loc[1] + h + 0.1, loc[2]), "FF_brass", verts=10)
+    steam_vent(coll, (loc[0] + r * 0.85, loc[1] + h * 0.55, loc[2]),
+               r=max(0.028, r * 0.28), h=0.12)
     return c
 
 
@@ -538,7 +618,7 @@ def _tex_nodes(m, kind, metallic=0.85, rough_mul=1.0, color=None, emissive=None)
         if ntex.image:
             ntex.image.colorspace_settings.name = "Non-Color"
         nmap = nt.nodes.new("ShaderNodeNormalMap")
-        nmap.inputs["Strength"].default_value = 1.15
+        nmap.inputs["Strength"].default_value = 1.35
         nmap.location = (-120, -260)
         nt.links.new(ntex.outputs["Color"], nmap.inputs["Color"])
         nt.links.new(nmap.outputs["Normal"], bsdf.inputs["Normal"])
@@ -569,13 +649,13 @@ def ensure_base_materials():
     if _MATERIALS_READY and bpy.data.materials.get("FF_iron"):
         return
     specs = [
-        ("FF_iron", "iron", 0.62, 1.0, (0.72, 0.68, 0.62)),
-        ("FF_darkiron", "iron", 0.7, 1.05, (0.42, 0.40, 0.38)),
-        ("FF_soot", "soot", 0.55, 1.1, (0.32, 0.28, 0.24)),
-        ("FF_brass", "brass", 0.78, 0.85, (1.0, 0.78, 0.32)),
-        ("FF_brass_polish", "brass", 0.85, 0.5, (1.0, 0.86, 0.42)),
-        ("FF_bronze", "brass", 0.72, 1.0, (0.72, 0.42, 0.16)),
-        ("FF_copper", "copper", 0.8, 0.9, (0.92, 0.48, 0.24)),
+        ("FF_iron", "iron", 0.62, 1.0, (0.76, 0.70, 0.62)),
+        ("FF_darkiron", "iron", 0.68, 1.05, (0.50, 0.46, 0.42)),
+        ("FF_soot", "soot", 0.5, 1.08, (0.42, 0.36, 0.30)),
+        ("FF_brass", "brass", 0.8, 0.82, (1.0, 0.80, 0.34)),
+        ("FF_brass_polish", "brass", 0.88, 0.46, (1.0, 0.88, 0.44)),
+        ("FF_bronze", "brass", 0.72, 1.0, (0.76, 0.46, 0.18)),
+        ("FF_copper", "copper", 0.82, 0.88, (0.96, 0.52, 0.26)),
         ("FF_verdigris", "copper", 0.4, 1.1, (0.28, 0.55, 0.40)),
         ("FF_rust", "rust", 0.28, 1.15, (0.72, 0.38, 0.14)),
         ("FF_wood", "wood", 0.02, 1.0, (0.55, 0.36, 0.16)),
