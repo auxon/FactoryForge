@@ -124,6 +124,35 @@ def plate_grid(w: int, h: int, n: int = 6, grout: int = 2) -> np.ndarray:
     return img
 
 
+def rivet_dimples(w: int, h: int, n: int = 8, radius: float = 7.0) -> np.ndarray:
+    """Raised hex-rivet bumps sitting in each plate, readable at game distance."""
+    img = np.zeros((h, w), dtype=np.float32)
+    tw, th = w / n, h / n
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    for i in range(n):
+        for j in range(n):
+            cx = (j + 0.5) * tw
+            cy = (i + 0.5) * th
+            d = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+            ring = np.exp(-((d - radius * 0.42) ** 2) / (2.0 * (radius * 0.16) ** 2))
+            cap = np.clip(1.0 - d / (radius * 0.55), 0, 1) ** 2
+            img = np.maximum(img, ring * 0.9 + cap * 0.45)
+    return np.clip(img, 0, 1)
+
+
+def edge_wear(plates: np.ndarray, n: np.ndarray) -> np.ndarray:
+    """Bright worn metal along plate seams."""
+    seam = np.clip(1.0 - plates, 0, 1)
+    return np.clip(seam * (0.55 + n * 0.45), 0, 1)
+
+
+def soot_streaks(w: int, h: int, seed: int) -> np.ndarray:
+    n = fbm(w, h, 3.5, 5, seed)
+    yy = np.linspace(0, 1, h, dtype=np.float32)[:, None]
+    fall = np.clip(n * 0.7 + yy * 0.35, 0, 1)
+    return np.clip(fall - 0.42, 0, 1) * 1.4
+
+
 def mix(a: np.ndarray, b: np.ndarray, t: np.ndarray) -> np.ndarray:
     t = t[..., None] if t.ndim == 2 and a.ndim == 3 else t
     return a * (1 - t) + b * t
@@ -149,15 +178,23 @@ def iron(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     sc = scratches(w, h, 91, 110, 0.55)
     rust = np.clip(fbm(w, h, 8, 4, 73) - 0.58, 0, 1) * 1.4
     plates = plate_grid(w, h, 5, 2)
-    height = 0.5 + n1 * 0.16 + n2 * 0.08 - sc * 0.1 - rust * 0.06 + plates * 0.12
-    base = to_rgb(0.62 + n1 * 0.25, (0.62, 0.58, 0.52))
-    dark = to_rgb(0.4 + n2 * 0.15, (0.38, 0.34, 0.30))
-    rust_c = to_rgb(0.7 + n2 * 0.15, (0.62, 0.32, 0.12))
-    albedo = mix(mix(base, dark, dirt * 0.4), rust_c, np.clip(rust, 0, 1) * 0.55)
-    albedo = mix(albedo, albedo * 0.72, (1 - plates) * 0.8)
-    albedo = mix(albedo, albedo * 0.7, sc * 0.5)
-    rough = np.clip(0.42 + n2 * 0.22 + rust * 0.18 - sc * 0.06, 0.25, 0.88)
-    return albedo, height_to_normal(height, 6.5), rough
+    rivets = rivet_dimples(w, h, 5, 9.0)
+    wear = edge_wear(plates, n1)
+    grim = soot_streaks(w, h, 51)
+    height = (0.5 + n1 * 0.16 + n2 * 0.08 - sc * 0.1 - rust * 0.06
+              + plates * 0.12 + rivets * 0.22)
+    base = to_rgb(0.68 + n1 * 0.22, (0.68, 0.62, 0.54))
+    dark = to_rgb(0.48 + n2 * 0.12, (0.46, 0.40, 0.34))
+    rust_c = to_rgb(0.72 + n2 * 0.12, (0.70, 0.38, 0.14))
+    highlight = to_rgb(0.82, (0.82, 0.76, 0.64))
+    albedo = mix(mix(base, dark, dirt * 0.32), rust_c, np.clip(rust, 0, 1) * 0.42)
+    albedo = mix(albedo, albedo * 0.78, (1 - plates) * 0.7)
+    albedo = mix(albedo, albedo * 0.74, sc * 0.4)
+    albedo = mix(albedo, highlight, wear * 0.55)
+    albedo = mix(albedo, albedo * 0.72, grim * 0.35)
+    albedo = mix(albedo, to_rgb(0.7, (0.78, 0.62, 0.32)), rivets * 0.35)
+    rough = np.clip(0.38 + n2 * 0.2 + rust * 0.16 - sc * 0.08 - wear * 0.12, 0.22, 0.86)
+    return albedo, height_to_normal(height, 7.2), rough
 
 
 def brass(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -166,15 +203,22 @@ def brass(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     tarnish = np.clip(fbm(w, h, 3.5, 5, 41) - 0.42, 0, 1)
     sc = scratches(w, h, 7, 70, 0.4)
     plates = plate_grid(w, h, 4, 1)
-    height = 0.52 + n1 * 0.12 + n2 * 0.06 - tarnish * 0.08 - sc * 0.06 + plates * 0.08
-    polish = to_rgb(0.78 + n1 * 0.18, (0.90, 0.70, 0.28))
-    aged = to_rgb(0.55 + n2 * 0.15, (0.62, 0.42, 0.16))
-    green = to_rgb(0.45, (0.32, 0.48, 0.28))
-    albedo = mix(mix(polish, aged, tarnish * 0.55), green, tarnish * tarnish * 0.22)
-    albedo = mix(albedo, albedo * 0.78, (1 - plates) * 0.6)
-    albedo = mix(albedo, albedo * 0.75, sc * 0.5)
-    rough = np.clip(0.22 + tarnish * 0.32 + n2 * 0.1 + sc * 0.06, 0.12, 0.7)
-    return albedo, height_to_normal(height, 4.2), rough
+    rivets = rivet_dimples(w, h, 4, 8.0)
+    wear = edge_wear(plates, n1)
+    # patchy patina, not a full-tint greening
+    patina = np.clip(tarnish * tarnish * 1.6 - 0.15, 0, 1)
+    height = (0.52 + n1 * 0.12 + n2 * 0.06 - tarnish * 0.08 - sc * 0.06
+              + plates * 0.08 + rivets * 0.16)
+    polish = to_rgb(0.86 + n1 * 0.14, (0.96, 0.74, 0.30))
+    aged = to_rgb(0.62 + n2 * 0.12, (0.72, 0.48, 0.18))
+    green = to_rgb(0.5, (0.34, 0.52, 0.32))
+    albedo = mix(mix(polish, aged, tarnish * 0.42), green, patina * 0.38)
+    albedo = mix(albedo, albedo * 0.82, (1 - plates) * 0.5)
+    albedo = mix(albedo, albedo * 0.8, sc * 0.4)
+    albedo = mix(albedo, to_rgb(0.92, (1.0, 0.86, 0.46)), wear * 0.45)
+    albedo = mix(albedo, to_rgb(0.8, (0.88, 0.64, 0.28)), rivets * 0.3)
+    rough = np.clip(0.18 + tarnish * 0.28 + n2 * 0.1 + sc * 0.05 - wear * 0.08, 0.1, 0.68)
+    return albedo, height_to_normal(height, 4.8), rough
 
 
 def rust(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -192,15 +236,17 @@ def rust(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 def copper(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n1 = fbm(w, h, 6, 5, 31)
-    patina = np.clip(fbm(w, h, 4, 5, 67) - 0.5, 0, 1) * 1.3
+    patina = np.clip(fbm(w, h, 4, 5, 67) - 0.55, 0, 1) * 1.5
     sc = scratches(w, h, 37, 50, 0.45)
-    height = 0.5 + n1 * 0.12 - patina * 0.08
-    metal = to_rgb(0.7 + n1 * 0.2, (0.82, 0.42, 0.22))
-    verdi = to_rgb(0.5 + n1 * 0.12, (0.22, 0.52, 0.40))
-    albedo = mix(metal, verdi, np.clip(patina, 0, 1) * 0.55)
-    albedo = mix(albedo, albedo * 0.75, sc * 0.45)
-    rough = np.clip(0.28 + patina * 0.3 + n1 * 0.1, 0.16, 0.75)
-    return albedo, height_to_normal(height, 4.0), rough
+    solder = plate_grid(w, h, 6, 1)
+    height = 0.5 + n1 * 0.12 - patina * 0.08 + solder * 0.06
+    metal = to_rgb(0.78 + n1 * 0.16, (0.90, 0.48, 0.24))
+    verdi = to_rgb(0.55 + n1 * 0.1, (0.28, 0.56, 0.42))
+    albedo = mix(metal, verdi, np.clip(patina, 0, 1) * 0.42)
+    albedo = mix(albedo, albedo * 0.8, sc * 0.35)
+    albedo = mix(albedo, to_rgb(0.85, (0.96, 0.62, 0.32)), (1 - solder) * 0.25)
+    rough = np.clip(0.24 + patina * 0.28 + n1 * 0.1, 0.14, 0.72)
+    return albedo, height_to_normal(height, 4.4), rough
 
 
 def wood(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -222,26 +268,30 @@ def brick(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     mask = brick_mask(w, h, 6, 10)
     n = fbm(w, h, 12, 4, 44)
     soot = fbm(w, h, 3, 4, 88)
+    grim = soot_streaks(w, h, 88)
     height = 0.35 + mask * 0.35 + n * 0.1
-    clay = to_rgb(0.7 + n * 0.2, (0.68, 0.32, 0.20))
-    soot_c = to_rgb(0.35 + soot * 0.1, (0.22, 0.16, 0.12))
-    mortar = to_rgb(0.55 + n * 0.08, (0.55, 0.48, 0.40))
-    albedo = mix(clay, soot_c, np.clip(soot - 0.35, 0, 1) * 0.4)
+    clay = to_rgb(0.74 + n * 0.18, (0.74, 0.38, 0.24))
+    soot_c = to_rgb(0.42 + soot * 0.1, (0.32, 0.24, 0.18))
+    mortar = to_rgb(0.6 + n * 0.08, (0.62, 0.54, 0.44))
+    albedo = mix(clay, soot_c, np.clip(soot - 0.32, 0, 1) * 0.38)
+    albedo = mix(albedo, albedo * 0.72, grim * 0.32)
     albedo = mix(mortar, albedo, mask)
-    rough = np.clip(0.72 + n * 0.12, 0.55, 0.95)
-    return albedo, height_to_normal(height, 7.0), rough
+    rough = np.clip(0.7 + n * 0.12, 0.52, 0.95)
+    return albedo, height_to_normal(height, 7.2), rough
 
 
 def concrete(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n1 = fbm(w, h, 5, 5, 2)
     n2 = fbm(w, h, 20, 4, 14)
     stain = np.clip(fbm(w, h, 3, 4, 33) - 0.55, 0, 1)
-    height = 0.5 + n1 * 0.16 + n2 * 0.08 - stain * 0.06
-    base = to_rgb(0.7 + n1 * 0.15, (0.58, 0.54, 0.48))
-    dirt = to_rgb(0.45, (0.40, 0.30, 0.20))
-    albedo = mix(base, dirt, stain * 0.55 + n2 * 0.12)
-    rough = np.clip(0.78 + n2 * 0.1, 0.65, 0.95)
-    return albedo, height_to_normal(height, 5.0), rough
+    cobble = plate_grid(w, h, 7, 2)
+    height = 0.5 + n1 * 0.16 + n2 * 0.08 - stain * 0.06 + cobble * 0.1
+    base = to_rgb(0.72 + n1 * 0.14, (0.62, 0.56, 0.48))
+    dirt = to_rgb(0.5, (0.46, 0.34, 0.22))
+    albedo = mix(base, dirt, stain * 0.5 + n2 * 0.1)
+    albedo = mix(albedo, albedo * 0.86, (1 - cobble) * 0.45)
+    rough = np.clip(0.76 + n2 * 0.1, 0.62, 0.95)
+    return albedo, height_to_normal(height, 5.4), rough
 
 
 def soot(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -249,13 +299,16 @@ def soot(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     n2 = fbm(w, h, 16, 4, 99)
     sc = scratches(w, h, 55, 40, 0.7)
     plates = plate_grid(w, h, 5, 2)
-    height = 0.42 + n1 * 0.18 + n2 * 0.08 + plates * 0.1
-    albedo = to_rgb(0.45 + n1 * 0.2, (0.28, 0.24, 0.20))
-    albedo = mix(albedo, to_rgb(0.5, (0.36, 0.22, 0.12)), n2 * 0.3)
-    albedo = mix(albedo, albedo * 0.75, (1 - plates) * 0.7)
-    albedo = mix(albedo, albedo * 1.15, sc * 0.35)
-    rough = np.clip(0.58 + n2 * 0.18, 0.4, 0.9)
-    return albedo, height_to_normal(height, 4.5), rough
+    grim = soot_streaks(w, h, 81)
+    height = 0.46 + n1 * 0.16 + n2 * 0.08 + plates * 0.1
+    # Keep soot readable at game distance: warm charcoal, not near-black.
+    albedo = to_rgb(0.58 + n1 * 0.18, (0.42, 0.36, 0.30))
+    albedo = mix(albedo, to_rgb(0.55, (0.48, 0.30, 0.16)), n2 * 0.28)
+    albedo = mix(albedo, albedo * 0.82, (1 - plates) * 0.55)
+    albedo = mix(albedo, albedo * 0.7, grim * 0.4)
+    albedo = mix(albedo, albedo * 1.18, sc * 0.3)
+    rough = np.clip(0.52 + n2 * 0.18, 0.36, 0.88)
+    return albedo, height_to_normal(height, 4.8), rough
 
 
 def leather(w: int, h: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

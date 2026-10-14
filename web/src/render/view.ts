@@ -16,7 +16,7 @@ export class View {
   camera: THREE.PerspectiveCamera;
   game: Game;
   target = new THREE.Vector3(0.5, 0, 0.5);
-  zoom = 24;
+  zoom = 12;
   yaw = Math.PI / 4;
   followPlayer = true;
   ghostId: string | null = null;
@@ -67,30 +67,33 @@ export class View {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.28;
+    this.renderer.toneMappingExposure = 1.34;
     container.appendChild(this.renderer.domElement);
 
-    this.scene.background = new THREE.Color(0x7d93a6);
-    this.scene.fog = new THREE.Fog(0x7d93a6, 64, 165);
+    this.scene.background = new THREE.Color(0x8a9aaa);
+    this.scene.fog = new THREE.Fog(0x9aa8b0, 38, 128);
 
     this.camera = new THREE.PerspectiveCamera(
       50, container.clientWidth / container.clientHeight, 0.1, 600);
 
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.02).texture;
-    this.scene.environmentIntensity = 0.95;
+    this.scene.environmentIntensity = 1.05;
     pmrem.dispose();
 
-    const sun = new THREE.DirectionalLight(0xffe6c0, 2.85);
-    sun.position.set(36, 52, 22);
+    const sun = new THREE.DirectionalLight(0xffd4a0, 3.05);
+    sun.position.set(32, 44, 18);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
     sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
     sun.shadow.camera.far = 200;
     this.scene.add(sun);
-    this.scene.add(new THREE.AmbientLight(0xfff4e4, 0.45));
-    this.scene.add(new THREE.HemisphereLight(0xffe2b8, 0x4a3a28, 0.62));
+    const rim = new THREE.DirectionalLight(0xb8d0ee, 1.05);
+    rim.position.set(-28, 18, -32);
+    this.scene.add(rim);
+    this.scene.add(new THREE.AmbientLight(0xfff0dc, 0.36));
+    this.scene.add(new THREE.HemisphereLight(0xffe8c4, 0x5a4a38, 0.55));
 
     // ground: baked PBR zone canvas (grass/dirt/sand per world features)
     const zoneTex = new THREE.CanvasTexture(
@@ -118,8 +121,8 @@ export class View {
     const detail = new THREE.Mesh(
       new THREE.PlaneGeometry(400, 400),
       new THREE.MeshStandardMaterial({
-        map: gDiff, normalMap: gNor, normalScale: new THREE.Vector2(0.6, 0.6),
-        transparent: true, opacity: 0.42, roughness: 1,
+        map: gDiff, normalMap: gNor, normalScale: new THREE.Vector2(0.7, 0.7),
+        transparent: true, opacity: 0.38, roughness: 1,
         depthWrite: false,
       }),
     );
@@ -127,10 +130,29 @@ export class View {
     detail.position.y = 0.015;
     detail.renderOrder = 1;
     this.scene.add(detail);
-    const grid = new THREE.GridHelper(400, 400, 0x4a6a4a, 0x3d5c3d);
-    grid.position.y = 0.02;
+    const dDiff = texLoader.load(T('dirt_Diffuse.jpg'));
+    dDiff.wrapS = dDiff.wrapT = THREE.RepeatWrapping;
+    dDiff.repeat.set(70, 70);
+    dDiff.colorSpace = THREE.SRGBColorSpace;
+    const dNor = texLoader.load(T('dirt_nor_gl.png'));
+    dNor.wrapS = dNor.wrapT = THREE.RepeatWrapping;
+    dNor.repeat.set(70, 70);
+    const dirt = new THREE.Mesh(
+      new THREE.PlaneGeometry(400, 400),
+      new THREE.MeshStandardMaterial({
+        map: dDiff, normalMap: dNor, normalScale: new THREE.Vector2(0.85, 0.85),
+        transparent: true, opacity: 0.22, roughness: 1,
+        depthWrite: false,
+      }),
+    );
+    dirt.rotation.x = -Math.PI / 2;
+    dirt.position.y = 0.018;
+    dirt.renderOrder = 2;
+    this.scene.add(dirt);
+    const grid = new THREE.GridHelper(400, 400, 0x6a5a42, 0x5a4c38);
+    grid.position.y = 0.022;
     (grid.material as THREE.Material).transparent = true;
-    (grid.material as THREE.Material).opacity = 0.35;
+    (grid.material as THREE.Material).opacity = 0.16;
     this.scene.add(grid);
 
     this.buildPlayer();
@@ -163,7 +185,7 @@ export class View {
     this.smokeGeo = new THREE.BufferGeometry();
     this.smokeGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     this.smokePts = new THREE.Points(this.smokeGeo, new THREE.PointsMaterial({
-      color: 0xddd4c4, size: 0.68, transparent: true, opacity: 0.38,
+      color: 0xeee4d4, size: 0.86, transparent: true, opacity: 0.34,
       depthWrite: false,
     }));
     this.smokePts.frustumCulled = false;
@@ -239,8 +261,8 @@ export class View {
         this.hoverTile = [Math.floor(pt.x), Math.floor(pt.z)];
       }
       if (rmbDown) {
-        const dx = (e.clientX - lastX) * 0.02 * (this.zoom / 24);
-        const dy = (e.clientY - lastY) * 0.02 * (this.zoom / 24);
+        const dx = (e.clientX - lastX) * 0.02 * (this.zoom / 12);
+        const dy = (e.clientY - lastY) * 0.02 * (this.zoom / 12);
         const cos = Math.cos(this.yaw), sin = Math.sin(this.yaw);
         this.target.x -= dx * cos - dy * sin;
         this.target.z -= dy * cos + dx * sin;
@@ -748,7 +770,7 @@ export class View {
 
   private poseEnemy(grp: THREE.Group, walking: boolean, attacking: boolean): void {
     let a = grp.userData.actor as ActorAnim | undefined;
-    if (!a) {
+    if (!a || a.legs.length < 2) {
       a = this.glb.collectActor(grp);
       grp.userData.actor = a;
     }
@@ -927,9 +949,9 @@ export class View {
       d.life += 0.008;
       if (d.life >= 1 || !em) {
         if (em && Math.random() < emitters.length / 64 + 0.1) {
-          d.x = em.x + (Math.random() - 0.5) * 0.3;
+          d.x = em.x + (Math.random() - 0.5) * 0.42;
           d.y = em.y;
-          d.z = em.z + (Math.random() - 0.5) * 0.3;
+          d.z = em.z + (Math.random() - 0.5) * 0.42;
           d.life = 0;
         } else {
           d.y = -999;
@@ -938,8 +960,8 @@ export class View {
         }
       }
       void P;
-      d.y += 0.03;
-      d.x += 0.008;
+      d.y += 0.026;
+      d.x += 0.01 + (d.life - 0.5) * 0.006;
       pos.setXYZ(i, d.x, d.y, d.z);
     }
     pos.needsUpdate = true;
@@ -952,7 +974,7 @@ export class View {
       this.target.z += (this.game.player.y - this.target.z) * Math.min(1, dt * 5);
     }
     // keep shadow frustum near camera target
-    const pit = 0.9;
+    const pit = 0.68;
     this.camera.position.set(
       this.target.x + Math.cos(this.yaw) * this.zoom * Math.cos(pit),
       this.zoom * Math.sin(pit),

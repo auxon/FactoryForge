@@ -40,6 +40,9 @@ gear(C, "CrankGear", 0.16, 10, 0.05, (-0.14, 0.35, -0.22), "FF_bronze", axis="x"
 op = cyl(C, "Outlet", 0.045, 0.045, 0.48, (-0.32, 0.24, 0.28), "FF_copper", verts=8, centered=True)
 op.rotation_euler = (0, _m.pi / 2, 0)
 flange(C, (-0.55, 0.24, 0.28), r=0.08, axis="x", material="FF_brass")
+steam_vent(C, (0.28, 0.42, -0.32), r=0.03, h=0.12)
+gauge(C, (0.38, 0.38, -0.12), facing="x", r=0.045)
+valve(C, (-0.28, 0.42, 0.28), r=0.055)
 
 frame_camera_target(target=(0, 0.6, 0), dist=4.5)
 print("pumpjack done")

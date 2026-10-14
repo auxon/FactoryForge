@@ -29,6 +29,9 @@ for s in (-1, 1):
 lamp(C, (0, 0.6, -0.3), r=0.04)
 # steam/pneumatic hose
 pipe(C, "Hose", 0.025, (0.12, 0.35, -0.28), (0.18, 0.6, 0.05), "FF_copper")
+gauge(C, (0.22, 0.38, -0.12), facing="x", r=0.045)
+steam_vent(C, (-0.18, 0.38, -0.22), r=0.028, h=0.1)
+rivet_row(C, (-0.18, 0.14, 0.22), (0.18, 0.14, 0.22), n=3, r=0.016, h=0.022)
 
 frame_camera_target(target=(0, 0.4, 0), dist=3.5)
 print("inserter done")
